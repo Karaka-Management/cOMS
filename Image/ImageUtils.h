@@ -1,8 +1,6 @@
 /**
  * Karaka
  *
- * PHP Version 8.0
- *
  * @package   Image
  * @copyright Dennis Eichhorn
  * @license   OMS License 1.0

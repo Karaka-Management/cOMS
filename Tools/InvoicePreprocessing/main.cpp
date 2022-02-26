@@ -1,8 +1,6 @@
 /**
  * Karaka
  *
- * PHP Version 8.0
- *
  * @package   App
  * @copyright Dennis Eichhorn
  * @license   OMS License 1.0
@@ -15,7 +13,7 @@
 #include "../../Image/Skew.h"
 #include "../../Image/Thresholding.h"
 
-int main(int argc, char** argv )
+int main(int argc, char** argv)
 {
     if (argc != 3) {
         printf("A input image and a output image is required\n");
