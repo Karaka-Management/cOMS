@@ -25,9 +25,9 @@ int main(int argc, char** argv)
     ASSERT_EQUALS(black, 0.0, "%f", "%f");
 
     float other = Image::ImageUtils::lightnessFromRgb(125, 125, 125);
-    ASSERT_EQUALS__DELTA(other, 0.524, 0.00001, "%f", "%f");
+    ASSERT_EQUALS__DELTA(other, 0.524, 0.001, "%f", "%f");
 
-    printf("\n");
+    printf("\n\n");
 
     return 0;
 }

@@ -15,20 +15,14 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 
-#define deg2rad(angle) \
-    ({ __typeof__ (angle) _angle = (angle); \
-        (_angle) * M_PI / 180.0; })
-
-#define rad2deg(angle) \
-    ({ __typeof__ (angle) _angle = (angle); \
-        (_angle) * 180.0 / M_PI; })
+#include "../Utils/MathUtils.h"
 
 namespace Image {
     class Skew {
         private:
 
         public:
-            static inline
+            static
             cv::Mat deskewHoughLines(cv::Mat in, int maxDegree = 45)
             {
                 cv::Size dim = in.size();
