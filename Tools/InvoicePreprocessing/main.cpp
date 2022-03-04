@@ -16,6 +16,8 @@
 #include "../../Image/Thresholding.h"
 #include "../../Image/BillDetection.h"
 
+const bool DEBUG = false;
+
 int main(int argc, char** argv)
 {
     if (argc != 3) {
@@ -38,22 +40,20 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    /*
-    std::vector<std::vector<cv::Point>> squares;
-    Image::BillDetection::findSquares(in, squares);
-    Image::BillDetection::debugSquares(squares, in);
-    */
+    cv::Mat out = in.clone();
 
-    cv::Mat out = Image::Thresholding::integralThresholding(in);
+    out = Image::BillDetection::highlightBill(out);
+    if (DEBUG) cv::imshow("bill_detection", out);
+
+    out = Image::Thresholding::integralThresholding(out);
+    if (DEBUG) cv::imshow("thresholding", out);
+
     out = Image::Skew::deskewHoughLines(out);
+    if (DEBUG) cv::imshow("rotation", out);
 
     cv::imwrite(argv[2], out);
 
-    /*
-    cv::imshow("in", in);
-    cv::imshow("out", out);
-    cv::waitKey(0);
-    */
+    if (DEBUG) cv::waitKey(0);
 
     return 0;
 }
