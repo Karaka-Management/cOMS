@@ -35,7 +35,7 @@ namespace Image {
                     sum = 0.0;
 
                     for (int j = 0; j < dim.height; ++j) {
-                        bgr = in.at<cv::Vec3b>(j, i);
+                        bgr  = in.at<cv::Vec3b>(j, i);
                         sum += Image::ImageUtils::lightnessFromRgb(bgr[2], bgr[1], bgr[0]);
 
                         intImg[i][j] = i == 0 ? sum : intImg[i - 1][j] + sum;
@@ -65,7 +65,7 @@ namespace Image {
                         bgr = in.at<cv::Vec3b>(j, i);
                         brightness = (float) Image::ImageUtils::lightnessFromRgb(bgr[2], bgr[1], bgr[0]);
 
-                        color = brightness * count <= (sum * (100.0 - t) / 100.0) && brightness < 0.9 ? 0 : 255;
+                        color = brightness * count <= (sum * (100.0 - t) / 100.0) && brightness < 0.95 ? 0 : 255;
 
                         out.at<cv::Vec3b>(j, i)[0] = color;
                         out.at<cv::Vec3b>(j, i)[1] = color;

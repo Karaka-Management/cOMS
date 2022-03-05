@@ -70,7 +70,6 @@ namespace Image {
                     cv::approxPolyDP(cv::Mat(contoursArea[i]), contoursDraw[i], 40, true);
                 }
 
-
                 cv::Mat mask = cv::Mat(in.size(), CV_8UC3, cv::Scalar(255, 255, 255));
                 cv::drawContours(mask, contoursDraw, -1, cv::Scalar(0, 0, 0), cv::FILLED, 1);
 

@@ -29,7 +29,7 @@ namespace Image {
                 float lG = vG <= 0.04045 ? vG / 12.92 : pow(((vG + 0.055) / 1.055), 2.4);
                 float lB = vB <= 0.04045 ? vB / 12.92 : pow(((vB + 0.055) / 1.055), 2.4);
 
-                float y = 0.2126 * lR + 0.7152 * lG + 0.0722 * lB;
+                float y     = 0.2126 * lR + 0.7152 * lG + 0.0722 * lB;
                 float lStar = y <= 216.0 / 24389.0 ? y * 24389.0 / 27.0 : pow(y, (1.0 / 3.0)) * 116.0 - 16.0;
 
                 return lStar / 100.0;

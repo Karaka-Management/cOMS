@@ -51,6 +51,8 @@ int main(int argc, char** argv)
     out = Image::Skew::deskewHoughLines(out);
     if (DEBUG) cv::imshow("rotation", out);
 
+    if (DEBUG) cv::imshow("original", in);
+
     cv::imwrite(argv[2], out);
 
     if (DEBUG) cv::waitKey(0);
