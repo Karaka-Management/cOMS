@@ -1,7 +1,7 @@
 /**
  * Karaka
  *
- * @package   Image
+ * @package   Utils
  * @copyright Dennis Eichhorn
  * @license   OMS License 1.0
  * @version   1.0.0

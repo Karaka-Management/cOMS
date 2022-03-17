@@ -63,7 +63,7 @@ namespace Image {
                         sum   = intImg[x2][y2] - intImg[x2][y1 - 1] - intImg[x1 - 1][y2] + intImg[x1 - 1][y1 - 1];
 
                         bgr = in.at<cv::Vec3b>(j, i);
-                        brightness = (float) Image::ImageUtils::lightnessFromRgb(bgr[2], bgr[1], bgr[0]);
+                        brightness = Image::ImageUtils::lightnessFromRgb(bgr[2], bgr[1], bgr[0]);
 
                         color = brightness * count <= (sum * (100.0 - t) / 100.0) && brightness < 0.95 ? 0 : 255;
 
