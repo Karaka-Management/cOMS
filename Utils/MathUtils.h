@@ -10,7 +10,7 @@
 #ifndef UTILS_MATH_UTILS_H
 #define UTILS_MATH_UTILS_H
 
-# define OMS_PI 3.14159265358979323846
+#define OMS_PI 3.14159265358979323846
 
 #define max(a, b) \
     ({ __typeof__ (a) _a = (a); \
