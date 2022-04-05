@@ -20,6 +20,10 @@
         __typeof__ (b) _b = (b); \
         _a < _b ? _a : _b; })
 
+#define abs(a) \
+    ({ __typeof__ (a) _a = (a); \
+        _a > 0 ? _a : -_a; })
+
 #define deg2rad(angle) \
     ({ __typeof__ (angle) _angle = (angle); \
         (_angle) * M_PI / 180.0; })
