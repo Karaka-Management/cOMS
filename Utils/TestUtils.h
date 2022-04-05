@@ -25,7 +25,7 @@
             return 0; } \
     })
 
-#define ASSERT_EQUALS__DELTA(a, b, delta, t1, t2) \
+#define ASSERT_EQUALS_WITH_DELTA(a, b, delta, t1, t2) \
     ({ __typeof__ (a) _a = (a); \
         __typeof__ (b) _b = (b); \
         if (abs(_a - _b) <= delta) { \

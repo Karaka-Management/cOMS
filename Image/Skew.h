@@ -11,7 +11,6 @@
 #define IMAGE_SKEW_H
 
 #include <stdio.h>
-#include <math.h>
 #include <opencv2/opencv.hpp>
 #include <vector>
 
@@ -32,26 +31,26 @@ namespace Image {
                 cv::threshold(inv, inv, 0, 255, cv::THRESH_BINARY_INV | cv::THRESH_OTSU);
 
                 std::vector<cv::Vec4i> lines;
-                cv::HoughLinesP(inv, lines, 1.0, M_PI / 180, 200, dim.width / 12, dim.width / 150);
+                cv::HoughLinesP(inv, lines, 1.0, OMS_PI / 180, 200, dim.width / 12, dim.width / 150);
 
-                int imageOrientation = 0; // > 0 -> horizontal
+                int imageOrientation = 0; // > 0 -> image is horizontal
 
                 std::vector<float> tmpAngles;
                 for (int i = 0; i < lines.size(); ++i) {
                     float angle = atan2(lines[i][3] - lines[i][1], lines[i][2] - lines[i][0]);
                     tmpAngles.push_back(angle);
 
-                    imageOrientation += abs(angle) > M_PI / 4 ? 1 : -1;
+                    imageOrientation += oms_abs(angle) > OMS_PI / 4 ? 1 : -1;
                 }
 
                 std::vector<float> angles;
                 for (int i = 0; i < tmpAngles.size(); ++i) {
                     if (imageOrientation > 0) {
-                        if (deg2rad(90 - maxDegree) < abs(tmpAngles[i]) < deg2rad(90 + maxDegree)) {
+                        if (oms_deg2rad(90 - maxDegree) < oms_abs(tmpAngles[i]) < oms_deg2rad(90 + maxDegree)) {
                             angles.push_back(tmpAngles[i]);
                         }
                     } else {
-                        if (abs(tmpAngles[i]) < deg2rad(maxDegree)) {
+                        if (oms_abs(tmpAngles[i]) < oms_deg2rad(maxDegree)) {
                             angles.push_back(tmpAngles[i]);
                         }
                     }
@@ -66,7 +65,7 @@ namespace Image {
                     median += angles[i];
                 }
 
-                float angleDeg = rad2deg(median / angles.size());
+                float angleDeg = oms_rad2deg(median / angles.size());
 
                 cv::Mat orientFix;
                 if (imageOrientation > 0) {

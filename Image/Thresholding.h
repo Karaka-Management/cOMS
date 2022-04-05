@@ -53,11 +53,11 @@ namespace Image {
 
                 for (int i = 0; i < dim.width; ++i) {
                     for (int j = 0; j < dim.height; ++j) {
-                        x1 = max(1, i - s / 2.0);
-                        x2 = min(i + s / 2.0, dim.width - 1);
+                        x1 = oms_max(1, i - s / 2.0);
+                        x2 = oms_min(i + s / 2.0, dim.width - 1);
 
-                        y1 = max(1, j - s / 2.0);
-                        y2 = min(j + s / 2.0, dim.height - 1);
+                        y1 = oms_max(1, j - s / 2.0);
+                        y2 = oms_min(j + s / 2.0, dim.height - 1);
 
                         count = (x2 - x1) * (y2 - y1);
                         sum   = intImg[x2][y2] - intImg[x2][y1 - 1] - intImg[x1 - 1][y2] + intImg[x1 - 1][y1 - 1];

@@ -11,11 +11,8 @@
 #define IMAGE_BILL_DETECTION_H
 
 #include <stdio.h>
-#include <math.h>
 #include <opencv2/opencv.hpp>
 #include <vector>
-
-#include "../Utils/MathUtils.h"
 
 namespace Image {
     class BillDetection {
