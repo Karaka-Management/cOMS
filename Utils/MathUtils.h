@@ -10,6 +10,8 @@
 #ifndef UTILS_MATH_UTILS_H
 #define UTILS_MATH_UTILS_H
 
+# define OMS_PI 3.14159265358979323846
+
 #define max(a, b) \
     ({ __typeof__ (a) _a = (a); \
         __typeof__ (b) _b = (b); \
@@ -26,7 +28,7 @@
 
 #define deg2rad(angle) \
     ({ __typeof__ (angle) _angle = (angle); \
-        (_angle) * M_PI / 180.0; })
+        (_angle) * OMS_PI / 180.0; })
 
 #define rad2deg(angle) \
     ({ __typeof__ (angle) _angle = (angle); \
