@@ -11,7 +11,7 @@
 #define UTILS_TEST_UTILS_H
 
 #include <stdio.h>
-#include <math.h>
+#include "MathUtils.h"
 
 #define ASSERT_EQUALS(a, b, t1, t2) \
     ({ __typeof__ (a) _a = (a); \
@@ -28,7 +28,7 @@
 #define ASSERT_EQUALS_WITH_DELTA(a, b, delta, t1, t2) \
     ({ __typeof__ (a) _a = (a); \
         __typeof__ (b) _b = (b); \
-        if (abs(_a - _b) <= delta) { \
+        if (oms_abs(_a - _b) <= delta) { \
             printf("."); \
         } else { \
             printf("F"); \
