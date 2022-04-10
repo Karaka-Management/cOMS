@@ -1,0 +1,24 @@
+name: CI/CD
+
+on: [push]
+
+jobs:
+  code-tests:
+    strategy:
+      matrix:
+        platform: [x86, x64]
+        os: [ubuntu-latest]
+    runs-on: '${{ matrix.os }}'
+    name: 'Test: ${{ matrix.os }} / ${{ matrix.platform }}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up GCC
+        uses: ./
+        with:
+          platform: '${{ matrix.platform }}'
+          cc: 1
+    - name: tests
+      run: |
+        chmod +x ./tests/test.sh
+        ./tests/test.sh

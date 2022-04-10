@@ -1,3 +1,5 @@
 #!/bin/bash
 
-g++ Image/ImageUtilsTest.cpp -o Image/ImageUtilsTest && ./Image/ImageUtilsTest && rm Image/ImageUtilsTest
+BASEDIR=$(dirname "$(readlink -f "$0")")
+
+g++ $BASEDIR/Image/ImageUtilsTest.cpp -o $BASEDIR/Image/ImageUtilsTest && $BASEDIR/Image/ImageUtilsTest && rm $BASEDIR/Image/ImageUtilsTest
