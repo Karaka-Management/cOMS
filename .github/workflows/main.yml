@@ -15,7 +15,6 @@ jobs:
         uses: actions/checkout@master
         with:
           fetch-depth: 1
-          token: ${{ secrets.GITHUB }}
       - name: Set up GCC
         uses: ./
         with:
