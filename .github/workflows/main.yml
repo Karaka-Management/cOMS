@@ -21,7 +21,7 @@ jobs:
         with:
           platform: '${{ matrix.platform }}'
           cc: 1
-    - name: tests
-      run: |
-        chmod +x ./tests/test.sh
-        ./tests/test.sh
+      - name: Run tests
+        run: |
+          chmod +x ./tests/test.sh
+          ./tests/test.sh
