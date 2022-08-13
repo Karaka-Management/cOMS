@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 namespace Stdlib {
     class AssocArray {
@@ -38,7 +39,7 @@ namespace Stdlib {
             static
             int hash_index(assoc_arr *h, void *key)
             {
-                int i = (int) key % h->size;
+                int i = (*((int *) key)) % h->size;
                 while (h->keys[i] && h->keys[i] != key) {
                     i = (i + 1) % h->size;
                 }

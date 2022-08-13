@@ -19,7 +19,7 @@ namespace Utils {
 
         public:
             static inline
-            bool is_number (char *s)
+            bool is_number (const char *s)
             {
                 while (*s != '\0') {
                     if (!isdigit(*s)) {

@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../Stdlib/AssocArray.h"
 #include "StringUtils.h"
 
 namespace Utils {
@@ -23,19 +22,31 @@ namespace Utils {
 
         public:
             static inline
-            char* get_arg (char *id, Stdlib::AssocArray::assoc_arr *args)
+            char* get_arg (const char *id, char **argv, int length)
             {
                 if (Utils::StringUtils::is_number(id)) {
-                    return (char *) args->values[atoi(id)];
+                    return argv[atoi(id)];
                 }
 
-                return (char *) Stdlib::AssocArray::hash_lookup(args, id);
+                for (int i = 0; i < length - 1; ++i) {
+                    if (strcmp(id, argv[i]) == 0) {
+                        return argv[i + 1];
+                    }
+                }
+
+                return NULL;
             }
 
             static inline
-            bool has_arg (char *id, Stdlib::AssocArray::assoc_arr *args)
+            bool has_arg (const char *id, char **argv, int length)
             {
-                return Stdlib::AssocArray::hash_lookup(args, id) == NULL;
+                for (int i = 0; i < length; ++i) {
+                    if (strcmp(id, argv[i]) == 0) {
+                        return true;
+                    }
+                }
+
+                return false;
             }
     };
 }
