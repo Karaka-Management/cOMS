@@ -7,8 +7,8 @@
  * @version   1.0.0
  * @link      https://karaka.app
  */
-#ifndef UTILS_TEST_UTILS_H
-#define UTILS_TEST_UTILS_H
+#ifndef UTILS_FILE_UTILS_H
+#define UTILS_FILE_UTILS_H
 
 #ifdef _WIN32
 #include <unistd.h>
@@ -23,7 +23,8 @@ namespace Utils {
 
         public:
             static inline
-            bool file_exists (char *filename) {
+            bool file_exists (char *filename)
+            {
                 #ifdef _WIN32
                     return access(filename, F_OK) == 0;
                 #elif defined __linux__
