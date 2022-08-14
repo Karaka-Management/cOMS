@@ -62,6 +62,12 @@ namespace Stdlib {
 
                 return h->values[i];
             }
+
+            static
+            void has_free(assoc_arr *h)
+            {
+                free(h);
+            }
     };
 }
 
