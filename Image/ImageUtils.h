@@ -34,6 +34,16 @@ namespace Image {
 
                 return lStar / 100.0;
             }
+
+            static inline
+            int rgbToInt(int r, int g, int b)
+            {
+                int rgb = r;
+                rgb     = (rgb << 8) + g;
+                rgb     = (rgb << 8) + b;
+
+                return rgb;
+            }
     };
 }
 
