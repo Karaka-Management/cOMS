@@ -64,7 +64,7 @@ namespace Stdlib {
             }
 
             static
-            void has_free(assoc_arr *h)
+            void hash_free(assoc_arr *h)
             {
                 free(h);
             }
