@@ -25,7 +25,7 @@ namespace Image {
             cv::Mat integralThresholding(cv::Mat in)
             {
                 cv::Size dim = in.size();
-                cv::Mat out(in.size(), in.type());
+                cv::Mat out(dim, in.type());
 
                 float intImg[dim.width][dim.height];
                 float sum;
