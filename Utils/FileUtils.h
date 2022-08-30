@@ -11,10 +11,15 @@
 #define UTILS_FILE_UTILS_H
 
 #ifdef _WIN32
-#include <unistd.h>
-#include <stdbool.h>
+    #ifdef _MSC_VER
+        #include <io.h>
+    #else
+        #include <unistd.h>
+    #endif
+
+    #include <stdbool.h>
 #elif defined __linux__
-#include <sys/stat.h>
+    #include <sys/stat.h>
 #endif
 
 namespace Utils {
@@ -26,7 +31,11 @@ namespace Utils {
             bool file_exists (char *filename)
             {
                 #ifdef _WIN32
-                    return access(filename, F_OK) == 0;
+                    #ifdef _MSC_VER
+                        return _access_s(filename, 0) == 0;
+                    #else
+                        return access(filename, 0) == 0;
+                    #endif
                 #elif defined __linux__
                     struct stat buffer;
                     return stat(filename, &buffer) == 0;

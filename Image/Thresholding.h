@@ -27,7 +27,7 @@ namespace Image {
                 cv::Size dim = in.size();
                 cv::Mat out(dim, in.type());
 
-                float intImg[dim.width][dim.height];
+                float *intImg = (float *) malloc(dim.width * dim.height * sizeof(float));
                 float sum;
 
                 cv::Vec3b bgr;
@@ -38,7 +38,7 @@ namespace Image {
                         bgr  = in.at<cv::Vec3b>(j, i);
                         sum += Image::ImageUtils::lightnessFromRgb(bgr[2], bgr[1], bgr[0]);
 
-                        intImg[i][j] = i == 0 ? sum : intImg[i - 1][j] + sum;
+                        intImg[i * j] = i == 0 ? sum : intImg[(i - 1) * j] + sum;
                     }
                 }
 
@@ -60,7 +60,7 @@ namespace Image {
                         y2 = oms_min(j + s / 2.0, dim.height - 1);
 
                         count = (x2 - x1) * (y2 - y1);
-                        sum   = intImg[x2][y2] - intImg[x2][y1 - 1] - intImg[x1 - 1][y2] + intImg[x1 - 1][y1 - 1];
+                        sum   = intImg[x2 * y2] - intImg[x2 * (y1 - 1)] - intImg[(x1 - 1) * y2] + intImg[(x1 - 1) * (y1 - 1)];
 
                         bgr = in.at<cv::Vec3b>(j, i);
                         brightness = Image::ImageUtils::lightnessFromRgb(bgr[2], bgr[1], bgr[0]);
@@ -72,6 +72,8 @@ namespace Image {
                         out.at<cv::Vec3b>(j, i)[2] = color;
                     }
                 }
+
+                free(intImg);
 
                 return out;
             }
