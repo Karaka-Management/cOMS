@@ -22,7 +22,7 @@ namespace Utils {
 
         public:
             static inline
-            char* get_arg (const char *id, char **argv, int length)
+            char* get_arg(const char *id, char **argv, int length)
             {
                 if (Utils::StringUtils::is_number(id)) {
                     return argv[atoi(id)];
@@ -38,7 +38,7 @@ namespace Utils {
             }
 
             static inline
-            bool has_arg (const char *id, char **argv, int length)
+            bool has_arg(const char *id, char **argv, int length)
             {
                 for (int i = 0; i < length; ++i) {
                     if (strcmp(id, argv[i]) == 0) {

@@ -63,6 +63,7 @@ namespace Image {
 
                 // Approximate polygon
                 /* Question: we probably don't want a polygon all the time?! */
+                // @todo bad implementation, focus on single square
                 std::vector<std::vector<cv::Point> > contoursDraw (contoursArea.size());
                 for (int i = 0; i < contoursArea.size(); ++i){
                     cv::approxPolyDP(cv::Mat(contoursArea[i]), contoursDraw[i], 40, true);
