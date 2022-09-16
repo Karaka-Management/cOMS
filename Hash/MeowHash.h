@@ -117,56 +117,53 @@
 
 namespace Hash {
     namespace Meow {
-        #if !defined(MEOW_HASH_X64_AESNI_H)
-
         #define MEOW_HASH_VERSION 5
         #define MEOW_HASH_VERSION_NAME "0.5/calico"
 
         #if !defined(meow_u8)
+            #if _MSC_VER
+                #if !defined(__clang__)
+                    #define INSTRUCTION_REORDER_BARRIER _ReadWriteBarrier()
+                #else
+                #endif
 
-        #if _MSC_VER
-        #if !defined(__clang__)
-        #define INSTRUCTION_REORDER_BARRIER _ReadWriteBarrier()
-        #else
-        #endif
-        #include <intrin.h>
-        #else
-        #include <x86intrin.h>
-        #endif
+                #include <intrin.h>
+            #else
+                #include <x86intrin.h>
+            #endif
 
-        #define meow_u8 char unsigned
-        #define meow_u64 long long unsigned
-        #define meow_u128 __m128i
+            #define meow_u8 char unsigned
+            #define meow_u64 long long unsigned
+            #define meow_u128 __m128i
 
-        #if __x86_64__ || _M_AMD64
-        #define meow_umm long long unsigned
-        #define MeowU64From(A, I) (_mm_extract_epi64((A), (I)))
-        #elif __i386__  || _M_IX86
-        #define meow_umm int unsigned
-        #define MeowU64From(A, I) (*(meow_u64 *)&(A))
-        #else
-        #error Cannot determine architecture to use!
-        #endif
+            #if __x86_64__ || _M_AMD64
+                #define meow_umm long long unsigned
+                #define MeowU64From(A, I) (_mm_extract_epi64((A), (I)))
+            #elif __i386__  || _M_IX86
+                #define meow_umm int unsigned
+                #define MeowU64From(A, I) (*(meow_u64 *)&(A))
+            #else
+                #error Cannot determine architecture to use!
+            #endif
 
-        #define MeowU32From(A, I) (_mm_extract_epi32((A), (I)))
-        #define MeowHashesAreEqual(A, B) (_mm_movemask_epi8(_mm_cmpeq_epi8((A), (B))) == 0xFFFF)
+            #define MeowU32From(A, I) (_mm_extract_epi32((A), (I)))
+            #define MeowHashesAreEqual(A, B) (_mm_movemask_epi8(_mm_cmpeq_epi8((A), (B))) == 0xFFFF)
 
-        #if !defined INSTRUCTION_REORDER_BARRIER
-        #define INSTRUCTION_REORDER_BARRIER
-        #endif
+            #if !defined INSTRUCTION_REORDER_BARRIER
+                #define INSTRUCTION_REORDER_BARRIER
+            #endif
 
-        #if !defined MEOW_PAGESIZE
-        #define MEOW_PAGESIZE 4096
-        #endif
+            #if !defined MEOW_PAGESIZE
+                #define MEOW_PAGESIZE 4096
+            #endif
 
-        #if !defined MEOW_PREFETCH
-        #define MEOW_PREFETCH 4096
-        #endif
+            #if !defined MEOW_PREFETCH
+                #define MEOW_PREFETCH 4096
+            #endif
 
-        #if !defined MEOW_PREFETCH_LIMIT
-        #define MEOW_PREFETCH_LIMIT 0x3ff
-        #endif
-
+            #if !defined MEOW_PREFETCH_LIMIT
+                #define MEOW_PREFETCH_LIMIT 0x3ff
+            #endif
         #endif
 
         #define prefetcht0(A) _mm_prefetch((char *)(A), _MM_HINT_T0)
@@ -182,52 +179,52 @@ namespace Hash {
         #define pxor_clear(A, B)    A = _mm_setzero_si128(); // NOTE(casey): pxor_clear is a nonsense thing that is only here because compilers don't detect xor(a, a) is clearing a :(
 
         #define MEOW_MIX_REG(r1, r2, r3, r4, r5,  i1, i2, i3, i4) \
-        aesdec(r1, r2); \
-        INSTRUCTION_REORDER_BARRIER; \
-        paddq(r3, i1); \
-        pxor(r2, i2); \
-        aesdec(r2, r4); \
-        INSTRUCTION_REORDER_BARRIER; \
-        paddq(r5, i3); \
-        pxor(r4, i4);
+            aesdec(r1, r2); \
+            INSTRUCTION_REORDER_BARRIER; \
+            paddq(r3, i1); \
+            pxor(r2, i2); \
+            aesdec(r2, r4); \
+            INSTRUCTION_REORDER_BARRIER; \
+            paddq(r5, i3); \
+            pxor(r4, i4);
 
         #define MEOW_MIX(r1, r2, r3, r4, r5,  ptr) \
-        MEOW_MIX_REG(r1, r2, r3, r4, r5, _mm_loadu_si128( (__m128i *) ((ptr) + 15) ), _mm_loadu_si128( (__m128i *) ((ptr) + 0)  ), _mm_loadu_si128( (__m128i *) ((ptr) + 1)  ), _mm_loadu_si128( (__m128i *) ((ptr) + 16) ))
+            MEOW_MIX_REG(r1, r2, r3, r4, r5, _mm_loadu_si128( (__m128i *) ((ptr) + 15) ), _mm_loadu_si128( (__m128i *) ((ptr) + 0)  ), _mm_loadu_si128( (__m128i *) ((ptr) + 1)  ), _mm_loadu_si128( (__m128i *) ((ptr) + 16) ))
 
         #define MEOW_SHUFFLE(r1, r2, r3, r4, r5, r6) \
-        aesdec(r1, r4); \
-        paddq(r2, r5); \
-        pxor(r4, r6); \
-        aesdec(r4, r2); \
-        paddq(r5, r6); \
-        pxor(r2, r3)
+            aesdec(r1, r4); \
+            paddq(r2, r5); \
+            pxor(r4, r6); \
+            aesdec(r4, r2); \
+            paddq(r5, r6); \
+            pxor(r2, r3)
 
         #if MEOW_DUMP
-        struct meow_dump
-        {
-            meow_u128 xmm[8];
-            void *Ptr;
-            char const *Title;
-        };
-        extern "C" meow_dump *MeowDumpTo;
-        meow_dump *MeowDumpTo;
-        #define MEOW_DUMP_STATE(T, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, ptr) \
-        if(MeowDumpTo) \
-        { \
-            MeowDumpTo->xmm[0] = xmm0; \
-            MeowDumpTo->xmm[1] = xmm1; \
-            MeowDumpTo->xmm[2] = xmm2; \
-            MeowDumpTo->xmm[3] = xmm3; \
-            MeowDumpTo->xmm[4] = xmm4; \
-            MeowDumpTo->xmm[5] = xmm5; \
-            MeowDumpTo->xmm[6] = xmm6; \
-            MeowDumpTo->xmm[7] = xmm7; \
-            MeowDumpTo->Ptr = ptr; \
-            MeowDumpTo->Title = T; \
-            ++MeowDumpTo; \
-        }
+            struct meow_dump
+            {
+                meow_u128 xmm[8];
+                void *Ptr;
+                char const *Title;
+            };
+            extern "C" meow_dump *MeowDumpTo;
+            meow_dump *MeowDumpTo;
+            #define MEOW_DUMP_STATE(T, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, ptr) \
+            if(MeowDumpTo) \
+            { \
+                MeowDumpTo->xmm[0] = xmm0; \
+                MeowDumpTo->xmm[1] = xmm1; \
+                MeowDumpTo->xmm[2] = xmm2; \
+                MeowDumpTo->xmm[3] = xmm3; \
+                MeowDumpTo->xmm[4] = xmm4; \
+                MeowDumpTo->xmm[5] = xmm5; \
+                MeowDumpTo->xmm[6] = xmm6; \
+                MeowDumpTo->xmm[7] = xmm7; \
+                MeowDumpTo->Ptr = ptr; \
+                MeowDumpTo->Title = T; \
+                ++MeowDumpTo; \
+            }
         #else
-        #define MEOW_DUMP_STATE(...)
+            #define MEOW_DUMP_STATE(...)
         #endif
 
         static meow_u8 MeowShiftAdjust[32] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
@@ -742,9 +739,6 @@ namespace Hash {
             }
             MeowEnd(&State, SeedResult);
         }
-
-        #define MEOW_HASH_X64_AESNI_H
-        #endif
     }
 }
 #endif
