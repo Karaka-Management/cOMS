@@ -27,7 +27,7 @@ namespace Image {
                 cv::Size dim = in.size();
                 cv::Mat out(dim, in.type());
 
-                float *intImg = (float *) malloc(dim.width * dim.height * sizeof(float));
+                float *intImg = malloc(dim.width * dim.height * sizeof(float));
                 float sum;
 
                 cv::Vec3b bgr;
