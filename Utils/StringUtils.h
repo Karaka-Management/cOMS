@@ -136,6 +136,7 @@ namespace Utils {
 
             return text_diff { diffValues, diffMasks, diffIndex  };
         }
+    }
 }
 
 #endif
