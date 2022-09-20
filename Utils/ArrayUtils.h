@@ -27,7 +27,7 @@ namespace Utils {
 
             for (int i = 0; i < length - 1; ++i) {
                 if (strcmp(id, argv[i]) == 0) {
-                    return argv[i + 1];
+                    return i + 1 >= length ? NULL : argv[i + 1];
                 }
             }
 

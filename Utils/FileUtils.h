@@ -95,14 +95,14 @@ namespace Utils {
 
             FILE *fp = fopen(filename, "rb");
             if (!fp) {
-                return NULL;
+                return file;
             }
 
             fseek(fp, 0, SEEK_END);
             file.size = ftell(fp);
             fseek(fp, 0, SEEK_SET);
 
-            file.content = malloc(file.size);
+            file.content = (char *) malloc(file.size);
             if (!file.content) {
                 fprintf(stderr, "CRITICAL: malloc failed");
             }

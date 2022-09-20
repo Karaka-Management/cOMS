@@ -40,10 +40,10 @@ namespace Utils {
 
         text_diff computeLCSDiff (char **from, int fromSize, char **to, int toSize)
         {
-            char **diffValues = malloc(fromSize * toSize * sizeof(char *));
-            int *diffMasks    = calloc(fromSize * toSize,  sizeof(int));
+            char **diffValues = (char **) malloc(fromSize * toSize * sizeof(char *));
+            int *diffMasks    = (int *) calloc(fromSize * toSize,  sizeof(int));
 
-            int *dm = calloc((fromSize + 1) * (toSize + 1), sizeof(int));
+            int *dm = (int *) calloc((fromSize + 1) * (toSize + 1), sizeof(int));
 
             if (!diffValues || !diffMasks || !dm) {
                 fprintf(stderr, "CRITICAL: malloc failed");
@@ -77,7 +77,7 @@ namespace Utils {
 
             while (i > 0 || j > 0) {
                 if (j > 0 && dm[i * fromSize + (j - 1)] == dm[i * fromSize + j]) {
-                    diffValues[diffIndex] = malloc((strlen(to[j - 1]) + 1) * sizeof(char));
+                    diffValues[diffIndex] = (char *) malloc((strlen(to[j - 1]) + 1) * sizeof(char));
                     if (!diffValues[diffIndex]) {
                         fprintf(stderr, "CRITICAL: malloc failed");
                     }
@@ -92,7 +92,7 @@ namespace Utils {
                 }
 
                 if (i > 0 && dm[(i - 1) * fromSize + j] == dm[i * fromSize + j]) {
-                    diffValues[diffIndex] = malloc((strlen(from[i - 1]) + 1) * sizeof(char));
+                    diffValues[diffIndex] = (char *) malloc((strlen(from[i - 1]) + 1) * sizeof(char));
                     if (!diffValues[diffIndex]) {
                         fprintf(stderr, "CRITICAL: malloc failed");
                     }
@@ -106,7 +106,7 @@ namespace Utils {
                     continue
                 }
 
-                diffValues[diffIndex] = malloc((strlen(from[i - 1]) + 1) * sizeof(char));
+                diffValues[diffIndex] = (char *) malloc((strlen(from[i - 1]) + 1) * sizeof(char));
                 if (!diffValues[diffIndex]) {
                     fprintf(stderr, "CRITICAL: malloc failed");
                 }
@@ -124,8 +124,8 @@ namespace Utils {
 
             free(dm);
 
-            diffValues = realloc(diffValues, diffIndex * sizeof(char *));
-            diffMasks  = realloc(diffMasks, diffIndex * sizeof(int));
+            diffValues = (char **) realloc(diffValues, diffIndex * sizeof(char *));
+            diffMasks  = (int *) realloc(diffMasks, diffIndex * sizeof(int));
 
             if (!diffValues || !diffMasks) {
                 fprintf(stderr, "CRITICAL: malloc failed");

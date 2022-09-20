@@ -46,10 +46,10 @@ namespace Utils {
         }
 
         inline
-        void reverse_char(char *arr, int size)
+        void reverse_char(char **arr, int size)
         {
             for (int low = 0, high = size - 1; low < high; ++low, --high) {
-                char tmp   = arr[low];
+                char* tmp = arr[low];
                 arr[low]  = arr[high];
                 arr[high] = tmp;
             }

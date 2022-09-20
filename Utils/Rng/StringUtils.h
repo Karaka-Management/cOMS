@@ -20,12 +20,12 @@ namespace Utils {
             inline
             char* generate_string(
                 size_t min = 10, size_t max = 10,
-                char* charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", int charsetLength = 62
+                char *charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", int charsetLength = 62
             ) {
                 srand(time(0));
 
                 size_t length = (rand() % (max - min + 1)) + min;
-                char* randomString = malloc(length + 1);
+                char *randomString = (char *) malloc(length + 1);
 
                 for (size_t i = 0; i < length; ++i) {
                     randomString[i] = charset[rand() % charsetLength];

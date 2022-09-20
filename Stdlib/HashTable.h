@@ -50,7 +50,7 @@ namespace Stdlib {
 
             ht *create_table(void)
             {
-                ht *table = malloc(sizeof(ht));
+                ht *table = (ht *) malloc(sizeof(ht));
                 if (table == NULL) {
                     return NULL;
                 }
@@ -58,7 +58,7 @@ namespace Stdlib {
                 table->size = 0;
                 table->max  = 16;
 
-                table->entries = calloc(table->max, sizeof(entry));
+                table->entries = (entry *) calloc(table->max, sizeof(entry));
                 if (table->entries == NULL) {
                     free(table);
                     return NULL;
@@ -89,7 +89,7 @@ namespace Stdlib {
             const char *_set_entry(entry *entries, size_t max, const char *key, void *value, size_t *size)
             {
                 unsigned long long hash = hash_key(key);
-                size_t index = (size_t)(hash & (unsigned long long)(max - 1));
+                size_t index            = (size_t)(hash & (unsigned long long)(max - 1));
 
                 while (entries[index].key != NULL) {
                     if (strcmp(key, entries[index].key) == 0) {
@@ -107,7 +107,7 @@ namespace Stdlib {
                 if (size != NULL) {
                     key = strdup(key);
                     if (key == NULL) {
-                        return NULL
+                        return NULL;
                     }
 
                     ++(*size);
@@ -126,7 +126,7 @@ namespace Stdlib {
                     return false;
                 }
 
-                entry *new_entries = calloc(new_max, sizeof(entry));
+                entry *new_entries = (entry *) calloc(new_max, sizeof(entry));
                 if (new_entries == NULL) {
                     return false;
                 }
@@ -140,7 +140,7 @@ namespace Stdlib {
 
                 free(table->entries);
                 table->entries = new_entries;
-                table->max = new_max;
+                table->max     = new_max;
 
                 return true;
             }
@@ -178,7 +178,7 @@ namespace Stdlib {
 
                     if (table->entries[i].key != NULL) {
                         entry tmp = table->entries[i];
-                        it->key = tmp.key;
+                        it->key   = tmp.key;
                         it->value = tmp.value;
 
                         return true;
@@ -196,6 +196,8 @@ namespace Stdlib {
 
                 free(table->entries);
                 free(table);
+
+                table = NULL;
             }
     };
 }
