@@ -62,7 +62,10 @@ namespace DataStorage {
 
             void close()
             {
-                sqlite3_close((sqlite3 *) this->con);
+                if (this->con != NULL) {
+                    sqlite3_close((sqlite3 *) this->con);
+                }
+
                 this->con    = NULL;
                 this->status = DatabaseStatus::CLOSED;
             }

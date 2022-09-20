@@ -49,7 +49,6 @@ namespace DataStorage {
                 }
 
                 this->close();
-
                 this->con = mysql_init(NULL);
 
                 ::MYSQL *stat = mysql_real_connect(
@@ -77,7 +76,10 @@ namespace DataStorage {
 
             void close()
             {
-                mysql_close((::MYSQL *) this->con);
+                if (this->con != NULL) {
+                    mysql_close((::MYSQL *) this->con);
+                }
+
                 this->con    = NULL;
                 this->status = DatabaseStatus::CLOSED;
             }

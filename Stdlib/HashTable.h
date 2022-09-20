@@ -23,6 +23,7 @@ namespace Stdlib {
             } entry;
 
             struct ht {
+                bool is_fixed = false;
                 entry *entries;
                 size_t max;
                 size_t size;
@@ -48,7 +49,7 @@ namespace Stdlib {
                 return hash;
             }
 
-            ht *create_table(void)
+            ht *create_table(int max = 0, bool is_fixed = false)
             {
                 ht *table = (ht *) malloc(sizeof(ht));
                 if (table == NULL) {
@@ -56,7 +57,8 @@ namespace Stdlib {
                 }
 
                 table->size = 0;
-                table->max  = 16;
+                table->max  = max == 0 ? 16 : max;
+                table->is_fixed = is_fixed;
 
                 table->entries = (entry *) calloc(table->max, sizeof(entry));
                 if (table->entries == NULL) {
@@ -151,7 +153,11 @@ namespace Stdlib {
                     return NULL;
                 }
 
-                if (table->size >= table->max / 2) {
+                if (table->is_fixed && table->size == table->max) {
+                    return NULL;
+                }
+
+                if (!table->is_fixed && table->size >= table->max / 2) {
                     if (!expand_table(table)) {
                         return NULL;
                     }
@@ -195,9 +201,6 @@ namespace Stdlib {
                 }
 
                 free(table->entries);
-                free(table);
-
-                table = NULL;
             }
     };
 }

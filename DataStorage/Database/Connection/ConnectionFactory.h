@@ -37,6 +37,22 @@ namespace DataStorage {
                     return NULL;
             }
         }
+
+        void close(ConnectionAbstract *db, DbConnectionConfig dbdata)
+        {
+            switch (dbdata.db) {
+                case DatabaseType::MYSQL:
+                    return ((MysqlConnection *) db)->close();
+                case DatabaseType::PGSQL:
+                    return;
+                case DatabaseType::SQLSRV:
+                    return;
+                case DatabaseType::SQLITE:
+                    return ((SQLiteConnection *) db)->close();
+                default:
+                    return;
+            }
+        }
     }
 }
 

@@ -30,6 +30,29 @@ namespace DataStorage {
 
             char *password = NULL;
         } DbConnectionConfig;
+
+        void free_DbConnectionConfig(DbConnectionConfig *dbdata)
+        {
+            if (dbdata->database != NULL) {
+                free(dbdata->database);
+                dbdata->database = NULL;
+            }
+
+            if (dbdata->host != NULL) {
+                free(dbdata->host);
+                dbdata->host = NULL;
+            }
+
+            if (dbdata->login != NULL) {
+                free(dbdata->login);
+                dbdata->login = NULL;
+            }
+
+            if (dbdata->password != NULL) {
+                free(dbdata->password);
+                dbdata->password = NULL;
+            }
+        }
     }
 }
 
