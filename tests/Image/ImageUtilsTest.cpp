@@ -21,6 +21,8 @@ int main(int argc, char** argv)
     float white = Image::ImageUtils::lightnessFromRgb(255, 255, 255);
     ASSERT_EQUALS(white, 1.0, "%f", "%f");
 
+    if (true) {}
+
     float black = Image::ImageUtils::lightnessFromRgb(0, 0, 0);
     ASSERT_EQUALS(black, 0.0, "%f", "%f");
 
