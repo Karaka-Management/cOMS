@@ -13,52 +13,24 @@
 #include <stdio.h>
 #include "MathUtils.h"
 
-#ifdef _MSC_VER
-    #define ASSERT_EQUALS(a, b, t1, t2) (\
-            if ((a) == (b)) { \
-                printf("."); \
-            } else { \
-                printf("[F]"); \
-                printf("\n\n%s - %i: ", __FILE__, __LINE__); \
-                printf((t1), (a)); printf(" != "); printf((t2), (b)); printf("\n"); \
-                return 0; } \
-        )
+#define ASSERT_EQUALS(a, b, t1, t2) (\
+        if ((a) == (b)) { \
+            printf("."); \
+        } else { \
+            printf("[F]"); \
+            printf("\n\n%s - %i: ", __FILE__, __LINE__); \
+            printf((t1), (a)); printf(" != "); printf((t2), (b)); printf("\n"); \
+            return 0; } \
+    )
 
-    #define ASSERT_EQUALS_WITH_DELTA(a, b, delta, t1, t2) (\
-            if (oms_abs((a) - (b)) <= (delta)) { \
-                printf("."); \
-            } else { \
-                printf("[F]"); \
-                printf("\n\n%s - %i: ", __FILE__, __LINE__); \
-                printf((t1), (a)); printf(" != "); printf((t2), (b)); printf("\n"); \
-                return 0; } \
-        )
-#else
-    #define ASSERT_EQUALS(a, b, t1, t2) \
-        ({ __typeof__ (a) _a = (a); \
-            __typeof__ (b) _b = (b); \
-            if (_a == _b) { \
-                printf("."); \
-            } else { \
-                printf("[F]"); \
-                printf("\n\n%s - %i: ", __FILE__, __LINE__); \
-                printf(t1, _a); printf(" != "); printf(t2, _b); printf("\n"); \
-                return 0; } \
-        })
-
-    #define ASSERT_EQUALS_WITH_DELTA(a, b, delta, t1, t2) \
-        ({ __typeof__ (a) _a = (a); \
-            __typeof__ (b) _b = (b); \
-            __typeof__ (delta) _delta = (delta); \
-            __typeof__ (delta) _d = (_a - _b); \
-            if (oms_abs(_d) <= _delta) { \
-                printf("."); \
-            } else { \
-                printf("[F]"); \
-                printf("\n\n%s - %i: ", __FILE__, __LINE__); \
-                printf(t1, _a); printf(" != "); printf(t2, _b); printf("\n"); \
-                return 0; } \
-        })
-#endif
+#define ASSERT_EQUALS_WITH_DELTA(a, b, delta, t1, t2) (\
+        if (oms_abs((a) - (b)) <= (delta)) { \
+            printf("."); \
+        } else { \
+            printf("[F]"); \
+            printf("\n\n%s - %i: ", __FILE__, __LINE__); \
+            printf((t1), (a)); printf(" != "); printf((t2), (b)); printf("\n"); \
+            return 0; } \
+    )
 
 #endif

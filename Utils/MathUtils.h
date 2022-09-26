@@ -12,34 +12,10 @@
 
 #define OMS_PI 3.14159265358979323846
 
-#ifdef _MSC_VER
-    #define oms_max(a, b) ((a) > (b) ? (a) : (b))
-    #define oms_min(a, b) ((a) > (b) ? (b) : (a))
-    #define oms_abs(a) ((a) > 0 ? (a) : -(a))
-    #define oms_deg2rad(angle) ((angle) * OMS_PI / 180.0)
-    #define oms_rad2deg(angle) ((angle) * 180.0 / OMS_PI)
-#else
-    #define oms_max(a, b) \
-        ( __typeof__(a) _a = (a); \
-            __typeof__(b) _b = (b); \
-            _a > _b ? _a : _b; )
-
-    #define oms_min(a, b) \
-        ( __typeof__(a) _a = (a); \
-            __typeof__(b) _b = (b); \
-            _a < _b ? _a : _b; )
-
-    #define oms_abs(a) \
-        ( __typeof__(a) _a = (a); \
-            _a > 0 ? _a : -_a; )
-
-    #define oms_deg2rad(angle) \
-        ( __typeof__(angle) _angle = (angle); \
-            (_angle) * OMS_PI / 180.0; )
-
-    #define oms_rad2deg(angle) \
-        ( __typeof__(angle) _angle = (angle); \
-            (_angle) * 180.0 / OMS_PI; )
-#endif
+#define oms_max(a, b) ((a) > (b) ? (a) : (b))
+#define oms_min(a, b) ((a) > (b) ? (b) : (a))
+#define oms_abs(a) ((a) > 0 ? (a) : -(a))
+#define oms_deg2rad(angle) ((angle) * OMS_PI / 180.0)
+#define oms_rad2deg(angle) ((angle) * 180.0 / OMS_PI)
 
 #endif

@@ -103,7 +103,7 @@ namespace Utils {
                     --i;
                     ++diffIndex;
 
-                    continue
+                    continue;
                 }
 
                 diffValues[diffIndex] = (char *) malloc((strlen(from[i - 1]) + 1) * sizeof(char));
