@@ -1,6 +1,6 @@
-name: CI/CD
+name: CI
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   code-tests:
@@ -9,7 +9,8 @@ jobs:
         platform: [x86, x64]
         os: [ubuntu-latest]
     runs-on: '${{ matrix.os }}'
-    name: 'Test: ${{ matrix.os }} / ${{ matrix.platform }}'
+    if: "!contains(github.event.head_commit.message, 'NO_CI')"
+    name: 'code-tests: ${{ matrix.os }} / ${{ matrix.platform }}'
     steps:
       - name: Checkout
         uses: actions/checkout@main
@@ -24,3 +25,33 @@ jobs:
         run: |
           chmod +x ./tests/test.sh
           ./tests/test.sh
+  codestyle-tests:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'NO_CI')"
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@main
+      with:
+        fetch-depth: 0
+        submodules: recursive
+        token: ${{ secrets.GH_TOKEN }}
+    - name: Checkout Build Repository
+      uses: actions/checkout@main
+      with:
+          fetch-depth: 1
+          ref: develop
+          repository: Karaka-Management/Build
+          path: Build
+    - name: Copy config file
+        run: |
+          cp ./Build/Config/.clang-format ./.clang-format
+    - name: Lint Code Base
+      uses: github/super-linter/slim@v4
+      env:
+        VALIDATE_ALL_CODEBASE: false
+        VALIDATE_CLANG_FORMAT : true
+        DEFAULT_BRANCH: develop
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
