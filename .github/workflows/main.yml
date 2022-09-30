@@ -46,8 +46,8 @@ jobs:
           repository: Karaka-Management/Build
           path: Build
     - name: Copy config file
-        run: |
-          cp ./Build/Config/.clang-format ./.clang-format
+      run: |
+        cp ./Build/Config/.clang-format ./.clang-format
     - name: Lint Code Base
       uses: github/super-linter/slim@v4
       env:
