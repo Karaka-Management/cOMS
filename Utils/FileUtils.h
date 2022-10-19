@@ -72,7 +72,7 @@ namespace Utils {
             #endif
         }
 
-        char* file_extension (char *filename)
+        const char* file_extension (char *filename)
         {
             char *dot = strrchr(filename, '.');
 
