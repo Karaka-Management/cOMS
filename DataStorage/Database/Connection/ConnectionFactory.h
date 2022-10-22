@@ -18,6 +18,7 @@
 #include "ConnectionAbstract.h"
 #include "DbConnectionConfig.h"
 #include "MysqlConnection.h"
+#include "PostgresqlConnection.h"
 #include "SQLiteConnection.h"
 
 namespace DataStorage {
@@ -28,7 +29,7 @@ namespace DataStorage {
                 case DatabaseType::MYSQL:
                     return new MysqlConnection(dbdata);
                 case DatabaseType::PGSQL:
-                    return NULL;
+                    return new PostgresqlConnection(dbdata);
                 case DatabaseType::SQLSRV:
                     return NULL;
                 case DatabaseType::SQLITE:
@@ -44,7 +45,7 @@ namespace DataStorage {
                 case DatabaseType::MYSQL:
                     return ((MysqlConnection *) db)->close();
                 case DatabaseType::PGSQL:
-                    return;
+                    return ((PostgresqlConnection *) db)->close();
                 case DatabaseType::SQLSRV:
                     return;
                 case DatabaseType::SQLITE:

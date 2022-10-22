@@ -13,12 +13,28 @@
 namespace DataStorage {
     namespace Database {
         typedef enum {
-            MYSQL = 0,
-            SQLITE = 1,
-            PGSQL = 2,
-            SQLSRV = 3,
-            UNDEFINED = 4
+            MYSQL = 1,
+            SQLITE = 2,
+            PGSQL = 3,
+            SQLSRV = 4,
+            UNDEFINED = 5
         } DatabaseType;
+
+        DatabaseType database_type_from_str(const char* type)
+        {
+        	switch(type) {
+        		case strcmp(type, "mysql") == 0:
+        			return DatabaseType::MYSQL;
+        		case strcmp(type, "sqlite") == 0:
+        			return DatabaseType::SQLITE;
+        		case strcmp(type, "pqsql") == 0:
+        			return DatabaseType::PGSQL;
+        		case strcmp(type, "mssql") == 0:
+        			return DatabaseType::SQLSRV;
+        		default:
+        			return DatabaseType::UNDEFINED;
+        	}
+        }
     }
 }
 
