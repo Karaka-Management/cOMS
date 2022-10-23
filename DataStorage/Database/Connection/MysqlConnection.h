@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <mysql/mysql.h>
+#include <mysql.h>
 
 #include "ConnectionAbstract.h"
 #include "DbConnectionConfig.h"
@@ -34,16 +34,16 @@ namespace DataStorage {
                 this->dbdata = dbdata == NULL ? this->dbdata : *dbdata;
 
                 if (this->dbdata.db == NULL
-                    || this->dbdata->host == NULL
+                    || this->dbdata.host == NULL
                     || this->dbdata.port == 0
-                    || this->dbdata->database == NULL
-                    || this->dbdata->login == NULL
-                    || this->dbdata->password == NULL
+                    || this->dbdata.database == NULL
+                    || this->dbdata.login == NULL
+                    || this->dbdata.password == NULL
                 ) {
                     this->status = DatabaseStatus::FAILURE;
 
                     if (this->dbdata.password != NULL) {
-                        free(this->dbdata.password);
+                        free((char *) this->dbdata.password);
                         this->dbdata.password = NULL;
                     }
                 }
@@ -53,10 +53,10 @@ namespace DataStorage {
                 this->con = mysql_init(NULL);
                 this->con = mysql_real_connect(
                     (::MYSQL *) this->con,
-                    this->dbdata->host,
-                    this->dbdata->login,
-                    this->dbdata->password,
-                    this->dbdata->database,
+                    this->dbdata.host,
+                    this->dbdata.login,
+                    this->dbdata.password,
+                    this->dbdata.database,
                     this->dbdata.port,
                     NULL, 0
                 );
@@ -67,9 +67,9 @@ namespace DataStorage {
                     mysql_close((::MYSQL *) this->con);
                     this->con = NULL;
 
-                    if (this->dbdata->password != NULL) {
-                        free(this->dbdata->password);
-                        this->dbdata->password = NULL;
+                    if (this->dbdata.password != NULL) {
+                        free((char *) this->dbdata.password);
+                        this->dbdata.password = NULL;
                     }
                 }
             }

@@ -34,28 +34,28 @@ namespace DataStorage {
                 this->dbdata = dbdata == NULL ? this->dbdata : *dbdata;
 
                 if (this->dbdata.db == NULL
-                    || this->dbdata->database == NULL
+                    || this->dbdata.database == NULL
                 ) {
                     this->status = DatabaseStatus::FAILURE;
 
-                    if (this->dbdata->password != NULL) {
-                        free(this->dbdata->password);
-                        this->dbdata->password = NULL;
+                    if (this->dbdata.password != NULL) {
+                        free((char *) this->dbdata.password);
+                        this->dbdata.password = NULL;
                     }
                 }
 
                 this->close();
 
-                int stat = sqlite3_open(this->dbdata->host, (sqlite3 **) &this->con);
+                int stat = sqlite3_open(this->dbdata.host, (sqlite3 **) &this->con);
                 if (stat != SQLITE_OK) {
                     this->status = DatabaseStatus::MISSING_DATABASE;
 
                     sqlite3_close((sqlite3 *) this->con);
                     this->con = NULL;
 
-                    if (this->dbdata->password != NULL) {
-                        free(this->dbdata->password);
-                        this->dbdata->password = NULL;
+                    if (this->dbdata.password != NULL) {
+                        free((char *) this->dbdata.password);
+                        this->dbdata.password = NULL;
                     }
                 }
             }

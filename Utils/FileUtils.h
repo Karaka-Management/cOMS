@@ -23,14 +23,14 @@
     #endif
 
     #include <stdbool.h>
-#elif defined __linux__
+#else
     #include <sys/stat.h>
 #endif
 
 namespace Utils {
     namespace FileUtils {
         inline
-        bool file_exists (char *filename)
+        bool file_exists (const char *filename)
         {
             #ifdef _WIN32
                 #ifdef _MSC_VER
@@ -38,20 +38,36 @@ namespace Utils {
                 #else
                     return access(filename, 0) == 0;
                 #endif
-            #elif defined __linux__
+            #else
                 struct stat buffer;
                 return stat(filename, &buffer) == 0;
             #endif
         }
 
         inline
-        time_t last_modification (char *filename)
+        time_t last_modification (const char *filename)
         {
             #ifdef _WIN32
                 FILETIME modtime;
                 HANDLE h;
 
-                h = CreateFileW(filename, GENERIC_READ | FILE_WRITE_ATTRIBUTES, 0, NULL, OPEN_EXISTING, 0, NULL);
+                size_t nameLength = strlen(filename);
+
+                wchar_t *wtext = (wchar_t *) calloc(nameLength, sizeof(char));
+                mbstowcs_s(NULL, wtext, nameLength, filename, nameLength);
+                LPWSTR pFilename = wtext;
+
+                if (!pFilename) {
+                    free(wtext);
+
+                    return 0;
+                }
+
+                h = CreateFileW(pFilename, GENERIC_READ | FILE_WRITE_ATTRIBUTES, 0, NULL, OPEN_EXISTING, 0, NULL);
+
+                free(wtext);
+                free(pFilename);
+
                 if (h == INVALID_HANDLE_VALUE) {
                     return (time_t) 0;
                 }
@@ -60,11 +76,11 @@ namespace Utils {
                     return (time_t) 0;
                 }
 
-                unsinged long long seconds = modtime.dwHighDateTime << 32;
+                unsigned long long seconds = ((unsigned long long) (modtime.dwHighDateTime)) << 32;
                 seconds |= modtime.dwLowDateTime;
 
                 return (seconds - 116444736000000000) / 10000000;
-            #elif defined __linux__
+            #else
                 struct stat buffer;
                 stat(filename, &buffer);
 
@@ -72,9 +88,9 @@ namespace Utils {
             #endif
         }
 
-        const char* file_extension (char *filename)
+        const char* file_extension (const char *filename)
         {
-            char *dot = strrchr(filename, '.');
+            char *dot = strrchr((char *) filename, '.');
 
             if (!dot || dot == filename) {
                 return "";
@@ -89,7 +105,7 @@ namespace Utils {
         } file_body;
 
         inline
-        file_body read_file (char *filename)
+        file_body read_file (const char *filename)
         {
             file_body file = {0};
 
@@ -105,6 +121,8 @@ namespace Utils {
             file.content = (char *) malloc(file.size);
             if (!file.content) {
                 fprintf(stderr, "CRITICAL: malloc failed");
+
+                return file;
             }
 
             fread(file.content, file.size, 1, fp);

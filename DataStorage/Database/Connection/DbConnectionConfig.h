@@ -20,36 +20,36 @@ namespace DataStorage {
         typedef struct {
             DatabaseType db = DatabaseType::UNDEFINED;
 
-            char *database = NULL;
+            const char *database = NULL;
 
-            char *host = NULL;
+            const char *host = NULL;
 
             int port = 0;
 
-            char *login = NULL;
+            const char *login = NULL;
 
-            char *password = NULL;
+            const char *password = NULL;
         } DbConnectionConfig;
 
         void free_DbConnectionConfig(DbConnectionConfig *dbdata)
         {
             if (dbdata->database != NULL) {
-                free(dbdata->database);
+                free((char *) dbdata->database);
                 dbdata->database = NULL;
             }
 
             if (dbdata->host != NULL) {
-                free(dbdata->host);
+                free((char *) dbdata->host);
                 dbdata->host = NULL;
             }
 
             if (dbdata->login != NULL) {
-                free(dbdata->login);
+                free((char *) dbdata->login);
                 dbdata->login = NULL;
             }
 
             if (dbdata->password != NULL) {
-                free(dbdata->password);
+                free((char *) dbdata->password);
                 dbdata->password = NULL;
             }
         }

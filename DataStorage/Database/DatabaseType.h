@@ -10,6 +10,8 @@
 #ifndef DATASTORAGE_DATABASE_TYPE_H
 #define DATASTORAGE_DATABASE_TYPE_H
 
+#include <string.h>
+
 namespace DataStorage {
     namespace Database {
         typedef enum {
@@ -22,18 +24,17 @@ namespace DataStorage {
 
         DatabaseType database_type_from_str(const char* type)
         {
-        	switch(type) {
-        		case strcmp(type, "mysql") == 0:
-        			return DatabaseType::MYSQL;
-        		case strcmp(type, "sqlite") == 0:
-        			return DatabaseType::SQLITE;
-        		case strcmp(type, "pqsql") == 0:
-        			return DatabaseType::PGSQL;
-        		case strcmp(type, "mssql") == 0:
-        			return DatabaseType::SQLSRV;
-        		default:
-        			return DatabaseType::UNDEFINED;
-        	}
+            if (strcmp(type, "mysql") == 0) {
+                return DatabaseType::MYSQL;
+            } else if (strcmp(type, "sqlite") == 0) {
+                return DatabaseType::SQLITE;
+            } else if (strcmp(type, "pqsql") == 0) {
+                return DatabaseType::PGSQL;
+            } else if (strcmp(type, "mssql") == 0) {
+                return DatabaseType::SQLSRV;
+            }
+        	
+            return DatabaseType::UNDEFINED;
         }
     }
 }

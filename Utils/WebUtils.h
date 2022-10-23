@@ -23,17 +23,19 @@ namespace Utils {
         int write_download_data (void *ptr, size_t size, size_t nmeb, void *stream)
         {
             Utils::FileUtils::file_body *out = (Utils::FileUtils::file_body *) stream;
-            int outSize    = size * nmeb;
+            size_t outSize                   = size * nmeb;
 
             out->content = (char *) malloc(outSize + 1);
             if (!out->content) {
                 fprintf(stderr, "CRITICAL: malloc failed");
+
+                return 0;
             }
 
             if (out->content) {
                 memcpy(out->content, ptr, outSize);
 
-                out->size               = outSize;
+                out->size               = (int) outSize;
                 out->content[out->size] = 0;
             }
 
@@ -43,7 +45,7 @@ namespace Utils {
         static
         Utils::FileUtils::file_body download (char *url)
         {
-            file_body page = {0};
+            Utils::FileUtils::file_body page = {0};
 
             CURL *h = curl_easy_init();
             curl_easy_setopt(h, CURLOPT_URL, url);

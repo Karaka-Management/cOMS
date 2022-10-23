@@ -107,7 +107,12 @@ namespace Stdlib {
                 }
 
                 if (size != NULL) {
-                    key = strdup(key);
+                    #ifdef _WIN32
+                        key = _strdup(key);
+                    #else
+                        key = strdup(key);
+                    #endif
+
                     if (key == NULL) {
                         return NULL;
                     }
@@ -196,8 +201,14 @@ namespace Stdlib {
 
             void free_table(ht *table)
             {
+                if (!table || !table->entries) {
+                    return;
+                }
+
                 for (size_t i = 0; i < table->max; ++i) {
-                    free((void *) table->entries[i].key);
+                    if (table->entries[i].key) {
+                        free((void *) table->entries[i].key);
+                    }
                 }
 
                 free(table->entries);

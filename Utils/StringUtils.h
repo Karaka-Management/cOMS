@@ -11,6 +11,7 @@
 #define UTILS_STRING_UTILS_H
 
 #include <stdio.h>
+#include <string.h>
 #include <ctype.h>
 
 #include "MathUtils.h"
@@ -18,6 +19,50 @@
 
 namespace Utils {
     namespace StringUtils {
+        inline
+        char *search_replace(const char *haystack, const char *needle, const char *replace)
+        {
+            const char* haystackT = haystack;
+
+            int i;
+            int match     = 0;
+            int oldLength = strlen(needle);
+            int newLength = strlen(replace);
+
+            for (i = 0; haystack[i] != '\0'; ++i) {
+                if (strstr(&haystack[i], needle) == &haystack[i]) {
+                    ++match;
+
+                    i += oldLength - 1;
+                }
+            }
+
+            char *result = (char *) malloc(i + match * (newLength - oldLength) + 1);
+            if (!result) {
+                return NULL;
+            }
+
+            int c = 0;
+            while (*haystack && c < i + match * (newLength - oldLength)) {
+                if (strstr(haystack, needle) == haystack) {
+                    strcpy(&result[c], replace);
+
+                    c        += newLength;
+                    haystack += oldLength;
+                } else {
+                    result[c++] = *haystack++;
+                }
+            }
+
+            if (c > i + match * (newLength - oldLength)) {
+                c = i + match * (newLength - oldLength);
+            }
+
+            result[c] = '\0';
+
+            return result;
+        }
+
         inline
         bool is_number(const char *s)
         {
@@ -75,14 +120,21 @@ namespace Utils {
             i = fromSize;
             j = toSize;
 
-            while (i > 0 || j > 0) {
+            while ((i > 0 || j > 0) && diffIndex < fromSize * toSize) {
                 if (j > 0 && dm[i * fromSize + (j - 1)] == dm[i * fromSize + j]) {
                     diffValues[diffIndex] = (char *) malloc((strlen(to[j - 1]) + 1) * sizeof(char));
                     if (!diffValues[diffIndex]) {
                         fprintf(stderr, "CRITICAL: malloc failed");
+
+                        continue;
                     }
 
-                    strcpy(diffValues[diffIndex], to[j - 1]);
+                    #ifdef _WIN32
+                        strcpy_s(diffValues[diffIndex], (strlen(to[j - 1]) + 1) * sizeof(char), to[j - 1]);
+                    #else
+                        strcpy(diffValues[diffIndex], to[j - 1]);
+                    #endif
+                    
                     diffMasks[diffIndex] = 1;
 
                     --j;
@@ -95,9 +147,16 @@ namespace Utils {
                     diffValues[diffIndex] = (char *) malloc((strlen(from[i - 1]) + 1) * sizeof(char));
                     if (!diffValues[diffIndex]) {
                         fprintf(stderr, "CRITICAL: malloc failed");
+                        
+                        continue;
                     }
 
-                    strcpy(diffValues[diffIndex], from[i - 1]);
+                    #ifdef _WIN32
+                        strcpy_s(diffValues[diffIndex], (strlen(from[i - 1]) + 1) * sizeof(char), from[i - 1]);
+                    #else
+                        strcpy(diffValues[diffIndex], from[i - 1]);
+                    #endif
+                    
                     diffMasks[diffIndex] = -1;
 
                     --i;
@@ -109,9 +168,15 @@ namespace Utils {
                 diffValues[diffIndex] = (char *) malloc((strlen(from[i - 1]) + 1) * sizeof(char));
                 if (!diffValues[diffIndex]) {
                     fprintf(stderr, "CRITICAL: malloc failed");
+                    
+                    continue;
                 }
 
-                strcpy(diffValues[diffIndex], from[i - 1]);
+                #ifdef _WIN32
+                    strcpy_s(diffValues[diffIndex], (strlen(from[i - 1]) + 1) * sizeof(char), from[i - 1]);
+                #else
+                    strcpy(diffValues[diffIndex], from[i - 1]);
+                #endif
 
                 /* Handled with calloc
                 diffMasks[diffIndex] = 0;
@@ -124,11 +189,22 @@ namespace Utils {
 
             free(dm);
 
-            diffValues = (char **) realloc(diffValues, diffIndex * sizeof(char *));
-            diffMasks  = (int *) realloc(diffMasks, diffIndex * sizeof(int));
+            char **diffValuesT = (char **) realloc(diffValues, diffIndex * sizeof(char *));
+            if (!diffValuesT) {
+                free(diffValues);
+            }
+            diffValues = diffValuesT;
+
+            int *diffMasksT  = (int *) realloc(diffMasks, diffIndex * sizeof(int));
+            if (!diffMasksT) {
+                free(diffMasks);
+            }
+            diffMasks = diffMasksT;
 
             if (!diffValues || !diffMasks) {
                 fprintf(stderr, "CRITICAL: malloc failed");
+
+                return text_diff{};
             }
 
             ArraySort::reverse_char(diffValues, diffIndex);
