@@ -24,10 +24,10 @@ namespace Utils {
         {
             const char* haystackT = haystack;
 
-            int i;
-            int match     = 0;
-            int oldLength = strlen(needle);
-            int newLength = strlen(replace);
+            size_t i;
+            size_t match     = 0;
+            size_t oldLength = strlen(needle);
+            size_t newLength = strlen(replace);
 
             for (i = 0; haystack[i] != '\0'; ++i) {
                 if (strstr(&haystack[i], needle) == &haystack[i]) {
@@ -42,7 +42,7 @@ namespace Utils {
                 return NULL;
             }
 
-            int c = 0;
+            size_t c = 0;
             while (*haystack && c < i + match * (newLength - oldLength)) {
                 if (strstr(haystack, needle) == haystack) {
                     strcpy(&result[c], replace);
