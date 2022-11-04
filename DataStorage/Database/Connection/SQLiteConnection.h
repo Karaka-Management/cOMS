@@ -33,7 +33,7 @@ namespace DataStorage {
             {
                 this->dbdata = dbdata == NULL ? this->dbdata : *dbdata;
 
-                if (this->dbdata.db == NULL
+                if (this->dbdata.db == DatabaseType::UNDEFINED
                     || this->dbdata.database == NULL
                 ) {
                     this->status = DatabaseStatus::FAILURE;

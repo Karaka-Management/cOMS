@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <mysql.h>
+#include <mysql/mysql.h>
 
 #include "ConnectionAbstract.h"
 #include "DbConnectionConfig.h"
@@ -33,7 +33,7 @@ namespace DataStorage {
             {
                 this->dbdata = dbdata == NULL ? this->dbdata : *dbdata;
 
-                if (this->dbdata.db == NULL
+                if (this->dbdata.db == DatabaseType::UNDEFINED
                     || this->dbdata.host == NULL
                     || this->dbdata.port == 0
                     || this->dbdata.database == NULL

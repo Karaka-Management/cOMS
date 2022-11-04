@@ -115,90 +115,92 @@
 #ifndef HASH_MEOW_H
 #define HASH_MEOW_H
 
-namespace Hash {
-    namespace Meow {
-        #define MEOW_HASH_VERSION 5
-        #define MEOW_HASH_VERSION_NAME "0.5/calico"
+// #include <immintrin.h>
 
-        #if !defined(meow_u8)
-            #if _MSC_VER
-                #if !defined(__clang__)
-                    #define INSTRUCTION_REORDER_BARRIER _ReadWriteBarrier()
-                #else
-                #endif
+#if !defined(meow_u8)
+    #define MEOW_HASH_VERSION 5
+    #define MEOW_HASH_VERSION_NAME "0.5/calico"
 
-                #include <intrin.h>
-            #else
-                #include <x86intrin.h>
-            #endif
-
-            #define meow_u8 char unsigned
-            #define meow_u64 long long unsigned
-            #define meow_u128 __m128i
-
-            #if __x86_64__ || _M_AMD64
-                #define meow_umm long long unsigned
-                #define MeowU64From(A, I) (_mm_extract_epi64((A), (I)))
-            #elif __i386__  || _M_IX86
-                #define meow_umm int unsigned
-                #define MeowU64From(A, I) (*(meow_u64 *)&(A))
-            #else
-                #error Cannot determine architecture to use!
-            #endif
-
-            #define MeowU32From(A, I) (_mm_extract_epi32((A), (I)))
-            #define MeowHashesAreEqual(A, B) (_mm_movemask_epi8(_mm_cmpeq_epi8((A), (B))) == 0xFFFF)
-
-            #if !defined INSTRUCTION_REORDER_BARRIER
-                #define INSTRUCTION_REORDER_BARRIER
-            #endif
-
-            #if !defined MEOW_PAGESIZE
-                #define MEOW_PAGESIZE 4096
-            #endif
-
-            #if !defined MEOW_PREFETCH
-                #define MEOW_PREFETCH 4096
-            #endif
-
-            #if !defined MEOW_PREFETCH_LIMIT
-                #define MEOW_PREFETCH_LIMIT 0x3ff
-            #endif
+    #if _MSC_VER
+        #if !defined(__clang__)
+            #define INSTRUCTION_REORDER_BARRIER _ReadWriteBarrier()
+        #else
         #endif
 
-        #define prefetcht0(A) _mm_prefetch((char *)(A), _MM_HINT_T0)
-        #define movdqu(A, B)  A = _mm_loadu_si128((__m128i *)(B))
-        #define movdqu_mem(A, B)  _mm_storeu_si128((__m128i *)(A), B)
-        #define movq(A, B) A = _mm_set_epi64x(0, B);
-        #define aesdec(A, B)  A = _mm_aesdec_si128(A, B)
-        #define pshufb(A, B)  A = _mm_shuffle_epi8(A, B)
-        #define pxor(A, B)    A = _mm_xor_si128(A, B)
-        #define paddq(A, B) A = _mm_add_epi64(A, B)
-        #define pand(A, B)    A = _mm_and_si128(A, B)
-        #define palignr(A, B, i) A = _mm_alignr_epi8(A, B, i)
-        #define pxor_clear(A, B)    A = _mm_setzero_si128(); // NOTE(casey): pxor_clear is a nonsense thing that is only here because compilers don't detect xor(a, a) is clearing a :(
+        #include <intrin.h>
+    #else
+        #include <x86intrin.h>
+    #endif
 
-        #define MEOW_MIX_REG(r1, r2, r3, r4, r5,  i1, i2, i3, i4) \
-            aesdec(r1, r2); \
-            INSTRUCTION_REORDER_BARRIER; \
-            paddq(r3, i1); \
-            pxor(r2, i2); \
-            aesdec(r2, r4); \
-            INSTRUCTION_REORDER_BARRIER; \
-            paddq(r5, i3); \
-            pxor(r4, i4);
+    #define meow_u8 char unsigned
+    #define meow_u64 long long unsigned
+    #define meow_u128 __m128i
 
-        #define MEOW_MIX(r1, r2, r3, r4, r5,  ptr) \
-            MEOW_MIX_REG(r1, r2, r3, r4, r5, _mm_loadu_si128( (__m128i *) ((ptr) + 15) ), _mm_loadu_si128( (__m128i *) ((ptr) + 0)  ), _mm_loadu_si128( (__m128i *) ((ptr) + 1)  ), _mm_loadu_si128( (__m128i *) ((ptr) + 16) ))
+    #if __x86_64__ || _M_AMD64
+        #define meow_umm long long unsigned
+        #define MeowU64From(A, I) (_mm_extract_epi64((A), (I)))
+    #elif __i386__  || _M_IX86
+        #define meow_umm int unsigned
+        #define MeowU64From(A, I) (*(meow_u64 *)&(A))
+    #else
+        #error Cannot determine architecture to use!
+    #endif
 
-        #define MEOW_SHUFFLE(r1, r2, r3, r4, r5, r6) \
-            aesdec(r1, r4); \
-            paddq(r2, r5); \
-            pxor(r4, r6); \
-            aesdec(r4, r2); \
-            paddq(r5, r6); \
-            pxor(r2, r3)
+    #define MeowU32From(A, I) (_mm_extract_epi32((A), (I)))
+    #define MeowHashesAreEqual(A, B) (_mm_movemask_epi8(_mm_cmpeq_epi8((A), (B))) == 0xFFFF)
 
+    #if !defined INSTRUCTION_REORDER_BARRIER
+        #define INSTRUCTION_REORDER_BARRIER
+    #endif
+
+    #if !defined MEOW_PAGESIZE
+        #define MEOW_PAGESIZE 4096
+    #endif
+
+    #if !defined MEOW_PREFETCH
+        #define MEOW_PREFETCH 4096
+    #endif
+
+    #if !defined MEOW_PREFETCH_LIMIT
+        #define MEOW_PREFETCH_LIMIT 0x3ff
+    #endif
+
+    #define prefetcht0(A) _mm_prefetch((char *)(A), _MM_HINT_T0)
+    #define movdqu(A, B)  A = _mm_loadu_si128((__m128i *)(B))
+    #define movdqu_mem(A, B)  _mm_storeu_si128((__m128i *)(A), B)
+    #define movq(A, B) A = _mm_set_epi64x(0, B);
+    #define aesdec(A, B)  A = _mm_aesdec_si128(A, B)
+    #define pshufb(A, B)  A = _mm_shuffle_epi8(A, B)
+    #define pxor(A, B)    A = _mm_xor_si128(A, B)
+    #define paddq(A, B) A = _mm_add_epi64(A, B)
+    #define pand(A, B)    A = _mm_and_si128(A, B)
+    #define palignr(A, B, i) A = _mm_alignr_epi8(A, B, i)
+    #define pxor_clear(A, B)    A = _mm_setzero_si128(); // NOTE(casey): pxor_clear is a nonsense thing that is only here because compilers don't detect xor(a, a) is clearing a :(
+
+    #define MEOW_MIX_REG(r1, r2, r3, r4, r5,  i1, i2, i3, i4) \
+        aesdec(r1, r2); \
+        INSTRUCTION_REORDER_BARRIER; \
+        paddq(r3, i1); \
+        pxor(r2, i2); \
+        aesdec(r2, r4); \
+        INSTRUCTION_REORDER_BARRIER; \
+        paddq(r5, i3); \
+        pxor(r4, i4);
+
+    #define MEOW_MIX(r1, r2, r3, r4, r5,  ptr) \
+        MEOW_MIX_REG(r1, r2, r3, r4, r5, _mm_loadu_si128( (__m128i *) ((ptr) + 15) ), _mm_loadu_si128( (__m128i *) ((ptr) + 0)  ), _mm_loadu_si128( (__m128i *) ((ptr) + 1)  ), _mm_loadu_si128( (__m128i *) ((ptr) + 16) ))
+
+    #define MEOW_SHUFFLE(r1, r2, r3, r4, r5, r6) \
+        aesdec(r1, r4); \
+        paddq(r2, r5); \
+        pxor(r4, r6); \
+        aesdec(r4, r2); \
+        paddq(r5, r6); \
+        pxor(r2, r3)
+#endif
+
+namespace Hash {
+    namespace Meow {
         #if MEOW_DUMP
             struct meow_dump
             {
@@ -700,23 +702,6 @@ namespace Hash {
             return(xmm0);
         }
 
-        #undef INSTRUCTION_REORDER_BARRIER
-        #undef prefetcht0
-        #undef movdqu
-        #undef movdqu_mem
-        #undef movq
-        #undef aesdec
-        #undef pshufb
-        #undef pxor
-        #undef paddq
-        #undef pand
-        #undef palignr
-        #undef pxor_clear
-        #undef MEOW_MIX
-        #undef MEOW_MIX_REG
-        #undef MEOW_SHUFFLE
-        #undef MEOW_DUMP_STATE
-
         //
         // NOTE(casey): If you need to create your own seed from non-random data, you can use MeowExpandSeed
         // to create a seed which you then store for repeated use.  It is _expensive_ to generate the seed,
@@ -741,4 +726,22 @@ namespace Hash {
         }
     }
 }
+
+#undef INSTRUCTION_REORDER_BARRIER
+#undef prefetcht0
+#undef movdqu
+#undef movdqu_mem
+#undef movq
+#undef aesdec
+#undef pshufb
+#undef pxor
+#undef paddq
+#undef pand
+#undef palignr
+#undef pxor_clear
+#undef MEOW_MIX
+#undef MEOW_MIX_REG
+#undef MEOW_SHUFFLE
+#undef MEOW_DUMP_STATE
+
 #endif

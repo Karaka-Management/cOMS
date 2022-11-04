@@ -33,7 +33,7 @@ namespace DataStorage {
             {
                 this->dbdata = dbdata == NULL ? this->dbdata : *dbdata;
 
-                if (this->dbdata.db == NULL
+                if (this->dbdata.db == DatabaseType::UNDEFINED
                     || this->dbdata.host == NULL
                     || this->dbdata.port == 0
                     || this->dbdata.database == NULL
