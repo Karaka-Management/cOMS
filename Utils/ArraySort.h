@@ -13,8 +13,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace Utils {
-    namespace ArraySort {
+namespace Utils
+{
+    namespace ArraySort
+    {
         inline
         void reverse_int(int *arr, int size)
         {
