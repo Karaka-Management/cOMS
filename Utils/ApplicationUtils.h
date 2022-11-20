@@ -39,6 +39,7 @@ namespace Utils {
             return cwd;
         }
 
+        inline
         void chdir_application(char *cwd, char *arg)
         {
             #ifdef _WIN32
@@ -80,6 +81,7 @@ namespace Utils {
             #endif
         }
 
+        inline
         const char *compile_arg_line(int argc, char **argv)
         {
             size_t max    = 512;

@@ -19,7 +19,6 @@
 
 namespace Utils {
     namespace WebUtils {
-        static
         int write_download_data (void *ptr, size_t size, size_t nmeb, void *stream)
         {
             Utils::FileUtils::file_body *out = (Utils::FileUtils::file_body *) stream;
@@ -42,7 +41,7 @@ namespace Utils {
             return out->size;
         }
 
-        static
+        inline
         Utils::FileUtils::file_body download (char *url)
         {
             Utils::FileUtils::file_body page = {0};

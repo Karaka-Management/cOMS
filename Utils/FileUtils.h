@@ -10,6 +10,9 @@
 #ifndef UTILS_FILE_UTILS_H
 #define UTILS_FILE_UTILS_H
 
+#include <stdio.h>
+#include <string.h>
+
 #ifdef _WIN32
     #include <windows.h>
     #include <stdio.h>
@@ -88,6 +91,7 @@ namespace Utils {
             #endif
         }
 
+        inline
         const char* file_extension (const char *filename)
         {
             char *dot = strrchr((char *) filename, '.');
@@ -104,7 +108,6 @@ namespace Utils {
             int size;
         } file_body;
 
-        inline
         file_body read_file (const char *filename)
         {
             file_body file = {0};

@@ -61,23 +61,19 @@ namespace Image {
         {-1.0 / 256.0,  -4.0 / 256.0, -6.0 / 256.0, -4.0 / 256.0, -1.0 / 256.0},
     };
 
-    class Kernel {
-        private:
+    namespace Kernel {
+        inline
+        cv::Mat convolve(cv::Mat in, const float kernel[][3])
+        {
+            cv::Size dim = in.size();
+            cv::Mat out(in.size(), in.type());
 
-        public:
+            cv::Mat mKernel(3, 3, CV_32F, (float *) kernel);
+            cv::filter2D(in, out, -1, mKernel);
 
-            static
-            cv::Mat convolve(cv::Mat in, const float kernel[][3])
-            {
-                cv::Size dim = in.size();
-                cv::Mat out(in.size(), in.type());
-
-                cv::Mat mKernel(3, 3, CV_32F, (float *) kernel);
-                cv::filter2D(in, out, -1, mKernel);
-
-                return out;
-            }
-    };
+            return out;
+        }
+    }
 }
 
 #endif
