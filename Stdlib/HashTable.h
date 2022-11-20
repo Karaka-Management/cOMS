@@ -15,6 +15,8 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "../Hash/MeowHash.h"
+
 namespace Stdlib
 {
     namespace HashTable
@@ -42,13 +44,12 @@ namespace Stdlib
         inline
         unsigned long long hash_key(const char *key)
         {
-            unsigned long long hash = 14695981039346656037UL;
-            for (const char *p = key; *p; ++p) {
-                hash ^= (unsigned long long)(unsigned char)(*p);
-                hash *= 1099511628211UL;
-            }
-
-            return hash;
+            return (unsigned long long) MeowU64From(
+                Hash::Meow::MeowHash(Hash::Meow::MeowDefaultSeed,
+                strlen(key),
+                (void *) key),
+                0
+            );
         }
 
         ht *create_table(int max = 0, bool is_fixed = false)
