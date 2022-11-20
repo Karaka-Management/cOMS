@@ -22,7 +22,7 @@ namespace Utils {
         inline
         char *search_replace(const char *haystack, const char *needle, const char *replace)
         {
-            const char* haystackT = haystack;
+            const char *haystackT = haystack;
 
             size_t i;
             size_t match     = 0;
@@ -83,10 +83,10 @@ namespace Utils {
             int size;
         } text_diff;
 
-        text_diff computeLCSDiff (char **from, int fromSize, char **to, int toSize)
+        text_diff computeLCSDiff(char **from, int fromSize, char **to, int toSize)
         {
             char **diffValues = (char **) malloc(fromSize * toSize * sizeof(char *));
-            int *diffMasks    = (int *) calloc(fromSize * toSize,  sizeof(int));
+            int *diffMasks    = (int *) calloc(fromSize * toSize, sizeof(int));
 
             int *dm = (int *) calloc((fromSize + 1) * (toSize + 1), sizeof(int));
 
@@ -134,7 +134,7 @@ namespace Utils {
                     #else
                         strcpy(diffValues[diffIndex], to[j - 1]);
                     #endif
-                    
+
                     diffMasks[diffIndex] = 1;
 
                     --j;
@@ -147,7 +147,7 @@ namespace Utils {
                     diffValues[diffIndex] = (char *) malloc((strlen(from[i - 1]) + 1) * sizeof(char));
                     if (!diffValues[diffIndex]) {
                         fprintf(stderr, "CRITICAL: malloc failed");
-                        
+
                         continue;
                     }
 
@@ -156,7 +156,7 @@ namespace Utils {
                     #else
                         strcpy(diffValues[diffIndex], from[i - 1]);
                     #endif
-                    
+
                     diffMasks[diffIndex] = -1;
 
                     --i;
@@ -168,7 +168,7 @@ namespace Utils {
                 diffValues[diffIndex] = (char *) malloc((strlen(from[i - 1]) + 1) * sizeof(char));
                 if (!diffValues[diffIndex]) {
                     fprintf(stderr, "CRITICAL: malloc failed");
-                    
+
                     continue;
                 }
 
@@ -210,7 +210,7 @@ namespace Utils {
             ArraySort::reverse_char(diffValues, diffIndex);
             ArraySort::reverse_int(diffMasks, diffIndex);
 
-            return text_diff { diffValues, diffMasks, diffIndex  };
+            return text_diff{diffValues, diffMasks, diffIndex};
         }
     }
 }
