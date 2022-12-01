@@ -87,7 +87,7 @@ namespace Utils {
                 struct stat buffer;
                 stat(filename, &buffer);
 
-                (time_t) buffer.st_mtim.tv_sec;
+                return (time_t) buffer.st_mtim.tv_sec;
             #endif
         }
 
