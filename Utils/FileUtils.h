@@ -89,6 +89,8 @@ namespace Utils {
 
                 return (time_t) buffer.st_mtim.tv_sec;
             #endif
+
+            return (time_t) 0;
         }
 
         inline
