@@ -22,7 +22,7 @@
 
 namespace Router
 {
-    typedef void (*Fptr)(int, char **);
+    typedef void (*RouterFunc)(int, char **);
 
     typedef struct {
         Stdlib::HashTable::ht *routes;
@@ -41,9 +41,9 @@ namespace Router
         Stdlib::HashTable::set_entry(router->routes, route, endpoint);
     }
 
-    Fptr match_route(Router *router, const char *uri)
+    RouterFunc match_route(Router *router, const char *uri)
     {
-        Fptr ptr = NULL;
+        RouterFunc ptr = NULL;
         Stdlib::HashTable::it itr = Stdlib::HashTable::table_iterator(router->routes);
 
         std::regex regex;
@@ -54,7 +54,7 @@ namespace Router
 
             bool status = std::regex_search(uri, match, regex);
             if (status) {
-                ptr = (Fptr) itr.value;
+                ptr = (RouterFunc) itr.value;
             }
         }
 
