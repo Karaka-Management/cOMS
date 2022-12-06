@@ -107,7 +107,7 @@ namespace Utils {
 
         typedef struct {
             char *content;
-            int size;
+            int size = 0; // doesn't include null termination (same as strlen)
         } file_body;
 
         file_body read_file (const char *filename)
