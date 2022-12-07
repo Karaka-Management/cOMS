@@ -14,27 +14,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _WIN32
-    #include <direct.h>
-#else
-    #include <unistd.h>
-#endif
+#include "OSWrapper.h"
 
 namespace Utils {
     namespace ApplicationUtils {
         inline
         char *cwd()
         {
-            char *cwd = (char *) malloc(sizeof(char) * 4096);
+            char *cwd = (char *) malloc(4096 * sizeof(char));
             if (cwd == NULL) {
                 return NULL;
             }
 
-            #ifdef _WIN32
-                cwd = _getcwd(NULL, sizeof(char) * 4096);
-            #else
-                getcwd(cwd, sizeof(char) * 4096);
-            #endif
+            getcwd(cwd,  4096 * sizeof(char));
 
             return cwd;
         }
@@ -42,43 +34,23 @@ namespace Utils {
         inline
         void chdir_application(char *cwd, char *arg)
         {
-            #ifdef _WIN32
-                char *pos = strrchr(arg, '/');
-                if (pos == NULL) {
-                    pos = strrchr(arg, '\\');
-                }
+            char *pos = strrchr(arg, '/');
+            if (pos == NULL) {
+                pos = strrchr(arg, '\\');
+            }
 
-                char *dir = (char *) calloc((pos - arg + 1), sizeof(char));
-                if (!dir) {
-                    return;
-                }
+            char* dir = (char *) calloc((pos - arg + 1), sizeof(char));
+            if (!dir) {
+                return;
+            }
 
-                if (pos != NULL) {
-                    memcpy(dir, arg, (pos - arg) * sizeof(char));
+            if (pos != NULL) {
+                memcpy(dir, arg, (pos - arg) * sizeof(char));
 
-                    _chdir(dir);
+                chdir(dir);
 
-                    free(dir);
-                }
-            #else
-                char *pos = strrchr(arg, '/');
-                if (pos == NULL) {
-                    pos = strrchr(arg, '\\');
-                }
-
-                char* dir = (char*) calloc((pos - arg + 1), sizeof(char));
-                if (!dir) {
-                    return;
-                }
-
-                if (pos != NULL) {
-                    memcpy(dir, arg, (pos - arg) * sizeof(char));
-
-                    chdir(dir);
-
-                    free(dir);
-                }
-            #endif
+                free(dir);
+            }
         }
 
         inline

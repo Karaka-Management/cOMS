@@ -11,24 +11,17 @@
 #define UTILS_FILE_UTILS_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef _WIN32
     #include <windows.h>
-    #include <stdio.h>
-    #include <stdlib.h>
     #include <wchar.h>
-
-    #ifdef _MSC_VER
-        #include <io.h>
-    #else
-        #include <unistd.h>
-    #endif
-
-    #include <stdbool.h>
 #else
     #include <sys/stat.h>
 #endif
+
+#include "OSWrapper.h"
 
 namespace Utils {
     namespace FileUtils {
@@ -36,11 +29,7 @@ namespace Utils {
         bool file_exists (const char *filename)
         {
             #ifdef _WIN32
-                #ifdef _MSC_VER
-                    return _access_s(filename, 0) == 0;
-                #else
-                    return access(filename, 0) == 0;
-                #endif
+                return access(filename, 0) == 0;
             #else
                 struct stat buffer;
                 return stat(filename, &buffer) == 0;
@@ -123,7 +112,7 @@ namespace Utils {
             file.size = ftell(fp);
             fseek(fp, 0, SEEK_SET);
 
-            file.content = (char *) malloc(file.size);
+            file.content = (char *) malloc((file.size + 1) * sizeof(char));
             if (!file.content) {
                 fprintf(stderr, "CRITICAL: malloc failed");
 
@@ -131,6 +120,7 @@ namespace Utils {
             }
 
             fread(file.content, file.size, 1, fp);
+            file.content[file.size] = 0;
 
             fclose(fp);
 
