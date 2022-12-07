@@ -77,6 +77,62 @@ namespace Utils {
             return true;
         }
 
+        inline
+        size_t str_count(char *str, char *substr)
+        {
+            int l1 = strlen(str);
+            int l2 = strlen(substr);
+
+            if (l2 == 0 || l1 < l2) {
+                return 0;
+            }
+
+            int count = 0;
+            for (str = strstr(str, substr); str; str = strstr(str + l2, substr)) {
+                ++count;
+            }
+
+            return count;
+        }
+
+        char *strsep(char **sp, char *sep)
+        {
+            char *p, *s;
+
+            if (sp == NULL || *sp == NULL || **sp == '\0') {
+                return(NULL);
+            }
+
+            s = *sp;
+            p = s + strcspn(s, sep);
+
+            if (*p != '\0') {
+                *p++ = '\0';
+            }
+
+            *sp = p;
+
+            return(s);
+        }
+
+        int str_split(char **list, char *str, const char delim)
+        {
+            size_t splits = str_count(str, (char *) &delim) + 1;
+            list          = (char **) malloc(splits * sizeof(char *));
+
+            char *token;
+            int i = 0;
+
+            while ((token = strsep(&str, &delim)) != NULL) {
+                list[i] = (char *) malloc(strlen(token + 1) * sizeof(char));
+                memcpy(list[i], token, (strlen(token) + 1) * sizeof(char));
+
+                ++i;
+            }
+
+            return i;
+        }
+
         typedef struct {
             char **values;
             int *masks;
