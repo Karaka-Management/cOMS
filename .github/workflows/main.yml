@@ -9,8 +9,9 @@ jobs:
         platform: [x86, x64]
         os: [ubuntu-latest]
         builld:
-        - name: Setup packages
-          install_packages: libcurl4-openssl-dev
+        - name: packages
+          install_packages: curl, libcurl4-openssl-dev
+          install_steps: packages
     runs-on: '${{ matrix.os }}'
     if: "!contains(github.event.head_commit.message, 'NO_CI')"
     name: 'code-tests: ${{ matrix.os }} / ${{ matrix.platform }}'
