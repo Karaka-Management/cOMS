@@ -8,6 +8,9 @@ jobs:
       matrix:
         platform: [x86, x64]
         os: [ubuntu-latest]
+        builld:
+        - name: Setup packages
+          install_packages: libcurl4-openssl-dev
     runs-on: '${{ matrix.os }}'
     if: "!contains(github.event.head_commit.message, 'NO_CI')"
     name: 'code-tests: ${{ matrix.os }} / ${{ matrix.platform }}'
@@ -21,8 +24,6 @@ jobs:
         with:
           version: latest
           platform: '${{ matrix.platform }}'
-      - name: Setup packages
-        install_packages: libcurl4-openssl-dev
       - name: Run tests
         run: |
           chmod +x ./tests/test.sh
