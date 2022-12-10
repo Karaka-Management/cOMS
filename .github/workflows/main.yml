@@ -24,7 +24,7 @@ jobs:
       - name: Install packages
         run: |
           sudo apt-get update
-          sudo apt-get install curl, libcurl4-openssl-dev
+          sudo apt-get install curl libcurl4-openssl-dev
       - name: Run tests
         run: |
           chmod +x ./tests/test.sh
