@@ -22,7 +22,7 @@ namespace DataStorage
     namespace Database
     {
         struct ConnectionAbstract {
-            void* con = NULL;
+            void *con = NULL;
 
             DbConnectionConfig dbdata;
 
@@ -30,7 +30,7 @@ namespace DataStorage
 
             DatabaseStatus status = DatabaseStatus::CLOSED;
 
-            virtual void connect(DbConnectionConfig* dbdata = NULL)
+            virtual void connect(DbConnectionConfig *dbdata = NULL)
             {
                 return;
             }

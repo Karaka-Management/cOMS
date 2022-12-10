@@ -70,7 +70,7 @@ namespace DataStorage
                 if (stat != ConnStatusType::CONNECTION_OK) {
                     this->status = DatabaseStatus::MISSING_DATABASE;
 
-                    PQfinish((PGconn*)this->con);
+                    PQfinish((PGconn *) this->con);
                     this->con = NULL;
 
                     if (this->dbdata.password != NULL) {
@@ -83,7 +83,7 @@ namespace DataStorage
             void close()
             {
                 if (this->con != NULL) {
-                    PQfinish((PGconn*)this->con);
+                    PQfinish((PGconn *) this->con);
                 }
 
                 this->con    = NULL;
