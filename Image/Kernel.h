@@ -16,7 +16,8 @@
 #include "ImageUtils.h"
 #include "../Utils/MathUtils.h"
 
-namespace Image {
+namespace Image
+{
     const float KERNEL_RIDGE_1[3][3] = {
         {0.0, -1.0, 0.0},
         {-1.0, 4.0, -1.0},
@@ -61,7 +62,8 @@ namespace Image {
         {-1.0 / 256.0,  -4.0 / 256.0, -6.0 / 256.0, -4.0 / 256.0, -1.0 / 256.0},
     };
 
-    namespace Kernel {
+    namespace Kernel
+    {
         inline
         cv::Mat convolve(cv::Mat in, const float kernel[][3])
         {

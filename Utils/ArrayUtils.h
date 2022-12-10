@@ -16,8 +16,10 @@
 
 #include "StringUtils.h"
 
-namespace Utils {
-    namespace ArrayUtils {
+namespace Utils
+{
+    namespace ArrayUtils
+    {
         inline
         char* get_arg(const char *id, char **argv, int length)
         {

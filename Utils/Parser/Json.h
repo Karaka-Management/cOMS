@@ -2793,7 +2793,8 @@ JSON_HEDLEY_DIAGNOSTIC_POP
 // it allows using the detected idiom to retrieve the return type
 // of such an expression
 #define NLOHMANN_CAN_CALL_STD_FUNC_IMPL(std_name)                                 \
-    namespace detail {                                                            \
+    namespace detail
+    {                                                            \
     using std::std_name;                                                          \
     \
     template<typename... T>                                                       \

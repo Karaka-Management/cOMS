@@ -199,8 +199,10 @@
         pxor(r2, r3)
 #endif
 
-namespace Hash {
-    namespace Meow {
+namespace Hash
+{
+    namespace Meow
+    {
         #if MEOW_DUMP
             struct meow_dump
             {

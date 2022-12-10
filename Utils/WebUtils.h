@@ -17,8 +17,10 @@
 
 #include "FileUtils.h"
 
-namespace Utils {
-    namespace WebUtils {
+namespace Utils
+{
+    namespace WebUtils
+    {
         static bool CURL_SETUP = false;
 
         inline

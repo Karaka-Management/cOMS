@@ -17,8 +17,10 @@
 #include "MathUtils.h"
 #include "ArraySort.h"
 
-namespace Utils {
-    namespace StringUtils {
+namespace Utils
+{
+    namespace StringUtils
+    {
         inline
         char *search_replace(const char *haystack, const char *needle, const char *replace)
         {
@@ -251,7 +253,7 @@ namespace Utils {
             }
             diffValues = diffValuesT;
 
-            int *diffMasksT  = (int *) realloc(diffMasks, diffIndex * sizeof(int));
+            int *diffMasksT = (int *) realloc(diffMasks, diffIndex * sizeof(int));
             if (!diffMasksT) {
                 free(diffMasks);
             }

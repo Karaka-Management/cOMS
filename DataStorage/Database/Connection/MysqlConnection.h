@@ -20,8 +20,10 @@
 #include "../DatabaseType.h"
 #include "../DatabaseStatus.h"
 
-namespace DataStorage {
-    namespace Database {
+namespace DataStorage
+{
+    namespace Database
+    {
         struct MysqlConnection : ConnectionAbstract {
             MysqlConnection(DbConnectionConfig dbdata)
             {

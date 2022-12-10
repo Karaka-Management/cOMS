@@ -16,8 +16,10 @@
 
 #include "../Utils/MathUtils.h"
 
-namespace Image {
-    namespace Skew {
+namespace Image
+{
+    namespace Skew
+    {
         cv::Mat deskewHoughLines(cv::Mat in, int maxDegree = 45)
         {
             cv::Size dim = in.size();

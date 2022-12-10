@@ -13,8 +13,10 @@
 #include <stdio.h>
 #include <math.h>
 
-namespace Image {
-    namespace ImageUtils {
+namespace Image
+{
+    namespace ImageUtils
+    {
         inline
         float lightnessFromRgb(int r, int g, int b)
         {

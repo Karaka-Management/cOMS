@@ -8,7 +8,8 @@
     #include <windows.h>
 #endif
 
-namespace Threads {
+namespace Threads
+{
     #ifdef _WIN32
         typedef DWORD WINAPI(*JobFunc)(void *);
     #else

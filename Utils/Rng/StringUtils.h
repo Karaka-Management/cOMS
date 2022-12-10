@@ -14,9 +14,12 @@
 #include <stdlib.h>
 #include <time.h>
 
-namespace Utils {
-    namespace Rng {
-        namespace StringUtils {
+namespace Utils
+{
+    namespace Rng
+    {
+        namespace StringUtils
+        {
             inline
             char* generate_string(
                 size_t min = 10, size_t max = 10,

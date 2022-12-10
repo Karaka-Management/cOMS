@@ -15,8 +15,10 @@
 
 #include "../Utils/MathUtils.h"
 
-namespace Image {
-    namespace ImageUtils {
+namespace Image
+{
+    namespace ImageUtils
+    {
         cv::Mat find_diff (cv::Mat in1, cv::Mat in2)
         {
             cv::Mat diff;

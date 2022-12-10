@@ -14,8 +14,10 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 
-namespace Image {
-    namespace BillDetection {
+namespace Image
+{
+    namespace BillDetection
+    {
         cv::Mat highlightBill(cv::Mat in)
         {
             cv::Mat gray;

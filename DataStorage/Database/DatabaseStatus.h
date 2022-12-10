@@ -10,8 +10,10 @@
 #ifndef DATASTORAGE_DATABASE_STATUS_H
 #define DATASTORAGE_DATABASE_STATUS_H
 
-namespace DataStorage {
-    namespace Database {
+namespace DataStorage
+{
+    namespace Database
+    {
         typedef enum {
             OK = 0,
             MISSING_DATABASE = 1,

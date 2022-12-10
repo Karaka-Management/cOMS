@@ -15,7 +15,8 @@
 #include "Job.h"
 #include "ThreadPool.h"
 
-namespace Threads {
+namespace Threads
+{
     Job *pool_work_create(JobFunc func, void *arg)
     {
         Job *work;

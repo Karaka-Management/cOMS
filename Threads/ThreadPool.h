@@ -14,7 +14,8 @@
 #include "OSWrapper.h"
 #include "Job.h"
 
-namespace Threads {
+namespace Threads
+{
     typedef struct {
         Job *work_first;
         Job *work_last;

@@ -16,8 +16,10 @@
 
 #include "OSWrapper.h"
 
-namespace Utils {
-    namespace ApplicationUtils {
+namespace Utils
+{
+    namespace ApplicationUtils
+    {
         inline
         char *cwd()
         {

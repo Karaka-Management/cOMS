@@ -15,8 +15,10 @@
 
 #include "../DatabaseType.h"
 
-namespace DataStorage {
-    namespace Database {
+namespace DataStorage
+{
+    namespace Database
+    {
         typedef struct {
             DatabaseType db = DatabaseType::UNDEFINED;
 

@@ -23,8 +23,10 @@
 
 #include "OSWrapper.h"
 
-namespace Utils {
-    namespace FileUtils {
+namespace Utils
+{
+    namespace FileUtils
+    {
         inline
         bool file_exists (const char *filename)
         {

@@ -16,8 +16,10 @@
 #include "ImageUtils.h"
 #include "../Utils/MathUtils.h"
 
-namespace Image {
-    namespace Thresholding {
+namespace Image
+{
+    namespace Thresholding
+    {
         cv::Mat integralThresholding(cv::Mat in)
         {
             cv::Size dim = in.size();

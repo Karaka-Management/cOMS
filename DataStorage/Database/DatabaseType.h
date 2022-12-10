@@ -12,8 +12,10 @@
 
 #include <string.h>
 
-namespace DataStorage {
-    namespace Database {
+namespace DataStorage
+{
+    namespace Database
+    {
         typedef enum {
             MYSQL = 1,
             SQLITE = 2,

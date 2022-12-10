@@ -17,8 +17,10 @@
 #include "../DatabaseType.h"
 #include "../DatabaseStatus.h"
 
-namespace DataStorage {
-    namespace Database {
+namespace DataStorage
+{
+    namespace Database
+    {
         struct ConnectionAbstract {
             void* con = NULL;
 

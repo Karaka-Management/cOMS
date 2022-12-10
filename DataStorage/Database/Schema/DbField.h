@@ -13,8 +13,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace DataStorage {
-    namespace Database {
+namespace DataStorage
+{
+    namespace Database
+    {
         typedef struct {
             char *name;
             char *type;

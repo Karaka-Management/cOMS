@@ -15,8 +15,10 @@
 
 #include "DbField.h"
 
-namespace DataStorage {
-    namespace Database {
+namespace DataStorage
+{
+    namespace Database
+    {
         typedef struct {
             char *name;
             DbField *fields;

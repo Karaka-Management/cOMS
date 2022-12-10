@@ -21,8 +21,10 @@
 #include "PostgresqlConnection.h"
 #include "SQLiteConnection.h"
 
-namespace DataStorage {
-    namespace Database {
+namespace DataStorage
+{
+    namespace Database
+    {
         ConnectionAbstract *create_connection(DbConnectionConfig dbdata)
         {
             switch (dbdata.db) {

@@ -20,8 +20,10 @@
 #include "../DatabaseType.h"
 #include "../DatabaseStatus.h"
 
-namespace DataStorage {
-    namespace Database {
+namespace DataStorage
+{
+    namespace Database
+    {
         struct PostgresqlConnection : ConnectionAbstract {
             PostgresqlConnection(DbConnectionConfig dbdata)
             {
