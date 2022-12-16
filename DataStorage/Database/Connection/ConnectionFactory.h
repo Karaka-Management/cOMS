@@ -5,7 +5,7 @@
  * @copyright Dennis Eichhorn
  * @license   OMS License 1.0
  * @version   1.0.0
- * @link      https://karaka.app
+ * @link      https://jingga.app
  */
 #ifndef DATASTORAGE_DATBASE_CONNECTION_FACTORY_H
 #define DATASTORAGE_DATBASE_CONNECTION_FACTORY_H

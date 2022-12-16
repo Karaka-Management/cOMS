@@ -5,7 +5,7 @@
  * @copyright Dennis Eichhorn
  * @license   OMS License 1.0
  * @version   1.0.0
- * @link      https://karaka.app
+ * @link      https://jingga.app
  */
 #ifndef ROUTER_ROUTER_H
 #define ROUTER_ROUTER_H
