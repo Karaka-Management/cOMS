@@ -726,6 +726,19 @@ namespace Hash
             }
             MeowEnd(&State, SeedResult);
         }
+
+        const char *MeowStringify(meow_u128 Hash)
+        {
+            char *str = (char *) malloc((4 * 8 + 4 + 1) * sizeof(char));
+
+            sprintf(str, "%08X-%08X-%08X-%08X",
+                   MeowU32From(Hash, 3),
+                   MeowU32From(Hash, 2),
+                   MeowU32From(Hash, 1),
+                   MeowU32From(Hash, 0));
+
+            return (const char *) str;
+        }
     }
 }
 
