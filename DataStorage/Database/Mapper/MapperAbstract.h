@@ -25,6 +25,8 @@ namespace DataStorage
 
             const DataStorage::Database::ConnectionAbstract *db = NULL;
 
+            DataStorage::Database::MapperType type = DataStorage::Database::MapperType::MAPPER_DEFAULT;
+
             int MEMBERS = 0;
 
             int COLUMN_COUNT = 0;
@@ -86,6 +88,18 @@ namespace DataStorage
 
                 return NULL;
             }
+
+            MapperAbstract *where(
+                char *member,
+                void *value,
+                int valueType,
+                const char *logic = "=",
+                const char *connector = "AND"
+            ) {
+                return this;
+            }
+
+            virtual void *execute(void *options = NULL);
         };
     }
 }

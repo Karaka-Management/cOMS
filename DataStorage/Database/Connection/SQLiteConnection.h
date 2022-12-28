@@ -71,6 +71,89 @@ namespace DataStorage
                 this->con    = NULL;
                 this->status = DatabaseStatus::CLOSED;
             }
+
+            QueryResult query_execute(char *stmt, char *paramValues = NULL)
+            {
+                QueryResult result;
+
+                sqlite3_stmt *res;
+                int status = 0;
+
+                if (paramValues != NULL) {
+                    status = sqlite3_prepare_v2((sqlite3 *) this->con, stmt, -1, &res, 0);
+
+                    // @todo: sqlite3_bind_int(res, 1, 3);
+                } else {
+                    status = sqlite3_prepare_v2((sqlite3 *) this->con, stmt, -1, &res, 0);
+                }
+
+                if (res == NULL) {
+                    return result;
+                }
+
+                status = sqlite3_step(res);
+
+                result.rows    = 100;
+                result.columns = sqlite3_column_count(res);
+
+                if (result.rows == 0 || result.columns == 0) {
+                    return result;
+                }
+
+                result.results = (char **) malloc(result.rows * result.columns * sizeof(char*));
+
+                char *temp = NULL;
+                size_t valLen = 0;
+                char ** tempStorage = NULL;
+
+                size_t i = 0;
+                while (status == SQLITE_ROW) {
+                    if (i == result.rows) {
+                        tempStorage = (char **) malloc((result.rows + 100) * result.columns * sizeof(char*));
+                        memcpy(tempStorage, result.results, result.rows * result.columns * sizeof(char*));
+
+                        free(result.results);
+                        result.results = tempStorage;
+
+                        result.rows += 100;
+                    }
+
+                    for (int j = 0; j < result.columns; ++j) {
+                        temp = (char *) sqlite3_column_text(res, j);
+
+                        if (temp == NULL) {
+                            result.results[i * result.columns + j] = NULL;
+
+                            continue;
+                        }
+
+                        valLen = strlen(temp);
+
+                        result.results[i * result.columns + j] = (char *) malloc((valLen + 1) * sizeof(char));
+                        memcpy(result.results[i * result.columns + j], temp, valLen);
+                        result.results[i * result.columns + j][valLen] = '\0';
+                    }
+
+                    status = sqlite3_step(res);
+
+                    ++i;
+                }
+
+                --i;
+                if (i != result.rows) {
+                    tempStorage = (char **) malloc(i * result.columns * sizeof(char*));
+                    memcpy(tempStorage, result.results, i * result.columns * sizeof(char*));
+
+                    free(result.results);
+                    result.results = tempStorage;
+
+                    result.rows = i;
+                }
+
+                sqlite3_finalize(res);
+
+                return result;
+            }
         };
     }
 }

@@ -23,10 +23,10 @@ namespace DataStorage
     namespace Database
     {
         static DataStorage::Database::ConnectionAbstract *db;
-        static char *dateTimeFormat = (char *) "Y-m-d H:i:s";
+        static const char *dateTimeFormat = "Y-m-d H:i:s";
 
         struct DataMapperFactory {
-            static ReadMapper *reader(const DataStorage::Database::MapperData *mapper, ConnectionAbstract *db = NULL)
+            static ReadMapper *reader(const DataStorage::Database::MapperData *mapper, DataStorage::Database::ConnectionAbstract *db = NULL)
             {
                 ReadMapper *readMapper = (ReadMapper *) malloc(sizeof(ReadMapper));
                 readMapper->mapper = mapper;
@@ -35,7 +35,7 @@ namespace DataStorage
                 return readMapper;
             }
 
-            static ReadMapper *get(const DataStorage::Database::MapperData *mapper, ConnectionAbstract *db = NULL)
+            static ReadMapper *get(const DataStorage::Database::MapperData *mapper, DataStorage::Database::ConnectionAbstract *db = NULL)
             {
                 ReadMapper *readMapper = (ReadMapper *) malloc(sizeof(ReadMapper));
                 readMapper->mapper = mapper;
@@ -44,7 +44,7 @@ namespace DataStorage
                 return readMapper->get();
             }
 
-            static ReadMapper *getAll(const DataStorage::Database::MapperData *mapper, ConnectionAbstract *db = NULL)
+            static ReadMapper *getAll(const DataStorage::Database::MapperData *mapper, DataStorage::Database::ConnectionAbstract *db = NULL)
             {
                 ReadMapper *readMapper = (ReadMapper *) malloc(sizeof(ReadMapper));
                 readMapper->mapper = mapper;

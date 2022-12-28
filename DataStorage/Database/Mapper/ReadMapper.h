@@ -32,12 +32,34 @@ namespace DataStorage
                 return this;
             }
 
-            ReadMapper *where(char *where, void *data)
+            void *execute(void *options = NULL)
             {
-                return this;
+                switch(this->type) {
+                    case DataStorage::Database::MapperType::MAPPER_GET:
+                        return this->executeGet(options);
+                    case DataStorage::Database::MapperType::MAPPER_GET_RAW:
+                        return this->executeGetRaw(options);
+                    case DataStorage::Database::MapperType::MAPPER_GET_ALL:
+                        return this->executeGetAll(options);
+                    default:
+                        return NULL;
+                };
             }
 
-            void *execute()
+            void *executeGet(void *options)
+            {
+                int *primaryKeys = NULL;
+                const char *memberOfPrimaryField = findByColumnName((char *) this->mapper->PRIMARYFIELD)->internal;
+
+                return NULL;
+            }
+
+            void *executeGetRaw(void *options)
+            {
+                return NULL;
+            }
+
+            void *executeGetAll(void *options)
             {
                 return NULL;
             }

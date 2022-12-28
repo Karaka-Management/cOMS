@@ -18,6 +18,19 @@ namespace DataStorage
     namespace Database
     {
         typedef enum {
+            MAPPER_DEFAULT = 0,
+            MAPPER_GET = 1,
+            MAPPER_GET_ALL = 4,
+            MAPPER_FIND = 7,
+            MAPPER_GET_RAW = 8,
+            MAPPER_GET_RANDOM = 11,
+            MAPPER_COUNT_MODELS = 12,
+            MAPPER_CREATE = 1001,
+            MAPPER_UPDATE = 2001,
+            MAPPER_DELETE = 3001
+        } MapperType;
+
+        typedef enum {
             FIELD_TYPE_INT = 1,
             FIELD_TYPE_FLOAT = 2,
             FIELD_TYPE_STRING = 3,
@@ -31,9 +44,11 @@ namespace DataStorage
 
         void free_ModelStructure(ModelStructure *data)
         {
+            /* Not necessary
             if (data->name != NULL) {
                 free((void *) data->name);
             }
+            */
         }
 
         typedef struct {
@@ -56,49 +71,51 @@ namespace DataStorage
         }
 
         typedef struct {
-            char *member = NULL;
-            char *mapper = NULL;
-            char *external = NULL;
-            char *table = NULL;
-            char *self = NULL;
-            char *column = NULL;
+            const char *member = NULL;
+            const char *mapper = NULL;
+            const char *external = NULL;
+            const char *table = NULL;
+            const char *self = NULL;
+            const char *column = NULL;
             bool conditional = false;
-            char *by = NULL;
+            const char *by = NULL;
         } TableRelation;
 
         void free_TableRelation(TableRelation *data)
         {
+            /* Not necessary
             if (data->member != NULL) {
-                free(data->member);
+                free((void *) data->member);
             }
 
             if (data->mapper != NULL) {
-                free(data->mapper);
+                free((void *) data->mapper);
             }
 
             if (data->external != NULL) {
-                free(data->external);
+                free((void *) data->external);
             }
 
             if (data->table != NULL) {
-                free(data->table);
+                free((void *) data->table);
             }
 
             if (data->self != NULL) {
-                free(data->self);
+                free((void *) data->self);
             }
 
             if (data->column != NULL) {
-                free(data->column);
+                free((void *) data->column);
             }
 
             if (data->self != NULL) {
-                free(data->self);
+                free((void *) data->self);
             }
 
             if (data->by != NULL) {
-                free(data->by);
+                free((void *) data->by);
             }
+            */
         }
 
         typedef struct {
@@ -126,6 +143,7 @@ namespace DataStorage
 
         void free_MapperData(DataStorage::Database::MapperData *data)
         {
+            /* Not necessary
             if (data->TABLE != NULL) {
                 free((void *) data->TABLE);
             }
@@ -145,44 +163,55 @@ namespace DataStorage
             if (data->MODEL != NULL) {
                 free(data->MODEL);
             }
+            */
 
             int i = 0;
             if (data->MODEL_STRUCTURE != NULL) {
+                /* not neccessary
                 for (i = 0; i < data->MEMBER_COUNT; ++i) {
                     free_ModelStructure(&data->MODEL_STRUCTURE[i]);
                 }
+                */
 
                 free(data->MODEL_STRUCTURE);
             }
 
             if (data->COLUMNS != NULL) {
-                for (i = 0; data->COLUMN_COUNT; ++i) {
+                /* not neccessary
+                for (i = 0; i < data->COLUMN_COUNT; ++i) {
                     free_DataMapperColumn(&data->COLUMNS[i]);
                 }
+                */
 
                 free(data->COLUMNS);
             }
 
             if (data->OWNS_ONE != NULL) {
-                for (i = 0; data->OWNS_ONE_COUNT; ++i) {
+                /* not neccessary
+                for (i = 0; i < data->OWNS_ONE_COUNT; ++i) {
                     free_TableRelation(&data->OWNS_ONE[i]);
                 }
+                */
 
                 free(data->OWNS_ONE);
             }
 
             if (data->HAS_MANY != NULL) {
-                for (i = 0; data->HAS_MANY_COUNT; ++i) {
+                /* not neccessary
+                for (i = 0; i < data->HAS_MANY_COUNT; ++i) {
                     free_TableRelation(&data->HAS_MANY[i]);
                 }
+                */
 
                 free(data->HAS_MANY);
             }
 
             if (data->BELONGS_TO != NULL) {
-                for (i = 0; data->BELONGS_TO_COUNT; ++i) {
+                /* not neccessary
+                for (i = 0; i < data->BELONGS_TO_COUNT; ++i) {
                     free_TableRelation(&data->BELONGS_TO[i]);
                 }
+                */
 
                 free(data->BELONGS_TO);
             }
