@@ -34,7 +34,7 @@ void ms_to_timespec(struct timespec *ts, unsigned int ms)
         return;
     }
 
-    ts->tv_sec  = (ms / 1000) + time(NULL);
+    ts->tv_sec  = (ms / 1000) + time(0);
     ts->tv_nsec = (ms % 1000) * 1000000;
 }
 
@@ -211,7 +211,7 @@ void ms_to_timespec(struct timespec *ts, unsigned int ms)
             return INFINITE;
         }
 
-        t = ((abstime->tv_sec - time(NULL)) * 1000) + (abstime->tv_nsec / 1000000);
+        t = ((abstime->tv_sec - time(0)) * 1000) + (abstime->tv_nsec / 1000000);
         if (t < 0) {
             t = 1;
         }
