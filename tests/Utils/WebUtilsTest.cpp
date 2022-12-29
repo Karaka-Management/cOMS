@@ -25,6 +25,7 @@ int main(int argc, char** argv)
     free(single.content);
 
     /* Multi download */
+    /*
     const char *urls[] = {
         "https://jingga.app/terms",
         "https://jingga.app/imprint",
@@ -44,6 +45,7 @@ int main(int argc, char** argv)
     }
 
     free(multi);
+    */
 
     Utils::WebUtils::clean();
     printf("\n\n");
