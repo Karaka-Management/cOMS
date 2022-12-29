@@ -85,6 +85,64 @@ namespace DataStorage
                 this->con    = NULL;
                 this->status = DatabaseStatus::CLOSED;
             }
+
+            QueryResult query_execute(char *stmt, char *paramValues = NULL)
+            {
+                QueryResult result;
+
+                MYSQL_RES *res;
+                int status = 0;
+
+                if (paramValues != NULL) {
+                    return result;
+                } else {
+                    status = mysql_query((::MYSQL *) this->con, stmt);
+                    res = mysql_store_result((::MYSQL *) this->con);
+                }
+
+                if (res == NULL) {
+                    return result;
+                }
+
+                result.rows    = mysql_num_rows(res);
+                result.columns = mysql_num_fields(res);
+
+                if (result.rows == 0 || result.columns == 0) {
+                    return result;
+                }
+
+                result.results = (char **) malloc(result.rows * result.columns * sizeof(char*));
+
+                char *temp = NULL;
+                size_t valLen = 0;
+                size_t *lengths;
+
+                ::MYSQL_ROW row;
+                size_t i = 0;
+
+                while ((row = mysql_fetch_row(res)) != NULL) {
+                    lengths = mysql_fetch_lengths(res);
+                    for (int j = 0; j < result.columns; ++j) {
+                        temp = row[j];
+
+                        if (temp == NULL) {
+                            result.results[i * result.columns + j] = NULL;
+
+                            continue;
+                        }
+
+                        valLen = lengths[j];
+
+                        result.results[i * result.columns + j] = (char *) malloc((valLen + 1) * sizeof(char));
+                        memcpy(result.results[i * result.columns + j], temp, valLen);
+                        result.results[i * result.columns + j][valLen] = '\0';
+                    }
+
+                    ++i;
+                }
+
+                return result;
+            }
         };
     }
 }

@@ -89,6 +89,54 @@ namespace DataStorage
                 this->con    = NULL;
                 this->status = DatabaseStatus::CLOSED;
             }
+
+            QueryResult query_execute(char *stmt, char *paramValues = NULL)
+            {
+                QueryResult result;
+
+                PGresult *res;
+                if (paramValues != NULL) {
+                    res = PQexecParams((PGconn *) this->con, stmt, 1, NULL, (const char* const*) paramValues, NULL, NULL, 0);
+                } else {
+                    res = PQexec((PGconn *) this->con, stmt);
+                }
+
+                if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+                    PQclear(res);
+
+                    return result;
+                }
+
+                result.rows    = PQntuples(res);
+                result.columns = PQnfields(res);
+
+                result.results = (char **) malloc(result.rows * result.columns * sizeof(char*));
+
+                char *temp = NULL;
+                size_t valLen = 0;
+
+                for (size_t i = 0; i < result.rows; ++i) {
+                    for (size_t j = 0; j < result.columns; ++j) {
+                        temp = PQgetvalue(res, i, j);
+
+                        if (temp == NULL) {
+                            result.results[i * result.columns + j] = NULL;
+
+                            continue;
+                        }
+
+                        valLen = strlen(temp);
+
+                        result.results[i * result.columns + j] = (char *) malloc((valLen + 1) * sizeof(char));
+                        memcpy(result.results[i * result.columns + j], temp, valLen);
+                        result.results[i * result.columns + j][valLen] = '\0';
+                    }
+                }
+
+                PQclear(res);
+
+                return result;
+            }
         };
     }
 }

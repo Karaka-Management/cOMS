@@ -6,30 +6,6 @@
 // SPDX-FileCopyrightText: 2013-2022 Niels Lohmann <https://nlohmann.me>
 // SPDX-License-Identifier: MIT
 
-/*
-MIT License
-
-Copyright (c) 2013-2022 Niels Lohmann
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
 /****************************************************************************\
  * Note on documentation: The source files contain links to the online      *
  * documentation of the public API at https://json.nlohmann.me. This URL    *
@@ -63,6 +39,8 @@ SOFTWARE.
 //
 // SPDX-FileCopyrightText: 2013-2022 Niels Lohmann <https://nlohmann.me>
 // SPDX-License-Identifier: MIT
+
+
 
 #include <utility>
 
@@ -2793,8 +2771,7 @@ JSON_HEDLEY_DIAGNOSTIC_POP
 // it allows using the detected idiom to retrieve the return type
 // of such an expression
 #define NLOHMANN_CAN_CALL_STD_FUNC_IMPL(std_name)                                 \
-    namespace detail
-    {                                                            \
+    namespace detail {                                                            \
     using std::std_name;                                                          \
     \
     template<typename... T>                                                       \
@@ -4192,28 +4169,28 @@ inline std::size_t concat_length()
 }
 
 template<typename... Args>
-inline std::size_t concat_length(const char* cstr, Args&& ... rest);
+inline std::size_t concat_length(const char* cstr, const Args& ... rest);
 
 template<typename StringType, typename... Args>
-inline std::size_t concat_length(const StringType& str, Args&& ... rest);
+inline std::size_t concat_length(const StringType& str, const Args& ... rest);
 
 template<typename... Args>
-inline std::size_t concat_length(const char /*c*/, Args&& ... rest)
+inline std::size_t concat_length(const char /*c*/, const Args& ... rest)
 {
-    return 1 + concat_length(std::forward<Args>(rest)...);
+    return 1 + concat_length(rest...);
 }
 
 template<typename... Args>
-inline std::size_t concat_length(const char* cstr, Args&& ... rest)
+inline std::size_t concat_length(const char* cstr, const Args& ... rest)
 {
     // cppcheck-suppress ignoredReturnValue
-    return ::strlen(cstr) + concat_length(std::forward<Args>(rest)...);
+    return ::strlen(cstr) + concat_length(rest...);
 }
 
 template<typename StringType, typename... Args>
-inline std::size_t concat_length(const StringType& str, Args&& ... rest)
+inline std::size_t concat_length(const StringType& str, const Args& ... rest)
 {
-    return str.size() + concat_length(std::forward<Args>(rest)...);
+    return str.size() + concat_length(rest...);
 }
 
 template<typename OutStringType>
@@ -4304,7 +4281,7 @@ template<typename OutStringType = std::string, typename... Args>
 inline OutStringType concat(Args && ... args)
 {
     OutStringType str;
-    str.reserve(concat_length(std::forward<Args>(args)...));
+    str.reserve(concat_length(args...));
     concat_into(str, std::forward<Args>(args)...);
     return str;
 }
@@ -11254,7 +11231,7 @@ class binary_reader
                 }
                 if (is_ndarray) // ndarray dimensional vector can only contain integers, and can not embed another array
                 {
-                    return sax->parse_error(chars_read, get_token_string(), parse_error::create(113, chars_read, exception_message(input_format, "ndarray dimentional vector is not allowed", "size"), nullptr));
+                    return sax->parse_error(chars_read, get_token_string(), parse_error::create(113, chars_read, exception_message(input_format, "ndarray dimensional vector is not allowed", "size"), nullptr));
                 }
                 std::vector<size_t> dim;
                 if (JSON_HEDLEY_UNLIKELY(!get_ubjson_ndarray_size(dim)))
@@ -18872,7 +18849,7 @@ class serializer
                 : (0xFFu >> type) & (byte);
 
         const std::size_t index = 256u + static_cast<size_t>(state) * 16u + static_cast<size_t>(type);
-        JSON_ASSERT(index < 400);
+        JSON_ASSERT(index < utf8d.size());
         state = utf8d[index];
         return state;
     }

@@ -21,6 +21,12 @@ namespace DataStorage
 {
     namespace Database
     {
+        typedef struct {
+            size_t rows = 0;
+            size_t columns = 0;
+            char **results = NULL;
+        } QueryResult;
+
         struct ConnectionAbstract {
             void *con = NULL;
 
@@ -43,6 +49,11 @@ namespace DataStorage
 
                 this->con    = NULL;
                 this->status = DatabaseStatus::CLOSED;
+            }
+
+            virtual QueryResult query_execute(char *stmt, char *paramValues = NULL)
+            {
+                return QueryResult();
             }
         };
     }
