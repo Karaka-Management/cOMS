@@ -47,7 +47,7 @@ namespace Utils
             size_t c = 0;
             while (*haystack && c < i + match * (newLength - oldLength)) {
                 if (strstr(haystack, needle) == haystack) {
-                    strcpy(&result[c], replace);
+                    strcpy(&result[c], (char *) replace);
 
                     c        += newLength;
                     haystack += oldLength;
@@ -125,7 +125,7 @@ namespace Utils
             char *token;
             int i = 0;
 
-            while ((token = strsep(&str, &delim)) != NULL) {
+            while ((token = strsep(&str, (char *) & delim)) != NULL) {
                 list[i] = (char *) malloc(strlen(token + 1) * sizeof(char));
                 memcpy(list[i], token, (strlen(token) + 1) * sizeof(char));
 

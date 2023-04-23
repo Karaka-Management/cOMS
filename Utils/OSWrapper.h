@@ -17,11 +17,11 @@
     #include <direct.h>
     #include <io.h>
 
-    typedef _chdir chdir;
-    typedef _getcwd getcwd;
+    #define _chdir chdir;
+    #define _getcwd getcwd;
 
     #ifdef _MSC_VER
-        typedef _access_s access;
+        #define _access_s access;
     #else
         #include <unistd.h>
     #endif
