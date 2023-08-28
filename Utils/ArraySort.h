@@ -31,7 +31,7 @@ namespace Utils
         void reverse_float(float *arr, int size)
         {
             for (int low = 0, high = size - 1; low < high; ++low, --high) {
-                float tmp   = arr[low];
+                float tmp = arr[low];
                 arr[low]  = arr[high];
                 arr[high] = tmp;
             }
@@ -41,9 +41,9 @@ namespace Utils
         void reverse_double(double *arr, int size)
         {
             for (int low = 0, high = size - 1; low < high; ++low, --high) {
-                double tmp   = arr[low];
-                arr[low]  = arr[high];
-                arr[high] = tmp;
+                double tmp = arr[low];
+                arr[low]   = arr[high];
+                arr[high]  = tmp;
             }
         }
 

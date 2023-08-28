@@ -247,6 +247,7 @@ namespace Utils
 
             free(dm);
 
+            // @todo: do we even need to realloc?
             char **diffValuesT = (char **) realloc(diffValues, diffIndex * sizeof(char *));
             if (!diffValuesT) {
                 free(diffValues);
