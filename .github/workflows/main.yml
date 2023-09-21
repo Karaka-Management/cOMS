@@ -54,7 +54,7 @@ jobs:
       run: |
         cp ./Build/Config/.clang-format ./.clang-format
     - name: Lint Code Base
-      uses: github/super-linter/slim@v5.3.1
+      uses: github/super-linter/slim@v5
       env:
         VALIDATE_ALL_CODEBASE: false
         VALIDATE_CLANG_FORMAT : true
