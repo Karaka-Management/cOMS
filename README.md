@@ -20,7 +20,7 @@ With Karaka you have one partner who can provide all the tools and software solu
 
 * C++
 * Tools: tesseract-ocr, pdftotext, pdftoppm
-* Libraries: OpenCV
+* Libraries: OpenCV, curl, libxml2-dev, sqlite3, sqlite3-dev
 
 ### Developer tools
 
