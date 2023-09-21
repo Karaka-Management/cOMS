@@ -127,18 +127,18 @@ namespace Utils
             curl_easy_setopt(h, CURLOPT_WRITEDATA, page);
             curl_easy_setopt(h, CURLOPT_PRIVATE, page);
 
-            curl_easy_setopt(handle, CURLOPT_ACCEPT_ENCODING, "");
-            curl_easy_setopt(handle, CURLOPT_TIMEOUT, 5L);
-            curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
-            curl_easy_setopt(handle, CURLOPT_MAXREDIRS, 10L);
-            curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, 2L);
-            curl_easy_setopt(handle, CURLOPT_COOKIEFILE, "");
-            curl_easy_setopt(handle, CURLOPT_FILETIME, 1L);
-            curl_easy_setopt(handle, CURLOPT_USERAGENT, "firefox");
-            curl_easy_setopt(handle, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
-            curl_easy_setopt(handle, CURLOPT_UNRESTRICTED_AUTH, 1L);
-            curl_easy_setopt(handle, CURLOPT_PROXYAUTH, CURLAUTH_ANY);
-            curl_easy_setopt(handle, CURLOPT_EXPECT_100_TIMEOUT_MS, 0L);
+            curl_easy_setopt(h, CURLOPT_ACCEPT_ENCODING, "");
+            curl_easy_setopt(h, CURLOPT_TIMEOUT, 5L);
+            curl_easy_setopt(h, CURLOPT_FOLLOWLOCATION, 1L);
+            curl_easy_setopt(h, CURLOPT_MAXREDIRS, 10L);
+            curl_easy_setopt(h, CURLOPT_CONNECTTIMEOUT, 2L);
+            curl_easy_setopt(h, CURLOPT_COOKIEFILE, "");
+            curl_easy_setopt(h, CURLOPT_FILETIME, 1L);
+            curl_easy_setopt(h, CURLOPT_USERAGENT, "firefox");
+            curl_easy_setopt(h, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
+            curl_easy_setopt(h, CURLOPT_UNRESTRICTED_AUTH, 1L);
+            curl_easy_setopt(h, CURLOPT_PROXYAUTH, CURLAUTH_ANY);
+            curl_easy_setopt(h, CURLOPT_EXPECT_100_TIMEOUT_MS, 0L);
 
             curl_multi_add_handle(cm, h);
 
@@ -291,7 +291,7 @@ namespace Utils
 
             curl_multi_cleanup(cm);
 
-            return pages;
+            return null;
         }
     }
 }
