@@ -18,19 +18,19 @@ namespace Utils
     namespace ArraySort
     {
         inline
-        void reverse_int(int *arr, int size)
+        void reverse_int(int64_t *arr, size_t size)
         {
-            for (int low = 0, high = size - 1; low < high; ++low, --high) {
-                int tmp   = arr[low];
+            for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
+                int64_t tmp   = arr[low];
                 arr[low]  = arr[high];
                 arr[high] = tmp;
             }
         }
 
         inline
-        void reverse_float(float *arr, int size)
+        void reverse_float(float *arr, size_t size)
         {
-            for (int low = 0, high = size - 1; low < high; ++low, --high) {
+            for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
                 float tmp = arr[low];
                 arr[low]  = arr[high];
                 arr[high] = tmp;
@@ -38,9 +38,9 @@ namespace Utils
         }
 
         inline
-        void reverse_double(double *arr, int size)
+        void reverse_double(double *arr, size_t size)
         {
-            for (int low = 0, high = size - 1; low < high; ++low, --high) {
+            for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
                 double tmp = arr[low];
                 arr[low]   = arr[high];
                 arr[high]  = tmp;
@@ -48,9 +48,9 @@ namespace Utils
         }
 
         inline
-        void reverse_char(char **arr, int size)
+        void reverse_char(char **arr, size_t size)
         {
-            for (int low = 0, high = size - 1; low < high; ++low, --high) {
+            for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
                 char* tmp = arr[low];
                 arr[low]  = arr[high];
                 arr[high] = tmp;
