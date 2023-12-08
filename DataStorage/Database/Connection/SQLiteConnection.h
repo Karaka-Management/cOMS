@@ -82,7 +82,7 @@ namespace DataStorage
                 if (paramValues != NULL) {
                     status = sqlite3_prepare_v2((sqlite3 *) this->con, stmt, -1, &res, 0);
 
-                    // @todo: sqlite3_bind_int(res, 1, 3);
+                    // @todo sqlite3_bind_int(res, 1, 3);
                 } else {
                     status = sqlite3_prepare_v2((sqlite3 *) this->con, stmt, -1, &res, 0);
                 }

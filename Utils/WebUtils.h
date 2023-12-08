@@ -182,7 +182,7 @@ namespace Utils
                 if(true) {
                     xmlChar *orig = href;
 
-                    // @todo: consider base= tag which has an impact on relative links
+                    // @todo consider base= tag which has an impact on relative links
                     href = xmlBuildURI(href, (xmlChar *) url);
                     xmlFree(orig);
                 }
@@ -259,10 +259,10 @@ namespace Utils
                                 char *ctype;
                                 curl_easy_getinfo(e, CURLINFO_CONTENT_TYPE, &ctype);
 
-                                // @todo: save file (how to handle base resources, either pass base url or save based on url?)
+                                // @todo save file (how to handle base resources, either pass base url or save based on url?)
 
                                 if (ctype != NULL && strlen(ctype) > 10 && strstr(ctype, "text/html")) {
-                                    // @todo: check limits
+                                    // @todo check limits
                                     left += follow_links(cm, page, url, &left);
                                 }
                             }
