@@ -14,30 +14,26 @@
 #include <stdlib.h>
 #include <time.h>
 
-namespace Utils
+namespace Utils::Rng::StringUtils
 {
-    namespace Rng
-    {
-        namespace StringUtils
-        {
-            inline
-            char* generate_string(
-                size_t min = 10, size_t max = 10,
-                char *charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", int charsetLength = 62
-            ) {
-                srand(time(0));
+    inline
+    char* generate_string(
+        size_t min = 10, size_t max = 10,
+        char *charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", int charsetLength = 62
+    ) {
+        srand(time(0));
 
-                size_t length = (rand() % (max - min + 1)) + min;
-                char *randomString = (char *) malloc(length + 1);
+        size_t length = (rand() % (max - min + 1)) + min;
+        char *randomString = (char *) malloc(length + 1);
 
-                for (size_t i = 0; i < length; ++i) {
-                    randomString[i] = charset[rand() % charsetLength];
-                }
-
-                randomString[length] = '\0';
-
-                return randomString;
-            }
+        for (size_t i = 0; i < length; ++i) {
+            randomString[i] = charset[rand() % charsetLength];
         }
+
+        randomString[length] = '\0';
+
+        return randomString;
     }
 }
+
+#endif

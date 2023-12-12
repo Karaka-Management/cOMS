@@ -18,42 +18,39 @@
 #include "ReadMapper.h"
 #include "MapperAbstract.h"
 
-namespace DataStorage
+namespace DataStorage::Database
 {
-    namespace Database
-    {
-        static DataStorage::Database::ConnectionAbstract *db;
-        static const char *dateTimeFormat = "Y-m-d H:i:s";
+    static DataStorage::Database::ConnectionAbstract *db;
+    static const char *dateTimeFormat = "Y-m-d H:i:s";
 
-        struct DataMapperFactory {
-            static ReadMapper *reader(const DataStorage::Database::MapperData *mapper, DataStorage::Database::ConnectionAbstract *db = NULL)
-            {
-                ReadMapper *readMapper = (ReadMapper *) malloc(sizeof(ReadMapper));
-                readMapper->mapper = mapper;
-                readMapper->db = db == NULL ? DataStorage::Database::db : db;
+    struct DataMapperFactory {
+        static ReadMapper *reader(const DataStorage::Database::MapperData *mapper, DataStorage::Database::ConnectionAbstract *db = NULL)
+        {
+            ReadMapper *readMapper = (ReadMapper *) malloc(sizeof(ReadMapper));
+            readMapper->mapper = mapper;
+            readMapper->db = db == NULL ? DataStorage::Database::db : db;
 
-                return readMapper;
-            }
+            return readMapper;
+        }
 
-            static ReadMapper *get(const DataStorage::Database::MapperData *mapper, DataStorage::Database::ConnectionAbstract *db = NULL)
-            {
-                ReadMapper *readMapper = (ReadMapper *) malloc(sizeof(ReadMapper));
-                readMapper->mapper = mapper;
-                readMapper->db = db == NULL ? DataStorage::Database::db : db;
+        static ReadMapper *get(const DataStorage::Database::MapperData *mapper, DataStorage::Database::ConnectionAbstract *db = NULL)
+        {
+            ReadMapper *readMapper = (ReadMapper *) malloc(sizeof(ReadMapper));
+            readMapper->mapper = mapper;
+            readMapper->db = db == NULL ? DataStorage::Database::db : db;
 
-                return readMapper->get();
-            }
+            return readMapper->get();
+        }
 
-            static ReadMapper *getAll(const DataStorage::Database::MapperData *mapper, DataStorage::Database::ConnectionAbstract *db = NULL)
-            {
-                ReadMapper *readMapper = (ReadMapper *) malloc(sizeof(ReadMapper));
-                readMapper->mapper = mapper;
-                readMapper->db = db == NULL ? DataStorage::Database::db : db;
+        static ReadMapper *getAll(const DataStorage::Database::MapperData *mapper, DataStorage::Database::ConnectionAbstract *db = NULL)
+        {
+            ReadMapper *readMapper = (ReadMapper *) malloc(sizeof(ReadMapper));
+            readMapper->mapper = mapper;
+            readMapper->db = db == NULL ? DataStorage::Database::db : db;
 
-                return readMapper->getAll();
-            }
-        };
-    }
+            return readMapper->getAll();
+        }
+    };
 }
 
 #endif

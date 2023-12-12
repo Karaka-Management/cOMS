@@ -13,48 +13,45 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace Utils
+namespace Utils::ArraySort
 {
-    namespace ArraySort
+    inline
+    void reverse_int(int64_t *arr, size_t size)
     {
-        inline
-        void reverse_int(int64_t *arr, size_t size)
-        {
-            for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
-                int64_t tmp   = arr[low];
-                arr[low]  = arr[high];
-                arr[high] = tmp;
-            }
+        for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
+            int64_t tmp   = arr[low];
+            arr[low]  = arr[high];
+            arr[high] = tmp;
         }
+    }
 
-        inline
-        void reverse_float(float *arr, size_t size)
-        {
-            for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
-                float tmp = arr[low];
-                arr[low]  = arr[high];
-                arr[high] = tmp;
-            }
+    inline
+    void reverse_float(float *arr, size_t size)
+    {
+        for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
+            float tmp = arr[low];
+            arr[low]  = arr[high];
+            arr[high] = tmp;
         }
+    }
 
-        inline
-        void reverse_double(double *arr, size_t size)
-        {
-            for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
-                double tmp = arr[low];
-                arr[low]   = arr[high];
-                arr[high]  = tmp;
-            }
+    inline
+    void reverse_double(double *arr, size_t size)
+    {
+        for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
+            double tmp = arr[low];
+            arr[low]   = arr[high];
+            arr[high]  = tmp;
         }
+    }
 
-        inline
-        void reverse_char(char **arr, size_t size)
-        {
-            for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
-                char* tmp = arr[low];
-                arr[low]  = arr[high];
-                arr[high] = tmp;
-            }
+    inline
+    void reverse_char(char **arr, size_t size)
+    {
+        for (size_t low = 0, high = size - 1; low < high; ++low, --high) {
+            char* tmp = arr[low];
+            arr[low]  = arr[high];
+            arr[high] = tmp;
         }
     }
 }

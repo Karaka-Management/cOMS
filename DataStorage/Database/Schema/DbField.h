@@ -13,48 +13,45 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace DataStorage
+namespace DataStorage::Database
 {
-    namespace Database
+    typedef struct {
+        char *name;
+        char *type;
+        void *def;
+        bool is_nullable = true;
+        bool is_primary = false;
+        bool is_unique = false;
+        bool autoincrement = false;
+        char *foreignTable;
+        char *foreignKey;
+    } DbField;
+
+    void free_DbField(DbField *field)
     {
-        typedef struct {
-            char *name;
-            char *type;
-            void *def;
-            bool is_nullable = true;
-            bool is_primary = false;
-            bool is_unique = false;
-            bool autoincrement = false;
-            char *foreignTable;
-            char *foreignKey;
-        } DbField;
+        if (field->name != NULL) {
+            free(field->name);
+            field->name = NULL;
+        }
 
-        void free_DbField(DbField *field)
-        {
-            if (field->name != NULL) {
-                free(field->name);
-                field->name = NULL;
-            }
+        if (field->type != NULL) {
+            free(field->type);
+            field->type = NULL;
+        }
 
-            if (field->type != NULL) {
-                free(field->type);
-                field->type = NULL;
-            }
+        if (field->def != NULL) {
+            free(field->def);
+            field->def = NULL;
+        }
 
-            if (field->def != NULL) {
-                free(field->def);
-                field->def = NULL;
-            }
+        if (field->foreignTable != NULL) {
+            free(field->foreignTable);
+            field->foreignTable = NULL;
+        }
 
-            if (field->foreignTable != NULL) {
-                free(field->foreignTable);
-                field->foreignTable = NULL;
-            }
-
-            if (field->foreignKey != NULL) {
-                free(field->foreignKey);
-                field->foreignKey = NULL;
-            }
+        if (field->foreignKey != NULL) {
+            free(field->foreignKey);
+            field->foreignKey = NULL;
         }
     }
 }

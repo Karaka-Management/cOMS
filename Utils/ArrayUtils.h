@@ -16,195 +16,192 @@
 
 #include "StringUtils.h"
 
-namespace Utils
+namespace Utils::ArrayUtils
 {
-    namespace ArrayUtils
+    inline
+    char* get_arg(const char *id, char **argv, size_t size)
     {
-        inline
-        char* get_arg(const char *id, char **argv, size_t size)
-        {
-            if (Utils::StringUtils::is_number(id)) {
-                return argv[atoi(id)];
-            }
+        if (Utils::StringUtils::is_number(id)) {
+            return argv[atoi(id)];
+        }
 
-            for (size_t i = 0; i < size - 1; ++i) {
-                if (strcmp(id, argv[i]) == 0) {
-                    return i + 1 >= size ? NULL : argv[i + 1];
-                }
+        for (size_t i = 0; i < size - 1; ++i) {
+            if (strcmp(id, argv[i]) == 0) {
+                return i + 1 >= size ? NULL : argv[i + 1];
             }
+        }
 
+        return NULL;
+    }
+
+    inline
+    bool has_arg(const char *id, char **argv, size_t size)
+    {
+        for (size_t i = 0; i < size; ++i) {
+            if (strcmp(id, argv[i]) == 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    inline
+    double array_sum_double(double *array, size_t size)
+    {
+        double sum = 0.0;
+        for (size_t i = 0; i < size; ++i) {
+            sum += array[i];
+        }
+
+        return sum;
+    }
+
+    inline
+    float array_sum_float(float *array, size_t size)
+    {
+        float sum = 0.0;
+        for (size_t i = 0; i < size; ++i) {
+            sum += array[i];
+        }
+
+        return sum;
+    }
+
+    inline
+    int64_t array_sum_int(int64_t *array, size_t size)
+    {
+        int64_t sum = 0;
+        for (size_t i = 0; i < size; ++i) {
+            sum += array[i];
+        }
+
+        return sum;
+    }
+
+    inline
+    size_t find_in_array_string(const char *element, const char **array, size_t size)
+    {
+        for (size_t i = 0; i < size; ++i) {
+            if (strcmp(element, array[i]) == 0) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    inline
+    size_t find_in_array_double(double element, double *array, size_t size)
+    {
+        for (size_t i = 0; i < size; ++i) {
+            if (array[i] == element) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    inline
+    size_t find_in_array_float(float element, float *array, size_t size)
+    {
+        for (size_t i = 0; i < size; ++i) {
+            if (array[i] == element) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    inline
+    size_t find_in_array_int(int64_t element, int64_t *array, size_t size)
+    {
+        for (size_t i = 0; i < size; ++i) {
+            if (array[i] == element) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    inline
+    double* merge_arrays_double(double* array1, size_t size1, double* array2, size_t size2)
+    {
+        double* merged = (double*) malloc((size1 + size2) * sizeof(double));
+        if (merged == NULL) {
             return NULL;
         }
 
-        inline
-        bool has_arg(const char *id, char **argv, size_t size)
-        {
-            for (size_t i = 0; i < size; ++i) {
-                if (strcmp(id, argv[i]) == 0) {
-                    return true;
-                }
-            }
-
-            return false;
+        for (size_t i = 0; i < size1; ++i) {
+            merged[i] = array1[i];
         }
 
-        inline
-        double array_sum_double(double *array, size_t size)
-        {
-            double sum = 0.0;
-            for (size_t i = 0; i < size; ++i) {
-                sum += array[i];
-            }
-
-            return sum;
+        for (size_t i = 0; i < size2; ++i) {
+            merged[size1 + i] = array2[i];
         }
 
-        inline
-        float array_sum_float(float *array, size_t size)
-        {
-            float sum = 0.0;
-            for (size_t i = 0; i < size; ++i) {
-                sum += array[i];
-            }
+        return merged;
+    }
 
-            return sum;
+    inline
+    float* merge_arrays_float(float* array1, size_t size1, float* array2, size_t size2)
+    {
+        float* merged = (float*) malloc((size1 + size2) * sizeof(float));
+        if (merged == NULL) {
+            return NULL;
         }
 
-        inline
-        int64_t array_sum_int(int64_t *array, size_t size)
-        {
-            int64_t sum = 0;
-            for (size_t i = 0; i < size; ++i) {
-                sum += array[i];
-            }
-
-            return sum;
+        for (size_t i = 0; i < size1; ++i) {
+            merged[i] = array1[i];
         }
 
-        inline
-        size_t find_in_array_string(const char *element, const char **array, size_t size)
-        {
-            for (size_t i = 0; i < size; ++i) {
-                if (strcmp(element, array[i]) == 0) {
-                    return i;
-                }
-            }
-
-            return -1;
+        for (size_t i = 0; i < size2; ++i) {
+            merged[size1 + i] = array2[i];
         }
 
-        inline
-        size_t find_in_array_double(double element, double *array, size_t size)
-        {
-            for (size_t i = 0; i < size; ++i) {
-                if (array[i] == element) {
-                    return i;
-                }
-            }
+        return merged;
+    }
 
-            return -1;
+    inline
+    int64_t* merge_arrays_int(int64_t* array1, size_t size1, int64_t* array2, size_t size2)
+    {
+        int64_t* merged = (int64_t*) malloc((size1 + size2) * sizeof(int64_t));
+        if (merged == NULL) {
+            return NULL;
         }
 
-        inline
-        size_t find_in_array_float(float element, float *array, size_t size)
-        {
-            for (size_t i = 0; i < size; ++i) {
-                if (array[i] == element) {
-                    return i;
-                }
-            }
-
-            return -1;
+        for (size_t i = 0; i < size1; ++i) {
+            merged[i] = array1[i];
         }
 
-        inline
-        size_t find_in_array_int(int64_t element, int64_t *array, size_t size)
-        {
-            for (size_t i = 0; i < size; ++i) {
-                if (array[i] == element) {
-                    return i;
-                }
-            }
-
-            return -1;
+        for (size_t i = 0; i < size2; ++i) {
+            merged[size1 + i] = array2[i];
         }
 
-        inline
-        double* merge_arrays_double(double* array1, size_t size1, double* array2, size_t size2)
-        {
-            double* merged = (double*) malloc((size1 + size2) * sizeof(double));
-            if (merged == NULL) {
-                return NULL;
-            }
+        return merged;
+    }
 
-            for (size_t i = 0; i < size1; ++i) {
-                merged[i] = array1[i];
-            }
-
-            for (size_t i = 0; i < size2; ++i) {
-                merged[size1 + i] = array2[i];
-            }
-
-            return merged;
+    char** merge_arrays_char(const char** array1, size_t size1, const char** array2, size_t size2)
+    {
+        char** merged = (char**) malloc((size1 + size2) * sizeof(char*));
+        if (merged == NULL) {
+            return NULL;
         }
 
-        inline
-        float* merge_arrays_float(float* array1, size_t size1, float* array2, size_t size2)
-        {
-            float* merged = (float*) malloc((size1 + size2) * sizeof(float));
-            if (merged == NULL) {
-                return NULL;
-            }
-
-            for (size_t i = 0; i < size1; ++i) {
-                merged[i] = array1[i];
-            }
-
-            for (size_t i = 0; i < size2; ++i) {
-                merged[size1 + i] = array2[i];
-            }
-
-            return merged;
+        for (size_t i = 0; i < size1; ++i) {
+            merged[i] = (char*) malloc((strlen(array1[i]) + 1) * sizeof(char));
+            strcpy(merged[i], array1[i]);
         }
 
-        inline
-        int64_t* merge_arrays_int(int64_t* array1, size_t size1, int64_t* array2, size_t size2)
-        {
-            int64_t* merged = (int64_t*) malloc((size1 + size2) * sizeof(int64_t));
-            if (merged == NULL) {
-                return NULL;
-            }
-
-            for (size_t i = 0; i < size1; ++i) {
-                merged[i] = array1[i];
-            }
-
-            for (size_t i = 0; i < size2; ++i) {
-                merged[size1 + i] = array2[i];
-            }
-
-            return merged;
+        for (size_t i = 0; i < size2; ++i) {
+            merged[i] = (char*) malloc((strlen(array2[i]) + 1) * sizeof(char));
+            strcpy(merged[i], array2[i]);
         }
 
-        char** merge_arrays_char(const char** array1, size_t size1, const char** array2, size_t size2)
-        {
-            char** merged = (char**) malloc((size1 + size2) * sizeof(char*));
-            if (merged == NULL) {
-                return NULL;
-            }
-
-            for (size_t i = 0; i < size1; ++i) {
-                merged[i] = (char*) malloc((strlen(arr1[i]) + 1) * sizeof(char));
-                strcpy(merged[i], arr1[i]);
-            }
-
-            for (size_t i = 0; i < size2; ++i) {
-                merged[i] = (char*) malloc((strlen(arr2[i]) + 1) * sizeof(char));
-                strcpy(merged[i], arr2[i]);
-            }
-
-            return merged;
-        }
+        return merged;
     }
 }
 

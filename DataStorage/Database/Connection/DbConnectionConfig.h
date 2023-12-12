@@ -15,45 +15,42 @@
 
 #include "../DatabaseType.h"
 
-namespace DataStorage
+namespace DataStorage::Database
 {
-    namespace Database
+    typedef struct {
+        DatabaseType db = DatabaseType::UNDEFINED;
+
+        const char *database = NULL;
+
+        const char *host = NULL;
+
+        int port = 0;
+
+        const char *login = NULL;
+
+        const char *password = NULL;
+    } DbConnectionConfig;
+
+    void free_DbConnectionConfig(DbConnectionConfig *dbdata)
     {
-        typedef struct {
-            DatabaseType db = DatabaseType::UNDEFINED;
+        if (dbdata->database != NULL) {
+            free((char *) dbdata->database);
+            dbdata->database = NULL;
+        }
 
-            const char *database = NULL;
+        if (dbdata->host != NULL) {
+            free((char *) dbdata->host);
+            dbdata->host = NULL;
+        }
 
-            const char *host = NULL;
+        if (dbdata->login != NULL) {
+            free((char *) dbdata->login);
+            dbdata->login = NULL;
+        }
 
-            int port = 0;
-
-            const char *login = NULL;
-
-            const char *password = NULL;
-        } DbConnectionConfig;
-
-        void free_DbConnectionConfig(DbConnectionConfig *dbdata)
-        {
-            if (dbdata->database != NULL) {
-                free((char *) dbdata->database);
-                dbdata->database = NULL;
-            }
-
-            if (dbdata->host != NULL) {
-                free((char *) dbdata->host);
-                dbdata->host = NULL;
-            }
-
-            if (dbdata->login != NULL) {
-                free((char *) dbdata->login);
-                dbdata->login = NULL;
-            }
-
-            if (dbdata->password != NULL) {
-                free((char *) dbdata->password);
-                dbdata->password = NULL;
-            }
+        if (dbdata->password != NULL) {
+            free((char *) dbdata->password);
+            dbdata->password = NULL;
         }
     }
 }

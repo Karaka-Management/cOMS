@@ -48,9 +48,7 @@ namespace Utils
 
             if (pos != NULL) {
                 memcpy(dir, arg, (pos - arg) * sizeof(char));
-
                 chdir(dir);
-
                 free(dir);
             }
         }

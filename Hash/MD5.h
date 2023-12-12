@@ -2,6 +2,8 @@
 #define HASH_MD5_H
 
 #include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
 
 // https://www.rfc-editor.org/rfc/rfc1321
 
@@ -37,7 +39,7 @@ namespace Hash {
         uint32_t a, b, c, d;
         uint32_t aa, bb, cc, dd;
 
-        ptr = data;
+        ptr = (const unsigned char *) data;
 
         a = ctx->a;
         b = ctx->b;

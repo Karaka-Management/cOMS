@@ -21,40 +21,37 @@
 #include "PostgresqlConnection.h"
 #include "SQLiteConnection.h"
 
-namespace DataStorage
+namespace DataStorage::Database
 {
-    namespace Database
+    ConnectionAbstract *create_connection(DbConnectionConfig dbdata)
     {
-        ConnectionAbstract *create_connection(DbConnectionConfig dbdata)
-        {
-            switch (dbdata.db) {
-                case DatabaseType::MYSQL:
-                    return new MysqlConnection(dbdata);
-                case DatabaseType::PGSQL:
-                    return new PostgresqlConnection(dbdata);
-                case DatabaseType::SQLSRV:
-                    return NULL;
-                case DatabaseType::SQLITE:
-                    return new SQLiteConnection(dbdata);
-                default:
-                    return NULL;
-            }
+        switch (dbdata.db) {
+            case DatabaseType::MYSQL:
+                return new MysqlConnection(dbdata);
+            case DatabaseType::PGSQL:
+                return new PostgresqlConnection(dbdata);
+            case DatabaseType::SQLSRV:
+                return NULL;
+            case DatabaseType::SQLITE:
+                return new SQLiteConnection(dbdata);
+            default:
+                return NULL;
         }
+    }
 
-        void close(ConnectionAbstract *db, DbConnectionConfig dbdata)
-        {
-            switch (dbdata.db) {
-                case DatabaseType::MYSQL:
-                    return ((MysqlConnection *) db)->close();
-                case DatabaseType::PGSQL:
-                    return ((PostgresqlConnection *) db)->close();
-                case DatabaseType::SQLSRV:
-                    return;
-                case DatabaseType::SQLITE:
-                    return ((SQLiteConnection *) db)->close();
-                default:
-                    return;
-            }
+    void close(ConnectionAbstract *db, DbConnectionConfig dbdata)
+    {
+        switch (dbdata.db) {
+            case DatabaseType::MYSQL:
+                return ((MysqlConnection *) db)->close();
+            case DatabaseType::PGSQL:
+                return ((PostgresqlConnection *) db)->close();
+            case DatabaseType::SQLSRV:
+                return;
+            case DatabaseType::SQLITE:
+                return ((SQLiteConnection *) db)->close();
+            default:
+                return;
         }
     }
 }

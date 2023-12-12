@@ -15,31 +15,28 @@
 
 #include "DbField.h"
 
-namespace DataStorage
+namespace DataStorage::Database
 {
-    namespace Database
+    typedef struct {
+        char *name;
+        DbField *fields;
+        size_t field_size = 0;
+    } DbSchema;
+
+    void free_DbSchema(DbSchema *schema)
     {
-        typedef struct {
-            char *name;
-            DbField *fields;
-            size_t field_size = 0;
-        } DbSchema;
+        if (schema->name != NULL) {
+            free(schema->name);
+            schema->name = NULL;
+        }
 
-        void free_DbSchema(DbSchema *schema)
-        {
-            if (schema->name != NULL) {
-                free(schema->name);
-                schema->name = NULL;
+        if (schema->fields != NULL) {
+            for (int i = 0; i < schema->field_size; ++i) {
+                free_DbField(&schema->fields[i]);
             }
 
-            if (schema->fields != NULL) {
-                for (int i = 0; i < schema->field_size; ++i) {
-                    free_DbField(&schema->fields[i]);
-                }
-
-                free(schema->fields);
-                schema->fields = NULL;
-            }
+            free(schema->fields);
+            schema->fields = NULL;
         }
     }
 }
