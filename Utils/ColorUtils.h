@@ -7,8 +7,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef UTILS_STRING_UTILS_H
-#define UTILS_STRING_UTILS_H
+#ifndef UTILS_COLOR_UTILS_H
+#define UTILS_COLOR_UTILS_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,9 +16,9 @@
 namespace Utils::ColorUtils
 {
     typedef struct {
-        char r = 0;
-        char g = 0;
-        char b = 0;
+        unsigned char r = 0;
+        unsigned char g = 0;
+        unsigned char b = 0;
     } RGB;
 
     inline
