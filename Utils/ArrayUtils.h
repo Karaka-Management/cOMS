@@ -19,7 +19,7 @@
 namespace Utils::ArrayUtils
 {
     inline
-    char* get_arg(const char *id, char **argv, size_t size)
+    const char* get_arg(const char *id, const char **argv, size_t size)
     {
         if (Utils::StringUtils::is_number(id)) {
             return argv[atoi(id)];
@@ -35,7 +35,7 @@ namespace Utils::ArrayUtils
     }
 
     inline
-    bool has_arg(const char *id, char **argv, size_t size)
+    bool has_arg(const char *id, const char **argv, size_t size)
     {
         for (size_t i = 0; i < size; ++i) {
             if (strcmp(id, argv[i]) == 0) {
@@ -47,7 +47,7 @@ namespace Utils::ArrayUtils
     }
 
     inline
-    double array_sum_double(double *array, size_t size)
+    double array_sum_double(const double *array, size_t size)
     {
         double sum = 0.0;
         for (size_t i = 0; i < size; ++i) {
@@ -58,7 +58,7 @@ namespace Utils::ArrayUtils
     }
 
     inline
-    float array_sum_float(float *array, size_t size)
+    float array_sum_float(const float *array, size_t size)
     {
         float sum = 0.0;
         for (size_t i = 0; i < size; ++i) {
@@ -69,7 +69,7 @@ namespace Utils::ArrayUtils
     }
 
     inline
-    int64_t array_sum_int(int64_t *array, size_t size)
+    int64_t array_sum_int(const int64_t *array, size_t size)
     {
         int64_t sum = 0;
         for (size_t i = 0; i < size; ++i) {
@@ -92,7 +92,7 @@ namespace Utils::ArrayUtils
     }
 
     inline
-    size_t find_in_array_double(double element, double *array, size_t size)
+    size_t find_in_array_double(double element, const double *array, size_t size)
     {
         for (size_t i = 0; i < size; ++i) {
             if (array[i] == element) {
@@ -104,7 +104,7 @@ namespace Utils::ArrayUtils
     }
 
     inline
-    size_t find_in_array_float(float element, float *array, size_t size)
+    size_t find_in_array_float(float element, const float *array, size_t size)
     {
         for (size_t i = 0; i < size; ++i) {
             if (array[i] == element) {
@@ -116,7 +116,7 @@ namespace Utils::ArrayUtils
     }
 
     inline
-    size_t find_in_array_int(int64_t element, int64_t *array, size_t size)
+    size_t find_in_array_int(int64_t element, const int64_t *array, size_t size)
     {
         for (size_t i = 0; i < size; ++i) {
             if (array[i] == element) {
@@ -128,7 +128,7 @@ namespace Utils::ArrayUtils
     }
 
     inline
-    double* merge_arrays_double(double* array1, size_t size1, double* array2, size_t size2)
+    double* merge_arrays_double(const double* array1, size_t size1, const double* array2, size_t size2)
     {
         double* merged = (double*) malloc((size1 + size2) * sizeof(double));
         if (merged == NULL) {
@@ -147,7 +147,7 @@ namespace Utils::ArrayUtils
     }
 
     inline
-    float* merge_arrays_float(float* array1, size_t size1, float* array2, size_t size2)
+    float* merge_arrays_float(const float* array1, size_t size1, const float* array2, size_t size2)
     {
         float* merged = (float*) malloc((size1 + size2) * sizeof(float));
         if (merged == NULL) {
@@ -166,7 +166,7 @@ namespace Utils::ArrayUtils
     }
 
     inline
-    int64_t* merge_arrays_int(int64_t* array1, size_t size1, int64_t* array2, size_t size2)
+    int64_t* merge_arrays_int(const int64_t* array1, size_t size1, const int64_t* array2, size_t size2)
     {
         int64_t* merged = (int64_t*) malloc((size1 + size2) * sizeof(int64_t));
         if (merged == NULL) {

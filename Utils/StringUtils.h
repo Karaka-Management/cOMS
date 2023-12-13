@@ -78,7 +78,7 @@ namespace Utils::StringUtils
     }
 
     inline
-    size_t str_count(char *str, char *substr)
+    size_t str_count(const char *str, const char *substr)
     {
         int l1 = strlen(str);
         int l2 = strlen(substr);
@@ -96,7 +96,7 @@ namespace Utils::StringUtils
     }
 
     inline
-    char *strsep(char **sp, char *sep)
+    char *strsep(const char **sp, const char *sep)
     {
         char *p, *s;
 
@@ -104,7 +104,7 @@ namespace Utils::StringUtils
             return(NULL);
         }
 
-        s = *sp;
+        s = (char *) *sp;
         p = s + strcspn(s, sep);
 
         if (*p != '\0') {
@@ -113,12 +113,12 @@ namespace Utils::StringUtils
 
         *sp = p;
 
-        return(s);
+        return s;
     }
 
     // @todo Implement delim as const char* (also allow \0 length)
     inline
-    int str_split(char **list, char *str, const char delim)
+    int str_split(char **list, const char *str, const char delim)
     {
         size_t splits = str_count(str, (char *) &delim) + 1;
         list          = (char **) malloc(splits * sizeof(char *));
@@ -138,7 +138,7 @@ namespace Utils::StringUtils
 
     // @todo Implement delim as const char* (also allow \0 length)
     inline
-    char* str_combine(char **str, size_t size, const char delim)
+    char* str_combine(const char **str, size_t size, const char delim)
     {
         if (size < 1) {
             return NULL;
@@ -173,7 +173,7 @@ namespace Utils::StringUtils
         size_t size;
     } text_diff;
 
-    text_diff computeLCSDiff(char **from, int fromSize, char **to, int toSize)
+    text_diff computeLCSDiff(const char **from, size_t fromSize, const char **to, size_t toSize)
     {
         char **diffValues  = (char **) malloc(fromSize * toSize * sizeof(char *));
         int64_t *diffMasks = (int64_t *) calloc(fromSize * toSize, sizeof(int64_t));

@@ -22,7 +22,7 @@
 
 namespace Router
 {
-    typedef void (*RouterFunc)(int, char **);
+    typedef void (*RouterFunc)(int, const char **);
 
     typedef struct {
         Stdlib::HashTable::ht *routes;
@@ -36,12 +36,12 @@ namespace Router
         return router;
     }
 
-    void set(Router *router, const char* route, void *endpoint)
+    void set(const Router *router, const char* route, void *endpoint)
     {
         Stdlib::HashTable::set_entry(router->routes, route, endpoint);
     }
 
-    RouterFunc match_route(Router *router, const char *uri)
+    RouterFunc match_route(const Router *router, const char *uri)
     {
         RouterFunc ptr = NULL;
         Stdlib::HashTable::it itr = Stdlib::HashTable::table_iterator(router->routes);

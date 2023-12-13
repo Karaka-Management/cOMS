@@ -19,7 +19,7 @@ namespace Utils::Rng::StringUtils
     inline
     char* generate_string(
         size_t min = 10, size_t max = 10,
-        char *charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", int charsetLength = 62
+        const char *charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", int charsetLength = 62
     ) {
         srand(time(0));
 

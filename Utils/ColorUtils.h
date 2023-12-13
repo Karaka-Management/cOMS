@@ -34,7 +34,7 @@ namespace Utils::ColorUtils
     }
 
     inline
-    int rgb_to_int(RGB* rgb)
+    int rgb_to_int(const RGB* rgb)
     {
         int i = (255 & rgb->r) << 16;
         i    += (255 & rgb->g) << 8;

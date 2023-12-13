@@ -34,11 +34,11 @@ namespace Utils
         }
 
         inline
-        void chdir_application(char *cwd, char *arg)
+        void chdir_application(const char *cwd, const char *arg)
         {
-            char *pos = strrchr(arg, '/');
+            char *pos = strrchr((char *) arg, '/');
             if (pos == NULL) {
-                pos = strrchr(arg, '\\');
+                pos = strrchr((char *) arg, '\\');
             }
 
             char* dir = (char *) calloc((pos - arg + 1), sizeof(char));
@@ -54,7 +54,7 @@ namespace Utils
         }
 
         inline
-        const char *compile_arg_line(int argc, char **argv)
+        const char *compile_arg_line(int argc, const char **argv)
         {
             size_t max    = 512;
             size_t length = 0;
