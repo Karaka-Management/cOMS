@@ -19,7 +19,6 @@
 
 namespace Utils::StringUtils
 {
-    inline
     char *search_replace(const char *haystack, const char *needle, const char *replace)
     {
         const char *haystackT = haystack;
@@ -80,14 +79,14 @@ namespace Utils::StringUtils
     inline
     size_t str_count(const char *str, const char *substr)
     {
-        int l1 = strlen(str);
-        int l2 = strlen(substr);
+        size_t l1 = strlen(str);
+        size_t l2 = strlen(substr);
 
         if (l2 == 0 || l1 < l2) {
             return 0;
         }
 
-        int count = 0;
+        size_t count = 0;
         for (str = strstr(str, substr); str; str = strstr(str + l2, substr)) {
             ++count;
         }

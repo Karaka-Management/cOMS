@@ -184,6 +184,7 @@ namespace Utils::ArrayUtils
         return merged;
     }
 
+    inline
     char** merge_arrays_char(const char** array1, size_t size1, const char** array2, size_t size2)
     {
         char** merged = (char**) malloc((size1 + size2) * sizeof(char*));
