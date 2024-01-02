@@ -1,5 +1,5 @@
 /**
- * Karaka
+ * Jingga
  *
  * @package   Test
  * @copyright Dennis Eichhorn

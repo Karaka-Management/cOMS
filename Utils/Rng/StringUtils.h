@@ -1,5 +1,5 @@
 /**
- * Karaka
+ * Jingga
  *
  * @package   Utils
  * @copyright Dennis Eichhorn

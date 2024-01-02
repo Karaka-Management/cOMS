@@ -1,5 +1,5 @@
 /**
- * Karaka
+ * Jingga
  *
  * @package   Stdlib
  * @copyright Dennis Eichhorn

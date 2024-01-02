@@ -1,5 +1,5 @@
 /**
- * Karaka
+ * Jingga
  *
  * @package   Utils
  * @copyright Dennis Eichhorn
@@ -301,6 +301,28 @@ namespace Utils::StringUtils
         ArraySort::reverse_int(diffMasks, diffIndex);
 
         return text_diff{diffValues, diffMasks, diffIndex};
+    }
+
+    char *strtok(char *str, const char *delim, char **saveptr) {
+        if (str == NULL) {
+            str = *saveptr;
+        }
+
+        if (str == NULL || *str == '\0') {
+            return NULL;
+        }
+
+        char *token_start = str;
+        char *token_end = strpbrk(token_start, delim);
+
+        if (token_end == NULL) {
+            *saveptr = NULL;
+        } else {
+            *token_end = '\0';
+            *saveptr = token_end + 1;
+        }
+
+        return token_start;
     }
 }
 
