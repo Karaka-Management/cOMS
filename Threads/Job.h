@@ -19,6 +19,7 @@ namespace Threads
     struct job_t {
         JobFunc func;
         void *arg;
+        int state;
         job_t *next;
     };
 

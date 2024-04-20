@@ -19,38 +19,26 @@ namespace Threads
 {
     Job *pool_work_create(JobFunc func, void *arg)
     {
-        Job *work;
-
         if (func == NULL) {
             return NULL;
         }
 
-        work       = (Job *) malloc(sizeof(*work));
+        Job *work = (Job *) malloc(sizeof(*work));
         work->func = func;
         work->arg  = arg;
+        work->state = 0;
         work->next = NULL;
 
         return work;
     }
 
-    void pool_work_destroy(Job *work)
+    Job *pool_work_poll(Threads::ThreadPool *pool)
     {
-        if (work == NULL) {
-            return;
-        }
-
-        free(work);
-    }
-
-    Job *pool_work_get(Threads::ThreadPool *pool)
-    {
-        Job *work;
-
         if (pool == NULL) {
             return NULL;
         }
 
-        work = pool->work_first;
+        Job *work = pool->work_first;
         if (work == NULL) {
             return NULL;
         }
@@ -70,7 +58,7 @@ namespace Threads
         Threads::ThreadPool *pool = (Threads::ThreadPool *) arg;
         Threads::Job *work;
 
-        while (1) {
+        while (true) {
             pthread_mutex_lock(&(pool->work_mutex));
 
             while (pool->work_first == NULL && !pool->stop) {
@@ -81,13 +69,12 @@ namespace Threads
                 break;
             }
 
-            work = Threads::pool_work_get(pool);
+            work = Threads::pool_work_poll(pool);
             ++(pool->working_cnt);
             pthread_mutex_unlock(&(pool->work_mutex));
 
             if (work != NULL) {
-                work->func(work->arg);
-                pool_work_destroy(work);
+                work->func(work);
             }
 
             pthread_mutex_lock(&(pool->work_mutex));
@@ -155,20 +142,15 @@ namespace Threads
 
     void pool_destroy(Threads::ThreadPool *pool)
     {
-        Threads::Job *work;
-        Threads::Job *work2;
-
         if (pool == NULL) {
             return;
         }
 
         pthread_mutex_lock(&(pool->work_mutex));
-        work = pool->work_first;
+        Threads::Job *work = pool->work_first;
 
         while (work != NULL) {
-            work2 = work->next;
-            pool_work_destroy(work);
-            work = work2;
+            work = work->next;
         }
 
         pool->stop = true;
@@ -184,17 +166,15 @@ namespace Threads
         free(pool);
     }
 
-    bool pool_add_work(Threads::ThreadPool *pool, JobFunc func, void *arg)
+    Threads::Job* pool_add_work(Threads::ThreadPool *pool, JobFunc func, void *arg)
     {
-        Threads::Job *work;
-
         if (pool == NULL) {
-            return false;
+            return NULL;
         }
 
-        work = Threads::pool_work_create(func, arg);
+        Threads::Job *work = Threads::pool_work_create(func, arg);
         if (work == NULL) {
-            return false;
+            return NULL;
         }
 
         pthread_mutex_lock(&(pool->work_mutex));
@@ -209,7 +189,7 @@ namespace Threads
         pthread_cond_broadcast(&(pool->work_cond));
         pthread_mutex_unlock(&(pool->work_mutex));
 
-        return true;
+        return work;
     }
 }
 
