@@ -14,6 +14,7 @@
 #include <emmintrin.h>
 #include <xmmintrin.h>
 #include <immintrin.h>
+#include <smmintrin.h>
 
 #include "Types.h"
 

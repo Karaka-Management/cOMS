@@ -12,4 +12,6 @@ g++ $BASEDIR/Threads/ThreadPoolTest.cpp -o $BASEDIR/Threads/ThreadPoolTest && $B
 
 g++ $BASEDIR/Stdlib/SIMD/SIMD_HelperTest.cpp -o $BASEDIR/Stdlib/SIMD/SIMD_HelperTest && $BASEDIR/Stdlib/SIMD/SIMD_HelperTest && rm $BASEDIR/Stdlib/SIMD/SIMD_HelperTest
 
-g++ -mavx -msse -maes -msse3 -msse4.1 -mavx512f -mpclmul -mavx512dq -march=native $BASEDIR/Stdlib/SIMD/SIMD_F32Test.cpp -o $BASEDIR/Stdlib/SIMD/SIMD_F32Test && $BASEDIR/Stdlib/SIMD/SIMD_F32Test && rm $BASEDIR/Stdlib/SIMD/SIMD_F32Test
+g++ -mavx -maes -msse -msse2 -msse3 -msse4.1 -mavx512f -mpclmul -mavx512dq -march=native $BASEDIR/Stdlib/IntrinsicsTest.cpp -o $BASEDIR/Stdlib/IntrinsicsTest && $BASEDIR/Stdlib/IntrinsicsTest && rm $BASEDIR/Stdlib/IntrinsicsTest
+
+g++ -mavx -maes -msse -msse2 -msse3 -msse4.1 -mavx512f -mpclmul -mavx512dq -march=native $BASEDIR/Stdlib/SIMD/SIMD_F32Test.cpp -o $BASEDIR/Stdlib/SIMD/SIMD_F32Test && $BASEDIR/Stdlib/SIMD/SIMD_F32Test && rm $BASEDIR/Stdlib/SIMD/SIMD_F32Test
