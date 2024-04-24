@@ -11,10 +11,9 @@
 #define STDLIB_INTRINSICS_H
 
 #include <inttypes.h>
-#include <emmintrin.h>
 #include <xmmintrin.h>
 #include <immintrin.h>
-#include <smmintrin.h>
+#include <x86intrin.h>
 
 #include "Types.h"
 

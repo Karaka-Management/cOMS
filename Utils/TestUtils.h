@@ -23,6 +23,16 @@
             return 0; } \
     })
 
+#define ASSERT_NOT_EQUALS(a, b, t1, t2) ({\
+        if ((a) != (b)) { \
+            printf("."); \
+        } else { \
+            printf("\033[31m[F]\033[0m"); \
+            printf("\n\n%s - %i: ", __FILE__, __LINE__); \
+            printf((t1), (a)); printf(" == "); printf((t2), (b)); printf("\n"); \
+            return 0; } \
+    })
+
 #define ASSERT_EQUALS_WITH_DELTA(a, b, delta, t1, t2) ({\
         if (oms_abs((a) - (b)) <= (delta)) { \
             printf("."); \
