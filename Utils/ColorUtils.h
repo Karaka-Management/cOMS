@@ -21,10 +21,9 @@ namespace Utils::ColorUtils
         unsigned char b = 0;
     } RGB;
 
-    inline
-    RGB* int_to_rgb(int rgb)
+    inline RGB *int_to_rgb(int rgb)
     {
-        RGB* result = (RGB*) malloc(1 * sizeof(RGB));
+        RGB *result = (RGB *) malloc(1 * sizeof(RGB));
 
         result->r = rgb & 255;
         result->g = (rgb >> 8) & 255;
@@ -33,25 +32,23 @@ namespace Utils::ColorUtils
         return result;
     }
 
-    inline
-    int rgb_to_int(const RGB* rgb)
+    inline int rgb_to_int(const RGB *rgb)
     {
-        int i = (255 & rgb->r) << 16;
-        i    += (255 & rgb->g) << 8;
-        i    += (255 & rgb->b);
+        int i  = (255 & rgb->r) << 16;
+        i     += (255 & rgb->g) << 8;
+        i     += (255 & rgb->b);
 
         return i;
     }
 
-    inline
-    int rgb_to_int(char r, char g, char b)
+    inline int rgb_to_int(char r, char g, char b)
     {
-        int i = (255 & r) << 16;
-        i    += (255 & g) << 8;
-        i    += (255 & b);
+        int i  = (255 & r) << 16;
+        i     += (255 & g) << 8;
+        i     += (255 & b);
 
         return i;
     }
-}
+} // namespace Utils::ColorUtils
 
 #endif

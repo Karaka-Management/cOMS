@@ -38,15 +38,10 @@ namespace Stdlib::HashTable
         size_t index;
     } it;
 
-    inline
-    unsigned long long hash_key(const char *key)
+    inline unsigned long long hash_key(const char *key)
     {
         return (unsigned long long) MeowU64From(
-            Hash::Meow::MeowHash(Hash::Meow::MeowDefaultSeed,
-            strlen(key),
-            (void *) key),
-            0
-        );
+            Hash::Meow::MeowHash(Hash::Meow::MeowDefaultSeed, strlen(key), (void *) key), 0);
     }
 
     ht *create_table(int max = 0, bool is_fixed = false)
@@ -56,8 +51,8 @@ namespace Stdlib::HashTable
             return NULL;
         }
 
-        table->size = 0;
-        table->max  = max == 0 ? 16 : max;
+        table->size     = 0;
+        table->max      = max == 0 ? 16 : max;
         table->is_fixed = is_fixed;
 
         table->entries = (entry *) calloc(table->max, sizeof(entry));
@@ -72,7 +67,7 @@ namespace Stdlib::HashTable
     void *get_entry(ht *table, const char *key)
     {
         unsigned long long hash = hash_key(key);
-        size_t index = (size_t) (hash & (unsigned long long)(table->max - 1));
+        size_t index            = (size_t) (hash & (unsigned long long) (table->max - 1));
 
         while (table->entries[index].key != NULL) {
             if (strcmp(key, table->entries[index].key) == 0) {
@@ -91,7 +86,7 @@ namespace Stdlib::HashTable
     const char *_set_entry(entry *entries, size_t max, const char *key, void *value, size_t *size)
     {
         unsigned long long hash = hash_key(key);
-        size_t index            = (size_t) (hash & (unsigned long long)(max - 1));
+        size_t index            = (size_t) (hash & (unsigned long long) (max - 1));
 
         while (entries[index].key != NULL) {
             if (strcmp(key, entries[index].key) == 0) {
@@ -107,11 +102,11 @@ namespace Stdlib::HashTable
         }
 
         if (size != NULL) {
-            #ifdef _WIN32
-                key = _strdup(key);
-            #else
-                key = strdup(key);
-            #endif
+#ifdef _WIN32
+            key = _strdup(key);
+#else
+            key = strdup(key);
+#endif
 
             if (key == NULL) {
                 return NULL;
@@ -120,7 +115,7 @@ namespace Stdlib::HashTable
             ++(*size);
         }
 
-        entries[index].key = (char *) key;
+        entries[index].key   = (char *) key;
         entries[index].value = value;
 
         return key;
@@ -213,6 +208,6 @@ namespace Stdlib::HashTable
 
         free(table->entries);
     }
-}
+} // namespace Stdlib::HashTable
 
 #endif

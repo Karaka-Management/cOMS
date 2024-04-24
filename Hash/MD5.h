@@ -1,9 +1,9 @@
 #ifndef HASH_MD5_H
 #define HASH_MD5_H
 
-#include <string.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 // https://www.rfc-editor.org/rfc/rfc1321
 
@@ -12,19 +12,17 @@
 #define H(x, y, z) ((x) ^ (y) ^ (z))
 #define I(x, y, z) ((y) ^ ((x) | ~(z)))
 
-#define ROUND_OP(f, a, b, c, d, x, t, s) \
-    (a) += f((b), (c), (d)) + (x) + (t); \
-    (a) = (((a) << (s)) | (((a) & 0xffffffff) >> (32 - (s)))); \
+#define ROUND_OP(f, a, b, c, d, x, t, s)                        \
+    (a) += f((b), (c), (d)) + (x) + (t);                        \
+    (a)  = (((a) << (s)) | (((a) & 0xffffffff) >> (32 - (s)))); \
     (a) += (b);
 
-#define SET_BLOCK(n) \
-    (ctx->block[(n)] = \
-    (uint32_t)ptr[(n) * 4] | \
-    ((uint32_t)ptr[(n) * 4 + 1] << 8) | \
-    ((uint32_t)ptr[(n) * 4 + 2] << 16) | \
-    ((uint32_t)ptr[(n) * 4 + 3] << 24))
+#define SET_BLOCK(n)                                                                  \
+    (ctx->block[(n)] = (uint32_t) ptr[(n) * 4] | ((uint32_t) ptr[(n) * 4 + 1] << 8) | \
+                       ((uint32_t) ptr[(n) * 4 + 2] << 16) | ((uint32_t) ptr[(n) * 4 + 3] << 24))
 
-namespace Hash {
+namespace Hash
+{
     typedef struct {
         uint32_t lo, hi;
         uint32_t a, b, c, d;
@@ -173,13 +171,13 @@ namespace Hash {
             }
 
             memcpy(&ctx->buffer[used], data, free);
-            data = (unsigned char *) data + free;
+            data  = (unsigned char *) data + free;
             size -= free;
             body(ctx, ctx->buffer, 64);
         }
 
         if (size >= 64) {
-            data = body(ctx, data, size & ~(size_t) 0x3f);
+            data  = body(ctx, data, size & ~(size_t) 0x3f);
             size &= 0x3f;
         }
 
@@ -190,9 +188,9 @@ namespace Hash {
     {
         uint32_t used, free;
 
-        used = ctx->lo & 0x3f;
+        used                = ctx->lo & 0x3f;
         ctx->buffer[used++] = 0x80;
-        free = 64 - used;
+        free                = 64 - used;
 
         if (free < 8) {
             memset(&ctx->buffer[used], 0, free);
@@ -203,28 +201,28 @@ namespace Hash {
 
         memset(&ctx->buffer[used], 0, free - 8);
 
-        ctx->lo <<= 3;
-        ctx->buffer[56] = ctx->lo;
-        ctx->buffer[57] = ctx->lo >> 8;
-        ctx->buffer[58] = ctx->lo >> 16;
-        ctx->buffer[59] = ctx->lo >> 24;
-        ctx->buffer[60] = ctx->hi;
-        ctx->buffer[61] = ctx->hi >> 8;
-        ctx->buffer[62] = ctx->hi >> 16;
-        ctx->buffer[63] = ctx->hi >> 24;
+        ctx->lo         <<= 3;
+        ctx->buffer[56]   = ctx->lo;
+        ctx->buffer[57]   = ctx->lo >> 8;
+        ctx->buffer[58]   = ctx->lo >> 16;
+        ctx->buffer[59]   = ctx->lo >> 24;
+        ctx->buffer[60]   = ctx->hi;
+        ctx->buffer[61]   = ctx->hi >> 8;
+        ctx->buffer[62]   = ctx->hi >> 16;
+        ctx->buffer[63]   = ctx->hi >> 24;
 
         body(ctx, ctx->buffer, 64);
 
-        result[0] = ctx->a;
-        result[1] = ctx->a >> 8;
-        result[2] = ctx->a >> 16;
-        result[3] = ctx->a >> 24;
-        result[4] = ctx->b;
-        result[5] = ctx->b >> 8;
-        result[6] = ctx->b >> 16;
-        result[7] = ctx->b >> 24;
-        result[8] = ctx->c;
-        result[9] = ctx->c >> 8;
+        result[0]  = ctx->a;
+        result[1]  = ctx->a >> 8;
+        result[2]  = ctx->a >> 16;
+        result[3]  = ctx->a >> 24;
+        result[4]  = ctx->b;
+        result[5]  = ctx->b >> 8;
+        result[6]  = ctx->b >> 16;
+        result[7]  = ctx->b >> 24;
+        result[8]  = ctx->c;
+        result[9]  = ctx->c >> 8;
         result[10] = ctx->c >> 16;
         result[11] = ctx->c >> 24;
         result[12] = ctx->d;
@@ -254,7 +252,7 @@ namespace Hash {
 
         for (int i = 0; i < 16; ++i) {
             hexHash[i * 2]       = hexChars[hash[i] >> 4];
-            hexHash[(i * 2) + 1] = hexChars[hash[i] &  0x0F];
+            hexHash[(i * 2) + 1] = hexChars[hash[i] & 0x0F];
         }
 
         hexHash[16 * 2] = '\0';
@@ -262,7 +260,7 @@ namespace Hash {
 
         return hexHash;
     }
-};
+}; // namespace Hash
 
 #undef F
 #undef G
