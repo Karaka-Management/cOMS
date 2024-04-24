@@ -11,8 +11,8 @@
 #define MATH_MATRIX_VECTORFLOAT32_H
 
 #include "Types.h"
-#include <xmmintrin.h>
 #include <immintrin.h>
+#include <xmmintrin.h>
 
 struct simd_int64_2 {
     union {

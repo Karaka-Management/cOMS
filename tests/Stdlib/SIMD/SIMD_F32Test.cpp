@@ -10,30 +10,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../../Utils/TestUtils.h"
 #include "../../../Stdlib/SIMD/SIMD_F32.h"
 #include "../../../Stdlib/SIMD/SIMD_Helper.h"
+#include "../../../Utils/TestUtils.h"
 
-float* a_array_4 = (float *) aligned_alloc(32, 4 * sizeof(float));
-float* b_array_4 = (float *) aligned_alloc(32, 4 * sizeof(float));
-float* expected_array_4 = (float *) aligned_alloc(32, 4 * sizeof(float));
-float* result_array_4 = (float *) aligned_alloc(32, 4 * sizeof(float));
+float *a_array_4        = (float *) aligned_alloc(32, 4 * sizeof(float));
+float *b_array_4        = (float *) aligned_alloc(32, 4 * sizeof(float));
+float *expected_array_4 = (float *) aligned_alloc(32, 4 * sizeof(float));
+float *result_array_4   = (float *) aligned_alloc(32, 4 * sizeof(float));
 
-float* a_array_8 = (float *) aligned_alloc(32, 8 * sizeof(float));
-float* b_array_8 = (float *) aligned_alloc(32, 8 * sizeof(float));
-float* expected_array_8 = (float *) aligned_alloc(32, 8 * sizeof(float));
-float* result_array_8 = (float *) aligned_alloc(32, 8 * sizeof(float));
+float *a_array_8        = (float *) aligned_alloc(32, 8 * sizeof(float));
+float *b_array_8        = (float *) aligned_alloc(32, 8 * sizeof(float));
+float *expected_array_8 = (float *) aligned_alloc(32, 8 * sizeof(float));
+float *result_array_8   = (float *) aligned_alloc(32, 8 * sizeof(float));
 
-float* a_array_16 = (float *) aligned_alloc(32, 16 * sizeof(float));
-float* b_array_16 = (float *) aligned_alloc(32, 16 * sizeof(float));
-float* expected_array_16 = (float *) aligned_alloc(32, 16 * sizeof(float));
-float* result_array_16 = (float *) aligned_alloc(32, 16 * sizeof(float));
+float *a_array_16        = (float *) aligned_alloc(32, 16 * sizeof(float));
+float *b_array_16        = (float *) aligned_alloc(32, 16 * sizeof(float));
+float *expected_array_16 = (float *) aligned_alloc(32, 16 * sizeof(float));
+float *result_array_16   = (float *) aligned_alloc(32, 16 * sizeof(float));
 
 int test_operator_plus();
 int test_operator_minus();
 int test_operator_mul();
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     printf("SIMD_F32:\n");
 
@@ -56,10 +56,19 @@ int test_operator_plus()
         return 0;
     }
 
-    a_array_4[0] = 0.0f; a_array_4[1] = 1.0f; a_array_4[2] = 2.0f; a_array_4[3] = 3.0f;
-    b_array_4[0] = 0.0f; b_array_4[1] = 1.0f; b_array_4[2] = 2.0f; b_array_4[3] = 3.0f;
+    a_array_4[0] = 0.0f;
+    a_array_4[1] = 1.0f;
+    a_array_4[2] = 2.0f;
+    a_array_4[3] = 3.0f;
+    b_array_4[0] = 0.0f;
+    b_array_4[1] = 1.0f;
+    b_array_4[2] = 2.0f;
+    b_array_4[3] = 3.0f;
 
-    expected_array_4[0] = 0.0f; expected_array_4[1] = 2.0f; expected_array_4[2] = 4.0f; expected_array_4[3] = 6.0f;
+    expected_array_4[0]                      = 0.0f;
+    expected_array_4[1]                      = 2.0f;
+    expected_array_4[2]                      = 4.0f;
+    expected_array_4[3]                      = 6.0f;
     Stdlib::SIMD::f32_4_simd expected_simd_4 = Stdlib::SIMD::load_f32_4_simd(expected_array_4);
 
     Stdlib::SIMD::f32_4_simd a_simd_4 = Stdlib::SIMD::load_f32_4_simd(a_array_4);
@@ -82,14 +91,32 @@ int test_operator_plus()
         return 0;
     }
 
-    a_array_8[0] = 0.0f; a_array_8[1] = 1.0f; a_array_8[2] = 2.0f; a_array_8[3] = 3.0f;
-    a_array_8[4] = 0.0f; a_array_8[5] = 1.0f; a_array_8[6] = 2.0f; a_array_8[7] = 3.0f;
+    a_array_8[0] = 0.0f;
+    a_array_8[1] = 1.0f;
+    a_array_8[2] = 2.0f;
+    a_array_8[3] = 3.0f;
+    a_array_8[4] = 0.0f;
+    a_array_8[5] = 1.0f;
+    a_array_8[6] = 2.0f;
+    a_array_8[7] = 3.0f;
 
-    b_array_8[0] = 0.0f; b_array_8[1] = 1.0f; b_array_8[2] = 2.0f; b_array_8[3] = 3.0f;
-    b_array_8[4] = 0.0f; b_array_8[5] = 1.0f; b_array_8[6] = 2.0f; b_array_8[7] = 3.0f;
+    b_array_8[0] = 0.0f;
+    b_array_8[1] = 1.0f;
+    b_array_8[2] = 2.0f;
+    b_array_8[3] = 3.0f;
+    b_array_8[4] = 0.0f;
+    b_array_8[5] = 1.0f;
+    b_array_8[6] = 2.0f;
+    b_array_8[7] = 3.0f;
 
-    expected_array_8[0] = 0.0f; expected_array_8[1] = 2.0f; expected_array_8[2] = 4.0f; expected_array_8[3] = 6.0f;
-    expected_array_8[4] = 0.0f; expected_array_8[5] = 2.0f; expected_array_8[6] = 4.0f; expected_array_8[7] = 6.0f;
+    expected_array_8[0]                      = 0.0f;
+    expected_array_8[1]                      = 2.0f;
+    expected_array_8[2]                      = 4.0f;
+    expected_array_8[3]                      = 6.0f;
+    expected_array_8[4]                      = 0.0f;
+    expected_array_8[5]                      = 2.0f;
+    expected_array_8[6]                      = 4.0f;
+    expected_array_8[7]                      = 6.0f;
     Stdlib::SIMD::f32_8_simd expected_simd_8 = Stdlib::SIMD::load_f32_8_simd(expected_array_8);
 
     Stdlib::SIMD::f32_8_simd a_simd_8 = Stdlib::SIMD::load_f32_8_simd(a_array_8);
@@ -116,20 +143,56 @@ int test_operator_plus()
         return 0;
     }
 
-    a_array_16[0] = 0.0f; a_array_16[1] = 1.0f; a_array_16[2] = 2.0f; a_array_16[3] = 3.0f;
-    a_array_16[4] = 0.0f; a_array_16[5] = 1.0f; a_array_16[6] = 2.0f; a_array_16[7] = 3.0f;
-    a_array_16[8] = 0.0f; a_array_16[9] = 1.0f; a_array_16[10] = 2.0f; a_array_16[11] = 3.0f;
-    a_array_16[12] = 0.0f; a_array_16[13] = 1.0f; a_array_16[14] = 2.0f; a_array_16[15] = 3.0f;
+    a_array_16[0]  = 0.0f;
+    a_array_16[1]  = 1.0f;
+    a_array_16[2]  = 2.0f;
+    a_array_16[3]  = 3.0f;
+    a_array_16[4]  = 0.0f;
+    a_array_16[5]  = 1.0f;
+    a_array_16[6]  = 2.0f;
+    a_array_16[7]  = 3.0f;
+    a_array_16[8]  = 0.0f;
+    a_array_16[9]  = 1.0f;
+    a_array_16[10] = 2.0f;
+    a_array_16[11] = 3.0f;
+    a_array_16[12] = 0.0f;
+    a_array_16[13] = 1.0f;
+    a_array_16[14] = 2.0f;
+    a_array_16[15] = 3.0f;
 
-    b_array_16[0] = 0.0f; b_array_16[1] = 1.0f; b_array_16[2] = 2.0f; b_array_16[3] = 3.0f;
-    b_array_16[4] = 0.0f; b_array_16[5] = 1.0f; b_array_16[6] = 2.0f; b_array_16[7] = 3.0f;
-    b_array_16[8] = 0.0f; b_array_16[9] = 1.0f; b_array_16[10] = 2.0f; b_array_16[11] = 3.0f;
-    b_array_16[12] = 0.0f; b_array_16[13] = 1.0f; b_array_16[14] = 2.0f; b_array_16[15] = 3.0f;
+    b_array_16[0]  = 0.0f;
+    b_array_16[1]  = 1.0f;
+    b_array_16[2]  = 2.0f;
+    b_array_16[3]  = 3.0f;
+    b_array_16[4]  = 0.0f;
+    b_array_16[5]  = 1.0f;
+    b_array_16[6]  = 2.0f;
+    b_array_16[7]  = 3.0f;
+    b_array_16[8]  = 0.0f;
+    b_array_16[9]  = 1.0f;
+    b_array_16[10] = 2.0f;
+    b_array_16[11] = 3.0f;
+    b_array_16[12] = 0.0f;
+    b_array_16[13] = 1.0f;
+    b_array_16[14] = 2.0f;
+    b_array_16[15] = 3.0f;
 
-    expected_array_16[0] = 0.0f; expected_array_16[1] = 2.0f; expected_array_16[2] = 4.0f; expected_array_16[3] = 6.0f;
-    expected_array_16[4] = 0.0f; expected_array_16[5] = 2.0f; expected_array_16[6] = 4.0f; expected_array_16[7] = 6.0f;
-    expected_array_16[8] = 0.0f; expected_array_16[9] = 2.0f; expected_array_16[10] = 4.0f; expected_array_16[11] = 6.0f;
-    expected_array_16[12] = 0.0f; expected_array_16[13] = 2.0f; expected_array_16[14] = 4.0f; expected_array_16[15] = 6.0f;
+    expected_array_16[0]                       = 0.0f;
+    expected_array_16[1]                       = 2.0f;
+    expected_array_16[2]                       = 4.0f;
+    expected_array_16[3]                       = 6.0f;
+    expected_array_16[4]                       = 0.0f;
+    expected_array_16[5]                       = 2.0f;
+    expected_array_16[6]                       = 4.0f;
+    expected_array_16[7]                       = 6.0f;
+    expected_array_16[8]                       = 0.0f;
+    expected_array_16[9]                       = 2.0f;
+    expected_array_16[10]                      = 4.0f;
+    expected_array_16[11]                      = 6.0f;
+    expected_array_16[12]                      = 0.0f;
+    expected_array_16[13]                      = 2.0f;
+    expected_array_16[14]                      = 4.0f;
+    expected_array_16[15]                      = 6.0f;
     Stdlib::SIMD::f32_16_simd expected_simd_16 = Stdlib::SIMD::load_f32_16_simd(expected_array_16);
 
     Stdlib::SIMD::f32_16_simd a_simd_16 = Stdlib::SIMD::load_f32_16_simd(a_array_16);
@@ -169,10 +232,19 @@ int test_operator_minus()
         return 0;
     }
 
-    a_array_4[0] = 0.0f; a_array_4[1] = 1.0f; a_array_4[2] = 2.0f; a_array_4[3] = 3.0f;
-    b_array_4[0] = 1.0f; b_array_4[1] = 1.0f; b_array_4[2] = 1.0f; b_array_4[3] = 1.0f;
+    a_array_4[0] = 0.0f;
+    a_array_4[1] = 1.0f;
+    a_array_4[2] = 2.0f;
+    a_array_4[3] = 3.0f;
+    b_array_4[0] = 1.0f;
+    b_array_4[1] = 1.0f;
+    b_array_4[2] = 1.0f;
+    b_array_4[3] = 1.0f;
 
-    expected_array_4[0] = -1.0f; expected_array_4[1] = 0.0f; expected_array_4[2] = 1.0f; expected_array_4[3] = 2.0f;
+    expected_array_4[0]                      = -1.0f;
+    expected_array_4[1]                      = 0.0f;
+    expected_array_4[2]                      = 1.0f;
+    expected_array_4[3]                      = 2.0f;
     Stdlib::SIMD::f32_4_simd expected_simd_4 = Stdlib::SIMD::load_f32_4_simd(expected_array_4);
 
     Stdlib::SIMD::f32_4_simd a_simd_4 = Stdlib::SIMD::load_f32_4_simd(a_array_4);
@@ -195,14 +267,32 @@ int test_operator_minus()
         return 0;
     }
 
-    a_array_8[0] = 0.0f; a_array_8[1] = 1.0f; a_array_8[2] = 2.0f; a_array_8[3] = 3.0f;
-    a_array_8[4] = 0.0f; a_array_8[5] = 1.0f; a_array_8[6] = 2.0f; a_array_8[7] = 3.0f;
+    a_array_8[0] = 0.0f;
+    a_array_8[1] = 1.0f;
+    a_array_8[2] = 2.0f;
+    a_array_8[3] = 3.0f;
+    a_array_8[4] = 0.0f;
+    a_array_8[5] = 1.0f;
+    a_array_8[6] = 2.0f;
+    a_array_8[7] = 3.0f;
 
-    b_array_8[0] = 1.0f; b_array_8[1] = 1.0f; b_array_8[2] = 1.0f; b_array_8[3] = 1.0f;
-    b_array_8[4] = 1.0f; b_array_8[5] = 1.0f; b_array_8[6] = 1.0f; b_array_8[7] = 1.0f;
+    b_array_8[0] = 1.0f;
+    b_array_8[1] = 1.0f;
+    b_array_8[2] = 1.0f;
+    b_array_8[3] = 1.0f;
+    b_array_8[4] = 1.0f;
+    b_array_8[5] = 1.0f;
+    b_array_8[6] = 1.0f;
+    b_array_8[7] = 1.0f;
 
-    expected_array_8[0] = -1.0f; expected_array_8[1] = 0.0f; expected_array_8[2] = 1.0f; expected_array_8[3] = 2.0f;
-    expected_array_8[4] = -1.0f; expected_array_8[5] = 0.0f; expected_array_8[6] = 1.0f; expected_array_8[7] = 2.0f;
+    expected_array_8[0]                      = -1.0f;
+    expected_array_8[1]                      = 0.0f;
+    expected_array_8[2]                      = 1.0f;
+    expected_array_8[3]                      = 2.0f;
+    expected_array_8[4]                      = -1.0f;
+    expected_array_8[5]                      = 0.0f;
+    expected_array_8[6]                      = 1.0f;
+    expected_array_8[7]                      = 2.0f;
     Stdlib::SIMD::f32_8_simd expected_simd_8 = Stdlib::SIMD::load_f32_8_simd(expected_array_8);
 
     Stdlib::SIMD::f32_8_simd a_simd_8 = Stdlib::SIMD::load_f32_8_simd(a_array_8);
@@ -229,20 +319,56 @@ int test_operator_minus()
         return 0;
     }
 
-    a_array_16[0] = 0.0f; a_array_16[1] = 1.0f; a_array_16[2] = 2.0f; a_array_16[3] = 3.0f;
-    a_array_16[4] = 0.0f; a_array_16[5] = 1.0f; a_array_16[6] = 2.0f; a_array_16[7] = 3.0f;
-    a_array_16[8] = 0.0f; a_array_16[9] = 1.0f; a_array_16[10] = 2.0f; a_array_16[11] = 3.0f;
-    a_array_16[12] = 0.0f; a_array_16[13] = 1.0f; a_array_16[14] = 2.0f; a_array_16[15] = 3.0f;
+    a_array_16[0]  = 0.0f;
+    a_array_16[1]  = 1.0f;
+    a_array_16[2]  = 2.0f;
+    a_array_16[3]  = 3.0f;
+    a_array_16[4]  = 0.0f;
+    a_array_16[5]  = 1.0f;
+    a_array_16[6]  = 2.0f;
+    a_array_16[7]  = 3.0f;
+    a_array_16[8]  = 0.0f;
+    a_array_16[9]  = 1.0f;
+    a_array_16[10] = 2.0f;
+    a_array_16[11] = 3.0f;
+    a_array_16[12] = 0.0f;
+    a_array_16[13] = 1.0f;
+    a_array_16[14] = 2.0f;
+    a_array_16[15] = 3.0f;
 
-    b_array_16[0] = 1.0f; b_array_16[1] = 1.0f; b_array_16[2] = 1.0f; b_array_16[3] = 1.0f;
-    b_array_16[4] = 1.0f; b_array_16[5] = 1.0f; b_array_16[6] = 1.0f; b_array_16[7] = 1.0f;
-    b_array_16[8] = 1.0f; b_array_16[9] = 1.0f; b_array_16[10] = 1.0f; b_array_16[11] = 1.0f;
-    b_array_16[12] = 1.0f; b_array_16[13] = 1.0f; b_array_16[14] = 1.0f; b_array_16[15] = 1.0f;
+    b_array_16[0]  = 1.0f;
+    b_array_16[1]  = 1.0f;
+    b_array_16[2]  = 1.0f;
+    b_array_16[3]  = 1.0f;
+    b_array_16[4]  = 1.0f;
+    b_array_16[5]  = 1.0f;
+    b_array_16[6]  = 1.0f;
+    b_array_16[7]  = 1.0f;
+    b_array_16[8]  = 1.0f;
+    b_array_16[9]  = 1.0f;
+    b_array_16[10] = 1.0f;
+    b_array_16[11] = 1.0f;
+    b_array_16[12] = 1.0f;
+    b_array_16[13] = 1.0f;
+    b_array_16[14] = 1.0f;
+    b_array_16[15] = 1.0f;
 
-    expected_array_16[0] = -1.0f; expected_array_16[1] = 0.0f; expected_array_16[2] = 1.0f; expected_array_16[3] = 2.0f;
-    expected_array_16[4] = -1.0f; expected_array_16[5] = 0.0f; expected_array_16[6] = 1.0f; expected_array_16[7] = 2.0f;
-    expected_array_16[8] = -1.0f; expected_array_16[9] = 0.0f; expected_array_16[10] = 1.0f; expected_array_16[11] = 2.0f;
-    expected_array_16[12] = -1.0f; expected_array_16[13] = 0.0f; expected_array_16[14] = 1.0f; expected_array_16[15] = 2.0f;
+    expected_array_16[0]                       = -1.0f;
+    expected_array_16[1]                       = 0.0f;
+    expected_array_16[2]                       = 1.0f;
+    expected_array_16[3]                       = 2.0f;
+    expected_array_16[4]                       = -1.0f;
+    expected_array_16[5]                       = 0.0f;
+    expected_array_16[6]                       = 1.0f;
+    expected_array_16[7]                       = 2.0f;
+    expected_array_16[8]                       = -1.0f;
+    expected_array_16[9]                       = 0.0f;
+    expected_array_16[10]                      = 1.0f;
+    expected_array_16[11]                      = 2.0f;
+    expected_array_16[12]                      = -1.0f;
+    expected_array_16[13]                      = 0.0f;
+    expected_array_16[14]                      = 1.0f;
+    expected_array_16[15]                      = 2.0f;
     Stdlib::SIMD::f32_16_simd expected_simd_16 = Stdlib::SIMD::load_f32_16_simd(expected_array_16);
 
     Stdlib::SIMD::f32_16_simd a_simd_16 = Stdlib::SIMD::load_f32_16_simd(a_array_16);
@@ -282,10 +408,19 @@ int test_operator_mul()
         return 0;
     }
 
-    a_array_4[0] = 0.0f; a_array_4[1] = 1.0f; a_array_4[2] = 2.0f; a_array_4[3] = 3.0f;
-    b_array_4[0] = 0.0f; b_array_4[1] = 1.0f; b_array_4[2] = 2.0f; b_array_4[3] = 3.0f;
+    a_array_4[0] = 0.0f;
+    a_array_4[1] = 1.0f;
+    a_array_4[2] = 2.0f;
+    a_array_4[3] = 3.0f;
+    b_array_4[0] = 0.0f;
+    b_array_4[1] = 1.0f;
+    b_array_4[2] = 2.0f;
+    b_array_4[3] = 3.0f;
 
-    expected_array_4[0] = 0.0f; expected_array_4[1] = 1.0f; expected_array_4[2] = 4.0f; expected_array_4[3] = 9.0f;
+    expected_array_4[0]                      = 0.0f;
+    expected_array_4[1]                      = 1.0f;
+    expected_array_4[2]                      = 4.0f;
+    expected_array_4[3]                      = 9.0f;
     Stdlib::SIMD::f32_4_simd expected_simd_4 = Stdlib::SIMD::load_f32_4_simd(expected_array_4);
 
     Stdlib::SIMD::f32_4_simd a_simd_4 = Stdlib::SIMD::load_f32_4_simd(a_array_4);
@@ -308,14 +443,32 @@ int test_operator_mul()
         return 0;
     }
 
-    a_array_8[0] = 0.0f; a_array_8[1] = 1.0f; a_array_8[2] = 2.0f; a_array_8[3] = 3.0f;
-    a_array_8[4] = 0.0f; a_array_8[5] = 1.0f; a_array_8[6] = 2.0f; a_array_8[7] = 3.0f;
+    a_array_8[0] = 0.0f;
+    a_array_8[1] = 1.0f;
+    a_array_8[2] = 2.0f;
+    a_array_8[3] = 3.0f;
+    a_array_8[4] = 0.0f;
+    a_array_8[5] = 1.0f;
+    a_array_8[6] = 2.0f;
+    a_array_8[7] = 3.0f;
 
-    b_array_8[0] = 0.0f; b_array_8[1] = 1.0f; b_array_8[2] = 2.0f; b_array_8[3] = 3.0f;
-    b_array_8[4] = 0.0f; b_array_8[5] = 1.0f; b_array_8[6] = 2.0f; b_array_8[7] = 3.0f;
+    b_array_8[0] = 0.0f;
+    b_array_8[1] = 1.0f;
+    b_array_8[2] = 2.0f;
+    b_array_8[3] = 3.0f;
+    b_array_8[4] = 0.0f;
+    b_array_8[5] = 1.0f;
+    b_array_8[6] = 2.0f;
+    b_array_8[7] = 3.0f;
 
-    expected_array_8[0] = 0.0f; expected_array_8[1] = 1.0f; expected_array_8[2] = 4.0f; expected_array_8[3] = 9.0f;
-    expected_array_8[4] = 0.0f; expected_array_8[5] = 1.0f; expected_array_8[6] = 4.0f; expected_array_8[7] = 9.0f;
+    expected_array_8[0]                      = 0.0f;
+    expected_array_8[1]                      = 1.0f;
+    expected_array_8[2]                      = 4.0f;
+    expected_array_8[3]                      = 9.0f;
+    expected_array_8[4]                      = 0.0f;
+    expected_array_8[5]                      = 1.0f;
+    expected_array_8[6]                      = 4.0f;
+    expected_array_8[7]                      = 9.0f;
     Stdlib::SIMD::f32_8_simd expected_simd_8 = Stdlib::SIMD::load_f32_8_simd(expected_array_8);
 
     Stdlib::SIMD::f32_8_simd a_simd_8 = Stdlib::SIMD::load_f32_8_simd(a_array_8);
@@ -342,20 +495,56 @@ int test_operator_mul()
         return 0;
     }
 
-    a_array_16[0] = 0.0f; a_array_16[1] = 1.0f; a_array_16[2] = 2.0f; a_array_16[3] = 3.0f;
-    a_array_16[4] = 0.0f; a_array_16[5] = 1.0f; a_array_16[6] = 2.0f; a_array_16[7] = 3.0f;
-    a_array_16[8] = 0.0f; a_array_16[9] = 1.0f; a_array_16[10] = 2.0f; a_array_16[11] = 3.0f;
-    a_array_16[12] = 0.0f; a_array_16[13] = 1.0f; a_array_16[14] = 2.0f; a_array_16[15] = 3.0f;
+    a_array_16[0]  = 0.0f;
+    a_array_16[1]  = 1.0f;
+    a_array_16[2]  = 2.0f;
+    a_array_16[3]  = 3.0f;
+    a_array_16[4]  = 0.0f;
+    a_array_16[5]  = 1.0f;
+    a_array_16[6]  = 2.0f;
+    a_array_16[7]  = 3.0f;
+    a_array_16[8]  = 0.0f;
+    a_array_16[9]  = 1.0f;
+    a_array_16[10] = 2.0f;
+    a_array_16[11] = 3.0f;
+    a_array_16[12] = 0.0f;
+    a_array_16[13] = 1.0f;
+    a_array_16[14] = 2.0f;
+    a_array_16[15] = 3.0f;
 
-    b_array_16[0] = 0.0f; b_array_16[1] = 1.0f; b_array_16[2] = 2.0f; b_array_16[3] = 3.0f;
-    b_array_16[4] = 0.0f; b_array_16[5] = 1.0f; b_array_16[6] = 2.0f; b_array_16[7] = 3.0f;
-    b_array_16[8] = 0.0f; b_array_16[9] = 1.0f; b_array_16[10] = 2.0f; b_array_16[11] = 3.0f;
-    b_array_16[12] = 0.0f; b_array_16[13] = 1.0f; b_array_16[14] = 2.0f; b_array_16[15] = 3.0f;
+    b_array_16[0]  = 0.0f;
+    b_array_16[1]  = 1.0f;
+    b_array_16[2]  = 2.0f;
+    b_array_16[3]  = 3.0f;
+    b_array_16[4]  = 0.0f;
+    b_array_16[5]  = 1.0f;
+    b_array_16[6]  = 2.0f;
+    b_array_16[7]  = 3.0f;
+    b_array_16[8]  = 0.0f;
+    b_array_16[9]  = 1.0f;
+    b_array_16[10] = 2.0f;
+    b_array_16[11] = 3.0f;
+    b_array_16[12] = 0.0f;
+    b_array_16[13] = 1.0f;
+    b_array_16[14] = 2.0f;
+    b_array_16[15] = 3.0f;
 
-    expected_array_16[0] = 0.0f; expected_array_16[1] = 1.0f; expected_array_16[2] = 4.0f; expected_array_16[3] = 9.0f;
-    expected_array_16[4] = 0.0f; expected_array_16[5] = 1.0f; expected_array_16[6] = 4.0f; expected_array_16[7] = 9.0f;
-    expected_array_16[8] = 0.0f; expected_array_16[9] = 1.0f; expected_array_16[10] = 4.0f; expected_array_16[11] = 9.0f;
-    expected_array_16[12] = 0.0f; expected_array_16[13] = 1.0f; expected_array_16[14] = 4.0f; expected_array_16[15] = 9.0f;
+    expected_array_16[0]                       = 0.0f;
+    expected_array_16[1]                       = 1.0f;
+    expected_array_16[2]                       = 4.0f;
+    expected_array_16[3]                       = 9.0f;
+    expected_array_16[4]                       = 0.0f;
+    expected_array_16[5]                       = 1.0f;
+    expected_array_16[6]                       = 4.0f;
+    expected_array_16[7]                       = 9.0f;
+    expected_array_16[8]                       = 0.0f;
+    expected_array_16[9]                       = 1.0f;
+    expected_array_16[10]                      = 4.0f;
+    expected_array_16[11]                      = 9.0f;
+    expected_array_16[12]                      = 0.0f;
+    expected_array_16[13]                      = 1.0f;
+    expected_array_16[14]                      = 4.0f;
+    expected_array_16[15]                      = 9.0f;
     Stdlib::SIMD::f32_16_simd expected_simd_16 = Stdlib::SIMD::load_f32_16_simd(expected_array_16);
 
     Stdlib::SIMD::f32_16_simd a_simd_16 = Stdlib::SIMD::load_f32_16_simd(a_array_16);

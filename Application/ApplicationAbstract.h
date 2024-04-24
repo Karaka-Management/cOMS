@@ -14,8 +14,8 @@
 #include <stdlib.h>
 
 #include "../DataStorage/Database/Connection/ConnectionAbstract.h"
-#include "../Utils/Parser/Json.h"
 #include "../Threads/Thread.h"
+#include "../Utils/Parser/Json.h"
 
 namespace Application
 {
@@ -24,6 +24,6 @@ namespace Application
         nlohmann::json config;
         Threads::ThreadPool *pool;
     } ApplicationAbstract;
-}
+} // namespace Application
 
 #endif

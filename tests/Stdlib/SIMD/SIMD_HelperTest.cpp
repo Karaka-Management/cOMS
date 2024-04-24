@@ -10,11 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../../Utils/TestUtils.h"
 #include "../../../Stdlib/SIMD/SIMD_Helper.h"
+#include "../../../Utils/TestUtils.h"
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     printf("SIMD_Helper:\n");
 

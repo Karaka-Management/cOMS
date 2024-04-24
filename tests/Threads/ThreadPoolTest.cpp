@@ -7,8 +7,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "../../Threads/Thread.h"
 #include "../../Utils/TestUtils.h"
@@ -21,8 +21,8 @@ void worker(void *arg)
 {
     Threads::Job *job = (Threads::Job *) arg;
 
-    int *val = (int *) job->arg;
-    *val += 100;
+    int *val  = (int *) job->arg;
+    *val     += 100;
 
     if (*val % 2) {
         sleep(1);
@@ -31,24 +31,24 @@ void worker(void *arg)
     job->state = 1;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     printf("Threads:\n\n");
     printf("ThreadPool:\n");
 
     int i;
     Threads::ThreadPool *pool = Threads::pool_create(num_threads);
-    int                 *vals = (int *) calloc(num_items, sizeof(int));
-    Threads::Job      **works = (Threads::Job **) calloc(num_items, sizeof(Threads::Job));
+    int *vals                 = (int *) calloc(num_items, sizeof(int));
+    Threads::Job **works      = (Threads::Job **) calloc(num_items, sizeof(Threads::Job));
 
     for (i = 0; i < num_items; ++i) {
-        vals[i] = i;
+        vals[i]  = i;
         works[i] = Threads::pool_add_work(pool, worker, vals + i);
     }
 
     // @bug wait is not working as expected
     //      I thought wait works similarly to what the do/while construct below does
-    //Threads::pool_wait(pool);
+    // Threads::pool_wait(pool);
 
     bool finished = false;
     do {

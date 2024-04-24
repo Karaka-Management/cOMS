@@ -10,8 +10,8 @@
 #ifndef STDLIB_TYPES_H
 #define STDLIB_TYPES_H
 
-#include <stdint.h>
 #include <float.h>
+#include <stdint.h>
 
 typedef int8_t int8;
 typedef int16_t int16;

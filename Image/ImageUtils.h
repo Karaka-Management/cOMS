@@ -10,13 +10,12 @@
 #ifndef IMAGE_IMAGE_UTILS_H
 #define IMAGE_IMAGE_UTILS_H
 
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 
 namespace Image::ImageUtils
 {
-    inline
-    float lightnessFromRgb(int r, int g, int b)
+    inline float lightnessFromRgb(int r, int g, int b)
     {
         float vR = r / 255.0;
         float vG = g / 255.0;
@@ -31,6 +30,6 @@ namespace Image::ImageUtils
 
         return lStar / 100.0;
     }
-}
+} // namespace Image::ImageUtils
 
 #endif

@@ -1,4 +1,5 @@
-// Remarks: sizes for the second matrix/vector are often implied by the first parameter and the rules for matrix/vector multiplication.
+// Remarks: sizes for the second matrix/vector are often implied by the first parameter and the rules for matrix/vector
+// multiplication.
 
 // First element is always a matrix of int64_t
 /////////////////////////////////

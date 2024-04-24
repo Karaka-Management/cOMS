@@ -18,25 +18,16 @@
 
 #include "../Stdlib/Types.h"
 
-uint32 find_joysticks()
-{
+uint32 find_joysticks() {}
 
-}
-
-void destory_joysticks()
-{
-
-}
+void destory_joysticks() {}
 
 void handle_controller_input()
 {
-
     for (uint32 controller_index = 0; controller_index < XUSER_MAX_COUNT; ++controller_index) {
         XINPUT_STATE controller_state;
         if (XInputGetState(controller_index, &controller_state) == ERROR_SUCCESS) {
-
         } else {
-
         }
     }
 }

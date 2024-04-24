@@ -10,25 +10,38 @@ extern "C" {
 
 // Licensing Information
 //
-// Except as otherwise noted (below and/or in individual files), this project is licensed under the Unlicense (https://opensource.org/licenses/unlicense) or the Zero Clause BSD license (https://opensource.org/licenses/0bsd), at your option.
-// The Unlicense
+// Except as otherwise noted (below and/or in individual files), this project is licensed under the Unlicense
+// (https://opensource.org/licenses/unlicense) or the Zero Clause BSD license (https://opensource.org/licenses/0bsd), at
+// your option. The Unlicense
 //
 // This is free and unencumbered software released into the public domain.
 //
-// Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software, either in source code form or as a compiled binary, for any purpose, commercial or non-commercial, and by any means.
+// Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software, either in source code form
+// or as a compiled binary, for any purpose, commercial or non-commercial, and by any means.
 //
-// In jurisdictions that recognize copyright laws, the author or authors of this software dedicate any and all copyright interest in the software to the public domain. We make this dedication for the benefit of the public at large and to the detriment of our heirs and successors. We intend this dedication to be an overt act of relinquishment in perpetuity of all present and future rights to this software under copyright law.
+// In jurisdictions that recognize copyright laws, the author or authors of this software dedicate any and all copyright
+// interest in the software to the public domain. We make this dedication for the benefit of the public at large and to
+// the detriment of our heirs and successors. We intend this dedication to be an overt act of relinquishment in
+// perpetuity of all present and future rights to this software under copyright law.
 //
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+// WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 // For more information, please refer to http://unlicense.org
 // Zero Clause BSD License
 //
 // © 2021 Alain Mosnier
 //
-// Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted.
+// Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby
+// granted.
 //
-// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+// INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
+// AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+// PERFORMANCE OF THIS SOFTWARE.
 
 /*
  * @brief Size of the SHA-256 sum. This times eight is 256 bits.
@@ -96,16 +109,15 @@ static inline void consume_chunk(uint32_t *h, const uint8_t *p)
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 16; j++) {
             if (i == 0) {
-                w[j] =
-                    (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | (uint32_t)p[3];
-                p += 4;
+                w[j]  = (uint32_t) p[0] << 24 | (uint32_t) p[1] << 16 | (uint32_t) p[2] << 8 | (uint32_t) p[3];
+                p    += 4;
             } else {
                 /* Extend the first 16 words into the remaining 48 words w[16..63] of the
                  * message schedule array: */
-                const uint32_t s0 = right_rot(w[(j + 1) & 0xf], 7) ^ right_rot(w[(j + 1) & 0xf], 18) ^
-                            (w[(j + 1) & 0xf] >> 3);
-                const uint32_t s1 = right_rot(w[(j + 14) & 0xf], 17) ^
-                            right_rot(w[(j + 14) & 0xf], 19) ^ (w[(j + 14) & 0xf] >> 10);
+                const uint32_t s0 =
+                    right_rot(w[(j + 1) & 0xf], 7) ^ right_rot(w[(j + 1) & 0xf], 18) ^ (w[(j + 1) & 0xf] >> 3);
+                const uint32_t s1 =
+                    right_rot(w[(j + 14) & 0xf], 17) ^ right_rot(w[(j + 14) & 0xf], 19) ^ (w[(j + 14) & 0xf] >> 10);
                 w[j] = w[j] + s0 + w[(j + 9) & 0xf] + s1;
             }
             const uint32_t s1 = right_rot(ah[4], 6) ^ right_rot(ah[4], 11) ^ right_rot(ah[4], 25);
@@ -116,20 +128,18 @@ static inline void consume_chunk(uint32_t *h, const uint8_t *p)
              * (first 32 bits of the fractional parts of the cube roots of the first 64 primes 2..311):
              */
             static const uint32_t k[] = {
-                0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
-                0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
-                0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
-                0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
-                0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
-                0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
-                0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
-                0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-                0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
-                0xc67178f2};
+                0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+                0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+                0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+                0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+                0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+                0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+                0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+                0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 
             const uint32_t temp1 = ah[7] + s1 + ch + k[i << 4 | j] + w[j];
-            const uint32_t s0 = right_rot(ah[0], 2) ^ right_rot(ah[0], 13) ^ right_rot(ah[0], 22);
-            const uint32_t maj = (ah[0] & ah[1]) ^ (ah[0] & ah[2]) ^ (ah[1] & ah[2]);
+            const uint32_t s0    = right_rot(ah[0], 2) ^ right_rot(ah[0], 13) ^ right_rot(ah[0], 22);
+            const uint32_t maj   = (ah[0] & ah[1]) ^ (ah[0] & ah[2]) ^ (ah[1] & ah[2]);
             const uint32_t temp2 = s0 + maj;
 
             ah[7] = ah[6];
@@ -148,25 +158,24 @@ static inline void consume_chunk(uint32_t *h, const uint8_t *p)
         h[i] += ah[i];
 }
 
-
 /*
  * @brief Initialize a SHA-256 streaming calculation.
  * @param sha_256 A pointer to a SHA-256 structure.
  * @param hash Hash array, where the result will be delivered.
  *
- * @note If all of the data you are calculating the hash value on is not available in a contiguous buffer in memory, this is
- * where you should start. Instantiate a SHA-256 structure, for instance by simply declaring it locally, make your hash
- * buffer available, and invoke this function. Once a SHA-256 hash has been calculated (see further below) a SHA-256
- * structure can be initialized again for the next calculation.
+ * @note If all of the data you are calculating the hash value on is not available in a contiguous buffer in memory,
+ * this is where you should start. Instantiate a SHA-256 structure, for instance by simply declaring it locally, make
+ * your hash buffer available, and invoke this function. Once a SHA-256 hash has been calculated (see further below) a
+ * SHA-256 structure can be initialized again for the next calculation.
  *
  * @note If either of the passed pointers is NULL, the results are unpredictable.
  */
 void sha_256_init(struct Sha_256 *sha_256, uint8_t hash[SIZE_OF_SHA_256_HASH])
 {
-    sha_256->hash = hash;
-    sha_256->chunk_pos = sha_256->chunk;
+    sha_256->hash       = hash;
+    sha_256->chunk_pos  = sha_256->chunk;
     sha_256->space_left = SIZE_OF_SHA_256_CHUNK;
-    sha_256->total_len = 0;
+    sha_256->total_len  = 0;
     /*
      * Initialize hash values (first 32 bits of the fractional parts of the square roots of the first 8 primes
      * 2..19):
@@ -210,18 +219,18 @@ void sha_256_write(struct Sha_256 *sha_256, const void *data, size_t len)
         if (sha_256->space_left == SIZE_OF_SHA_256_CHUNK && len >= SIZE_OF_SHA_256_CHUNK) {
             consume_chunk(sha_256->h, p);
             len -= SIZE_OF_SHA_256_CHUNK;
-            p += SIZE_OF_SHA_256_CHUNK;
+            p   += SIZE_OF_SHA_256_CHUNK;
             continue;
         }
         /* General case, no particular optimization. */
         const size_t consumed_len = len < sha_256->space_left ? len : sha_256->space_left;
         memcpy(sha_256->chunk_pos, p, consumed_len);
         sha_256->space_left -= consumed_len;
-        len -= consumed_len;
-        p += consumed_len;
+        len                 -= consumed_len;
+        p                   += consumed_len;
         if (sha_256->space_left == 0) {
             consume_chunk(sha_256->h, sha_256->chunk);
-            sha_256->chunk_pos = sha_256->chunk;
+            sha_256->chunk_pos  = sha_256->chunk;
             sha_256->space_left = SIZE_OF_SHA_256_CHUNK;
         } else {
             sha_256->chunk_pos += consumed_len;
@@ -245,7 +254,7 @@ void sha_256_write(struct Sha_256 *sha_256, const void *data, size_t len)
  */
 uint8_t *sha_256_close(struct Sha_256 *sha_256)
 {
-    uint8_t *pos = sha_256->chunk_pos;
+    uint8_t *pos      = sha_256->chunk_pos;
     size_t space_left = sha_256->space_left;
     uint32_t *const h = sha_256->h;
 
@@ -264,29 +273,29 @@ uint8_t *sha_256_close(struct Sha_256 *sha_256)
     if (space_left < TOTAL_LEN_LEN) {
         memset(pos, 0x00, space_left);
         consume_chunk(h, sha_256->chunk);
-        pos = sha_256->chunk;
+        pos        = sha_256->chunk;
         space_left = SIZE_OF_SHA_256_CHUNK;
     }
     const size_t left = space_left - TOTAL_LEN_LEN;
     memset(pos, 0x00, left);
-    pos += left;
-    size_t len = sha_256->total_len;
-    pos[7] = (uint8_t)(len << 3);
-    len >>= 5;
+    pos         += left;
+    size_t len   = sha_256->total_len;
+    pos[7]       = (uint8_t) (len << 3);
+    len        >>= 5;
     int i;
     for (i = 6; i >= 0; --i) {
-        pos[i] = (uint8_t)len;
-        len >>= 8;
+        pos[i]   = (uint8_t) len;
+        len    >>= 8;
     }
     consume_chunk(h, sha_256->chunk);
     /* Produce the final hash value (big-endian): */
     int j;
     uint8_t *const hash = sha_256->hash;
     for (i = 0, j = 0; i < 8; i++) {
-        hash[j++] = (uint8_t)(h[i] >> 24);
-        hash[j++] = (uint8_t)(h[i] >> 16);
-        hash[j++] = (uint8_t)(h[i] >> 8);
-        hash[j++] = (uint8_t)h[i];
+        hash[j++] = (uint8_t) (h[i] >> 24);
+        hash[j++] = (uint8_t) (h[i] >> 16);
+        hash[j++] = (uint8_t) (h[i] >> 8);
+        hash[j++] = (uint8_t) h[i];
     }
     return sha_256->hash;
 }
@@ -307,7 +316,7 @@ void calc_sha_256(uint8_t hash[SIZE_OF_SHA_256_HASH], const void *input, size_t 
     struct Sha_256 sha_256;
     sha_256_init(&sha_256, hash);
     sha_256_write(&sha_256, input, len);
-    (void)sha_256_close(&sha_256);
+    (void) sha_256_close(&sha_256);
 }
 
 #undef TOTAL_LEN_LEN

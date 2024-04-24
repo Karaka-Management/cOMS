@@ -149,6 +149,6 @@ namespace Math::Matrix::VectorFloat32
             f32_16_simd v[4];
         };
     };
-}
+} // namespace Math::Matrix::VectorFloat32
 
 #endif
