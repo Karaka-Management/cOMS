@@ -11,8 +11,8 @@
 namespace UI
 {
     typedef struct {
-        unsigned int width = 0;
-        unsigned int height = 0;
+        unsigned int width;
+        unsigned int height;
 
         #ifdef _WIN32
             HWND hwnd;
@@ -40,7 +40,7 @@ namespace UI
         wc.hInstance = hinstance;
         wc.hCursor = LoadCursor(NULL, IDC_ARROW);
         wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
-        wc.lpszClassName = "WindowClass1";
+        wc.lpszClassName = L"WindowClass1";
 
         RegisterClassEx(&wc);
 
