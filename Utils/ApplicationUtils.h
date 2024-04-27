@@ -20,28 +20,26 @@ namespace Utils
 {
     namespace ApplicationUtils
     {
-        inline
-        char *cwd()
+        inline char *cwd()
         {
             char *cwd = (char *) malloc(4096 * sizeof(char));
             if (cwd == NULL) {
                 return NULL;
             }
 
-            getcwd(cwd,  4096 * sizeof(char));
+            getcwd(cwd, 4096 * sizeof(char));
 
             return cwd;
         }
 
-        inline
-        void chdir_application(const char *cwd, const char *arg)
+        inline void chdir_application(const char *cwd, const char *arg)
         {
             char *pos = strrchr((char *) arg, '/');
             if (pos == NULL) {
                 pos = strrchr((char *) arg, '\\');
             }
 
-            char* dir = (char *) calloc((pos - arg + 1), sizeof(char));
+            char *dir = (char *) calloc((pos - arg + 1), sizeof(char));
             if (!dir) {
                 return;
             }
@@ -53,8 +51,7 @@ namespace Utils
             }
         }
 
-        inline
-        const char *compile_arg_line(int argc, const char **argv)
+        inline const char *compile_arg_line(int argc, const char **argv)
         {
             size_t max    = 512;
             size_t length = 0;
@@ -79,17 +76,17 @@ namespace Utils
                     max += 128;
                 }
 
-                #ifdef _WIN32
-                    strcat_s(arg, max * sizeof(char), argv[i]);
-                #else
-                    strcat(arg, argv[i]);
-                #endif
+#ifdef _WIN32
+                strcat_s(arg, max * sizeof(char), argv[i]);
+#else
+                strcat(arg, argv[i]);
+#endif
                 length += argv_length;
             }
 
             return arg;
         }
-    }
-}
+    } // namespace ApplicationUtils
+} // namespace Utils
 
 #endif

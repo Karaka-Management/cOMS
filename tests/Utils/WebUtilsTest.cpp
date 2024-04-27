@@ -9,10 +9,10 @@
  */
 #include <stdio.h>
 
-#include "../../Utils/WebUtils.h"
 #include "../../Utils/TestUtils.h"
+#include "../../Utils/WebUtils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     printf("Utils:\n\n");
     printf("WebUtils:\n");

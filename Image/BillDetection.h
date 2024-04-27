@@ -10,8 +10,8 @@
 #ifndef IMAGE_BILL_DETECTION_H
 #define IMAGE_BILL_DETECTION_H
 
-#include <stdio.h>
 #include <opencv2/opencv.hpp>
+#include <stdio.h>
 #include <vector>
 
 namespace Image::BillDetection
@@ -33,12 +33,12 @@ namespace Image::BillDetection
         std::vector<cv::Vec4i> lines;
         lines.clear();
 
-        cv::HoughLinesP(edges, lines, 1, CV_PI/180, 25);
+        cv::HoughLinesP(edges, lines, 1, CV_PI / 180, 25);
 
         std::vector<cv::Vec4i>::iterator it = lines.begin();
-        for(; it != lines.end(); ++it) {
+        for (; it != lines.end(); ++it) {
             cv::Vec4i l = *it;
-            cv::line(edges, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255,0,0), 2, 8);
+            cv::line(edges, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255, 0, 0), 2, 8);
         }
 
         std::vector<std::vector<cv::Point>> contours;
@@ -60,8 +60,8 @@ namespace Image::BillDetection
         // Approximate polygon
         /* Question: we probably don't want a polygon all the time?! */
         // @todo bad implementation, focus on single square
-        std::vector<std::vector<cv::Point> > contoursDraw (contoursArea.size());
-        for (int i = 0; i < contoursArea.size(); ++i){
+        std::vector<std::vector<cv::Point>> contoursDraw(contoursArea.size());
+        for (int i = 0; i < contoursArea.size(); ++i) {
             cv::approxPolyDP(cv::Mat(contoursArea[i]), contoursDraw[i], 40, true);
         }
 
@@ -73,6 +73,6 @@ namespace Image::BillDetection
 
         return out;
     }
-}
+} // namespace Image::BillDetection
 
 #endif

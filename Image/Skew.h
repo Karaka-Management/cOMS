@@ -10,8 +10,8 @@
 #ifndef IMAGE_SKEW_H
 #define IMAGE_SKEW_H
 
-#include <stdio.h>
 #include <opencv2/opencv.hpp>
+#include <stdio.h>
 #include <vector>
 
 #include "../Utils/MathUtils.h"
@@ -42,7 +42,8 @@ namespace Image::Skew
         std::vector<float> angles;
         for (int i = 0; i < tmpAngles.size(); ++i) {
             if (imageOrientation > 0) {
-                if (oms_deg2rad(90 - maxDegree) < oms_abs(tmpAngles[i]) && oms_abs(tmpAngles[i]) < oms_deg2rad(90 + maxDegree)) {
+                if (oms_deg2rad(90 - maxDegree) < oms_abs(tmpAngles[i]) &&
+                    oms_abs(tmpAngles[i]) < oms_deg2rad(90 + maxDegree)) {
                     angles.push_back(tmpAngles[i]);
                 }
             } else {
@@ -85,6 +86,6 @@ namespace Image::Skew
 
         return out;
     }
-}
+} // namespace Image::Skew
 
 #endif

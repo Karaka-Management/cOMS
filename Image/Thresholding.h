@@ -10,11 +10,11 @@
 #ifndef IMAGE_THRESHOLDING_H
 #define IMAGE_THRESHOLDING_H
 
-#include <stdio.h>
 #include <opencv2/opencv.hpp>
+#include <stdio.h>
 
-#include "ImageUtils.h"
 #include "../Utils/MathUtils.h"
+#include "ImageUtils.h"
 
 namespace Image::Thresholding
 {
@@ -58,7 +58,7 @@ namespace Image::Thresholding
                 count = (x2 - x1) * (y2 - y1);
                 sum   = intImg[x2 * y2] - intImg[x2 * (y1 - 1)] - intImg[(x1 - 1) * y2] + intImg[(x1 - 1) * (y1 - 1)];
 
-                bgr = in.at<cv::Vec3b>(j, i);
+                bgr        = in.at<cv::Vec3b>(j, i);
                 brightness = Image::ImageUtils::lightnessFromRgb(bgr[2], bgr[1], bgr[0]);
 
                 color = brightness * count <= (sum * (100.0 - t) / 100.0) && brightness < 0.95 ? 0 : 255;
@@ -73,6 +73,6 @@ namespace Image::Thresholding
 
         return out;
     }
-}
+} // namespace Image::Thresholding
 
 #endif

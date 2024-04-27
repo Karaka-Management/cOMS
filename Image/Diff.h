@@ -10,8 +10,8 @@
 #ifndef IMAGE_DIFF_H
 #define IMAGE_DIFF_H
 
-#include <stdio.h>
 #include <opencv2/opencv.hpp>
+#include <stdio.h>
 
 #include "../Utils/MathUtils.h"
 
@@ -19,7 +19,7 @@ namespace Image
 {
     namespace ImageUtils
     {
-        cv::Mat find_diff (cv::Mat in1, cv::Mat in2)
+        cv::Mat find_diff(cv::Mat in1, cv::Mat in2)
         {
             cv::Mat diff;
             cv::absdiff(in1, in2, diff);
@@ -43,7 +43,7 @@ namespace Image
 
             return out;
         }
-    }
-}
+    } // namespace ImageUtils
+} // namespace Image
 
 #endif

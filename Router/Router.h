@@ -17,8 +17,8 @@
 #include <iostream>
 #include <regex>
 
-#include "../Stdlib/HashTable.h"
 #include "../Hash/MeowHash.h"
+#include "../Stdlib/HashTable.h"
 
 namespace Router
 {
@@ -36,14 +36,14 @@ namespace Router
         return router;
     }
 
-    void set(const Router *router, const char* route, void *endpoint)
+    void set(const Router *router, const char *route, void *endpoint)
     {
         Stdlib::HashTable::set_entry(router->routes, route, endpoint);
     }
 
     RouterFunc match_route(const Router *router, const char *uri)
     {
-        RouterFunc ptr = NULL;
+        RouterFunc ptr            = NULL;
         Stdlib::HashTable::it itr = Stdlib::HashTable::table_iterator(router->routes);
 
         std::regex regex;
@@ -66,6 +66,6 @@ namespace Router
         Stdlib::HashTable::free_table(router->routes);
         router->routes = NULL;
     }
-}
+} // namespace Router
 
 #endif

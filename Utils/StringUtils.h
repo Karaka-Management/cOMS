@@ -10,12 +10,12 @@
 #ifndef UTILS_STRING_UTILS_H
 #define UTILS_STRING_UTILS_H
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
 
-#include "MathUtils.h"
 #include "ArraySort.h"
+#include "MathUtils.h"
 
 namespace Utils::StringUtils
 {
@@ -62,8 +62,7 @@ namespace Utils::StringUtils
         return result;
     }
 
-    inline
-    bool is_number(const char *s)
+    inline bool is_number(const char *s)
     {
         while (*s != '\0') {
             if (!isdigit(*s)) {
@@ -76,8 +75,7 @@ namespace Utils::StringUtils
         return true;
     }
 
-    inline
-    size_t str_count(const char *str, const char *substr)
+    inline size_t str_count(const char *str, const char *substr)
     {
         size_t l1 = strlen(str);
         size_t l2 = strlen(substr);
@@ -94,13 +92,12 @@ namespace Utils::StringUtils
         return count;
     }
 
-    inline
-    char *strsep(const char **sp, const char *sep)
+    inline char *strsep(const char **sp, const char *sep)
     {
         char *p, *s;
 
         if (sp == NULL || *sp == NULL || **sp == '\0') {
-            return(NULL);
+            return (NULL);
         }
 
         s = (char *) *sp;
@@ -116,8 +113,7 @@ namespace Utils::StringUtils
     }
 
     // @todo Implement delim as const char* (also allow \0 length)
-    inline
-    int str_split(char **list, const char *str, const char delim)
+    inline int str_split(char **list, const char *str, const char delim)
     {
         size_t splits = str_count(str, (char *) &delim) + 1;
         list          = (char **) malloc(splits * sizeof(char *));
@@ -136,8 +132,7 @@ namespace Utils::StringUtils
     }
 
     // @todo Implement delim as const char* (also allow \0 length)
-    inline
-    char* str_combine(const char **str, size_t size, const char delim)
+    inline char *str_combine(const char **str, size_t size, const char delim)
     {
         if (size < 1) {
             return NULL;
@@ -199,8 +194,8 @@ namespace Utils::StringUtils
         for (i = 1; i <= fromSize; ++i) {
             for (j = 1; j <= toSize; ++j) {
                 dm[i * fromSize + j] = strcmp(from[i - 1], to[j - 1]) == 0
-                    ? dm[(i - 1) * fromSize + (j - 1)] + 1
-                    : oms_max(dm[(i - 1) * fromSize + j], dm[i * fromSize + (j - 1)]);
+                                           ? dm[(i - 1) * fromSize + (j - 1)] + 1
+                                           : oms_max(dm[(i - 1) * fromSize + j], dm[i * fromSize + (j - 1)]);
             }
         }
 
@@ -218,11 +213,11 @@ namespace Utils::StringUtils
                     continue;
                 }
 
-                #ifdef _WIN32
-                    strcpy_s(diffValues[diffIndex], (strlen(to[j - 1]) + 1) * sizeof(char), to[j - 1]);
-                #else
-                    strcpy(diffValues[diffIndex], to[j - 1]);
-                #endif
+#ifdef _WIN32
+                strcpy_s(diffValues[diffIndex], (strlen(to[j - 1]) + 1) * sizeof(char), to[j - 1]);
+#else
+                strcpy(diffValues[diffIndex], to[j - 1]);
+#endif
 
                 diffMasks[diffIndex] = 1;
 
@@ -240,11 +235,11 @@ namespace Utils::StringUtils
                     continue;
                 }
 
-                #ifdef _WIN32
-                    strcpy_s(diffValues[diffIndex], (strlen(from[i - 1]) + 1) * sizeof(char), from[i - 1]);
-                #else
-                    strcpy(diffValues[diffIndex], from[i - 1]);
-                #endif
+#ifdef _WIN32
+                strcpy_s(diffValues[diffIndex], (strlen(from[i - 1]) + 1) * sizeof(char), from[i - 1]);
+#else
+                strcpy(diffValues[diffIndex], from[i - 1]);
+#endif
 
                 diffMasks[diffIndex] = -1;
 
@@ -261,11 +256,11 @@ namespace Utils::StringUtils
                 continue;
             }
 
-            #ifdef _WIN32
-                strcpy_s(diffValues[diffIndex], (strlen(from[i - 1]) + 1) * sizeof(char), from[i - 1]);
-            #else
-                strcpy(diffValues[diffIndex], from[i - 1]);
-            #endif
+#ifdef _WIN32
+            strcpy_s(diffValues[diffIndex], (strlen(from[i - 1]) + 1) * sizeof(char), from[i - 1]);
+#else
+            strcpy(diffValues[diffIndex], from[i - 1]);
+#endif
 
             /* Handled with calloc
             diffMasks[diffIndex] = 0;
@@ -303,7 +298,8 @@ namespace Utils::StringUtils
         return text_diff{diffValues, diffMasks, diffIndex};
     }
 
-    char *strtok(char *str, const char *delim, char **saveptr) {
+    char *strtok(char *str, const char *delim, char **saveptr)
+    {
         if (str == NULL) {
             str = *saveptr;
         }
@@ -313,17 +309,17 @@ namespace Utils::StringUtils
         }
 
         char *token_start = str;
-        char *token_end = strpbrk(token_start, delim);
+        char *token_end   = strpbrk(token_start, delim);
 
         if (token_end == NULL) {
             *saveptr = NULL;
         } else {
             *token_end = '\0';
-            *saveptr = token_end + 1;
+            *saveptr   = token_end + 1;
         }
 
         return token_start;
     }
-}
+} // namespace Utils::StringUtils
 
 #endif

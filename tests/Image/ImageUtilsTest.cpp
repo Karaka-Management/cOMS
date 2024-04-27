@@ -9,10 +9,10 @@
  */
 #include <stdio.h>
 
-#include "../../Utils/TestUtils.h"
 #include "../../Image/ImageUtils.h"
+#include "../../Utils/TestUtils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     printf("ImageUtils:\n\n");
 
