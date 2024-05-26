@@ -50,7 +50,7 @@ int test_operator_plus()
 {
     printf("\noperator+:\n");
     printf("[4]: ");
-    if (!Stdlib::SIMD::is_avx_supported()) {
+    if (!Stdlib::SIMD::is_sse_supported()) {
         printf("[\033[33mNot supported\033[0m]");
 
         return 0;
@@ -69,6 +69,7 @@ int test_operator_plus()
     expected_array_4[1]                      = 2.0f;
     expected_array_4[2]                      = 4.0f;
     expected_array_4[3]                      = 6.0f;
+
     Stdlib::SIMD::f32_4_simd expected_simd_4 = Stdlib::SIMD::load_f32_4_simd(expected_array_4);
 
     Stdlib::SIMD::f32_4_simd a_simd_4 = Stdlib::SIMD::load_f32_4_simd(a_array_4);
@@ -117,6 +118,7 @@ int test_operator_plus()
     expected_array_8[5]                      = 2.0f;
     expected_array_8[6]                      = 4.0f;
     expected_array_8[7]                      = 6.0f;
+
     Stdlib::SIMD::f32_8_simd expected_simd_8 = Stdlib::SIMD::load_f32_8_simd(expected_array_8);
 
     Stdlib::SIMD::f32_8_simd a_simd_8 = Stdlib::SIMD::load_f32_8_simd(a_array_8);
@@ -193,6 +195,7 @@ int test_operator_plus()
     expected_array_16[13]                      = 2.0f;
     expected_array_16[14]                      = 4.0f;
     expected_array_16[15]                      = 6.0f;
+
     Stdlib::SIMD::f32_16_simd expected_simd_16 = Stdlib::SIMD::load_f32_16_simd(expected_array_16);
 
     Stdlib::SIMD::f32_16_simd a_simd_16 = Stdlib::SIMD::load_f32_16_simd(a_array_16);
@@ -226,7 +229,7 @@ int test_operator_minus()
 {
     printf("\noperator-:\n");
     printf("[4]: ");
-    if (!Stdlib::SIMD::is_avx_supported()) {
+    if (!Stdlib::SIMD::is_sse_supported()) {
         printf("[\033[33mNot supported\033[0m]");
 
         return 0;
@@ -245,6 +248,7 @@ int test_operator_minus()
     expected_array_4[1]                      = 0.0f;
     expected_array_4[2]                      = 1.0f;
     expected_array_4[3]                      = 2.0f;
+
     Stdlib::SIMD::f32_4_simd expected_simd_4 = Stdlib::SIMD::load_f32_4_simd(expected_array_4);
 
     Stdlib::SIMD::f32_4_simd a_simd_4 = Stdlib::SIMD::load_f32_4_simd(a_array_4);
@@ -293,6 +297,7 @@ int test_operator_minus()
     expected_array_8[5]                      = 0.0f;
     expected_array_8[6]                      = 1.0f;
     expected_array_8[7]                      = 2.0f;
+
     Stdlib::SIMD::f32_8_simd expected_simd_8 = Stdlib::SIMD::load_f32_8_simd(expected_array_8);
 
     Stdlib::SIMD::f32_8_simd a_simd_8 = Stdlib::SIMD::load_f32_8_simd(a_array_8);
@@ -369,6 +374,7 @@ int test_operator_minus()
     expected_array_16[13]                      = 0.0f;
     expected_array_16[14]                      = 1.0f;
     expected_array_16[15]                      = 2.0f;
+
     Stdlib::SIMD::f32_16_simd expected_simd_16 = Stdlib::SIMD::load_f32_16_simd(expected_array_16);
 
     Stdlib::SIMD::f32_16_simd a_simd_16 = Stdlib::SIMD::load_f32_16_simd(a_array_16);
@@ -402,7 +408,7 @@ int test_operator_mul()
 {
     printf("\noperator*:\n");
     printf("[4]: ");
-    if (!Stdlib::SIMD::is_avx_supported()) {
+    if (!Stdlib::SIMD::is_sse_supported()) {
         printf("[\033[33mNot supported\033[0m]");
 
         return 0;
@@ -421,6 +427,7 @@ int test_operator_mul()
     expected_array_4[1]                      = 1.0f;
     expected_array_4[2]                      = 4.0f;
     expected_array_4[3]                      = 9.0f;
+
     Stdlib::SIMD::f32_4_simd expected_simd_4 = Stdlib::SIMD::load_f32_4_simd(expected_array_4);
 
     Stdlib::SIMD::f32_4_simd a_simd_4 = Stdlib::SIMD::load_f32_4_simd(a_array_4);
@@ -469,6 +476,7 @@ int test_operator_mul()
     expected_array_8[5]                      = 1.0f;
     expected_array_8[6]                      = 4.0f;
     expected_array_8[7]                      = 9.0f;
+
     Stdlib::SIMD::f32_8_simd expected_simd_8 = Stdlib::SIMD::load_f32_8_simd(expected_array_8);
 
     Stdlib::SIMD::f32_8_simd a_simd_8 = Stdlib::SIMD::load_f32_8_simd(a_array_8);
@@ -545,6 +553,7 @@ int test_operator_mul()
     expected_array_16[13]                      = 1.0f;
     expected_array_16[14]                      = 4.0f;
     expected_array_16[15]                      = 9.0f;
+
     Stdlib::SIMD::f32_16_simd expected_simd_16 = Stdlib::SIMD::load_f32_16_simd(expected_array_16);
 
     Stdlib::SIMD::f32_16_simd a_simd_16 = Stdlib::SIMD::load_f32_16_simd(a_array_16);

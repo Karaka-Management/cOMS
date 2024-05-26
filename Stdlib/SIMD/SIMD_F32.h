@@ -890,35 +890,35 @@ namespace Stdlib::SIMD
 
     inline bool all_true(f32_4_simd a)
     {
-        bool is_true = (_mm_movemask_ps(a.s) == 15);
+        bool is_true = _mm_movemask_ps(a.s) == 15;
 
         return is_true;
     }
 
     inline bool all_true(f32_8_simd a)
     {
-        bool is_true = (_mm256_movemask_ps(a.s) == 255);
+        bool is_true = _mm256_movemask_ps(a.s) == 255;
 
         return is_true;
     }
 
     inline bool all_true(f32_16_simd a)
     {
-        bool is_true = (_mm512_movepi32_mask(_mm512_castps_si512(a.s)) == 65535);
+        bool is_true = _mm512_movepi32_mask(_mm512_castps_si512(a.s)) == 65535;
 
         return is_true;
     }
 
     inline bool all_false(f32_4_simd a)
     {
-        bool is_false = (_mm_movemask_ps(a.s) == 0);
+        bool is_false = _mm_movemask_ps(a.s) == 0;
 
         return is_false;
     }
 
     inline bool all_false(f32_8_simd a)
     {
-        bool is_false = (_mm256_movemask_ps(a.s) == 0);
+        bool is_false = _mm256_movemask_ps(a.s) == 0;
 
         return is_false;
     }
@@ -926,7 +926,7 @@ namespace Stdlib::SIMD
     inline bool all_false(f32_16_simd a)
     {
         // @todo This can be optimized (requires also changes in the comparison functions return)
-        bool is_false = (_mm512_movepi32_mask(_mm512_castps_si512(a.s)) == 0);
+        bool is_false = _mm512_movepi32_mask(_mm512_castps_si512(a.s)) == 0;
 
         return is_false;
     }

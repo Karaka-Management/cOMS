@@ -16,7 +16,7 @@
 
 namespace Stdlib::SIMD
 {
-    bool is_avx_supported()
+    bool is_sse_supported()
     {
         uint32_t eax, ebx, ecx, edx;
 

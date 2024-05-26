@@ -10,6 +10,8 @@
 #ifndef MATH_MATRIX_VECTORFLOAT32_H
 #define MATH_MATRIX_VECTORFLOAT32_H
 
+#include "../Stdlib/SIMD/SIMD_F32.h"
+
 namespace Math::Matrix::VectorFloat32
 {
     struct v3_f32_4_simd {

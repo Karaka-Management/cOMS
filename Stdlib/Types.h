@@ -26,4 +26,6 @@ typedef uint64_t uint64;
 typedef float f32;
 typedef double f64;
 
+typedef unsigned char byte;
+
 #endif

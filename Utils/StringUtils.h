@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../Stdlib/Types.h"
 #include "ArraySort.h"
 #include "MathUtils.h"
 
@@ -21,8 +22,6 @@ namespace Utils::StringUtils
 {
     char *search_replace(const char *haystack, const char *needle, const char *replace)
     {
-        const char *haystackT = haystack;
-
         size_t i;
         size_t match     = 0;
         size_t oldLength = strlen(needle);
@@ -178,8 +177,8 @@ namespace Utils::StringUtils
             fprintf(stderr, "CRITICAL: malloc failed");
         }
 
-        int i = 0;
-        int j = 0;
+        size_t i = 0;
+        size_t j = 0;
 
         /* Handled with calloc
         for (j = 0; j <= toSize; ++j) {
@@ -319,6 +318,57 @@ namespace Utils::StringUtils
         }
 
         return token_start;
+    }
+
+    inline
+    void format_number_render(int length, char* buffer, const char thousands = ',')
+    {
+        int count = (int) (length / 3) - (length % 3 == 0 ? 1 : 0);
+
+        int j = -1;
+        for (int i = length; i > 0; --i) {
+            ++j;
+
+            if (j % 3 == 0 && j != 0) {
+                buffer[i + count] = buffer[i];
+                --count;
+                buffer[i + count] = thousands;
+            } else {
+                buffer[i + count] = buffer[i];
+            }
+        }
+    }
+
+    char* format_number(size_t number, char* buffer, const char thousands = ',')
+    {
+        int length = snprintf(buffer, 32, "%zu", number);
+        format_number_render(length, buffer, thousands);
+
+        return buffer;
+    }
+
+    char * format_number(int number, char* buffer, const char thousands = ',')
+    {
+        int length = snprintf(buffer, 32, "%i", number);
+        format_number_render(length, buffer, thousands);
+
+        return buffer;
+    }
+
+    void create_const_name(const unsigned char *name, unsigned char* modified_name)
+    {
+        // Print block
+        if (name == NULL) {
+            modified_name = NULL;
+        } else {
+            size_t i;
+            const size_t length = strlen((const char *) name);
+            for (i = 0; i < length; ++i) {
+                modified_name[i] = name[i] == ' ' ? '_' : (unsigned char) toupper(name[i]);
+            }
+
+            modified_name[i] = '\0';
+        }
     }
 } // namespace Utils::StringUtils
 

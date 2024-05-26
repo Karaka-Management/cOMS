@@ -17,8 +17,8 @@ int main(int argc, char **argv)
 {
     printf("SIMD_Helper:\n");
 
-    if (Stdlib::SIMD::is_avx_supported()) {
-        printf("\nAVX is supported");
+    if (Stdlib::SIMD::is_sse_supported()) {
+        printf("\nSSE is supported");
     } else {
         printf("\033[33m\nAVX is NOT supported\033[0m");
     }

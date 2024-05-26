@@ -6,6 +6,10 @@
  * @license   OMS License 1.0
  * @version   1.0.0
  * @link      https://jingga.app
+ *
+ * DEPENDENCIES:
+ *      1. curl
+ *      2. libxml
  */
 #ifndef UTILS_WEB_UTILS_H
 #define UTILS_WEB_UTILS_H
