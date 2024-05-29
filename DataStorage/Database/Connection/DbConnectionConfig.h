@@ -17,7 +17,7 @@
 
 namespace DataStorage::Database
 {
-    typedef struct {
+    struct DbConnectionConfig {
         DatabaseType db = DatabaseType::UNDEFINED;
 
         const char *database = NULL;
@@ -29,7 +29,7 @@ namespace DataStorage::Database
         const char *login = NULL;
 
         const char *password = NULL;
-    } DbConnectionConfig;
+    };
 
     void free_DbConnectionConfig(DbConnectionConfig *dbdata)
     {

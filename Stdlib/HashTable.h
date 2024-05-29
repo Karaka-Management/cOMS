@@ -18,10 +18,10 @@
 
 namespace Stdlib::HashTable
 {
-    typedef struct {
+    struct entry {
         const char *key;
         void *value;
-    } entry;
+    };
 
     struct ht {
         bool is_fixed = false;
@@ -30,13 +30,13 @@ namespace Stdlib::HashTable
         size_t size;
     };
 
-    typedef struct {
+    struct it {
         const char *key;
         void *value;
 
         ht *table;
         size_t index;
-    } it;
+    };
 
     inline unsigned long long hash_key(const char *key)
     {

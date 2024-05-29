@@ -24,9 +24,9 @@ namespace Router
 {
     typedef void (*RouterFunc)(int, const char **);
 
-    typedef struct {
+    struct Router {
         Stdlib::HashTable::ht *routes;
-    } Router;
+    };
 
     Router create_router(int size)
     {

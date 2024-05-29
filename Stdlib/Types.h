@@ -28,4 +28,8 @@ typedef double f64;
 
 typedef unsigned char byte;
 
+#define internal static // only allows local "file" access
+#define local_persist static
+#define global_persist static
+
 #endif

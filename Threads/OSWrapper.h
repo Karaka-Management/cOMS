@@ -17,10 +17,10 @@
     typedef HANDLE pthread_t;
     typedef CONDITION_VARIABLE pthread_cond_t;
 
-    typedef struct {
+    struct pthread_rwlock_t {
         SRWLock lock;
         bool    exclusive;
-    } pthread_rwlock_t;
+    };
 
     struct timespec {
         long tv_sec;
@@ -39,10 +39,10 @@ void ms_to_timespec(struct timespec *ts, unsigned int ms)
 }
 
 #ifdef _WIN32
-    typedef struct {
+    struct win_thread_start_t {
         void *(*start_routine)(void *);
         void *start_arg;
-    } win_thread_start_t;
+    };
 
     static DWORD WINAPI win_thread_start(void *arg)
     {

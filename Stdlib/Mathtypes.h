@@ -90,19 +90,19 @@ typedef union {
     float e[4];
 } f4;
 
-typedef struct {
+struct mi32 {
     int32_t *e;
     size_t m, n;
-} mi32;
+};
 
-typedef struct {
+struct mi64 {
     int64_t *e;
     size_t m, n;
-} mi64;
+};
 
-typedef struct {
+struct mf {
     float *e;
     size_t m, n;
-} mf;
+};
 
 #endif

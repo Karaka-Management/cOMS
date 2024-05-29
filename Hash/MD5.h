@@ -23,12 +23,12 @@
 
 namespace Hash
 {
-    typedef struct {
+    struct md5_context {
         uint32_t lo, hi;
         uint32_t a, b, c, d;
         unsigned char buffer[64];
         uint32_t block[16];
-    } md5_context;
+    };
 
     static const void *body(md5_context *ctx, const void *data, size_t size)
     {

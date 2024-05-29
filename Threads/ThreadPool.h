@@ -16,7 +16,7 @@
 
 namespace Threads
 {
-    typedef struct {
+    struct ThreadPool {
         Job *work_first;
         Job *work_last;
         pthread_mutex_t work_mutex;
@@ -25,7 +25,7 @@ namespace Threads
         size_t working_cnt;
         size_t thread_cnt;
         bool stop;
-    } ThreadPool;
+    };
 }
 
 #endif

@@ -160,11 +160,11 @@ namespace Utils::StringUtils
         return result;
     }
 
-    typedef struct {
+    struct text_diff {
         char **values;
         int64_t *masks;
         size_t size;
-    } text_diff;
+    };
 
     text_diff computeLCSDiff(const char **from, size_t fromSize, const char **to, size_t toSize)
     {

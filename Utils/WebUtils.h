@@ -82,15 +82,15 @@ namespace Utils::WebUtils
         return out->size;
     }
 
-    typedef struct {
+    struct ResourceTypes {
         size_t size = 0;
         const char **resources = NULL;
-    } ResourceTypes;
+    };
 
-    typedef struct {
+    struct Urls {
         size_t size = 0;
         const char **urls = NULL;
-    } Urls;
+    };
 
     Utils::FileUtils::file_body download (char *url)
     {

@@ -611,7 +611,7 @@ namespace Stdlib::SIMD
         return simd;
     }
 
-    inline int32_4_simd min(int32_4_simd a, int32_4_simd b)
+    inline int32_4_simd simd_min(int32_4_simd a, int32_4_simd b)
     {
         int32_4_simd simd;
         simd.s = _mm_min_epi32(a.s, b.s);
@@ -619,7 +619,7 @@ namespace Stdlib::SIMD
         return simd;
     }
 
-    inline int32_8_simd min(int32_8_simd a, int32_8_simd b)
+    inline int32_8_simd simd_min(int32_8_simd a, int32_8_simd b)
     {
         int32_8_simd simd;
         simd.s = _mm256_min_epi32(a.s, b.s);
@@ -627,7 +627,7 @@ namespace Stdlib::SIMD
         return simd;
     }
 
-    inline int32_16_simd min(int32_16_simd a, int32_16_simd b)
+    inline int32_16_simd simd_min(int32_16_simd a, int32_16_simd b)
     {
         int32_16_simd simd;
         simd.s = _mm512_min_epi32(a.s, b.s);
@@ -635,7 +635,7 @@ namespace Stdlib::SIMD
         return simd;
     }
 
-    inline int32_4_simd max(int32_4_simd a, int32_4_simd b)
+    inline int32_4_simd simd_max(int32_4_simd a, int32_4_simd b)
     {
         int32_4_simd simd;
         simd.s = _mm_max_epi32(a.s, b.s);
@@ -643,7 +643,7 @@ namespace Stdlib::SIMD
         return simd;
     }
 
-    inline int32_8_simd max(int32_8_simd a, int32_8_simd b)
+    inline int32_8_simd simd_max(int32_8_simd a, int32_8_simd b)
     {
         int32_8_simd simd;
         simd.s = _mm256_max_epi32(a.s, b.s);
@@ -651,7 +651,7 @@ namespace Stdlib::SIMD
         return simd;
     }
 
-    inline int32_16_simd max(int32_16_simd a, int32_16_simd b)
+    inline int32_16_simd simd_max(int32_16_simd a, int32_16_simd b)
     {
         int32_16_simd simd;
         simd.s = _mm512_max_epi32(a.s, b.s);
@@ -769,17 +769,17 @@ namespace Stdlib::SIMD
 
     inline int32_4_simd clamp(int32_4_simd min_value, int32_4_simd a, int32_4_simd max_value)
     {
-        return min(max(a, min_value), max_value);
+        return simd_min(simd_max(a, min_value), max_value);
     }
 
     inline int32_8_simd clamp(int32_8_simd min_value, int32_8_simd a, int32_8_simd max_value)
     {
-        return min(max(a, min_value), max_value);
+        return simd_min(simd_max(a, min_value), max_value);
     }
 
     inline int32_16_simd clamp(int32_16_simd min_value, int32_16_simd a, int32_16_simd max_value)
     {
-        return min(max(a, min_value), max_value);
+        return simd_min(simd_max(a, min_value), max_value);
     }
 
     inline int32 which_true(int32_4_simd a)

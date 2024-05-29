@@ -17,11 +17,11 @@
 
 namespace DataStorage::Database
 {
-    typedef struct {
+    struct DbSchema {
         char *name;
         DbField *fields;
         size_t field_size = 0;
-    } DbSchema;
+    };
 
     void free_DbSchema(DbSchema *schema)
     {

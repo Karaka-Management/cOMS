@@ -35,10 +35,10 @@ namespace DataStorage::Database
         FIELD_TYPE_BOOL = 4
     } FieldType;
 
-    typedef struct {
+    struct ModelStructure {
         const char *name = NULL;
         size_t size = 0;
-    } ModelStructure;
+    };
 
     void free_ModelStructure(ModelStructure *data)
     {
@@ -49,13 +49,13 @@ namespace DataStorage::Database
         */
     }
 
-    typedef struct {
+    struct DataMapperColumn {
         const char *name = NULL;
         int type = FieldType::FIELD_TYPE_INT;
         const char *internal = NULL;
         bool readonly = false;
         bool autocomplete = false;
-    } DataMapperColumn;
+    };
 
     void free_DataMapperColumn(DataMapperColumn *data)
     {
@@ -68,7 +68,7 @@ namespace DataStorage::Database
         }
     }
 
-    typedef struct {
+    struct TableRelation {
         const char *member = NULL;
         const char *mapper = NULL;
         const char *external = NULL;
@@ -77,7 +77,7 @@ namespace DataStorage::Database
         const char *column = NULL;
         bool conditional = false;
         const char *by = NULL;
-    } TableRelation;
+    };
 
     void free_TableRelation(TableRelation *data)
     {
@@ -116,7 +116,7 @@ namespace DataStorage::Database
         */
     }
 
-    typedef struct {
+    struct MapperData {
         const char *TABLE = NULL;
         const char *PRIMARYFIELD = NULL;
         const char *CREATED_AT = NULL;
@@ -137,7 +137,7 @@ namespace DataStorage::Database
 
         int BELONGS_TO_COUNT = 0;
         DataStorage::Database::TableRelation *BELONGS_TO = NULL;
-    } MapperData;
+    };
 
     void free_MapperData(DataStorage::Database::MapperData *data)
     {

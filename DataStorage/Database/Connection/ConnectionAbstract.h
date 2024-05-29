@@ -19,11 +19,11 @@
 
 namespace DataStorage::Database
 {
-    typedef struct {
+    struct QueryResult {
         size_t rows = 0;
         size_t columns = 0;
         char **results = NULL;
-    } QueryResult;
+    };
 
     struct ConnectionAbstract {
         void *con = NULL;

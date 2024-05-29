@@ -10,8 +10,41 @@
 #ifndef UTILS_TEST_UTILS_H
 #define UTILS_TEST_UTILS_H
 
-#include "MathUtils.h"
 #include <stdio.h>
+
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <time.h>
+#endif
+
+namespace Test {
+    global_persist uint64 performance_count_frequency;
+    struct TimingStat {
+        uint64 oldFrame = 0;
+        uint64 newFrame = 0;
+        uint64 dc = 0;
+        double dt = 0.0;
+    };
+
+    void update_timing_stat(TimingStat *stat)
+    {
+        #ifdef _WIN32
+            LARGE_INTEGER counter;
+            QueryPerformanceCounter(&counter);
+
+            stat->newFrame = counter.QuadPart;
+        #else
+            struct timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            stat->newFrame = now.tv_sec + now.tv_nsec;
+        #endif
+
+        stat->dc = stat->newFrame - stat->oldFrame;
+        stat->dt = (double) stat->dc / (double) performance_count_frequency;
+        stat->oldFrame = stat->newFrame;
+    }
+}
 
 #define ASSERT_EQUALS(a, b, t1, t2)                      \
     ({                                                   \
@@ -72,6 +105,11 @@
             return 0;                                    \
         }                                                \
     })
+
+#define ASSERT_SIMPLE(a)                                 \
+    if ((a) == false) {                                  \
+        *(volatile int *)0 = 0;                          \
+    }
 
 #define ASSERT_TRUE(a)                                   \
     ({                                                   \

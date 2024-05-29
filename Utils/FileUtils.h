@@ -91,10 +91,10 @@ namespace Utils::FileUtils
         return dot + 1;
     }
 
-    typedef struct {
+    struct file_body {
         char *content;
         int size = 0; // doesn't include null termination (same as strlen)
-    } file_body;
+    };
 
     file_body read_file(const char *filename)
     {

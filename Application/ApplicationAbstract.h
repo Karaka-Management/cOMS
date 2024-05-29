@@ -19,11 +19,11 @@
 
 namespace Application
 {
-    typedef struct {
+    struct ApplicationAbstract {
         DataStorage::Database::ConnectionAbstract *db;
         nlohmann::json config;
         Threads::ThreadPool *pool;
-    } ApplicationAbstract;
+    };
 } // namespace Application
 
 #endif

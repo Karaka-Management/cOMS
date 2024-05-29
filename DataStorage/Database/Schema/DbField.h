@@ -15,7 +15,7 @@
 
 namespace DataStorage::Database
 {
-    typedef struct {
+    struct DbField {
         char *name;
         char *type;
         void *def;
@@ -25,7 +25,7 @@ namespace DataStorage::Database
         bool autoincrement = false;
         char *foreignTable;
         char *foreignKey;
-    } DbField;
+    };
 
     void free_DbField(DbField *field)
     {

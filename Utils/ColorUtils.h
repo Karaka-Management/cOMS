@@ -15,11 +15,11 @@
 
 namespace Utils::ColorUtils
 {
-    typedef struct {
+    struct RGB {
         unsigned char r = 0;
         unsigned char g = 0;
         unsigned char b = 0;
-    } RGB;
+    };
 
     inline RGB *int_to_rgb(int rgb)
     {

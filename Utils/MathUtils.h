@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 
-#define OMS_PI 3.14159265358979323846
+#define OMS_PI 3.14159265358979323846f
 
 #define oms_max(a, b) ((a) > (b) ? (a) : (b))
 #define oms_min(a, b) ((a) > (b) ? (b) : (a))
