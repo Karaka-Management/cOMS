@@ -27,6 +27,10 @@ namespace Test {
         double dt = 0.0;
     };
 
+    struct LogMessages {
+        char *messages;
+    };
+
     void update_timing_stat(TimingStat *stat)
     {
         #ifdef _WIN32
@@ -45,6 +49,12 @@ namespace Test {
         stat->oldFrame = stat->newFrame;
     }
 }
+
+#if DEBUG
+    #define UPDATE_TIMING_STAT(stat) Test::update_timing_stat(stat);
+#else
+    #define UPDATE_TIMING_STAT(stat)
+#endif
 
 #define ASSERT_EQUALS(a, b, t1, t2)                      \
     ({                                                   \

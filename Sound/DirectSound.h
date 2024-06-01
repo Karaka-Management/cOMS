@@ -25,8 +25,14 @@ namespace Sound {
         uint32 sample_rate;
         uint32 sample_size;
         uint32 sample_index;
+
         int16 volume;
+
         uint32 buffer_size;
+
+        // Actual samples inside the buffer
+        // The buffer could be larger than the data to output
+        uint32 sample_buffer_size;
         int16* buffer;
 
         bool playing = false;
@@ -61,6 +67,8 @@ namespace Sound {
 
         if(!SUCCEEDED(setting->direct_sound->SetCooperativeLevel(w->hwnd, DSSCL_PRIORITY))) {
             // @todo Log
+
+            return;
         }
 
         WAVEFORMATEX wf = {};
@@ -81,13 +89,18 @@ namespace Sound {
 
         if(!SUCCEEDED(setting->direct_sound->CreateSoundBuffer(&bufferDesc, &setting->primary_buffer, 0))) {
             // @todo Log
+
+            return;
         }
 
         if (!SUCCEEDED(setting->primary_buffer->SetFormat(&wf))) {
             // @todo Log
+
+            return;
         }
 
         setting->buffer_size = setting->sample_rate * setting->sample_size;
+        setting->buffer = (int16 *) calloc(setting->sample_rate, setting->sample_size);
 
         // Create secondary buffer
         DSBUFFERDESC bufferDesc2;
@@ -100,15 +113,19 @@ namespace Sound {
 
         if(!SUCCEEDED(setting->direct_sound->CreateSoundBuffer(&bufferDesc2, &setting->secondary_buffer, 0))) {
             // @todo Log
+
+            return;
         }
     }
 
+    inline
     void direct_sound_play(DirectSoundSetting* setting)
     {
         setting->secondary_buffer->Play(0, 0, DSBPLAY_LOOPING);
         setting->playing = true;
     }
 
+    inline
     void direct_sound_free(DirectSoundSetting* setting)
     {
         if (setting->direct_sound) {
@@ -124,30 +141,18 @@ namespace Sound {
         }
     }
 
-    bool direct_sound_should_update(DirectSoundSetting* setting)
-    {
-        return true;
-    }
-
-    int16 *direct_sound_return_buffer(DirectSoundSetting* setting)
-    {
-
-    }
-
-    void direct_sound_play_buffer(DirectSoundSetting* setting)
+    /**
+     * Calculates the samples in bytes to generate for the buffer
+     */
+    inline
+    uint32 direct_sound_sample_buffer_size(const DirectSoundSetting* setting)
     {
         DWORD player_cursor;
         DWORD write_cursor;
         if (!SUCCEEDED(setting->secondary_buffer->GetCurrentPosition(&player_cursor, &write_cursor))) {
             // @todo Log
-            return;
+            return 0;
         }
-
-        void *region1;
-        DWORD region1_size;
-
-        void *region2;
-        DWORD region2_size;
 
         DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
         DWORD bytes_to_write = 0;
@@ -161,6 +166,24 @@ namespace Sound {
             bytes_to_write = player_cursor - bytes_to_lock;
         }
 
+        return bytes_to_write;
+    }
+
+    inline
+    void direct_sound_play_buffer(DirectSoundSetting* setting, uint32 bytes_to_write)
+    {
+        if (bytes_to_write == 0) {
+            return;
+        }
+
+        void *region1;
+        DWORD region1_size;
+
+        void *region2;
+        DWORD region2_size;
+
+        DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
+
         setting->secondary_buffer->Lock(
             bytes_to_lock, bytes_to_write,
             &region1, &region1_size,
@@ -168,31 +191,28 @@ namespace Sound {
             0
         );
 
-        int16* sample_out = (int16 *) region1;
-        DWORD region1_sample_count = region1_size / setting->sample_size;
+        // @question Do we even need to use memcpy? Can't we use the buffer directly?
+        //      Probably depends on what lock actually does to region1/region2
+        //      Of course we would than need some mechanism to check when we can write into the buffer
+        //      See XAudio2 for this, we would probably need a second buffer as well
+        memcpy(
+            (void *) region1,
+            (void *) setting->buffer,
+            region1_size
+        );
 
-        for (DWORD idx = 0; idx < region1_sample_count; ++idx) {
-            f32 t = ((f32) 1.0f / (f32) (48000 / 256)) * 2.0f * OMS_PI;
-            f32 sine_value = sinf(t);
-            int16 sample_value = (int16) (sine_value * setting->volume);
-
-            *sample_out++ = sample_value;
-            *sample_out++ = sample_value;
-        }
-
-        sample_out = (int16 *) region2;
-        DWORD region2_sample_count = region2_size / setting->sample_size;
-
-        for (DWORD idx = 0; idx < region2_sample_count; ++idx) {
-            f32 t = ((f32) 1.0f / (f32) (48000 / 256)) * 2.0f * OMS_PI;
-            f32 sine_value = sinf(t);
-            int16 sample_value = (int16) (sine_value * setting->volume);
-
-            *sample_out++ = sample_value;
-            *sample_out++ = sample_value;
+        if (region2_size > 0) {
+            memcpy(
+                (void *) region2,
+                (void *) (setting->buffer + region1_size),
+                region2_size
+            );
         }
 
         setting->secondary_buffer->Unlock(region1, region1_size, region2, region2_size);
+
+        setting->sample_index += bytes_to_write / setting->sample_size;
+        setting->sample_buffer_size = 0;
     }
 }
 

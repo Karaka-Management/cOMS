@@ -25,8 +25,15 @@ namespace Sound {
         uint32 sample_rate;
         uint32 sample_size;
         uint32 sample_index;
+
         int16 volume;
+
         uint32 buffer_size;
+
+        // Actual samples inside the buffer
+        // The buffer could be larger than the data to output
+        uint32 sample_buffer_size;
+        int16* buffer;
 
         bool playing = false;
         byte type = SOUND_API_XAUDIO2;
@@ -36,7 +43,7 @@ namespace Sound {
         IXAudio2SourceVoice* source_voice;
         IXAudio2MasteringVoice* mastering_voice;
 
-        XAUDIO2_BUFFER buffer[2];
+        XAUDIO2_BUFFER internal_buffer[2];
     };
 
     // BEGIN: Dynamically load XAudio2
@@ -64,7 +71,13 @@ namespace Sound {
             return;
         }
 
-        if (!SUCCEEDED(setting->xaudio2->CreateMasteringVoice(&setting->mastering_voice))) {
+        if (!SUCCEEDED(setting->xaudio2->CreateMasteringVoice(
+            &setting->mastering_voice,
+            XAUDIO2_DEFAULT_CHANNELS,
+            setting->sample_rate,
+            0,
+            NULL
+        ))) {
             // @todo Log
             return;
         }
@@ -72,10 +85,10 @@ namespace Sound {
         WAVEFORMATEX wf = {};
         wf.wFormatTag = WAVE_FORMAT_PCM;
         wf.nChannels = 2;
-        wf.wBitsPerSample = 16;
-        wf.nBlockAlign = (wf.nChannels * wf.wBitsPerSample) / 8;
+        wf.wBitsPerSample = (uint16) ((setting->sample_size * 8) / wf.nChannels); // = sample_size per channel
+        wf.nBlockAlign = (wf.nChannels * wf.wBitsPerSample) / 8; // = sample_szie
         wf.nSamplesPerSec = setting->sample_rate;
-        wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
+        wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign; // = buffer_size
         wf.cbSize = 0;
 
         if (!SUCCEEDED(setting->xaudio2->CreateSourceVoice(&setting->source_voice, &wf))) {
@@ -83,32 +96,34 @@ namespace Sound {
             return;
         }
 
-        setting->buffer_size = setting->sample_rate * wf.nBlockAlign;
+        setting->buffer_size = setting->sample_rate * setting->sample_size;
+        setting->buffer = (int16 *) calloc(setting->sample_rate, setting->sample_size);
 
         // @question Consider to move to the heap?
-        setting->buffer[0].Flags = 0;
-        setting->buffer[0].AudioBytes = setting->buffer_size;
-        setting->buffer[0].pAudioData = (BYTE *) malloc(setting->buffer_size * sizeof(BYTE));
-        setting->buffer[0].PlayBegin = 0;
-        setting->buffer[0].PlayLength = 0;
-        setting->buffer[0].LoopBegin = 0;
-        setting->buffer[0].LoopLength = 0;
-        setting->buffer[0].LoopCount = 0;
-        setting->buffer[0].pContext = NULL;
+        setting->internal_buffer[0].Flags = 0;
+        setting->internal_buffer[0].AudioBytes = setting->buffer_size;
+        setting->internal_buffer[0].pAudioData = (byte *) malloc(setting->buffer_size * sizeof(byte));
+        setting->internal_buffer[0].PlayBegin = 0;
+        setting->internal_buffer[0].PlayLength = 0;
+        setting->internal_buffer[0].LoopBegin = 0;
+        setting->internal_buffer[0].LoopLength = 0;
+        setting->internal_buffer[0].LoopCount = 0;
+        setting->internal_buffer[0].pContext = NULL;
 
-        setting->buffer[1].Flags = 0;
-        setting->buffer[1].AudioBytes = setting->buffer_size;
-        setting->buffer[1].pAudioData = (BYTE *) malloc(setting->buffer_size * sizeof(BYTE));
-        setting->buffer[1].PlayBegin = 0;
-        setting->buffer[1].PlayLength = 0;
-        setting->buffer[1].LoopBegin = 0;
-        setting->buffer[1].LoopLength = 0;
-        setting->buffer[1].LoopCount = 0;
-        setting->buffer[1].pContext = NULL;
+        setting->internal_buffer[1].Flags = 0;
+        setting->internal_buffer[1].AudioBytes = setting->buffer_size;
+        setting->internal_buffer[1].pAudioData = (byte *) malloc(setting->buffer_size * sizeof(byte));
+        setting->internal_buffer[1].PlayBegin = 0;
+        setting->internal_buffer[1].PlayLength = 0;
+        setting->internal_buffer[1].LoopBegin = 0;
+        setting->internal_buffer[1].LoopLength = 0;
+        setting->internal_buffer[1].LoopCount = 0;
+        setting->internal_buffer[1].pContext = NULL;
 
         setting->sample_index = 0;
     }
 
+    inline
     void xaudio2_play(XAudio2Setting* setting) {
         if (!setting->source_voice) {
             // @todo Log
@@ -120,14 +135,19 @@ namespace Sound {
         setting->playing = true;
     }
 
+    inline
     void xaudio2_free(XAudio2Setting* setting)
     {
-        if (setting->buffer[0].pAudioData) {
-            free((void *) setting->buffer[0].pAudioData);
+        if (setting->internal_buffer[0].pAudioData) {
+            free((void *) setting->internal_buffer[0].pAudioData);
         }
 
-        if (setting->buffer[1].pAudioData) {
-            free((void *) setting->buffer[1].pAudioData);
+        if (setting->internal_buffer[1].pAudioData) {
+            free((void *) setting->internal_buffer[1].pAudioData);
+        }
+
+        if (setting->buffer) {
+            free((void *) setting->buffer);
         }
 
         if (setting->source_voice) {
@@ -143,46 +163,55 @@ namespace Sound {
         }
     }
 
-    bool xaudio2_should_update(XAudio2Setting* setting)
+    /**
+     * Calculates the samples to generate for the buffer
+     *
+     * For XAudio2 we currently always fill the entire buffer size.
+     * For other audio APIs we maybe have to do something else
+     */
+    inline
+    uint32 xaudio2_sample_buffer_size(XAudio2Setting* setting)
     {
         if (!setting->source_voice) {
             // @todo Log
 
-            return false;
+            return 0;
         }
 
         XAUDIO2_VOICE_STATE state;
         setting->source_voice->GetState(&state);
         if (state.BuffersQueued > 1) {
-            return false;
+            return 0;
         }
 
-        return true;
+        return setting->buffer_size;
     }
 
-    int16* xaudio2_return_buffer(XAudio2Setting* setting)
-    {
-        return (int16 *) setting->buffer[setting->sample_index].pAudioData;
-    }
-
-    int16* xaudio2_fill_buffer(XAudio2Setting* setting, int16* buffer)
-    {
-        int16* sample_out = (int16 *) setting->buffer[setting->sample_index].pAudioData;
-    }
-
-    void xaudio2_play_buffer(XAudio2Setting* setting) {
+    inline
+    void xaudio2_play_buffer(XAudio2Setting* setting, uint32 bytes_to_write) {
         if (!setting->source_voice) {
             // @todo Log
 
             return;
         }
 
-        setting->sample_index = (setting->sample_index + 1) % 2;
+        if (bytes_to_write == 0) {
+            return;
+        }
 
-        if (!SUCCEEDED(setting->source_voice->SubmitSourceBuffer(&setting->buffer[setting->sample_index]))) {
+        memcpy(
+            (void *) setting->internal_buffer[setting->sample_index].pAudioData,
+            setting->buffer,
+            bytes_to_write
+        );
+
+        if (!SUCCEEDED(setting->source_voice->SubmitSourceBuffer(&setting->internal_buffer[setting->sample_index]))) {
             // @todo Log
             return;
         }
+
+        setting->sample_index = (setting->sample_index + 1) % 2;
+        setting->sample_buffer_size = 0;
     }
 }
 
