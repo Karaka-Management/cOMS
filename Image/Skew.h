@@ -36,18 +36,18 @@ namespace Image::Skew
             float angle = atan2(lines[i][3] - lines[i][1], lines[i][2] - lines[i][0]);
             tmpAngles.push_back(angle);
 
-            imageOrientation += oms_abs(angle) > OMS_PI / 4 ? 1 : -1;
+            imageOrientation += OMS_ABS(angle) > OMS_PI / 4 ? 1 : -1;
         }
 
         std::vector<float> angles;
         for (int i = 0; i < tmpAngles.size(); ++i) {
             if (imageOrientation > 0) {
-                if (oms_deg2rad(90 - maxDegree) < oms_abs(tmpAngles[i]) &&
-                    oms_abs(tmpAngles[i]) < oms_deg2rad(90 + maxDegree)) {
+                if (OMS_DEG2RAD(90 - maxDegree) < OMS_ABS(tmpAngles[i]) &&
+                    OMS_ABS(tmpAngles[i]) < OMS_DEG2RAD(90 + maxDegree)) {
                     angles.push_back(tmpAngles[i]);
                 }
             } else {
-                if (oms_abs(tmpAngles[i]) < oms_deg2rad(maxDegree)) {
+                if (OMS_ABS(tmpAngles[i]) < OMS_DEG2RAD(maxDegree)) {
                     angles.push_back(tmpAngles[i]);
                 }
             }
@@ -62,7 +62,7 @@ namespace Image::Skew
             median += angles[i];
         }
 
-        float angleDeg = oms_rad2deg(median / angles.size());
+        float angleDeg = OMS_RAD2DEG(median / angles.size());
 
         cv::Mat orientFix;
         if (imageOrientation > 0) {

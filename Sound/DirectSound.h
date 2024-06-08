@@ -12,7 +12,6 @@
 
 #include <dsound.h>
 #include <windows.h>
-#include <math.h>
 
 #include "../Stdlib/Types.h"
 #include "../Utils/MathUtils.h"
@@ -25,6 +24,7 @@ namespace Sound {
         uint32 sample_rate;
         uint32 sample_size;
         uint32 sample_index;
+        uint32 latency;
 
         int16 volume;
 
@@ -35,7 +35,7 @@ namespace Sound {
         uint32 sample_buffer_size;
         int16* buffer;
 
-        bool playing = false;
+        bool is_playing = false;
         byte type = SOUND_API_DIRECT_SOUND;
 
         // Api specific data from here on
@@ -78,7 +78,7 @@ namespace Sound {
         wf.nBlockAlign = (wf.nChannels * wf.wBitsPerSample) / 8;
         wf.nSamplesPerSec = setting->sample_rate;
         wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
-        wf.cbSize;
+        wf.cbSize = 0;
 
         // Create primary buffer
         DSBUFFERDESC bufferDesc;
@@ -121,8 +121,12 @@ namespace Sound {
     inline
     void direct_sound_play(DirectSoundSetting* setting)
     {
+        if (!setting->secondary_buffer) {
+            return;
+        }
+
         setting->secondary_buffer->Play(0, 0, DSBPLAY_LOOPING);
-        setting->playing = true;
+        setting->is_playing = true;
     }
 
     inline
@@ -157,13 +161,15 @@ namespace Sound {
         DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
         DWORD bytes_to_write = 0;
 
+        DWORD target_cursor = (player_cursor + (setting->latency * setting->sample_size)) % setting->buffer_size;
+
         if (bytes_to_lock == player_cursor) {
-            bytes_to_write = setting->playing ? 0 : setting->buffer_size;
-        } else if (bytes_to_lock > player_cursor) {
+            bytes_to_write = setting->is_playing ? 0 : setting->buffer_size;
+        } else if (bytes_to_lock > target_cursor) {
             bytes_to_write = setting->buffer_size - bytes_to_lock;
-            bytes_to_write += player_cursor;
+            bytes_to_write += target_cursor;
         } else {
-            bytes_to_write = player_cursor - bytes_to_lock;
+            bytes_to_write = target_cursor - bytes_to_lock;
         }
 
         return bytes_to_write;

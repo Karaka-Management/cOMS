@@ -88,7 +88,7 @@ namespace Test {
 
 #define ASSERT_EQUALS_WITH_DELTA(a, b, delta, t1, t2)    \
     ({                                                   \
-        if (oms_abs((a) - (b)) <= (delta)) {             \
+        if (OMS_ABS((a) - (b)) <= (delta)) {             \
             printf(".");                                 \
         } else {                                         \
             printf("\033[31m[F]\033[0m");                \

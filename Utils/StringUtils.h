@@ -43,7 +43,11 @@ namespace Utils::StringUtils
         size_t c = 0;
         while (*haystack && c < i + match * (newLength - oldLength)) {
             if (strstr(haystack, needle) == haystack) {
-                strcpy(&result[c], (char *) replace);
+                #ifdef _WIN32
+                    strcpy_s(&result[c], newLength * sizeof(char), (char *) replace);
+                #else
+                    strcpy(&result[c], (char *) replace);
+                #endif
 
                 c        += newLength;
                 haystack += oldLength;
@@ -130,6 +134,23 @@ namespace Utils::StringUtils
         return i;
     }
 
+    inline void
+    str_concat(
+        const char* src1, size_t src1_length,
+        const char* src2, size_t src2_length,
+        char* dst
+    ) {
+        for (size_t i = 0; i < src1_length; ++i) {
+            *dst++ = *src1++;
+        }
+
+        for (size_t i = 0; i < src2_length; ++i) {
+            *dst++ = *src2++;
+        }
+
+        *dst++ = '\0';
+    }
+
     // @todo Implement delim as const char* (also allow \0 length)
     inline char *str_combine(const char **str, size_t size, const char delim)
     {
@@ -150,11 +171,20 @@ namespace Utils::StringUtils
             return NULL;
         }
 
-        strcpy(result, str[0]);
+        #ifdef _WIN32
+            strcpy_s(result, (strlen(str[0]) + 1) * sizeof(char), str[0]);
+        #else
+            strcpy(result, str[0]);
+        #endif
 
         for (size_t i = 0; i < size; ++i) {
+            #ifdef _WIN32
+            strcat_s(result, total_size, &delim);
+            strcat_s(result, total_size, str[i]);
+            #else
             strcat(result, &delim);
             strcat(result, str[i]);
+            #endif
         }
 
         return result;
@@ -194,7 +224,7 @@ namespace Utils::StringUtils
             for (j = 1; j <= toSize; ++j) {
                 dm[i * fromSize + j] = strcmp(from[i - 1], to[j - 1]) == 0
                                            ? dm[(i - 1) * fromSize + (j - 1)] + 1
-                                           : oms_max(dm[(i - 1) * fromSize + j], dm[i * fromSize + (j - 1)]);
+                                           : OMS_MAX(dm[(i - 1) * fromSize + j], dm[i * fromSize + (j - 1)]);
             }
         }
 

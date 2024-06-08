@@ -12,7 +12,6 @@
 
 #include <xaudio2.h>
 #include <windows.h>
-#include <math.h>
 
 #include "../Stdlib/Types.h"
 #include "../Utils/MathUtils.h"
@@ -25,6 +24,7 @@ namespace Sound {
         uint32 sample_rate;
         uint32 sample_size;
         uint32 sample_index;
+        uint32 latency;
 
         int16 volume;
 
@@ -35,7 +35,7 @@ namespace Sound {
         uint32 sample_buffer_size;
         int16* buffer;
 
-        bool playing = false;
+        bool is_playing = false;
         byte type = SOUND_API_XAUDIO2;
 
         // Api specific data from here on
@@ -132,7 +132,7 @@ namespace Sound {
         }
 
         setting->source_voice->Start(0, XAUDIO2_COMMIT_NOW);
-        setting->playing = true;
+        setting->is_playing = true;
     }
 
     inline

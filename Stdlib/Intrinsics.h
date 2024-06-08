@@ -12,8 +12,11 @@
 
 #include <immintrin.h>
 #include <inttypes.h>
-#include <x86intrin.h>
 #include <xmmintrin.h>
+
+#ifdef _LINUX
+    #include <x86intrin.h>
+#endif
 
 #include "Types.h"
 

@@ -27,6 +27,9 @@ namespace Input {
         uint32 id = 0;
         bool is_connected = false;
 
+        // After handling the state change the game loop should set this to false
+        bool state_change = false;
+
         bool up = false;
         bool down = false;
         bool left = false;
@@ -51,7 +54,7 @@ namespace Input {
 
         int16 stickr_x = 0;
         int16 stickr_y = 0;
-        bool stick2_press = false;
+        bool stickr_press = false;
     };
 
     // @todo consider to remove some global_persist and defines since we are never calling it somewhere else
@@ -103,7 +106,7 @@ namespace Input {
             }
         }
 
-        c = oms_max(MIN_CONTROLLER_DEVICES, c);
+        c = OMS_MAX(MIN_CONTROLLER_DEVICES, c);
 
         // We always want at least one empty controller slot
         // @todo Change so that we store the actual number of devices
@@ -162,7 +165,7 @@ namespace Input {
 
             states[controller_index].stickr_x = controller_state.Gamepad.sThumbRX;
             states[controller_index].stickr_y = controller_state.Gamepad.sThumbRY;
-            states[controller_index].stick2_press = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
+            states[controller_index].stickr_press = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
 
             ++controller_index;
         }

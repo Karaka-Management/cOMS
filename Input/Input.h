@@ -84,7 +84,7 @@ namespace Input {
         PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) malloc(sizeof(RAWINPUTDEVICELIST) * nDevices);
         nDevices = GetRawInputDeviceList(pRawInputDeviceList, &nDevices, sizeof(RAWINPUTDEVICELIST));
 
-        nDevices = oms_max(MIN_INPUT_DEVICES, nDevices);
+        nDevices = OMS_MAX(MIN_INPUT_DEVICES, nDevices);
 
         // We always want at least one empty input device slot
         // @todo Change so that we store the actual number of devices
@@ -125,33 +125,33 @@ namespace Input {
             }
         }
 
-        RAWINPUTDEVICE rid2[4];
+        RAWINPUTDEVICE rid[4];
 
         // Mouse
-        rid2[0].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
-        rid2[0].usUsage     = 0x02;
-        rid2[0].dwFlags     = RIDEV_DEVNOTIFY;
-        rid2[0].hwndTarget  = w->hwnd;
+        rid[0].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
+        rid[0].usUsage     = 0x02;
+        rid[0].dwFlags     = RIDEV_DEVNOTIFY;
+        rid[0].hwndTarget  = w->hwnd;
 
         // Joystick
-        rid2[1].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
-        rid2[1].usUsage	   = 0x04;
-        rid2[1].dwFlags     = RIDEV_DEVNOTIFY;
-        rid2[1].hwndTarget = w->hwnd;
+        rid[1].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
+        rid[1].usUsage	   = 0x04;
+        rid[1].dwFlags     = RIDEV_DEVNOTIFY;
+        rid[1].hwndTarget = w->hwnd;
 
         // Gamepad
-        rid2[2].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
-        rid2[2].usUsage	   = 0x05;
-        rid2[2].dwFlags     = RIDEV_DEVNOTIFY;
-        rid2[2].hwndTarget = w->hwnd;
+        rid[2].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
+        rid[2].usUsage	   = 0x05;
+        rid[2].dwFlags     = RIDEV_DEVNOTIFY;
+        rid[2].hwndTarget = w->hwnd;
 
         // Keyboard
-        rid2[3].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
-        rid2[3].usUsage	   = 0x06;
-        rid2[3].dwFlags     = RIDEV_DEVNOTIFY;
-        rid2[3].hwndTarget = w->hwnd;
+        rid[3].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
+        rid[3].usUsage	   = 0x06;
+        rid[3].dwFlags     = RIDEV_DEVNOTIFY;
+        rid[3].hwndTarget = w->hwnd;
 
-        if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid2, 4, sizeof(RAWINPUTDEVICE))) {
+        if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 4, sizeof(RAWINPUTDEVICE))) {
             // @todo Log
         }
 

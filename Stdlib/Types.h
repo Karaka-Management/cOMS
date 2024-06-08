@@ -10,7 +10,6 @@
 #ifndef STDLIB_TYPES_H
 #define STDLIB_TYPES_H
 
-#include <float.h>
 #include <stdint.h>
 
 typedef int8_t int8;
@@ -28,6 +27,10 @@ typedef float f32;
 typedef double f64;
 
 typedef unsigned char byte;
+
+#define MAX_BYTE 0xFF
+#define MAX_INT16 0xFFFF
+#define MAX_INT32 0xFFFFFFFF
 
 #define internal static // only allows local "file" access
 #define local_persist static
@@ -68,7 +71,7 @@ uint16 float_to_f16(float f) {
         fraction = 0;
     }
 
-    f16_bits = sign | (exponent << HALF_FLOAT_EXP_SHIFT) | (fraction & HALF_FLOAT_FRAC_MASK);
+    f16_bits = (uint16_t) (sign | (exponent << HALF_FLOAT_EXP_SHIFT) | (fraction & HALF_FLOAT_FRAC_MASK));
 
     return f16_bits;
 }
