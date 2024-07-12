@@ -6,11 +6,11 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_DATABASE
-#define TOS_DATABASE
+#ifndef TOS_DATABASE_H
+#define TOS_DATABASE_H
 
 #include "../stdlib/Types.h"
-#include "../lib/sqlite/src/sqlite3.h"
+#include "../../EngineDependencies/sqlite/src/sqlite3.h"
 
 #include "DatabaseType.h"
 #include "DatabaseConnection.h"

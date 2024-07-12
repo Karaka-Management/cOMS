@@ -13,8 +13,8 @@
 #include <wrl.h>
 
 #include <dxgi1_6.h>
-#include "../../lib/directx/d3d12.h"
-#include "../../lib/directx/d3dx12.h"
+#include "../../../EngineDependencies/directx/d3d12.h"
+#include "../../../EngineDependencies/directx/d3dx12.h"
 
 #include "../../stdlib/Types.h"
 

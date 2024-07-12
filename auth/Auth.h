@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../lib/curl/include/curl/curl.h"
+#include "../../EngineDependencies/curl/include/curl/curl.h"
 #include "../utils/MathUtils.h"
 
 #define MAX_AUTH_POST_LENGTH 1024

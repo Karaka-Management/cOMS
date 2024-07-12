@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_DATABASE_TYPE
-#define TOS_DATABASE_TYPE
+#ifndef TOS_DATABASE_TYPE_H
+#define TOS_DATABASE_TYPE_H
 
 enum DatabaseType {
     DB_TYPE_SQLITE,

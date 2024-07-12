@@ -14,11 +14,11 @@
 #include "../../models/Attrib.h"
 #include "../../models/Texture.h"
 
-#include "../../lib/opengl/glew/include/GL/glew.h"
-#include "../../lib/opengl/glfw/include/glfw3.h"
+#include "../../../EngineDependencies/opengl/glew/include/GL/glew.h"
+#include "../../../EngineDependencies/opengl/glfw/include/glfw3.h"
 
 #if GLFW_EXPOSE_NATIVE_WIN32
-    #include "../../lib/opengl/glfw/include/glfw3native.h"
+    #include "../../../EngineDependencies/opengl/glfw/include/glfw3native.h"
 #endif
 
 #ifdef _WIN32

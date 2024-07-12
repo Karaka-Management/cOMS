@@ -10,7 +10,7 @@
 #define TOS_ATTRIB_H
 
 #if OPENGL
-    #include "../lib/opengl/glew/include/GL/glew.h"
+    #include "../../EngineDependencies/opengl/glew/include/GL/glew.h"
 
     struct Attrib {
         GLuint program;
