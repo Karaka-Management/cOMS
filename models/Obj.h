@@ -12,6 +12,22 @@
 #include "../stdlib/Types.h"
 
 struct ObjFile {
+    // Amount of references to this object
+    int references;
+
+    bool facing; // front or back
+
+    void* buffer;
+    void* facingness;
+    void* normals;
+    void* uvs;
+    void* parallaxs;
+
+    void* animations;
+    void* textures; // could be texture maps
+    void* mipmaps;
+    void* samplers;
+    void* materials;
 };
 
 #endif

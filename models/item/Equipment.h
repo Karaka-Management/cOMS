@@ -11,9 +11,23 @@
 
 #include "../../stdlib/Types.h"
 
+#include "../../mob/MobStats.h"
+#include "../../mob/skill/StatsTarget.h"
+
 struct Equipment {
     byte type;
     char* name;
+
+    // @tood how to handle multiplicative stats?
+    // you can have 2 stats for 2 target types (e.g. you could create a buff and debuff in one skill)
+    SMobStats stats1;
+    StatsTarget stats1_target;
+
+    SMobStats stats2;
+    StatsTarget stats2_target;
+
+    // @todo probably add more of the Skill attributes here
+    // @question what should be part of skills and what should be part of items?!?!?!?
 };
 
 #endif

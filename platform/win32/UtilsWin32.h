@@ -271,7 +271,8 @@ file_append(const char* filename, const file_body* file)
     return true;
 }
 
-inline uint64 last_modified(const char* filename)
+inline
+uint64 last_modified(const char* filename)
 {
     FILETIME modified = {};
 

@@ -10,46 +10,86 @@
 #define TOS_MODELS_SETTINGS_H
 
 #include "../../stdlib/Types.h"
-
 #include "../chat/ChatStatus.h"
 #include "setting_types.h"
 
-#if SERVER
-    struct SSettings {
-        byte distance_terrain = RENDER_CHUNK_RADIUS;
-        byte distance_terrain_secondary = RENDER_BLOCK_OBJECT_CHUNK_RADIUS;
-        byte distance_terrain_tertiary = RENDER_INTERACTIVE_CHUNK_RADIUS;
-        byte distance_models = RENDER_OBJECT_CHUNK_RADIUS;
-        byte distance_monster = RENDER_MONSTER_CHUNK_RADIUS;
-        byte distance_npc = RENDER_NPC_CHUNK_RADIUS;
-        byte distance_player = RENDER_PAYER_CHUNK_RADIUS;
-
-        uint32 player_cache = 8192; // = max active players on a server
-        uint32 monster_cache = 8192;
-        uint32 npc_cache = 8192;
-        uint32 guild_cache = 128;
-        uint32 message_cache = 1024;
-
-        uint32 interpolation_buffer;
-        byte simd_version;
-    };
-
-    // Player settings that the server needs to know about
-    struct PSettings {
-        byte render_distance_models = RENDER_OBJECT_CHUNK_RADIUS;
-        byte render_distance_monster = RENDER_MONSTER_CHUNK_RADIUS;
-        byte render_distance_npc = RENDER_NPC_CHUNK_RADIUS;
-        byte render_distance_player = RENDER_PAYER_CHUNK_RADIUS;
-
-        byte chat_status = CHAT_STATUS_OFFLINE;
-        bool allow_invites = true;
-    };
+#if __linux__
+    #include <linux/limits.h>
+    #define MAX_PATH PATH_MAX
 #endif
+
+#ifndef RENDER_CHUNK_RADIUS
+    #define RENDER_CHUNK_RADIUS 10
+#endif
+
+#ifndef RENDER_BLOCK_OBJECT_CHUNK_RADIUS
+    #define RENDER_BLOCK_OBJECT_CHUNK_RADIUS 10
+#endif
+
+#ifndef RENDER_INTERACTIVE_CHUNK_RADIUS
+    #define RENDER_INTERACTIVE_CHUNK_RADIUS 1
+#endif
+
+#ifndef RENDER_OBJECT_CHUNK_RADIUS
+    #define RENDER_OBJECT_CHUNK_RADIUS 1
+#endif
+
+#ifndef RENDER_MONSTER_CHUNK_RADIUS
+    #define RENDER_MONSTER_CHUNK_RADIUS 3
+#endif
+
+#ifndef RENDER_NPC_CHUNK_RADIUS
+    #define RENDER_NPC_CHUNK_RADIUS 3
+#endif
+
+#ifndef RENDER_PAYER_CHUNK_RADIUS
+    #define RENDER_PAYER_CHUNK_RADIUS 3
+#endif
+
+// @todo remove default values because we will load them during startup
+struct SSettings {
+    char path[MAX_PATH];
+    bool is_changed = false;
+    byte simd_version;
+
+    char network_hostname[64];
+    uint16 network_port;
+
+    byte distance_terrain = RENDER_CHUNK_RADIUS;
+    byte distance_terrain_secondary = RENDER_BLOCK_OBJECT_CHUNK_RADIUS;
+    byte distance_terrain_tertiary = RENDER_INTERACTIVE_CHUNK_RADIUS;
+    byte distance_models = RENDER_OBJECT_CHUNK_RADIUS;
+    byte distance_monster = RENDER_MONSTER_CHUNK_RADIUS;
+    byte distance_npc = RENDER_NPC_CHUNK_RADIUS;
+    byte distance_player = RENDER_PAYER_CHUNK_RADIUS;
+
+    uint32 player_cache = 8192; // = max active players on a server
+    uint32 monster_cache = 8192;
+    uint32 npc_cache = 8192;
+    uint32 guild_cache = 128;
+    uint32 message_cache = 1024;
+
+    uint32 interpolation_buffer;
+};
+
+// Player settings that the server needs to know about
+struct PSettings {
+    byte render_distance_models = RENDER_OBJECT_CHUNK_RADIUS;
+    byte render_distance_monster = RENDER_MONSTER_CHUNK_RADIUS;
+    byte render_distance_npc = RENDER_NPC_CHUNK_RADIUS;
+    byte render_distance_player = RENDER_PAYER_CHUNK_RADIUS;
+
+    byte chat_status = CHAT_STATUS_OFFLINE;
+    bool allow_invites = true;
+};
 
 struct CSettings {
     char path[MAX_PATH];
     bool is_changed = false;
     byte simd_version;
+
+    char network_hostname[64];
+    uint16 network_port;
 
     byte gpu_api = SETTING_TYPE_GPU_API_NONE;
     byte gpu_type = SETTING_TYPE_GPU_MEDIUM;
@@ -62,9 +102,6 @@ struct CSettings {
     byte gpu_gamma;
     byte gpu_fov;
     byte gpu_sync = SETTING_TYPE_DISABLED;
-
-    char editor_hostname[64];
-    uint16 editor_port;
 
     uint32 gpu_number_of_npc_characters = 128;
     uint32 gpu_number_of_player_characters = 512;
@@ -113,12 +150,20 @@ struct CSettings {
     bool gpu_particles_skills = true;
     bool gpu_particles_weapons = true;
 
+    byte gpu_shadow_type = SETTING_TYPE_DISABLED; // none, baked, shadow mapping, point shadow, ray tracing
+    byte gpu_light_ssao = SETTING_TYPE_DISABLED;
+    byte gpu_light_bloom = SETTING_TYPE_DISABLED;
+
     byte gpu_reflection_blur = SETTING_TYPE_DISABLED;
     byte gpu_motion_blur = SETTING_TYPE_DISABLED;
     byte gpu_blur = SETTING_TYPE_DISABLED;
     byte gpu_anti_aliasing = SETTING_TYPE_DISABLED;
     byte gpu_sharpening = SETTING_TYPE_DISABLED;
     byte gpu_ambient_occlusion = SETTING_TYPE_DISABLED;
+
+    bool gpu_gamma_correction = true;
+    bool gpu_normal_mapping = true;
+    bool gpu_parallax_mapping = true;
 
     bool gpu_depth_of_field = true;
     bool gpu_chromatic_aberration = true;
@@ -299,6 +344,7 @@ struct CSettings {
     bool input_click_to_move = true;
 
     // Hotkey settings
+    // @todo hotkey combination e.g. alt+1
     byte hotkeys_movement_up = 0x57; // W
     byte hotkeys_movement_down = 0x53; // S
     byte hotkeys_movement_left = 0x41; // A
@@ -354,6 +400,12 @@ struct CSettings {
 
     byte hotkeys_menu = 0x1B; // ESC
     byte hotkeys_window_close = 0x1B; // ESC
+
+    byte hotkeys_marker_1 = 0x31; // 1
+    byte hotkeys_marker_2 = 0x32; // 2
+    byte hotkeys_marker_3 = 0x33; // 3
+    byte hotkeys_marker_4 = 0x34; // 4
+    byte hotkeys_marker_5 = 0x35; // 5
 };
 
 #endif

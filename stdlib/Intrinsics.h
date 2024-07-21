@@ -13,7 +13,7 @@
 #include <inttypes.h>
 #include <xmmintrin.h>
 
-#ifdef _LINUX
+#if __linux__
     #include <x86intrin.h>
 #endif
 

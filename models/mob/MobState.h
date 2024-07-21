@@ -24,7 +24,10 @@ struct MobState {
     // last 3 bytes = animation to use
     uint32 action = (MOB_ACTION_INACTIVE << 24);
 
+    bool in_battle;
+
     int chunk_id;
+    byte environment; // dungeon/raid, pvp-openworld, pvp, pvp-tournament, open-world, instance-private, instance-invite, housing,
 };
 
 #endif

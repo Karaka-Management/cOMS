@@ -12,6 +12,12 @@
 #include <time.h>
 #include "../stdlib/Types.h"
 
+#if _WIN32
+    #include <intrin.h>
+#else
+    #include <x86intrin.h>
+#endif
+
 #define MAX_LOG_LENGTH 128
 
 global_persist uint64 performance_count_frequency;
@@ -31,36 +37,21 @@ struct LogPool {
     // uint32 size = count * MAX_LOG_LENGTH
 };
 
-#if _WIN32
-    inline
-    void update_timing_stat(TimingStat *stat)
-    {
-        LARGE_INTEGER counter;
-        QueryPerformanceCounter(&counter);
+// IMPORTANT: This function should only be called when you actually use this data
+//      e.g. log to display or file
+inline
+void update_timing_stat(TimingStat *stat)
+{
+    stat->new_tick_count = __rdtsc();
 
-        stat->new_tick_count = counter.QuadPart;
+    stat->delta_tick = stat->new_tick_count - stat->old_tick_count;
+    stat->delta_time = (double) stat->delta_tick / (double) performance_count_frequency;
 
-        // @performance Consider to only do the following two calculations when outputting the tick/time
-        stat->delta_tick = stat->new_tick_count - stat->old_tick_count;
-        stat->delta_time = (double) stat->delta_tick / (double) performance_count_frequency;
+    stat->old_tick_count = stat->new_tick_count;
+}
 
-        stat->old_tick_count = stat->new_tick_count;
-    }
-#else
-    void update_timing_stat(TimingStat *stat)
-    {
-        struct timespec now;
-        clock_gettime(CLOCK_MONOTONIC, &now);
-        stat->new_tick_count = now.tv_sec + now.tv_nsec;
-
-        // @performance Consider to only do the following two calculations when outputting the tick/time
-        stat->delta_tick = stat->new_tick_count - stat->old_tick_count;
-        stat->delta_time = (double) stat->delta_tick / (double) performance_count_frequency;
-
-        stat->old_tick_count = stat->new_tick_count;
-    }
-#endif
-
+// Sometimes we want to only do logging in debug mode.
+// In such cases use the following macro.
 #if DEBUG
     #define UPDATE_TIMING_STAT(stat) update_timing_stat(stat)
 #else

@@ -12,15 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef _WIN32
-    #include <windows.h>
-
-    typedef DWORD (WINAPI *ThreadJobFunc)(void*);
-#else
-    typedef void (*ThreadJobFunc)(void*);
-#endif
-
-#include "ThreadOSWrapper.h"
+#include "ThreadOSDefines.h"
 
 struct job_t {
     ThreadJobFunc func;

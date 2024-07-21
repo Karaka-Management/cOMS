@@ -14,7 +14,6 @@
 #include <ctype.h>
 
 #include "../stdlib/Types.h"
-#include "../stdlib/Mathtypes.h"
 
 inline size_t str_count(const char *str, const char *substr)
 {
@@ -59,15 +58,13 @@ str_concat(
     const char* src2, size_t src2_length,
     char* dst
 ) {
-    for (size_t i = 0; i < src1_length; ++i) {
-        *dst++ = *src1++;
-    }
+    memcpy(dst, src1, src1_length);
+    dst += src1_length;
 
-    for (size_t i = 0; i < src2_length; ++i) {
-        *dst++ = *src2++;
-    }
+    memcpy(dst, src2, src2_length);
+    dst += src2_length;
 
-    *dst++ = '\0';
+    *dst = '\0';
 }
 
 char *strtok(char *str, const char *delim, char **saveptr)
@@ -141,33 +138,6 @@ void create_const_name(const unsigned char *name, unsigned char* modified_name)
         }
 
         modified_name[i] = '\0';
-    }
-}
-
-void font_string_dimension(const char *str, v2_int32* dim, const int* width_lookup)
-{
-    size_t length = strlen(str);
-    int width  = 0;
-
-    for (int i = 0; i < length; ++i) {
-        if (str[i] == '\n') {
-            if (width > dim->x) {
-                dim->x = width;
-            }
-
-            width = 0;
-            ++dim->y;
-        }
-
-        width += width_lookup[str[i]];
-    }
-
-     if (width > dim->x) {
-        dim->x = width;
-    }
-
-    if (width > 0) {
-        ++dim->y;
     }
 }
 

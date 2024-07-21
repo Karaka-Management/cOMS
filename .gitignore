@@ -1,0 +1,6 @@
+build/*
+data/*
+bin/*
+*.obj
+*.log
+*.res

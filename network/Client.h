@@ -20,19 +20,19 @@
 #if _WIN32
     #include <winsock2.h>
     #include <windows.h>
-    #define close closesocket
-    #define sleep Sleep
 #else
     #include <netdb.h>
     #include <unistd.h>
     #include <arpa/inet.h>
 #endif
 
+#include "NetworkOSWrapper.h"
+
 #ifndef MAX_STATIC_NETWORK_PACKET_SIZE
     #define MAX_STATIC_NETWORK_PACKET_SIZE 8192
 #endif
 
-SOCKET socket_client_udb_connect(const char *hostname, int port, sockaddr_in6 *server_addr) {
+void socket_client_udb_connect(const char *hostname, SocketConnection* con) {
     addrinfo hints, *res, *p;
 
     memset(&hints, 0, sizeof(hints));
@@ -40,29 +40,22 @@ SOCKET socket_client_udb_connect(const char *hostname, int port, sockaddr_in6 *s
     hints.ai_socktype = SOCK_DGRAM;
 
     char port_str[6];
-    snprintf(port_str, sizeof(port_str), "%d", port);
+    snprintf(port_str, sizeof(port_str), "%d", con->port);
 
     if (getaddrinfo(hostname, port_str, &hints, &res) != 0) {
-        return NULL;
+        return;
     }
 
-    SOCKET sd = NULL;
     for (p = res; p != NULL; p = p->ai_next) {
-        if ((sd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+        if ((con->sd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
             continue;
         }
 
-        memcpy(server_addr, p->ai_addr, p->ai_addrlen);
+        memcpy((void *) &con->server_addr, p->ai_addr, p->ai_addrlen);
         break;
     }
 
     freeaddrinfo(res);
-
-    if (p == NULL) {
-        return NULL;
-    }
-
-    return sd;
 }
 
 int socket_client_send(SOCKET sd, char *data, size_t length, sockaddr_in6 *server_addr, socklen_t addr_len) {

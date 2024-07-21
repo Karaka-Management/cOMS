@@ -10,6 +10,7 @@
 #define TOS_MATH_MATRIX_FLOAT32_H
 
 #include "../../stdlib/Intrinsics.h"
+#include "../../stdlib/Mathtypes.h"
 #include "../../utils/MathUtils.h"
 
 void mat3_identity_f32(float* matrix)
@@ -105,6 +106,7 @@ void mat3vec3_mult(const float* matrix, const float* vector, float* result)
     */
 }
 
+// @question could simple mul add sse be faster?
 void mat3vec3_mult_sse(const float* matrix, const float* vector, float* result)
 {
     __m128 vec = _mm_loadu_ps(vector);
@@ -120,6 +122,7 @@ void mat3vec3_mult_sse(const float* matrix, const float* vector, float* result)
     }
 }
 
+// @question could simple mul add sse be faster?
 void mat3vec3_mult_sse(const __m128* matrix, const __m128* vector, float* result)
 {
     for (int i = 0; i < 3; ++i) {
@@ -129,6 +132,7 @@ void mat3vec3_mult_sse(const __m128* matrix, const __m128* vector, float* result
     }
 }
 
+// @question could simple mul add sse be faster?
 void mat3vec3_mult_sse(const __m128* matrix, const __m128* vector, __m128* result)
 {
     for (int i = 0; i < 4; ++i) {
@@ -142,17 +146,9 @@ void mat4vec4_mult(const float* matrix, const float* vector, float* result)
     result[1] = matrix[4] * vector[0] + matrix[5] * vector[1] + matrix[6] * vector[2] + matrix[7] * vector[3];
     result[2] = matrix[8] * vector[0] + matrix[9] * vector[1] + matrix[10] * vector[2] + matrix[11] * vector[3];
     result[3] = matrix[12] * vector[0] + matrix[13] * vector[1] + matrix[14] * vector[2] + matrix[15] * vector[3];
-
-    /*
-    for (int i = 0; i < 4; ++i) {
-        result[i] = matrix[i * 4 + 0] * vector[0]
-            + matrix[i * 4 + 1] * vector[1]
-            + matrix[i * 4 + 2] * vector[2]
-            + matrix[i * 4 + 3] * vector[3];
-    }
-    */
 }
 
+// @question could simple mul add sse be faster?
 void mat4vec4_mult_sse(const float* matrix, const float* vector, float* result)
 {
     __m128 vec = _mm_loadu_ps(vector);
@@ -165,6 +161,7 @@ void mat4vec4_mult_sse(const float* matrix, const float* vector, float* result)
     }
 }
 
+// @question could simple mul add sse be faster?
 void mat4vec4_mult_sse(const __m128* matrix, const __m128* vector, float* result)
 {
     for (int i = 0; i < 4; ++i) {
@@ -174,10 +171,177 @@ void mat4vec4_mult_sse(const __m128* matrix, const __m128* vector, float* result
     }
 }
 
+// @question could simple mul add sse be faster?
 void mat4vec4_mult_sse(const __m128* matrix, const __m128* vector, __m128* result)
 {
     for (int i = 0; i < 4; ++i) {
         result[i] = _mm_dp_ps(matrix[i], *vector, 0xF1);
+    }
+}
+
+void mat4mat4_mult(const float* a, const float* b, float* result)
+{
+    // Row 0
+    result[0] = a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12];
+    result[1] = a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13];
+    result[2] = a[0] * b[2] + a[1] * b[6] + a[2] * b[10] + a[3] * b[14];
+    result[3] = a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3] * b[15];
+
+    // Row 1
+    result[4] = a[4] * b[0] + a[5] * b[4] + a[6] * b[8] + a[7] * b[12];
+    result[5] = a[4] * b[1] + a[5] * b[5] + a[6] * b[9] + a[7] * b[13];
+    result[6] = a[4] * b[2] + a[5] * b[6] + a[6] * b[10] + a[7] * b[14];
+    result[7] = a[4] * b[3] + a[5] * b[7] + a[6] * b[11] + a[7] * b[15];
+
+    // Row 2
+    result[8] = a[8] * b[0] + a[9] * b[4] + a[10] * b[8] + a[11] * b[12];
+    result[9] = a[8] * b[1] + a[9] * b[5] + a[10] * b[9] + a[11] * b[13];
+    result[10] = a[8] * b[2] + a[9] * b[6] + a[10] * b[10] + a[11] * b[14];
+    result[11] = a[8] * b[3] + a[9] * b[7] + a[10] * b[11] + a[11] * b[15];
+
+    // Row 3
+    result[12] = a[12] * b[0] + a[13] * b[4] + a[14] * b[8] + a[15] * b[12];
+    result[13] = a[12] * b[1] + a[13] * b[5] + a[14] * b[9] + a[15] * b[13];
+    result[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14];
+    result[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15];
+}
+
+void mat4mat4_mult_sse(const float* a, const float* b, float* result)
+{
+    // @todo check http://fhtr.blogspot.com/2010/02/4x4-float-matrix-multiplication-using.html
+    // @question could simple mul add sse be faster?
+    __m128 a_1 = _mm_loadu_ps(a);
+    __m128 a_2 = _mm_loadu_ps(&a[4]);
+    __m128 a_3 = _mm_loadu_ps(&a[8]);
+    __m128 a_4 = _mm_loadu_ps(&a[12]);
+
+    __m128 b_1 = _mm_loadu_ps(b);
+    __m128 b_2 = _mm_loadu_ps(&b[4]);
+    __m128 b_3 = _mm_loadu_ps(&b[8]);
+    __m128 b_4 = _mm_loadu_ps(&b[12]);
+    _MM_TRANSPOSE4_PS(b_1, b_2, b_3, b_4);
+
+    __m128 dot;
+
+    // b1
+    dot = _mm_dp_ps(a_1, b_1, 0xF1);
+    result[0] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_2, b_1, 0xF1);
+    result[1] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_3, b_1, 0xF1);
+    result[2] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_4, b_1, 0xF1);
+    result[3] = _mm_cvtss_f32(dot);
+
+    // b2
+    dot = _mm_dp_ps(a_1, b_2, 0xF1);
+    result[4] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_2, b_2, 0xF1);
+    result[5] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_3, b_2, 0xF1);
+    result[6] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_4, b_2, 0xF1);
+    result[7] = _mm_cvtss_f32(dot);
+
+    // b3
+    dot = _mm_dp_ps(a_1, b_3, 0xF1);
+    result[8] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_2, b_3, 0xF1);
+    result[9] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_3, b_3, 0xF1);
+    result[10] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_4, b_3, 0xF1);
+    result[11] = _mm_cvtss_f32(dot);
+
+    // b4
+    dot = _mm_dp_ps(a_1, b_4, 0xF1);
+    result[12] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_2, b_4, 0xF1);
+    result[13] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_3, b_4, 0xF1);
+    result[14] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a_4, b_4, 0xF1);
+    result[15] = _mm_cvtss_f32(dot);
+}
+
+void mat4mat4_mult_sse(const __m128* a, const __m128* b_transposed, float* result)
+{
+    __m128 dot;
+
+    // @question could simple mul add sse be faster?
+    // b1
+    dot = _mm_dp_ps(a[0], b_transposed[0], 0xF1);
+    result[0] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[1], b_transposed[0], 0xF1);
+    result[1] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[2], b_transposed[0], 0xF1);
+    result[2] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[3], b_transposed[0], 0xF1);
+    result[3] = _mm_cvtss_f32(dot);
+
+    // b2
+    dot = _mm_dp_ps(a[0], b_transposed[1], 0xF1);
+    result[4] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[1], b_transposed[1], 0xF1);
+    result[5] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[2], b_transposed[1], 0xF1);
+    result[6] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[3], b_transposed[1], 0xF1);
+    result[7] = _mm_cvtss_f32(dot);
+
+    // b3
+    dot = _mm_dp_ps(a[0], b_transposed[2], 0xF1);
+    result[8] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[1], b_transposed[2], 0xF1);
+    result[9] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[2], b_transposed[2], 0xF1);
+    result[10] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[3], b_transposed[2], 0xF1);
+    result[11] = _mm_cvtss_f32(dot);
+
+    // b4
+    dot = _mm_dp_ps(a[0], b_transposed[3], 0xF1);
+    result[12] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[1], b_transposed[3], 0xF1);
+    result[13] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[2], b_transposed[3], 0xF1);
+    result[14] = _mm_cvtss_f32(dot);
+
+    dot = _mm_dp_ps(a[3], b_transposed[3], 0xF1);
+    result[15] = _mm_cvtss_f32(dot);
+}
+
+void mat4mat4_mult_sse(const __m128* a, const __m128* b_transpose, __m128* result)
+{
+    for (int i = 0; i < 4; ++i) {
+        result[i] = _mm_mul_ps(a[0], b_transpose[i]);
+
+        for (int j = 1; j < 4; ++j) {
+            result[i] = _mm_add_ps(_mm_mul_ps(a[j], b_transpose[4 * j + i]), result[i]);
+        }
     }
 }
 

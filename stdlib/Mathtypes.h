@@ -118,14 +118,17 @@ struct v3_f32 {
             union {
                 f32 x;
                 f32 r;
+                f32 pitch;
             };
             union {
                 f32 y;
                 f32 g;
+                f32 yaw;
             };
             union {
                 f32 z;
                 f32 b;
+                f32 roll;
             };
         };
 

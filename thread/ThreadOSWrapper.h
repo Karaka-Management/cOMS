@@ -9,12 +9,13 @@
 #ifndef TOS_THREADS_OS_WRAPPER_H
 #define TOS_THREADS_OS_WRAPPER_H
 
+#include <time.h>
+
 #include "../stdlib/Types.h"
+#include "ThreadOSDefines.h"
 
 #ifdef _WIN32
-    #include <stdbool.h>
     #include <windows.h>
-    #include <time.h>
 #else
     #include <pthread.h>
     #include <unistd.h>
@@ -33,18 +34,6 @@ void ms_to_timespec(timespec *ts, uint32 ms)
 }
 
 #ifdef _WIN32
-    typedef CRITICAL_SECTION pthread_mutex_t;
-    typedef void pthread_mutexattr_t;
-    typedef void pthread_condattr_t;
-    typedef void pthread_rwlockattr_t;
-    typedef HANDLE pthread_t;
-    typedef CONDITION_VARIABLE pthread_cond_t;
-
-    struct pthread_rwlock_t {
-        SRWLOCK lock;
-        bool exclusive;
-    };
-
     int pthread_create(pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg)
     {
         if (thread == NULL || start_routine == NULL) {
@@ -59,7 +48,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_join(pthread_t thread, void** value_ptr)
+    int pthread_join(pthread_t thread, void**)
     {
         WaitForSingleObject(thread, INFINITE);
         CloseHandle(thread);
@@ -202,7 +191,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_rwlock_destroy(pthread_rwlock_t* rwlock)
+    int pthread_rwlock_destroy(pthread_rwlock_t*)
     {
         return 0;
     }

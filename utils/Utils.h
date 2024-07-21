@@ -37,36 +37,4 @@ bool is_bit_set(byte data, byte bit)
     return (data & (1 << bit)) == 0;
 }
 
-void make_character(
-    float *data,
-    float x, float y, float n, float m, char c)
-{
-    float *d = data;
-
-    // Texture atlas is 16 characters
-    // 1 / 16 = 0.0625
-    float a = 0.0625;
-    float b = 0.0625 * 2;
-
-    // ascii offset
-    int w = c - 32;
-
-    float du = (w % 16) * a;
-    float dv = 1 - (w / 16) * b - b;
-
-    // Quad data (2 triangles)
-    *(d++) = x - n; *(d++) = y - m;
-    *(d++) = du + 0; *(d++) = dv;
-    *(d++) = x + n; *(d++) = y - m;
-    *(d++) = du + a; *(d++) = dv;
-    *(d++) = x + n; *(d++) = y + m;
-    *(d++) = du + a; *(d++) = dv + b;
-    *(d++) = x - n; *(d++) = y - m;
-    *(d++) = du + 0; *(d++) = dv;
-    *(d++) = x + n; *(d++) = y + m;
-    *(d++) = du + a; *(d++) = dv + b;
-    *(d++) = x - n; *(d++) = y + m;
-    *(d++) = du + 0; *(d++) = dv + b;
-}
-
 #endif

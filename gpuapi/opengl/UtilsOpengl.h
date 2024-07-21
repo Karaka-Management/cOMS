@@ -14,6 +14,7 @@
 #include "../../models/Attrib.h"
 #include "../../models/Texture.h"
 
+#include "../RenderUtils.h"
 #include "../../../EngineDependencies/opengl/glew/include/GL/glew.h"
 #include "../../../EngineDependencies/opengl/glfw/include/glfw3.h"
 
@@ -54,7 +55,7 @@ void window_create(Window* window, void*)
         NULL
     );
 
-    glfwSetInputMode(window->hwnd_lib, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window->hwnd_lib, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwMakeContextCurrent(window->hwnd_lib);
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -109,13 +110,14 @@ uint32 get_texture_data_type(uint32 texture_data_type)
     }
 }
 
+// 1. prepare_texture
+// 2. define wrap
+// 3. define filter
+// 4. load_texture_to_gpu
+
 inline
 void prepare_texture(TextureFile* texture, uint32 texture_unit)
 {
-    if (texture->id) {
-        return;
-    }
-
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
 
     glGenTextures(1, (GLuint *) &texture->id);
@@ -133,6 +135,15 @@ void load_texture_to_gpu(const TextureFile* texture)
         0, GL_RGBA, GL_UNSIGNED_BYTE,
         texture->image.pixels
     );
+
+    // @question use mipmap?
+}
+
+inline
+void texture_use(const TextureFile* texture, uint32 texture_unit)
+{
+    glActiveTexture(GL_TEXTURE0 + texture_unit);
+    glBindTexture(GL_TEXTURE_2D, texture->id);
 }
 
 GLuint make_shader(GLenum type, const char *source, RingMemory* ring)
@@ -152,8 +163,7 @@ GLuint make_shader(GLenum type, const char *source, RingMemory* ring)
 
         glGetShaderInfoLog(shader, length, NULL, info);
 
-        // @todo use global logger
-        fprintf(stderr, "glCompileShader failed:\n%s\n", info);
+        // @todo log
     }
 
     return shader;
@@ -166,6 +176,7 @@ GLuint load_shader(GLenum type, const char *path, RingMemory* ring) {
     file_body file;
     file.content = ring_get_memory(ring, MEGABYTE * 4);
 
+    // @todo consider to accept file as parameter and load file before
     file_read(path, &file);
     GLuint result = make_shader(type, (const char *) file.content, ring);
 
@@ -198,8 +209,11 @@ GLuint make_program(GLuint shader1, GLuint shader2, RingMemory* ring) {
         fprintf(stderr, "glLinkProgram failed: %s\n", info);
     }
 
+    // @question really?
     glDetachShader(program, shader1);
     glDetachShader(program, shader2);
+
+    // @question really?
     glDeleteShader(shader1);
     glDeleteShader(shader2);
 
@@ -215,8 +229,9 @@ GLuint load_program(const char *path1, const char *path2, RingMemory* ring) {
 }
 
 inline
-void activate_texture(TextureFile* texture, uint32 texture_unit)
+void shader_use(uint32 id)
 {
+    glUseProgram(id);
 }
 
 void draw_triangles_3d(Attrib *attrib, GLuint buffer, int count) {
@@ -296,16 +311,44 @@ int calculate_face_size(int components, int faces)
 // generates faces
 // data is no longer needed after this
 inline
-GLuint gpuapi_buffer_generate(int size, GLfloat *data)
+uint32 gpuapi_buffer_generate(int size, f32 *data)
 {
-    GLuint buffer;
+    uint32 vbo;
 
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    return buffer;
+    return vbo;
+}
+
+inline
+uint32 gpuapi_buffer_element_generate(int size, uint32 *data)
+{
+    uint32 ebo;
+
+    glGenBuffers(1, &ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+
+    return ebo;
+}
+
+inline
+uint32 gpuapi_vertex_array_generate()
+{
+    uint32 vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    return vao;
+}
+
+inline
+void gpuapi_unbind_all()
+{
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 }
 
 inline
@@ -313,7 +356,5 @@ void gpuapi_buffer_delete(GLuint buffer)
 {
     glDeleteBuffers(1, &buffer);
 }
-
-
 
 #endif

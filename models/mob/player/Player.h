@@ -16,7 +16,7 @@
 #include "../MobState.h"
 #include "../monster/LootTable.h"
 #include "Backpack.h"
-#include "PlayerStats.h"
+#include "../MobStats.h"
 
 #ifndef MAX_CHAR_NAME_LENGTH
     #define MAX_CHAR_NAME_LENGTH 32
@@ -29,7 +29,7 @@
 #if SERVER
     struct SPlayer {
         Mob mob;
-        SPlayerStats player_stats;
+        SMobStats player_stats;
 
         char name[MAX_CHAR_NAME_LENGTH];
         char title[MAX_CHAR_TITLE_LENGTH];
@@ -89,7 +89,7 @@
 
 struct CPlayer {
     Mob mob;
-    CPlayerStats player_stats;
+    CMobStats player_stats;
 
     char name[MAX_CHAR_NAME_LENGTH];
     char title[MAX_CHAR_TITLE_LENGTH];

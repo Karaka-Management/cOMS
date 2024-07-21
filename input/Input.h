@@ -9,7 +9,7 @@
 #ifndef TOS_INPUT_H
 #define TOS_INPUT_H
 
-#define MAX_KEY_PRESSES 4
+#define MAX_KEY_PRESSES 5
 #define MIN_INPUT_DEVICES 2
 
 #define INPUT_TYPE_MOUSE 0x01
@@ -38,16 +38,12 @@ struct InputState {
         HANDLE handle_mouse;
     #endif
 
-    // Keyboard
-    bool key_down = false;
-    bool key_up = false;
-    uint16 key = 0;
-
     // After handling the keyboard state change the game loop should set this to false
     bool state_change_keyboard = false;
 
     // We only consider up to 4 pressed keys
     // Depending on the keyboard you may only be able to detect a limited amount of key presses anyway
+    uint16 keys_down_old[MAX_KEY_PRESSES];
     uint16 keys_down[MAX_KEY_PRESSES];
 
     // Mouse
@@ -60,20 +56,10 @@ struct InputState {
     uint32 x_last;
     uint32 y_last;
 
-    bool mouse1_down = false;
-    bool mouse1_up = false;
-
-    bool mouse2_down = false;
-    bool mouse2_up = false;
-
-    bool mouse3_down = false;
-    bool mouse3_up = false;
-
-    bool mouse4_down = false;
-    bool mouse4_up = false;
-
-    bool mouse5_down = false;
-    bool mouse5_up = false;
+    // https://usb.org/sites/default/files/hid1_11.pdf Page 71 or 61
+    // @question consider to use bit field (one int32 would be sufficient)
+    bool mouse_down_old[18];
+    bool mouse1_down[18];
 
     int16 wheel_delta = 0;
     uint32 raw_button = 0;
@@ -86,23 +72,18 @@ struct ControllerState {
     // After handling the state change the game loop should set this to false
     bool state_change = false;
 
+    // @question maybe make part of button
     bool up = false;
     bool down = false;
     bool left = false;
     bool right = false;
-    bool start = false;
-    bool back = false;
 
-    bool shoulder_left = false;
-    bool shoulder_right = false;
+    byte trigger_old[4];
+    byte trigger[4];
 
-    byte trigger_left = 0;
-    byte trigger_right = 0;
-
-    bool button_a = false;
-    bool button_b = false;
-    bool button_x = false;
-    bool button_y = false;
+    // @question consider to use bit field (one int32 would be sufficient)
+    bool button_old[10];
+    bool button[10];
 
     int16 stickl_x = 0;
     int16 stickl_y = 0;

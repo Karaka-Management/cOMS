@@ -9,6 +9,8 @@
 #ifndef TOS_NETWORK_SOCKET_CONNECTION_H
 #define TOS_NETWORK_SOCKET_CONNECTION_H
 
+#include "../stdlib/Types.h"
+
 #if _WIN32
     #include <winsock2.h>
     #include <ws2tcpip.h>
@@ -19,9 +21,15 @@
 #endif
 
 struct SocketConnection {
-    SOCKET sd;
+    #if _WIN32
+        SOCKET sd;
+    #else
+        int sd;
+    #endif
+
     sockaddr_in6 server_addr;
     socklen_t addr_len;
+    uint16 port;
 };
 
 #endif

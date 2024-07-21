@@ -108,7 +108,7 @@ void audio_play(AudioSetting* setting, DirectSoundSetting* api_setting)
 }
 
 inline
-void audio_free(AudioSetting* setting, DirectSoundSetting* api_setting)
+void audio_free(AudioSetting*, DirectSoundSetting* api_setting)
 {
     if (api_setting->direct_sound) {
         api_setting->direct_sound->Release();

@@ -54,7 +54,7 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 1, bool zero
         ring->pos = 0;
     }
 
-    byte* offset = (byte *) ring->memory[ring->pos];
+    byte* offset = (byte *) (ring->memory + ring->pos);
     if (zeroed) {
         memset((void *) offset, 0, size);
     }
@@ -62,6 +62,17 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 1, bool zero
     ring->pos += size;
 
     return offset;
+}
+
+// Used if the ring only contains elements of a certain size
+// This way you can get a certain element
+inline
+byte *ring_get_element(const RingMemory* ring, uint64 element_count, uint64 element, uint64 size)
+{
+    uint64 index = (element % element_count) - 1;
+    index = index < 0 ? element_count : index;
+
+    return ring->memory + index * size;
 }
 
 inline
@@ -77,6 +88,10 @@ inline
 bool ring_commit_safe(const RingMemory* ring, uint64 size, byte aligned = 1)
 {
     uint64 pos = ring_calculate_position(ring, ring->pos, size, aligned);
+
+    if (ring->start == ring->end && ring->pos == 0) {
+        return true;
+    }
 
     return ring->start < ring->pos
         ? ring->start < pos

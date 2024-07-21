@@ -11,6 +11,7 @@
 
 #include "../stdlib/Types.h"
 
+inline
 uint32 bytes_merge(byte b0, byte b1, byte b2, byte b3) {
     uint32 result = 0;
 
@@ -22,6 +23,7 @@ uint32 bytes_merge(byte b0, byte b1, byte b2, byte b3) {
     return result;
 }
 
+inline
 uint64 bytes_merge(
     byte b0, byte b1, byte b2, byte b3,
     byte b4, byte b5, byte b6, byte b7
