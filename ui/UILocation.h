@@ -1,0 +1,13 @@
+#ifndef TOS_UI_LOCATION_H
+#define TOS_UI_LOCATION_H
+
+enum UILocation {
+    UI_LOCATION_LEFT,
+    UI_LOCATION_CENTER,
+    UI_LOCATION_RIGHT,
+
+    UI_LOCATION_FLEX_ROW,
+    UI_LOCATION_FLEX_COL
+};
+
+#endif

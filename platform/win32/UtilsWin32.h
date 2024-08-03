@@ -9,7 +9,9 @@
 #ifndef TOS_UTILS_WIN32_H
 #define TOS_UTILS_WIN32_H
 
+#include <stdio.h>
 #include <windows.h>
+#include <string.h>
 #ifdef _MSC_VER
     #include  <io.h>
 #endif
@@ -294,6 +296,21 @@ inline void self_path(char* path)
 {
     //HMODULE dll = GetModuleHandle(NULL);
     GetModuleFileNameA(NULL, (LPSTR) path, MAX_PATH);
+}
+
+inline void relative_to_absolute(const char* rel, char* path)
+{
+    char self_path[MAX_PATH];
+    if (GetModuleFileNameA(NULL, self_path, MAX_PATH) == 0) {
+        return;
+    }
+
+    char* last = strrchr(self_path, '\\');
+    if (last != NULL) {
+        *(last + 1) = '\0';
+    }
+
+    snprintf(path, MAX_PATH, "%s%s", self_path, rel);
 }
 
 void log_to_file(LogPool* logs, HANDLE fp)

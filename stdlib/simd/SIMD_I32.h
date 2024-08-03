@@ -15,6 +15,9 @@
 #include "../Types.h"
 #include "SIMD_F32.h"
 
+// @todo a lot of sse functions require high level (e.g. sse4.1) this needs to be changed to be more general
+//      or better create alternative functions for the available sse version.
+
 struct int32_4 {
     union {
         __m128i s;
@@ -36,7 +39,7 @@ struct int32_16 {
     };
 };
 
-inline int32_4 load_int32_4(int32 *mem)
+inline int32_4 load_int32_4(const int32* mem)
 {
     int32_4 simd;
     simd.s = _mm_loadu_epi32(mem);
@@ -44,7 +47,7 @@ inline int32_4 load_int32_4(int32 *mem)
     return simd;
 }
 
-inline int32_4 init_int32_4(int32 *mem)
+inline int32_4 init_int32_4(const int32* mem)
 {
     int32_4 simd;
     simd.s = _mm_set_epi32(mem[0], mem[1], mem[2], mem[3]);
@@ -54,7 +57,7 @@ inline int32_4 init_int32_4(int32 *mem)
 
 inline void unload_int32_4(int32_4 a, int32 *array) { _mm_store_si128((__m128i *) array, a.s); }
 
-inline int32_8 load_int32_8(int32 *mem)
+inline int32_8 load_int32_8(const int32* mem)
 {
     int32_8 simd;
     simd.s = _mm256_loadu_epi32(mem);
@@ -62,7 +65,7 @@ inline int32_8 load_int32_8(int32 *mem)
     return simd;
 }
 
-inline int32_8 init_int32_8(int32 *mem)
+inline int32_8 init_int32_8(const int32* mem)
 {
     int32_8 simd;
     simd.s = _mm256_set_epi32(mem[0], mem[1], mem[2], mem[3], mem[4], mem[5], mem[6], mem[7]);
@@ -72,7 +75,7 @@ inline int32_8 init_int32_8(int32 *mem)
 
 inline void unload_int32_8(int32_8 a, int32 *array) { _mm256_store_si256((__m256i *) array, a.s); }
 
-inline int32_16 load_int32_16(int32 *mem)
+inline int32_16 load_int32_16(const int32* mem)
 {
     int32_16 simd;
     simd.s = _mm512_loadu_epi32(mem);
@@ -80,7 +83,7 @@ inline int32_16 load_int32_16(int32 *mem)
     return simd;
 }
 
-inline int32_16 init_int32_16(int32 *mem)
+inline int32_16 init_int32_16(const int32* mem)
 {
     int32_16 simd;
     simd.s = _mm512_set_epi32(mem[0], mem[1], mem[2], mem[3], mem[4], mem[5], mem[6], mem[7], mem[8], mem[9],
@@ -113,6 +116,116 @@ inline int32_16 init_zero_int32_16()
     simd.s = _mm512_setzero_epi32();
 
     return simd;
+}
+
+inline int32_4 init_value_int32_4(int32 value)
+{
+    int32_4 simd;
+    simd.s = _mm_set1_epi32(value);
+
+    return simd;
+}
+
+inline int32_8 init_value_int32_8(int32 value)
+{
+    int32_8 simd;
+    simd.s = _mm256_set1_epi32(value);
+
+    return simd;
+}
+
+inline int32_16 init_value_int32_16(int32 value)
+{
+    int32_16 simd;
+    simd.s = _mm512_set1_epi32(value);
+
+    return simd;
+}
+
+inline int32_4 init_values_int32_4(int32 a, int32 b, int32 c, int32 d)
+{
+    int32_4 simd;
+    simd.s = _mm_set_epi32(a, b, c, d);
+
+    return simd;
+}
+
+inline int32_8 init_values_int32_8(
+    int32 a, int32 b, int32 c, int32 d,
+    int32 e, int32 f, int32 g, int32 h
+)
+{
+    int32_8 simd;
+    simd.s = _mm256_set_epi32(a, b, c, d, e, f, g, h);
+
+    return simd;
+}
+
+inline int32_16 init_values_int32_16(
+    int32 a, int32 b, int32 c, int32 d,
+    int32 e, int32 f, int32 g, int32 h,
+    int32 i, int32 j, int32 k, int32 l,
+    int32 m, int32 n, int32 o, int32 p
+)
+{
+    int32_16 simd;
+    simd.s = _mm512_set_epi32(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+
+    return simd;
+}
+
+inline
+int32_4 f32_4_to_int32_4(f32_4 a)
+{
+    int32_4 result;
+    result.s = _mm_cvtps_epi32(a.s);
+
+    return result;
+}
+
+inline
+f32_4 int32_4_to_f32_4(int32_4 a)
+{
+    f32_4 result;
+    result.s = _mm_cvtepi32_ps(a.s);
+
+    return result;
+}
+
+inline
+int32_8 f32_8_to_int32_8(f32_8 a)
+{
+    int32_8 result;
+    result.s = _mm256_cvtps_epi32(a.s);
+
+    return result;
+}
+
+inline
+f32_8 int32_8_to_f32_8(int32_8 a)
+{
+    f32_8 result;
+    result.s = _mm256_cvtepi32_ps(a.s);
+
+    return result;
+}
+
+inline
+int32_16 f32_16_to_int32_16(f32_16 a)
+{
+    int32_16 result;
+    result.s = _mm512_cvtps_epi32(a.s);
+
+    return result;
+}
+
+inline
+f32_16 int32_16_to_f32_16(int32_16 a)
+{
+    f32_16 result;
+    result.s = _mm512_cvtepi32_ps(a.s);
+
+    return result;
 }
 
 inline int32_4 operator+(int32_4 a, int32_4 b)
@@ -193,26 +306,74 @@ inline int32_16 operator*(int32_16 a, int32_16 b)
     return simd;
 }
 
-inline f32_4 operator/(int32_4 a, int32_4 b)
+inline int32_4 operator/(int32_4 a, int32_4 b)
+{
+    int32_4 simd;
+    simd.s = _mm_div_epi32(a.s, b.s);
+
+    return simd;
+}
+
+inline int32_8 operator/(int32_8 a, int32_8 b)
+{
+    int32_8 simd;
+    simd.s = _mm256_div_epi32(a.s, b.s);
+
+    return simd;
+}
+
+inline int32_16 operator/(int32_16 a, int32_16 b)
+{
+    int32_16 simd;
+    simd.s = _mm512_div_epi32(a.s, b.s);
+
+    return simd;
+}
+
+inline f32_4 operator/(f32_4 a, int32_4 b)
 {
     f32_4 simd;
-    simd.s = _mm_div_ps(_mm_cvtepi32_ps(a.s), _mm_cvtepi32_ps(b.s));
+    simd.s = _mm_div_ps(a.s, _mm_cvtepi32_ps(b.s));
 
     return simd;
 }
 
-inline f32_8 operator/(int32_8 a, int32_8 b)
+inline f32_8 operator/(f32_8 a, int32_8 b)
 {
     f32_8 simd;
-    simd.s = _mm256_div_ps(_mm256_cvtepi32_ps(a.s), _mm256_cvtepi32_ps(b.s));
+    simd.s = _mm256_div_ps(a.s, _mm256_cvtepi32_ps(b.s));
 
     return simd;
 }
 
-inline f32_16 operator/(int32_16 a, int32_16 b)
+inline f32_16 operator/(f32_16 a, int32_16 b)
 {
     f32_16 simd;
-    simd.s = _mm512_div_ps(_mm512_cvtepi32_ps(a.s), _mm512_cvtepi32_ps(b.s));
+    simd.s = _mm512_div_ps(a.s, _mm512_cvtepi32_ps(b.s));
+
+    return simd;
+}
+
+inline f32_4 operator/(int32_4 a, f32_4 b)
+{
+    f32_4 simd;
+    simd.s = _mm_div_ps(_mm_cvtepi32_ps(a.s), b.s);
+
+    return simd;
+}
+
+inline f32_8 operator/(int32_8 a, f32_8 b)
+{
+    f32_8 simd;
+    simd.s = _mm256_div_ps(_mm256_cvtepi32_ps(a.s), b.s);
+
+    return simd;
+}
+
+inline f32_16 operator/(int32_16 a, f32_16 b)
+{
+    f32_16 simd;
+    simd.s = _mm512_div_ps(_mm512_cvtepi32_ps(a.s), b.s);
 
     return simd;
 }
@@ -306,21 +467,21 @@ inline int32_16 &operator*=(int32_16 &a, int32_16 b)
 
 inline int32_4 &operator/=(int32_4 &a, int32_4 b)
 {
-    a.s = _mm_cvtps_epi32((a / b).s);
+    a.s = (a / b).s;
 
     return a;
 }
 
 inline int32_8 &operator/=(int32_8 &a, int32_8 b)
 {
-    a.s = _mm256_cvtps_epi32((a / b).s);
+    a.s = (a / b).s;
 
     return a;
 }
 
 inline int32_16 &operator/=(int32_16 &a, int32_16 b)
 {
-    a.s = _mm512_cvtps_epi32((a / b).s);
+    a.s = (a / b).s;
 
     return a;
 }
@@ -582,28 +743,24 @@ inline int32_16 &operator|=(int32_16 &a, int32_16 b)
 
 inline int32_4 abs(int32_4 a)
 {
-    __m128i mask = _mm_set1_epi32(0x7FFFFFFF);
-
     int32_4 simd;
-    simd.s = _mm_and_si128(a.s, mask);
+    simd.s = _mm_abs_epi32(a.s);
 
     return simd;
 }
 
 inline int32_8 abs(int32_8 a)
 {
-    __m256i mask = _mm256_set1_epi32(0x7FFFFFFF);
     int32_8 simd;
-    simd.s = _mm256_and_si256(a.s, mask);
+    simd.s = _mm256_abs_epi32(a.s);
 
     return simd;
 }
 
 inline int32_16 abs(int32_16 a)
 {
-    __m512i mask = _mm512_set1_epi32(0x7FFFFFFF);
     int32_16 simd;
-    simd.s = _mm512_and_epi32(a.s, mask);
+    simd.s = _mm512_abs_epi64(a.s);
 
     return simd;
 }
@@ -863,5 +1020,547 @@ inline bool all_false(int32_16 a)
 
     return is_false;
 }
+
+// @todo from down here we can optimize some of the code by NOT using the wrappers
+//      the code is self contained and we could use te intrinsic functions directly
+
+inline
+void simd_mult(const int32* a, const int32* b, int32* result, int size, int steps)
+{
+    int i = 0;
+
+    if (steps == 16) {
+        int32_16 a_16;
+        int32_16 b_16;
+        int32_16 result_16;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_16 = load_int32_16(a);
+            b_16 = load_int32_16(b);
+            result_16 = a_16 * b_16;
+            unload_int32_16(result_16, result);
+       }
+    } else if (steps == 8) {
+        int32_8 a_8;
+        int32_8 b_8;
+        int32_8 result_8;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_8 = load_int32_8(a);
+            b_8 = load_int32_8(b);
+            result_8 = a_8 * b_8;
+            unload_int32_8(result_8, result);
+       }
+    } else if (steps == 4) {
+        int32_4 a_4;
+        int32_4 b_4;
+        int32_4 result_4;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_4 = load_int32_4(a);
+            b_4 = load_int32_4(b);
+            result_4 = a_4 * b_4;
+            unload_int32_4(result_4, result);
+       }
+    }
+
+    for (; i < size; ++i) {
+        ++a;
+        ++b;
+        ++result;
+
+        *result = *a * *b;
+    }
+}
+
+inline
+void simd_mult(const int32* a, const f32* b, f32* result, int size, int steps)
+{
+    int i = 0;
+
+    if (steps == 16) {
+        int32_16 a_16;
+        f32_16 af_16;
+        f32_16 b_16;
+        f32_16 result_16;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_16 = load_int32_16(a);
+            af_16 = int32_16_to_f32_16(a_16);
+            b_16 = load_f32_16(b);
+            result_16 = af_16 * b_16;
+            unload_f32_16(result_16, result);
+       }
+    } else if (steps == 8) {
+        int32_8 a_8;
+        f32_8 af_8;
+        f32_8 b_8;
+        f32_8 result_8;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_8 = load_int32_8(a);
+            af_8 = int32_8_to_f32_8(a_8);
+            b_8 = load_f32_8(b);
+            result_8 = af_8 * b_8;
+            unload_f32_8(result_8, result);
+       }
+    } else if (steps == 4) {
+        int32_4 a_4;
+        f32_4 af_4;
+        f32_4 b_4;
+        f32_4 result_4;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_4 = load_int32_4(a);
+            af_4 = int32_4_to_f32_4(a_4);
+            b_4 = load_f32_4(b);
+            result_4 = af_4 * b_4;
+            unload_f32_4(result_4, result);
+       }
+    }
+
+    for (; i < size; ++i) {
+        ++a;
+        ++b;
+        ++result;
+
+        *result = *a * *b;
+    }
+}
+
+inline
+void simd_mult(const int32* a, const f32* b, int32* result, int size, int steps)
+{
+    int i = 0;
+
+    if (steps == 16) {
+        int32_16 a_16;
+        f32_16 af_16;
+        f32_16 b_16;
+        f32_16 result_16;
+        int32_16 resulti_16;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_16 = load_int32_16(a);
+            af_16 = int32_16_to_f32_16(a_16);
+            b_16 = load_f32_16(b);
+            result_16 = af_16 * b_16;
+            resulti_16 = f32_16_to_int32_16(result_16);
+            unload_int32_16(resulti_16, result);
+       }
+    } else if (steps == 8) {
+        int32_8 a_8;
+        f32_8 af_8;
+        f32_8 b_8;
+        f32_8 result_8;
+        int32_8 resulti_8;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_8 = load_int32_8(a);
+            af_8 = int32_8_to_f32_8(a_8);
+            b_8 = load_f32_8(b);
+            result_8 = af_8 * b_8;
+            resulti_8 = f32_8_to_int32_8(result_8);
+            unload_int32_8(resulti_8, result);
+       }
+    } else if (steps == 4) {
+        int32_4 a_4;
+        f32_4 af_4;
+        f32_4 b_4;
+        f32_4 result_4;
+        int32_4 resulti_4;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_4 = load_int32_4(a);
+            af_4 = int32_4_to_f32_4(a_4);
+            b_4 = load_f32_4(b);
+            result_4 = af_4 * b_4;
+            resulti_4 = f32_4_to_int32_4(result_4);
+            unload_int32_4(resulti_4, result);
+       }
+    }
+
+    for (; i < size; ++i) {
+        ++a;
+        ++b;
+        ++result;
+
+        *result = *a * *b;
+    }
+}
+
+inline
+void int32_4_mult(const int32* a, const int32* b, int32* result)
+{
+    int32_4 a_4 = load_int32_4(a);
+    int32_4 b_4 = load_int32_4(b);
+    int32_4 result_4 = a_4 * b_4;
+
+    unload_int32_4(result_4, result);
+}
+
+inline
+void int32_8_mult(const int32* a, const int32* b, int32* result)
+{
+    int32_8 a_8 = load_int32_8(a);
+    int32_8 b_8 = load_int32_8(b);
+    int32_8 result_8 = a_8 * b_8;
+
+    unload_int32_8(result_8, result);
+}
+
+inline
+void int32_16_mult(const int32* a, const int32* b, int32* result)
+{
+    int32_16 a_16 = load_int32_16(a);
+    int32_16 b_16 = load_int32_16(b);
+    int32_16 result_16 = a_16 * b_16;
+
+    unload_int32_16(result_16, result);
+}
+
+inline
+void int32_4_mult(const int32* a, const f32* b, f32* result)
+{
+    int32_4 a_4 = load_int32_4(a);
+    f32_4 af_4 = int32_4_to_f32_4(a_4);
+    f32_4 b_4 = load_f32_4(b);
+    f32_4 result_4 = af_4 * b_4;
+
+    unload_f32_4(result_4, result);
+}
+
+inline
+void int32_8_mult(const int32* a, const f32* b, f32* result)
+{
+    int32_8 a_8 = load_int32_8(a);
+    f32_8 af_8 = int32_8_to_f32_8(a_8);
+    f32_8 b_8 = load_f32_8(b);
+    f32_8 result_8 = af_8 * b_8;
+
+    unload_f32_8(result_8, result);
+}
+
+inline
+void int32_16_mult(const int32* a, const f32* b, f32* result)
+{
+    int32_16 a_16 = load_int32_16(a);
+    f32_16 af_16 = int32_16_to_f32_16(a_16);
+    f32_16 b_16 = load_f32_16(b);
+    f32_16 result_16 = af_16 * b_16;
+
+    unload_f32_16(result_16, result);
+}
+
+inline
+void simd_add(const int32* a, const int32* b, int32* result, int size, int steps)
+{
+    int i = 0;
+
+    if (steps == 16) {
+        int32_16 a_16;
+        int32_16 b_16;
+        int32_16 result_16;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_16 = load_int32_16(a);
+            b_16 = load_int32_16(b);
+            result_16 = a_16 + b_16;
+            unload_int32_16(result_16, result);
+       }
+    } else if (steps == 8) {
+        int32_8 a_8;
+        int32_8 b_8;
+        int32_8 result_8;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_8 = load_int32_8(a);
+            b_8 = load_int32_8(b);
+            result_8 = a_8 + b_8;
+            unload_int32_8(result_8, result);
+       }
+    } else if (steps == 4) {
+        int32_4 a_4;
+        int32_4 b_4;
+        int32_4 result_4;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_4 = load_int32_4(a);
+            b_4 = load_int32_4(b);
+            result_4 = a_4 + b_4;
+            unload_int32_4(result_4, result);
+       }
+    }
+
+    for (; i < size; ++i) {
+        ++a;
+        ++b;
+        ++result;
+
+        *result = *a + *b;
+    }
+}
+
+inline
+void simd_add(const int32* a, const f32* b, f32* result, int size, int steps)
+{
+    int i = 0;
+
+    if (steps == 16) {
+        int32_16 a_16;
+        f32_16 af_16;
+        f32_16 b_16;
+        f32_16 result_16;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_16 = load_int32_16(a);
+            af_16 = int32_16_to_f32_16(a_16);
+            b_16 = load_f32_16(b);
+            result_16 = af_16 + b_16;
+            unload_f32_16(result_16, result);
+       }
+    } else if (steps == 8) {
+        int32_8 a_8;
+        f32_8 af_8;
+        f32_8 b_8;
+        f32_8 result_8;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_8 = load_int32_8(a);
+            af_8 = int32_8_to_f32_8(a_8);
+            b_8 = load_f32_8(b);
+            result_8 = af_8 + b_8;
+            unload_f32_8(result_8, result);
+       }
+    } else if (steps == 4) {
+        int32_4 a_4;
+        f32_4 af_4;
+        f32_4 b_4;
+        f32_4 result_4;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_4 = load_int32_4(a);
+            af_4 = int32_4_to_f32_4(a_4);
+            b_4 = load_f32_4(b);
+            result_4 = af_4 + b_4;
+            unload_f32_4(result_4, result);
+       }
+    }
+
+    for (; i < size; ++i) {
+        ++a;
+        ++b;
+        ++result;
+
+        *result = *a + *b;
+    }
+}
+
+inline
+void simd_add(const int32* a, const f32* b, int32* result, int size, int steps)
+{
+    int i = 0;
+
+    if (steps == 16) {
+        int32_16 a_16;
+        f32_16 af_16;
+        f32_16 b_16;
+        f32_16 result_16;
+        int32_16 resulti_16;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_16 = load_int32_16(a);
+            af_16 = int32_16_to_f32_16(a_16);
+            b_16 = load_f32_16(b);
+            result_16 = af_16 + b_16;
+            resulti_16 = f32_16_to_int32_16(result_16);
+            unload_int32_16(resulti_16, result);
+       }
+    } else if (steps == 8) {
+        int32_8 a_8;
+        f32_8 af_8;
+        f32_8 b_8;
+        f32_8 result_8;
+        int32_8 resulti_8;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_8 = load_int32_8(a);
+            af_8 = int32_8_to_f32_8(a_8);
+            b_8 = load_f32_8(b);
+            result_8 = af_8 + b_8;
+            resulti_8 = f32_8_to_int32_8(result_8);
+            unload_int32_8(resulti_8, result);
+       }
+    } else if (steps == 4) {
+        int32_4 a_4;
+        f32_4 af_4;
+        f32_4 b_4;
+        f32_4 result_4;
+        int32_4 resulti_4;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_4 = load_int32_4(a);
+            af_4 = int32_4_to_f32_4(a_4);
+            b_4 = load_f32_4(b);
+            result_4 = af_4 + b_4;
+            resulti_4 = f32_4_to_int32_4(result_4);
+            unload_int32_4(resulti_4, result);
+       }
+    }
+
+    for (; i < size; ++i) {
+        ++a;
+        ++b;
+        ++result;
+
+        *result = *a + *b;
+    }
+}
+
+inline
+void int32_4_add(const int32* a, const int32* b, int32* result)
+{
+    int32_4 a_4 = load_int32_4(a);
+    int32_4 b_4 = load_int32_4(b);
+    int32_4 result_4 = a_4 + b_4;
+
+    unload_int32_4(result_4, result);
+}
+
+inline
+void int32_8_add(const int32* a, const int32* b, int32* result)
+{
+    int32_8 a_8 = load_int32_8(a);
+    int32_8 b_8 = load_int32_8(b);
+    int32_8 result_8 = a_8 + b_8;
+
+    unload_int32_8(result_8, result);
+}
+
+inline
+void int32_16_add(const int32* a, const int32* b, int32* result)
+{
+    int32_16 a_16 = load_int32_16(a);
+    int32_16 b_16 = load_int32_16(b);
+    int32_16 result_16 = a_16 + b_16;
+
+    unload_int32_16(result_16, result);
+}
+
+inline
+void int32_4_add(const int32* a, const f32* b, f32* result)
+{
+    int32_4 a_4 = load_int32_4(a);
+    f32_4 af_4 = int32_4_to_f32_4(a_4);
+    f32_4 b_4 = load_f32_4(b);
+    f32_4 result_4 = af_4 + b_4;
+
+    unload_f32_4(result_4, result);
+}
+
+inline
+void int32_8_add(const int32* a, const f32* b, f32* result)
+{
+    int32_8 a_8 = load_int32_8(a);
+    f32_8 af_8 = int32_8_to_f32_8(a_8);
+    f32_8 b_8 = load_f32_8(b);
+    f32_8 result_8 = af_8 + b_8;
+
+    unload_f32_8(result_8, result);
+}
+
+inline
+void int32_16_add(const int32* a, const f32* b, f32* result)
+{
+    int32_16 a_16 = load_int32_16(a);
+    f32_16 af_16 = int32_16_to_f32_16(a_16);
+    f32_16 b_16 = load_f32_16(b);
+    f32_16 result_16 = af_16 + b_16;
+
+    unload_f32_16(result_16, result);
+}
+
+// WARNING: only works with SSE4.2
+// WARNING: incl. \0 both strings must be <= 16
+bool simd_str_compare(const char* str1, const char* str2) {
+    __m128i s1 = _mm_loadu_si128((const __m128i*) str1);
+    __m128i s2 = _mm_loadu_si128((const __m128i*) str2);
+
+    return _mm_cmpistrc(s1, s2, _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_EACH) == 0;
+}
+
+// @todo add more operations like the one above "int32_4_mult()"
 
 #endif

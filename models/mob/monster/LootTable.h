@@ -14,6 +14,7 @@
 #include "../../../utils/MathUtils.h"
 #include "Drop.h"
 
+// @todo how to do class specific loot table?
 struct LootTable {
     // Chance this table becomes effective at all
     // Useful to define multiple loot tables for a mob e.g. normal drop + 1 rare guarantueed
@@ -38,6 +39,10 @@ struct LootTable {
     // How much gold should be dropped
     uint32 gold_min_count;
     uint32 gold_max_count;
+
+    // How much xp should be dropped
+    uint32 xp_min_count;
+    uint32 xp_max_count;
 };
 
 // 1. check if table comes into effect

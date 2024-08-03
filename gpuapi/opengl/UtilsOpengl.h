@@ -357,4 +357,15 @@ void gpuapi_buffer_delete(GLuint buffer)
     glDeleteBuffers(1, &buffer);
 }
 
+void render_9_patch(GLuint texture,
+    int imgWidth, int imgHeight,
+    int img_x1, int img_x2,
+    int img_y1, int img_y2,
+    int renderWidth, int renderHeight,
+    int repeat
+)
+{
+
+}
+
 #endif

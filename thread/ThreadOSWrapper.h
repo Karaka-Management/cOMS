@@ -265,6 +265,8 @@ void ms_to_timespec(timespec *ts, uint32 ms)
 
         return sysinfo.dwNumberOfProcessors;
     }
+
+    #define pthread_exit(a) {return (a);}
 #else
     unsigned int pcthread_get_num_procs()
     {

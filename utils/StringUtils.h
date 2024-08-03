@@ -15,6 +15,28 @@
 
 #include "../stdlib/Types.h"
 
+inline
+void wchar_to_char(const wchar_t* src, char* dest, int length = 0)
+{
+    char* temp = (char *) src;
+    size_t len = wcslen(src) * sizeof(wchar_t);
+
+    if (length > 0 && length < len) {
+        len = length;
+    }
+
+    for (int i = 0; i < len; ++i) {
+        if (*temp != '\0') {
+            *dest = (char) *temp;
+            ++dest;
+        }
+
+        ++temp;
+    }
+
+    *dest = '\0';
+}
+
 inline size_t str_count(const char *str, const char *substr)
 {
     size_t l1 = strlen(str);

@@ -20,6 +20,7 @@ struct EquipmentType {
     bool damage;
     bool armor;
     bool supporting;
+    bool beam;
 };
 
 #endif

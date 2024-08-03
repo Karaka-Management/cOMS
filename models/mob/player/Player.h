@@ -35,6 +35,9 @@
         char title[MAX_CHAR_TITLE_LENGTH];
 
         Equipment equipment[14];
+
+        PrimaryStatsPoints stat_points;
+
         PSettings settings;
 
         Backpack* packpack;

@@ -16,10 +16,41 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <linux/limits.h>
+#include <errno.h>
+#include <stdarg.h>
 
 #include "../../stdlib/Types.h"
 #include "../../utils/Utils.h"
 #include "../../utils/TestUtils.h"
+
+#ifndef MAX_PATH
+    #define MAX_PATH PATH_MAX
+#endif
+
+int sprintf_s(char *buffer, size_t sizeOfBuffer, const char *format, ...) {
+    int result;
+    va_list args;
+
+    if (buffer == NULL || format == NULL || sizeOfBuffer == 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    va_start(args, format);
+
+    result = vsnprintf(buffer, sizeOfBuffer, format, args);
+
+    va_end(args);
+
+    if (result >= 0 && (size_t)result >= sizeOfBuffer) {
+        buffer[sizeOfBuffer - 1] = '\0';
+        errno = 80;
+        return 80;
+    }
+
+    // Return the result
+    return result;
+}
 
 inline
 uint64 file_size(const char* filename) {
@@ -177,6 +208,23 @@ void self_path(char* path) {
     } else {
         path[0] = '\0';
     }
+}
+
+inline void relative_to_absolute(const char* rel, char* path)
+{
+    char self_path[MAX_PATH];
+    ssize_t count = readlink("/proc/self/exe", self_path, MAX_PATH - 1);
+    if (count == -1) {
+        return;
+    }
+    self_path[count] = '\0';
+
+    char* last = strrchr(self_path, '/');
+    if (last != NULL) {
+        *(last + 1) = '\0';
+    }
+
+    snprintf(path, MAX_PATH, "%s%s", self_path, rel);
 }
 
 inline

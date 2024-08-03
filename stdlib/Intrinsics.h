@@ -10,11 +10,11 @@
 #define TOS_STDLIB_INTRINSICS_H
 
 #include <immintrin.h>
-#include <inttypes.h>
 #include <xmmintrin.h>
 
 #if __linux__
     #include <x86intrin.h>
+    #include <x86gprintrin.h>
 #endif
 
 #include "Types.h"
@@ -63,6 +63,22 @@ inline uint32 hash(uint64 a, uint64 b = 0)
     hash         = _mm_aesdec_si128(hash, _mm_loadu_si128((__m128i *) seed));
 
     return _mm_extract_epi32(hash, 0);
+}
+
+inline void atomic_increment(int32* a, int32 b) {
+    _aadd_i32(a, b);
+}
+
+inline void atomic_increment(int64* a, int64 b) {
+    _aadd_i64(a, b);
+}
+
+inline void atomic_decrement(int32* a, int32 b) {
+    _aadd_i32(a, -b);
+}
+
+inline void atomic_decrement(int64* a, int64 b) {
+    _aadd_i64(a, -b);
 }
 
 #endif

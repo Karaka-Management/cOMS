@@ -17,81 +17,160 @@
     #include <intrin.h>
 #endif
 
-inline
-bool is_sse_supported()
+// @todo implement for arm?
+
+inline int max_sse_supported()
 {
     #ifdef _MSC_VER
         int cpuInfo[4] = {-1};
         __cpuid(cpuInfo, 1); // CPUID function 1
 
-        // Check the SSE feature bit in EDX
-        return (cpuInfo[3] >> 25) & 1;
+        uint32_t ecx = cpuInfo[2];
+        uint32_t edx = cpuInfo[3];
     #else
         uint32_t eax, ebx, ecx, edx;
 
         eax = 1; // CPUID function 1
-
-        __asm__ __volatile__("cpuid;" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(eax));
-
-        // Check the AVX feature bit in ECX
-        return (ecx >> 28) & 1;
+        __asm__ __volatile__("cpuid;"
+                             : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+                             : "a"(eax));
     #endif
+
+    bool sse42_supported = (ecx >> 20) & 1;
+    if (sse42_supported) {
+        return 42;
+    }
+
+    bool sse41_supported = (ecx >> 19) & 1;
+    if (sse41_supported) {
+        return 41;
+    }
+
+    bool sse3_supported = (ecx >> 0) & 1;
+    if (sse3_supported) {
+        return 3;
+    }
+
+    bool sse2_supported = (edx >> 26) & 1;
+    if (sse2_supported) {
+        return 2;
+    }
+
+    return 0;
 }
 
 inline
-bool is_avx256_supported()
+int max_avx256_supported()
 {
+    int max_version = 0;
+
     #ifdef _MSC_VER
-        int cpuInfo[4] = {-1};
-        __cpuid(cpuInfo, 1); // CPUID function 1
+        int cpuInfo[4];
+        __cpuid(cpuInfo, 1);
 
-        // Check the AVX feature bit in ECX
         if ((cpuInfo[2] >> 28) & 1) {
-            __cpuid(cpuInfo, 7); // CPUID function 7, sub-function 0
-            // Check the AVX2 feature bit in EBX
-            return (cpuInfo[1] >> 5) & 1;
+            __cpuid(cpuInfo, 7); // Query extended features
+
+            if ((cpuInfo[1] >> 5) & 1) {
+                max_version = 2;
+            }
         }
-
-        return false;
     #else
-        uint32_t eax, ebx, ecx, edx;
+        unsigned int eax, ebx, ecx, edx;
 
-        eax = 7; // CPUID function 7
-        ecx = 0; // Sub-function 0
+        __asm__ __volatile__("cpuid"
+                             : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+                             : "a"(1));
+        if ((ecx >> 28) & 1) {
+            eax = 7;
+            ecx = 0;
+            __asm__ __volatile__("cpuid"
+                                 : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+                                 : "a"(eax), "c"(ecx));
 
-        __asm__ __volatile__("cpuid;" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(eax), "c"(ecx));
-
-        // Check the AVX-256 (AVX2) feature bit in EBX
-        return (ebx >> 5) & 1;
+            if ((ebx >> 5) & 1) {
+                max_version = 2;
+            }
+        }
     #endif
+
+    return max_version;
 }
 
 inline
-bool is_avx512_supported()
+int max_avx512_supported()
 {
     #ifdef _MSC_VER
-        int cpuInfo[4] = {-1};
-        __cpuid(cpuInfo, 1); // CPUID function 1
+        int cpuInfo[4];
+        __cpuid(cpuInfo, 1);
+        int ebx = 0;
 
-        // Check the AVX feature bit in ECX
         if ((cpuInfo[2] >> 28) & 1) {
-            __cpuid(cpuInfo, 7); // CPUID function 7, sub-function 0
-            // Check the AVX-512 feature bit in EBX
-            return (cpuInfo[1] >> 16) & 1;
+            __cpuid(cpuInfo, 7);
+
+            ebx = cpuInfo[1];
         }
-
-        return false;
     #else
-        uint32_t eax, ebx, ecx, edx;
+        unsigned int eax, ebx, ecx, edx;
 
-        eax = 7; // CPUID function 7
-        ecx = 0; // Sub-function 0
-
-        __asm__ __volatile__("cpuid;" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(eax), "c"(ecx));
-
-        // Check the AVX-512 feature bit in EBX
-        return (ebx >> 16) & 1;
+        __asm__ __volatile__("cpuid"
+                             : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+                             : "a"(1));
+        if ((ecx >> 28) & 1) {
+            eax = 7;
+            ecx = 0;
+            __asm__ __volatile__("cpuid"
+                                 : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+                                 : "a"(eax), "c"(ecx));
+        }
     #endif
+
+    if ((ebx >> 16) & 1) {
+        return 1; // AVX-512F
+    }
+
+    if ((ebx >> 17) & 1) {
+        return 2; // AVX-512DQ
+    }
+
+    if ((ebx >> 21) & 1) {
+        return 3; // AVX-512IFMA
+    }
+
+    if ((ebx >> 26) & 1) {
+        return 4; // AVX-512PF
+    }
+
+    if ((ebx >> 27) & 1) {
+        return 5; // AVX-512ER
+    }
+
+    if ((ebx >> 28) & 1) {
+        return 6; // AVX-512CD
+    }
+
+    if ((ebx >> 30) & 1) {
+        return 7; // AVX-512BW
+    }
+
+    if ((ebx >> 31) & 1) {
+        return 8; // AVX-512VL
+    }
+
+    return 0;
 }
+
+/*
+const char avx512_versions[8][12] = {
+    "AVX-512F",
+    "AVX-512DQ",
+    "AVX-512IFMA",
+    "AVX-512PF",
+    "AVX-512ER",
+    "AVX-512CD",
+    "AVX-512BW",
+    "AVX-512VL"
+};
+*/
 
 #endif

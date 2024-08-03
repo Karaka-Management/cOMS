@@ -35,7 +35,7 @@ struct f32_16 {
     };
 };
 
-inline f32_4 load_f32_4(f32 *mem)
+inline f32_4 load_f32_4(const f32* mem)
 {
     f32_4 simd;
     simd.s = _mm_loadu_ps(mem);
@@ -43,7 +43,7 @@ inline f32_4 load_f32_4(f32 *mem)
     return simd;
 }
 
-inline f32_4 init_f32_4(f32 *mem)
+inline f32_4 init_f32_4(const f32* mem)
 {
     f32_4 simd;
     simd.s = _mm_set_ps(mem[0], mem[1], mem[2], mem[3]);
@@ -53,7 +53,7 @@ inline f32_4 init_f32_4(f32 *mem)
 
 inline void unload_f32_4(f32_4 a, f32 *array) { _mm_store_ps(array, a.s); }
 
-inline f32_8 load_f32_8(f32 *mem)
+inline f32_8 load_f32_8(const f32* mem)
 {
     f32_8 simd;
     simd.s = _mm256_loadu_ps(mem);
@@ -61,7 +61,7 @@ inline f32_8 load_f32_8(f32 *mem)
     return simd;
 }
 
-inline f32_8 init_f32_8(f32 *mem)
+inline f32_8 init_f32_8(const f32* mem)
 {
     f32_8 simd;
     simd.s = _mm256_set_ps(mem[0], mem[1], mem[2], mem[3], mem[4], mem[5], mem[6], mem[7]);
@@ -71,7 +71,7 @@ inline f32_8 init_f32_8(f32 *mem)
 
 inline void unload_f32_8(f32_8 a, f32 *array) { _mm256_store_ps(array, a.s); }
 
-inline f32_16 load_f32_16(f32 *mem)
+inline f32_16 load_f32_16(const f32* mem)
 {
     f32_16 simd;
     simd.s = _mm512_loadu_ps(mem);
@@ -79,7 +79,7 @@ inline f32_16 load_f32_16(f32 *mem)
     return simd;
 }
 
-inline f32_16 init_f32_16(f32 *mem)
+inline f32_16 init_f32_16(const f32* mem)
 {
     f32_16 simd;
     simd.s = _mm512_set_ps(mem[0], mem[1], mem[2], mem[3], mem[4], mem[5], mem[6], mem[7], mem[8], mem[9], mem[10],
@@ -110,6 +110,62 @@ inline f32_16 init_zero_f32_16()
 {
     f32_16 simd;
     simd.s = _mm512_setzero_ps();
+
+    return simd;
+}
+
+inline f32_4 init_value_f32_4(f32 value)
+{
+    f32_4 simd;
+    simd.s = _mm_set1_ps(value);
+
+    return simd;
+}
+
+inline f32_8 init_value_f32_8(f32 value)
+{
+    f32_8 simd;
+    simd.s = _mm256_set1_ps(value);
+
+    return simd;
+}
+
+inline f32_16 init_value_f32_16(f32 value)
+{
+    f32_16 simd;
+    simd.s = _mm512_set1_ps(value);
+
+    return simd;
+}
+
+inline f32_4 init_values_f32_4(f32 a, f32 b, f32 c, f32 d)
+{
+    f32_4 simd;
+    simd.s = _mm_set_ps(a, b, c, d);
+
+    return simd;
+}
+
+inline f32_8 init_values_f32_8(
+    f32 a, f32 b, f32 c, f32 d,
+    f32 e, f32 f, f32 g, f32 h
+)
+{
+    f32_8 simd;
+    simd.s = _mm256_set_ps(a, b, c, d, e, f, g, h);
+
+    return simd;
+}
+
+inline f32_16 init_values_f32_16(
+    f32 a, f32 b, f32 c, f32 d,
+    f32 e, f32 f, f32 g, f32 h,
+    f32 i, f32 j, f32 k, f32 l,
+    f32 m, f32 n, f32 o, f32 p
+)
+{
+    f32_16 simd;
+    simd.s = _mm512_set_ps(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
 
     return simd;
 }
@@ -603,11 +659,8 @@ inline f32_8 abs(f32_8 a)
 
 inline f32_16 abs(f32_16 a)
 {
-    unsigned int unsigned_mask = (unsigned int) (1 << 31);
-    __m512 mask                = _mm512_set1_ps(*(float *) &unsigned_mask);
-
     f32_16 simd;
-    simd.s = _mm512_and_ps(a.s, mask);
+    simd.s = _mm512_abs_ps(a.s);
 
     return simd;
 }
@@ -927,5 +980,262 @@ inline bool all_false(f32_16 a)
 
     return is_false;
 }
+
+// @todo from down here we can optimize some of the code by NOT using the wrappers
+//      the code is self contained and we could use te intrinsic functions directly
+
+inline
+void simd_mult(const f32* a, const f32* b, f32* result, int size, int steps)
+{
+    int i = 0;
+
+    if (steps == 16) {
+        f32_16 a_16;
+        f32_16 b_16;
+        f32_16 result_16;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_16 = load_f32_16(a);
+            b_16 = load_f32_16(b);
+            result_16 = a_16 * b_16;
+            unload_f32_16(result_16, result);
+       }
+    } else if (steps == 8) {
+        f32_8 a_8;
+        f32_8 b_8;
+        f32_8 result_8;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_8 = load_f32_8(a);
+            b_8 = load_f32_8(b);
+            result_8 = a_8 * b_8;
+            unload_f32_8(result_8, result);
+       }
+    } else if (steps == 4) {
+        f32_4 a_4;
+        f32_4 b_4;
+        f32_4 result_4;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_4 = load_f32_4(a);
+            b_4 = load_f32_4(b);
+            result_4 = a_4 * b_4;
+            unload_f32_4(result_4, result);
+       }
+    }
+
+    for (; i < size; ++i) {
+        ++a;
+        ++b;
+        ++result;
+
+        *result = *a * *b;
+    }
+}
+
+inline
+void f32_4_mult(const f32* a, const f32* b, f32* result)
+{
+    f32_4 a_4 = load_f32_4(a);
+    f32_4 b_4 = load_f32_4(b);
+    f32_4 result_4 = a_4 * b_4;
+
+    unload_f32_4(result_4, result);
+}
+
+inline
+void simd_mult(const f32* a, const f32* b, f32* result, int size, int steps)
+{
+    int i = 0;
+
+    if (steps == 16) {
+        f32_16 a_16;
+        f32_16 b_16;
+        f32_16 result_16;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_16 = load_f32_16(a);
+            b_16 = load_f32_16(b);
+            result_16 = a_16 + b_16;
+            unload_f32_16(result_16, result);
+       }
+    } else if (steps == 8) {
+        f32_8 a_8;
+        f32_8 b_8;
+        f32_8 result_8;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_8 = load_f32_8(a);
+            b_8 = load_f32_8(b);
+            result_8 = a_8 + b_8;
+            unload_f32_8(result_8, result);
+       }
+    } else if (steps == 4) {
+        f32_4 a_4;
+        f32_4 b_4;
+        f32_4 result_4;
+
+        for (i = 0; i <= size - steps; i += steps) {
+            ++a;
+            ++b;
+            ++result;
+
+            a_4 = load_f32_4(a);
+            b_4 = load_f32_4(b);
+            result_4 = a_4 + b_4;
+            unload_f32_4(result_4, result);
+       }
+    }
+
+    for (; i < size; ++i) {
+        ++a;
+        ++b;
+        ++result;
+
+        *result = *a + *b;
+    }
+}
+
+inline
+void f32_4_add(const f32* a, const f32* b, f32* result)
+{
+    f32_4 a_4 = load_f32_4(a);
+    f32_4 b_4 = load_f32_4(b);
+    f32_4 result_4 = a_4 + b_4;
+
+    unload_f32_4(result_4, result);
+}
+
+// @todo add more operations like the one above "f32_4_mult()"
+
+inline
+f32_4 simd_sin(f32_4 a)
+{
+    f32_4 simd;
+    simd.s = _mm_sin_ps(a.s);
+
+    return simd;
+}
+
+inline
+f32_8 simd_sin(f32_8 a)
+{
+    f32_8 simd;
+    simd.s = _mm256_sin_ps(a.s);
+
+    return simd;
+}
+
+inline
+f32_16 simd_sin(f32_16 a)
+{
+    f32_16 simd;
+    simd.s = _mm512_sin_ps(a.s);
+
+    return simd;
+}
+
+inline
+f32_4 simd_cos(f32_4 a)
+{
+    f32_4 simd;
+    simd.s = _mm_cos_ps(a.s);
+
+    return simd;
+}
+
+inline
+f32_8 simd_cos(f32_8 a)
+{
+    f32_8 simd;
+    simd.s = _mm256_cos_ps(a.s);
+
+    return simd;
+}
+
+inline
+f32_16 simd_cos(f32_16 a)
+{
+    f32_16 simd;
+    simd.s = _mm512_cos_ps(a.s);
+
+    return simd;
+}
+
+inline
+f32_4 simd_asin(f32_4 a)
+{
+    f32_4 simd;
+    simd.s = _mm_asin_ps(a.s);
+
+    return simd;
+}
+
+inline
+f32_8 simd_asin(f32_8 a)
+{
+    f32_8 simd;
+    simd.s = _mm256_asin_ps(a.s);
+
+    return simd;
+}
+
+inline
+f32_16 simd_asin(f32_16 a)
+{
+    f32_16 simd;
+    simd.s = _mm512_asin_ps(a.s);
+
+    return simd;
+}
+
+inline
+f32_4 simd_acos(f32_4 a)
+{
+    f32_4 simd;
+    simd.s = _mm_acos_ps(a.s);
+
+    return simd;
+}
+
+inline
+f32_8 simd_acos(f32_8 a)
+{
+    f32_8 simd;
+    simd.s = _mm256_acos_ps(a.s);
+
+    return simd;
+}
+
+inline
+f32_16 simd_acos(f32_16 a)
+{
+    f32_16 simd;
+    simd.s = _mm512_acos_ps(a.s);
+
+    return simd;
+}
+
+// @todo implement more trigonometry function
 
 #endif

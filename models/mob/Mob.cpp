@@ -26,14 +26,14 @@ void mob_interpolate(Mob* mob, f32 time)
 
     float p = OMS_MIN(t2 / t1, 1.0f);
 
-    mob->state.location.x = s1->location.x + (s2->location.x - s1->location.x) * p;
-    mob->state.location.y = s1->location.y + (s2->location.y - s1->location.y) * p;
-    mob->state.location.z = s1->location.z + (s2->location.z - s1->location.z) * p;
+    mob->state.location.position.x = s1->location.position.x + (s2->location.position.x - s1->location.position.x) * p;
+    mob->state.location.position.y = s1->location.position.y + (s2->location.position.y - s1->location.position.y) * p;
+    mob->state.location.position.z = s1->location.position.z + (s2->location.position.z - s1->location.position.z) * p;
 
-    mob->state.orientation.x = s1->orientation.x + (s2->orientation.x - s1->orientation.x) * p;
-    mob->state.orientation.y = s1->orientation.y + (s2->orientation.y - s1->orientation.y) * p;
-    mob->state.orientation.z = s1->orientation.z + (s2->orientation.z - s1->orientation.z) * p;
-    mob->state.orientation.w = s1->orientation.w + (s2->orientation.w - s1->orientation.w) * p;
+    mob->state.location.orientation.x = s1->location.orientation.x + (s2->location.orientation.x - s1->location.orientation.x) * p;
+    mob->state.location.orientation.y = s1->location.orientation.y + (s2->location.orientation.y - s1->location.orientation.y) * p;
+    mob->state.location.orientation.z = s1->location.orientation.z + (s2->location.orientation.z - s1->location.orientation.z) * p;
+    mob->state.location.orientation.w = s1->location.orientation.w + (s2->location.orientation.w - s1->location.orientation.w) * p;
 }
 
 #endif

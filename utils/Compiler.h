@@ -9,7 +9,12 @@
 #ifndef TOS_UTILS_COMPILER_H
 #define TOS_UTILS_COMPILER_H
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifdef _MSC_VER
+    #include <malloc.h>
+
     inline
     void* aligned_alloc(size_t alignment, size_t size) {
         return _aligned_malloc(size, alignment);
@@ -20,8 +25,6 @@
         _aligned_free(ptr);
     }
 #else
-    #include <stdlib.h>
-
     inline
     void aligned_free(void* ptr) {
         free(ptr);

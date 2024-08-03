@@ -11,23 +11,37 @@
 
 #include "../../stdlib/Types.h"
 
-#include "../../mob/MobStats.h"
-#include "../../mob/skill/StatsTarget.h"
+#include "../mob/MobStats.h"
+#include "../mob/skill/StatsTarget.h"
+
+// @todo when to use points and when to use values?
 
 struct Equipment {
     byte type;
     char* name;
+};
 
-    // @tood how to handle multiplicative stats?
-    // you can have 2 stats for 2 target types (e.g. you could create a buff and debuff in one skill)
-    SMobStats stats1;
-    StatsTarget stats1_target;
+struct SEquipmentStatsPoints {
+    // Item requirements
+    PrimaryStatsPoints requirements;
 
-    SMobStats stats2;
-    StatsTarget stats2_target;
+    // Item stats
+    // items cannot have stats like str, they can only modify primary stats of chars (see below)
+    SecondaryStatsPoints secondary_item;
 
-    // @todo probably add more of the Skill attributes here
-    // @question what should be part of skills and what should be part of items?!?!?!?
+    // Modifies the char stats
+    // @todo A character cannot do for example fire damage (only items and skills can do that)
+    //  This means these stats are unused and just use up memory
+    PrimaryStatsPoints primary_char_add;
+    PrimaryStatsRelPoints primary_char_mul;
+
+    SecondaryStatsPoints secondary_char_add;
+    SecondaryStatsRelPoints secondary_char_mul;
+
+    // Modifies the skills
+    // only modifies skills that have these stats != 0
+    SecondaryStatsPoints secondary_skill_add;
+    SecondaryStatsRelPoints secondary_skill_mul;
 };
 
 #endif

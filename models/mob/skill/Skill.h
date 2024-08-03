@@ -11,6 +11,11 @@
 #define MAX_SKILL_NAME 32
 #define MAX_SKILL_DESCRIPTION 128
 
+/**
+ * @todo optimize order of struct members to ensure optimal struct size
+ */
+
+// @todo We adjusted SMobStats -> we can remove a lot of variables below
 struct Skill
 {
     // not required for server
@@ -19,47 +24,98 @@ struct Skill
 
     int id;
 
-    // animations
+    // @todo animations
     void* animation_casting;
     void* animation_channeling;
+
+    // @todo e.g. attack command, movement command, etc. for totems and minions
+    void* commands;
+
+    // @todo configuration e.g. which minions to pick, release minion, select new minion...
+    void* options;
 
     bool projectile_animation_uses_item; // Use the equiped item for the projectile
 
     byte target; // what is targatable (self, enemies, allies, ground, none?) Has to be bitset 2^n to define multiple
     byte default_target;
 
+    bool has_hitbox; // some skills have hitboxes (e.g. totems, minions, some breakable prisons, ...)
+
+    // @todo how to assign life and resource to skill (e.g. life to destroyable prison, totems or resources to minions)
+
     f32 visual_scale; // make visual larger/smaller
 
-    // @tood how to handle multiplicative stats?
-    // you can have 2 stats for 2 target types (e.g. you could create a buff and debuff in one skill)
-    SMobStats stats1;
+    // Scales skill over channeling time (e.g. makes balls larger and after reaching peak makes them smaller)
+    byte scale_type;
+
+    // the following scale factors can be considered key frames
+    f32 scale1;
+    f32 scale2;
+    f32 scale3;
+
+    // @todo when to use points and when to use values?
+    // Stats of the skill itself
+    SecondaryStatsPoints skill_stats;
+    StatsTarget skill_target;
+
+    // @todo when to use points and when to use values?
+    // Modifies stats
+    // You can have 2 stats for 2 target types (e.g. you could create a buff and debuff in one skill)
+    // 1
+    PrimaryStatsPoints stats1_primary_add;
+    PrimaryStatsRelPoints stats1_primary_mul;
+
+    SecondaryStatsPoints stats1_secondary_add;
+    SecondaryStatsRelPoints stats1_secondary_mul;
     StatsTarget stats1_target;
 
-    SMobStats stats2;
+    // 2
+    PrimaryStatsPoints stats2_primary_add;
+    PrimaryStatsRelPoints stats2_primary_mul;
+
+    SecondaryStatsPoints stats2_secondary_add;
+    SecondaryStatsRelPoints stats2_secondary_mul;
     StatsTarget stats2_target;
 
-    byte skill_movement; // none, follows target, random moevement, random movement in aoe
+    // Modifiers
+    // Char
+    PrimaryStatsPoints primary_char_add;
+    PrimaryStatsRelPoints primary_char_mul;
 
+    SecondaryStatsPoints secondary_char_add;
+    SecondaryStatsRelPoints secondary_char_mul;
+
+    // Item
+    PrimaryStatsPoints primary_item_add;
+    PrimaryStatsRelPoints primary_item_mul;
+
+    SecondaryStatsPoints secondary_item_add;
+    SecondaryStatsRelPoints secondary_item_mul;
+
+    int skill_movement; // none, follows target, random moevement, random movement in aoe
+    // @todo how to make specific custom movement pattern for boss fights
+
+    // Useful to cast multiple totems:
     byte count; // how often is the skill executed @question can this also be used as tick count for heals? or is this in the MobStats?
     byte count_delay; // delay between executions
-    byte count_manual; // you can manually perform the skill count * times
-    // @todo how to implement random distribution e.g. place n totems in random distribution close to selected spot
+    byte count_manual; // you can manually perform the skill count * times. Manual = wherever you want.
+    byte count_radius; // radius in which they are randomly distributed
+    byte count_distance; // distance between sub skills
+    // @todo maybe combine with aoe? we could remove radius and distance and just use them from aoe
 
     // General
     int resource_cost;
     int health_cost;
 
     bool is_range;
-    f32 attack_range;
     void* attack_anim;
 
     bool is_melee;
-    f32 melee_range;
+
+    bool async_cast; // Can be casted with other skills at the same time/another skill can be cast while casting this
 
     // Projectile data
     bool is_projectile;
-    f32 projectile_speed;
-    int projectile_count;
     int projectile_shape; // 3d Model
 
     int projectile_distribution;
@@ -69,9 +125,6 @@ struct Skill
     // shatter is basically a second hit
     bool shatter;
     int shatter_projectiles;
-    int shatter_count; // How often can it shatter at most
-    f32 shatter_probability;
-    f32 shatter_range;
     f32 shatter_duration;
     uint32 shatter_damage;
 
@@ -79,7 +132,7 @@ struct Skill
     bool is_boomerang;
 
     // Casting happens before the skill
-    f32 cast_duration;
+    // This can also be used for telegraphs
     bool is_cast_cancalable;
     bool is_cast_disruptable;
     bool is_cast_movable;
@@ -92,16 +145,15 @@ struct Skill
     bool is_channeling_disruptable;
     bool is_channeling_movable;
 
-    byte channeling_distribution; // beginning, on hit, end, intervals, smooth -> also effects dmg if channeling is cancled
+    byte channeling_distribution; // beginning, on hit, end, intervals, or use damage distribution -> also effects dmg if channeling is cancled
     byte channeling_ticks; // how often is dmg dealt
 
-    f32 passthrough_damage; // How much of your damage in % is passing through to the next mob.
-    int passtrhough_count;
+    byte damage_distribution_location; // const, linear-increase, linear-decrease according to the shape of the skill.. e.g. more damage in center of aoe or more damage at the end of a end of a wave like skill
+    byte damage_distribution_time; // similar to above but it might increase over time not based on location
 
     // AOE
     bool is_aoe;
-    f32 aoe_distance;
-    int aoe_shape; // circle, square, donut
+    int aoe_shape; // circle, square, donut, movement (e.g. fire trail on dodge)
     AoeDistribution aoe_fill_pattern;
     f32 aoe_dim1;
     f32 aoe_dim2;
@@ -111,26 +163,14 @@ struct Skill
     byte aoe_apply; // Applies while in aoe, applies even after moving out of aoe
 
     // DOT
-    f32 dot_duration;
-    int dot_count;
     byte dot_state; // only when moving, standing still, always
-
     byte dot_effective; // always; on move; on stand still
 
     byte dot_buff_effective; // buff modifier (e.g. increase by/decrease by)
     float dot_buff; // buff dot when on move or on standstill
 
-    int bleeding_dot;
-    int poison_dot;
-    int burn_dot;
-    int ice_dot;
-    int resource_drain;
-    int dot_shatter;
-
     // Minion (and totems)
     int minion_type;
-    int minon_count; // Max minion count
-    int minion_duration;
     int minion_summon_count; // How many summons per summon cast @question still required with general skill count? I don't think so.
 
     // Effects
@@ -140,21 +180,35 @@ struct Skill
     f32 effect_spreading_max_count; // How many mobs can be effected at maximum
     f32 effect_duration;
 
-    // Aura
-    f32 aura_range;
-
     // Push/pull
-    byte push_pull_distance;
-    byte push_pull_direction; // circle, pov = fan like; > 0 = push, < 0 = pull
+    byte movement_type; // push, pull, dodge, jump, sprint, fly
+    byte movement_distance;
+    byte movement_direction; // e.g. target, view/orientation, opposite of view/orientation
+    byte movement_shape; // circle, pov = fan like; > 0 = push, < 0 = pull
+    // @todo maybe use location change? this way we could also implement a teleport
 
-    byte player_visibility; // = e.g. sneak skill
+    byte mob_visibility; // = e.g. sneak skill
 
     // @todo skill jumps over to close by enemies = chain lightning
 
     // @todo illusion skill that multiplies the targeted mob and also shuffels the position
 
-    // move_distances (e.g. launch attack propells attacker forward x distance)
-    byte movement_distances;
+    // example: limits_movement = 0 + skill_disabled 0xFFFFFFFF = all = stun
+    byte limits_movement; // limits_movement @question maybe use character stat and set movement to -INF
+    uint32 limits_skills; // skill types disabled (bit field required), 0 = none
+    // @todo how to implement skill limits only within certain range?
+    //  maybe just set it to is_aoe?!?!
+
+    byte locks_stat_type; // 0 = none, 1 for example could be health = useful to make someone invulnerable
+
+    // @todo how to implement fear? make mobs run away a short distance.
+    // maybe somhow use push? because it is like a push but by making the mob walk.
+
+    // @todo how to implement a skill that shoots multiple large ball projectiles in a radial or linar pattern
+    // from the caster with random distances in between each other but also in waves.
+    // e.g. first wave sends out x balls , then second wave sends x balls but in different locations
+
+    // @todo how to implement a beam? e.g. arcane beam or mana drain? maybe a type of projectile?
 };
 
 #endif
