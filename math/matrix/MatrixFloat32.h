@@ -13,21 +13,21 @@
 #include "../../stdlib/Mathtypes.h"
 #include "../../utils/MathUtils.h"
 
-void mat3_identity_f32(float* matrix)
+void mat3_identity(float* matrix)
 {
     matrix[0] = 1.0f; matrix[1] = 0.0f; matrix[2] = 0.0f;
     matrix[3] = 0.0f; matrix[4] = 1.0f; matrix[5] = 0.0f;
     matrix[6] = 0.0f; matrix[7] = 0.0f; matrix[8] = 1.0f;
 }
 
-void mat3_identity_f32(__m128* matrix)
+void mat3_identity(__m128* matrix)
 {
     matrix[0] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
     matrix[1] = _mm_set_ps(0.0f, 1.0f, 0.0f, 0.0f);
     matrix[2] = _mm_set_ps(0.0f, 0.0f, 1.0f, 0.0f);
 }
 
-void mat4_identity_f32(float* matrix)
+void mat4_identity(float* matrix)
 {
     matrix[0] = 1.0f;  matrix[1] = 0.0f;  matrix[2] = 0.0f;  matrix[3] = 0.0f;
     matrix[4] = 0.0f;  matrix[5] = 1.0f;  matrix[6] = 0.0f;  matrix[7] = 0.0f;
@@ -35,7 +35,7 @@ void mat4_identity_f32(float* matrix)
     matrix[12] = 0.0f; matrix[13] = 0.0f; matrix[14] = 0.0f; matrix[15] = 1.0f;
 }
 
-void mat4_identity_f32(__m128* matrix)
+void mat4_identity(__m128* matrix)
 {
     matrix[0] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
     matrix[1] = _mm_set_ps(0.0f, 1.0f, 0.0f, 0.0f);
@@ -43,7 +43,7 @@ void mat4_identity_f32(__m128* matrix)
     matrix[3] = _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
-void mat_translate_f32(float* matrix, float dx, float dy, float dz)
+void mat4_translate(float* matrix, float dx, float dy, float dz)
 {
     matrix[0] = 1;   matrix[1] = 0;   matrix[2] = 0;   matrix[3] = 0;
     matrix[4] = 0;   matrix[5] = 1;   matrix[6] = 0;   matrix[7] = 0;
@@ -52,7 +52,7 @@ void mat_translate_f32(float* matrix, float dx, float dy, float dz)
 }
 
 // x, y, z need to be normalized
-void mat3_rotate(float* matrix, float x, float y, float z, float angle)
+void mat4_rotate(float* matrix, float x, float y, float z, float angle)
 {
     float s = sinf_approx(angle);
     float c = cosf_approx(angle);
@@ -118,7 +118,7 @@ void mat3vec3_mult_sse(const float* matrix, const float* vector, float* result)
 
         __m128 dot = _mm_dp_ps(row, vec, 0xF1);
 
-        result[i] = _mm_cvtss_f32(dot);
+        result[i] = _mm_cvtss(dot);
     }
 }
 
@@ -128,7 +128,7 @@ void mat3vec3_mult_sse(const __m128* matrix, const __m128* vector, float* result
     for (int i = 0; i < 3; ++i) {
         __m128 dot = _mm_dp_ps(matrix[i], *vector, 0xF1);
 
-        result[i] = _mm_cvtss_f32(dot);
+        result[i] = _mm_cvtss(dot);
     }
 }
 
@@ -157,7 +157,7 @@ void mat4vec4_mult_sse(const float* matrix, const float* vector, float* result)
         __m128 row = _mm_loadu_ps(&matrix[i * 4]);
         __m128 dot = _mm_dp_ps(row, vec, 0xF1);
 
-        result[i] = _mm_cvtss_f32(dot);
+        result[i] = _mm_cvtss(dot);
     }
 }
 
@@ -167,7 +167,7 @@ void mat4vec4_mult_sse(const __m128* matrix, const __m128* vector, float* result
     for (int i = 0; i < 4; ++i) {
         __m128 dot = _mm_dp_ps(matrix[i], *vector, 0xF1);
 
-        result[i] = _mm_cvtss_f32(dot);
+        result[i] = _mm_cvtss(dot);
     }
 }
 
@@ -225,55 +225,55 @@ void mat4mat4_mult_sse(const float* a, const float* b, float* result)
 
     // b1
     dot = _mm_dp_ps(a_1, b_1, 0xF1);
-    result[0] = _mm_cvtss_f32(dot);
+    result[0] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_2, b_1, 0xF1);
-    result[1] = _mm_cvtss_f32(dot);
+    result[1] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_3, b_1, 0xF1);
-    result[2] = _mm_cvtss_f32(dot);
+    result[2] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_4, b_1, 0xF1);
-    result[3] = _mm_cvtss_f32(dot);
+    result[3] = _mm_cvtss(dot);
 
     // b2
     dot = _mm_dp_ps(a_1, b_2, 0xF1);
-    result[4] = _mm_cvtss_f32(dot);
+    result[4] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_2, b_2, 0xF1);
-    result[5] = _mm_cvtss_f32(dot);
+    result[5] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_3, b_2, 0xF1);
-    result[6] = _mm_cvtss_f32(dot);
+    result[6] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_4, b_2, 0xF1);
-    result[7] = _mm_cvtss_f32(dot);
+    result[7] = _mm_cvtss(dot);
 
     // b3
     dot = _mm_dp_ps(a_1, b_3, 0xF1);
-    result[8] = _mm_cvtss_f32(dot);
+    result[8] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_2, b_3, 0xF1);
-    result[9] = _mm_cvtss_f32(dot);
+    result[9] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_3, b_3, 0xF1);
-    result[10] = _mm_cvtss_f32(dot);
+    result[10] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_4, b_3, 0xF1);
-    result[11] = _mm_cvtss_f32(dot);
+    result[11] = _mm_cvtss(dot);
 
     // b4
     dot = _mm_dp_ps(a_1, b_4, 0xF1);
-    result[12] = _mm_cvtss_f32(dot);
+    result[12] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_2, b_4, 0xF1);
-    result[13] = _mm_cvtss_f32(dot);
+    result[13] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_3, b_4, 0xF1);
-    result[14] = _mm_cvtss_f32(dot);
+    result[14] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a_4, b_4, 0xF1);
-    result[15] = _mm_cvtss_f32(dot);
+    result[15] = _mm_cvtss(dot);
 }
 
 void mat4mat4_mult_sse(const __m128* a, const __m128* b_transposed, float* result)
@@ -283,55 +283,55 @@ void mat4mat4_mult_sse(const __m128* a, const __m128* b_transposed, float* resul
     // @question could simple mul add sse be faster?
     // b1
     dot = _mm_dp_ps(a[0], b_transposed[0], 0xF1);
-    result[0] = _mm_cvtss_f32(dot);
+    result[0] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[1], b_transposed[0], 0xF1);
-    result[1] = _mm_cvtss_f32(dot);
+    result[1] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[2], b_transposed[0], 0xF1);
-    result[2] = _mm_cvtss_f32(dot);
+    result[2] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[3], b_transposed[0], 0xF1);
-    result[3] = _mm_cvtss_f32(dot);
+    result[3] = _mm_cvtss(dot);
 
     // b2
     dot = _mm_dp_ps(a[0], b_transposed[1], 0xF1);
-    result[4] = _mm_cvtss_f32(dot);
+    result[4] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[1], b_transposed[1], 0xF1);
-    result[5] = _mm_cvtss_f32(dot);
+    result[5] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[2], b_transposed[1], 0xF1);
-    result[6] = _mm_cvtss_f32(dot);
+    result[6] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[3], b_transposed[1], 0xF1);
-    result[7] = _mm_cvtss_f32(dot);
+    result[7] = _mm_cvtss(dot);
 
     // b3
     dot = _mm_dp_ps(a[0], b_transposed[2], 0xF1);
-    result[8] = _mm_cvtss_f32(dot);
+    result[8] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[1], b_transposed[2], 0xF1);
-    result[9] = _mm_cvtss_f32(dot);
+    result[9] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[2], b_transposed[2], 0xF1);
-    result[10] = _mm_cvtss_f32(dot);
+    result[10] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[3], b_transposed[2], 0xF1);
-    result[11] = _mm_cvtss_f32(dot);
+    result[11] = _mm_cvtss(dot);
 
     // b4
     dot = _mm_dp_ps(a[0], b_transposed[3], 0xF1);
-    result[12] = _mm_cvtss_f32(dot);
+    result[12] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[1], b_transposed[3], 0xF1);
-    result[13] = _mm_cvtss_f32(dot);
+    result[13] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[2], b_transposed[3], 0xF1);
-    result[14] = _mm_cvtss_f32(dot);
+    result[14] = _mm_cvtss(dot);
 
     dot = _mm_dp_ps(a[3], b_transposed[3], 0xF1);
-    result[15] = _mm_cvtss_f32(dot);
+    result[15] = _mm_cvtss(dot);
 }
 
 void mat4mat4_mult_sse(const __m128* a, const __m128* b_transpose, __m128* result)
@@ -345,8 +345,8 @@ void mat4mat4_mult_sse(const __m128* a, const __m128* b_transpose, __m128* resul
     }
 }
 
-// @question Consider to replace with 1d array
-void frustum_planes(float planes[6][4], int radius, float *matrix) {
+// @performance Consider to replace with 1d array
+void mat4_frustum_planes(float planes[6][4], float radius, float *matrix) {
     // @todo make this a setting
     float znear = 0.125;
     float zfar = radius * 32 + 64;
@@ -384,12 +384,12 @@ void frustum_planes(float planes[6][4], int radius, float *matrix) {
     planes[5][3] = zfar * m[15] - m[14];
 }
 
-void mat_frustum(
+void mat4_frustum(
     float *matrix, float left, float right, float bottom,
     float top, float znear, float zfar)
 {
     float temp, temp2, temp3, temp4;
-    temp = 2.0 * znear;
+    temp = 2.0f * znear;
     temp2 = right - left;
     temp3 = top - bottom;
     temp4 = zfar - znear;
@@ -415,24 +415,24 @@ void mat_frustum(
     matrix[15] = 0.0;
 }
 
-void mat_perspective(
+void mat4_perspective(
     float *matrix, float fov, float aspect,
     float znear, float zfar)
 {
     float ymax, xmax;
-    ymax = znear * tanf_approx(fov * OMS_PI / 360.0);
+    ymax = znear * tanf_approx(fov * OMS_PI / 360.0f);
     xmax = ymax * aspect;
 
-    mat_frustum(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
+    mat4_frustum(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
 }
 
-void mat_ortho(
+void mat4_ortho(
     float *matrix,
-    float left, float right, float bottom, float top, float near, float far)
+    float left, float right, float bottom, float top, float near_dist, float far_dist)
 {
     float rl_delta = right - left;
     float tb_delta = top - bottom;
-    float fn_delta = far - near;
+    float fn_delta = far_dist - near_dist;
 
     matrix[0] = 2 / rl_delta;
     matrix[1] = 0;
@@ -451,7 +451,7 @@ void mat_ortho(
 
     matrix[12] = -(right + left) / rl_delta;
     matrix[13] = -(top + bottom) / tb_delta;
-    matrix[14] = -(far + near) / fn_delta;
+    matrix[14] = -(far_dist + near_dist) / fn_delta;
     matrix[15] = 1;
 }
 

@@ -161,24 +161,14 @@ void handle_input(LPARAM lParam, InputState* states)
 
         // https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawkeyboard
 
-        RAWKEYBOARD rawKB = raw->data.keyboard;
+        RAWKEYBOARD rawKB =  raw->data.keyboard;
 
-        states[i].key = raw->data.keyboard.MakeCode;
-        states[i].key_up = raw->data.keyboard.Flags & RI_KEY_BREAK;
-        states[i].key_down = raw->data.keyboard.Flags & RI_KEY_MAKE;
+        if (rawKB.Flags & RI_KEY_BREAK) {
+            states[i].keys_down_old[states[i].up_index++] = rawKB.MakeCode;
+        }
 
-        if (states[i].key_down) {
-            for (int j = 0; j < MAX_KEY_PRESSES; ++j) {
-                if (states[i].keys_down[j] == NULL) {
-                    states[i].keys_down[j] = states[i].key;
-                }
-            }
-        } else if (states[i].key_up) {
-            for (int j = 0; j < MAX_KEY_PRESSES; ++j) {
-                if (states[i].keys_down[j] == states[i].key) {
-                    states[i].keys_down[j] = NULL;
-                }
-            }
+        if (rawKB.Flags & RI_KEY_MAKE) {
+            states[i].keys_down[states[i].down_index++] = rawKB.MakeCode;
         }
 
         states[i].state_change_keyboard = true;

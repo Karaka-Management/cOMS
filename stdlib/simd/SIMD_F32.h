@@ -13,6 +13,7 @@
 #include <xmmintrin.h>
 
 #include "../Types.h"
+#include "SIMD_SVML.h"
 
 struct f32_4 {
     union {
@@ -990,144 +991,214 @@ void simd_mult(const f32* a, const f32* b, f32* result, int size, int steps)
     int i = 0;
 
     if (steps == 16) {
-        f32_16 a_16;
-        f32_16 b_16;
-        f32_16 result_16;
+        __m512 a_16;
+        __m512 b_16;
+        __m512 result_16;
 
-        for (i = 0; i <= size - steps; i += steps) {
-            ++a;
-            ++b;
-            ++result;
+        for (; i <= size - steps; i += steps) {
+            a_16 = _mm512_loadu_ps(a);
+            b_16 = _mm512_loadu_ps(b);
+            result_16 = _mm512_mul_ps(a_16, b_16);
+            _mm512_store_ps(result, result_16);
 
-            a_16 = load_f32_16(a);
-            b_16 = load_f32_16(b);
-            result_16 = a_16 * b_16;
-            unload_f32_16(result_16, result);
+            a += steps;
+            b += steps;
+            result += steps;
        }
     } else if (steps == 8) {
-        f32_8 a_8;
-        f32_8 b_8;
-        f32_8 result_8;
+        __m256 a_8;
+        __m256 b_8;
+        __m256 result_8;
 
-        for (i = 0; i <= size - steps; i += steps) {
-            ++a;
-            ++b;
-            ++result;
+        for (; i <= size - steps; i += steps) {
+            a_8 = _mm256_loadu_ps(a);
+            b_8 = _mm256_loadu_ps(b);
+            result_8 = _mm256_mul_ps(a_8, b_8);
+            _mm256_store_ps(result, result_8);
 
-            a_8 = load_f32_8(a);
-            b_8 = load_f32_8(b);
-            result_8 = a_8 * b_8;
-            unload_f32_8(result_8, result);
+            a += steps;
+            b += steps;
+            result += steps;
        }
     } else if (steps == 4) {
-        f32_4 a_4;
-        f32_4 b_4;
-        f32_4 result_4;
+        __m128 a_4;
+        __m128 b_4;
+        __m128 result_4;
 
-        for (i = 0; i <= size - steps; i += steps) {
-            ++a;
-            ++b;
-            ++result;
+        for (; i <= size - steps; i += steps) {
+            a_4 = _mm_loadu_ps(a);
+            b_4 = _mm_loadu_ps(b);
+            result_4 = _mm_mul_ps(a_4, b_4);
+            _mm_store_ps(result, result_4);
 
-            a_4 = load_f32_4(a);
-            b_4 = load_f32_4(b);
-            result_4 = a_4 * b_4;
-            unload_f32_4(result_4, result);
+            a += steps;
+            b += steps;
+            result += steps;
        }
     }
 
     for (; i < size; ++i) {
+        *result = *a * *b;
+
         ++a;
         ++b;
         ++result;
-
-        *result = *a * *b;
     }
 }
 
 inline
-void f32_4_mult(const f32* a, const f32* b, f32* result)
-{
-    f32_4 a_4 = load_f32_4(a);
-    f32_4 b_4 = load_f32_4(b);
-    f32_4 result_4 = a_4 * b_4;
-
-    unload_f32_4(result_4, result);
-}
-
-inline
-void simd_mult(const f32* a, const f32* b, f32* result, int size, int steps)
+void simd_mult(const f32* a, f32 b, f32* result, int size, int steps)
 {
     int i = 0;
 
     if (steps == 16) {
-        f32_16 a_16;
-        f32_16 b_16;
-        f32_16 result_16;
+        __m512 a_16;
+        __m512 b_16 = _mm512_set1_ps(b);
+        __m512 result_16;
 
-        for (i = 0; i <= size - steps; i += steps) {
-            ++a;
-            ++b;
-            ++result;
+        for (; i <= size - steps; i += steps) {
+            a_16 = _mm512_loadu_ps(a);
+            result_16 = _mm512_mul_ps(a_16, b_16);
+            _mm512_store_ps(result, result_16);
 
-            a_16 = load_f32_16(a);
-            b_16 = load_f32_16(b);
-            result_16 = a_16 + b_16;
-            unload_f32_16(result_16, result);
+            a += steps;
+            result += steps;
        }
     } else if (steps == 8) {
-        f32_8 a_8;
-        f32_8 b_8;
-        f32_8 result_8;
+        __m256 a_8;
+        __m256 b_8 = _mm256_set1_ps(b);
+        __m256 result_8;
 
-        for (i = 0; i <= size - steps; i += steps) {
-            ++a;
-            ++b;
-            ++result;
+        for (; i <= size - steps; i += steps) {
+            a_8 = _mm256_loadu_ps(a);
+            result_8 = _mm256_mul_ps(a_8, b_8);
+            _mm256_store_ps(result, result_8);
 
-            a_8 = load_f32_8(a);
-            b_8 = load_f32_8(b);
-            result_8 = a_8 + b_8;
-            unload_f32_8(result_8, result);
+            a += steps;
+            result += steps;
        }
     } else if (steps == 4) {
-        f32_4 a_4;
-        f32_4 b_4;
-        f32_4 result_4;
+        __m128 a_4;
+        __m128 b_4 = _mm_set1_ps(b);
+        __m128 result_4;
 
-        for (i = 0; i <= size - steps; i += steps) {
-            ++a;
-            ++b;
-            ++result;
+        for (; i <= size - steps; i += steps) {
+            a_4 = _mm_loadu_ps(a);
+            result_4 = _mm_mul_ps(a_4, b_4);
+            _mm_store_ps(result, result_4);
 
-            a_4 = load_f32_4(a);
-            b_4 = load_f32_4(b);
-            result_4 = a_4 + b_4;
-            unload_f32_4(result_4, result);
+            a += steps;
+            result += steps;
        }
     }
 
     for (; i < size; ++i) {
-        ++a;
-        ++b;
-        ++result;
+        *result = *a * b;
 
-        *result = *a + *b;
+        ++a;
+        ++result;
     }
 }
 
 inline
-void f32_4_add(const f32* a, const f32* b, f32* result)
+void simd_div(const f32* a, f32 b, f32* result, int size, int steps)
 {
-    f32_4 a_4 = load_f32_4(a);
-    f32_4 b_4 = load_f32_4(b);
-    f32_4 result_4 = a_4 + b_4;
+    int i = 0;
 
-    unload_f32_4(result_4, result);
+    if (steps == 16) {
+        __m512 a_16;
+        __m512 b_16 = _mm512_set1_ps(b);
+        __m512 result_16;
+
+        for (; i <= size - steps; i += steps) {
+            a_16 = _mm512_loadu_ps(a);
+            result_16 = _mm512_div_ps(a_16, b_16);
+            _mm512_store_ps(result, result_16);
+
+            a += steps;
+            result += steps;
+       }
+    } else if (steps == 8) {
+        __m256 a_8;
+        __m256 b_8 = _mm256_set1_ps(b);
+        __m256 result_8;
+
+        for (; i <= size - steps; i += steps) {
+            a_8 = _mm256_loadu_ps(a);
+            result_8 = _mm256_div_ps(a_8, b_8);
+            _mm256_store_ps(result, result_8);
+
+            a += steps;
+            result += steps;
+       }
+    } else if (steps == 4) {
+        __m128 a_4;
+        __m128 b_4 = _mm_set1_ps(b);
+        __m128 result_4;
+
+        for (; i <= size - steps; i += steps) {
+            a_4 = _mm_loadu_ps(a);
+            result_4 = _mm_div_ps(a_4, b_4);
+            _mm_store_ps(result, result_4);
+
+            a += steps;
+            result += steps;
+       }
+    }
+
+    for (; i < size; ++i) {
+        *result = *a / b;
+
+        ++a;
+        ++result;
+    }
 }
 
-// @todo add more operations like the one above "f32_4_mult()"
+inline
+void simd_div(const f32* a, f32 b, __m256* result, int size)
+{
+    int i = 0;
+    int j = 0;
 
+    // @todo this his how all the functions should be implemented that take in baseic types and output basic types
+    __m256 a_8;
+    __m256 b_8 = _mm256_set1_ps(b);
+    __m256 result_8;
+
+    for (; i <= size - 8; i += 8) {
+        a_8 = _mm256_loadu_ps(a);
+        result_8 = _mm256_div_ps(a_8, b_8);
+        result[j] = result_8;
+
+        a += 8;
+        ++j;
+    }
+
+    int diff = size - i;
+    alignas(32) float temp[8];
+
+    for (int k = 0; k < diff; k++) {
+        temp[k] = a[i + k] / b;
+    }
+
+    result[j] = _mm256_loadu_ps(temp);
+}
+
+inline
+void simd_cmp_le(const __m256* a, f32 b, bool* result, int size)
+{
+    __m256 b_8 = _mm256_set1_ps(b);
+
+    for (int i = 0; i < size; ++i) {
+        int mask = _mm256_movemask_ps(_mm256_cmp_ps(a[i], b_8, _CMP_LE_OQ));
+
+        for (int j = 0; j < 8; ++j) {
+            result[i * 8 + j] = (mask & (1 << j)) != 0;
+        }
+    }
+}
+
+// @todo But a guard or warning on the trigonometric functions since they are only implemented for msvc/intel compiler
 inline
 f32_4 simd_sin(f32_4 a)
 {

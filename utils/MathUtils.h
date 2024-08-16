@@ -25,10 +25,6 @@
 #define OMS_RAD2DEG(angle) ((angle) * 180.0f / OMS_PI)
 #define ROUND_TO_NEAREST(a, b) (((a) + ((b) - 1)) & ~((b) - 1))
 
-#ifndef FLT_MIN
-    #define FLT_MIN 1.175494e-038
-#endif
-
 // @question Consider to implement table based sine wave + approximation if necessary
 // [-PI/2, PI/2]
 inline
@@ -80,7 +76,7 @@ float atanf_approx(float x)
 inline
 float atan2f_approx(float y, float x)
 {
-    float abs_y = OMS_ABS(y) + FLT_MIN; // prevent division by zero
+    float abs_y = (float) (OMS_ABS(y) + 1.175494e-038); // prevent division by zero
     float angle;
 
     if (x >= 0.0f) {

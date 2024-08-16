@@ -25,6 +25,7 @@
 inline uint64
 file_size(const char* filename)
 {
+    // @performance Profile against fseek strategy
     HANDLE fp = CreateFileA((LPCSTR) filename,
         GENERIC_READ,
         FILE_SHARE_READ,
@@ -48,7 +49,7 @@ file_size(const char* filename)
 }
 
 inline void
-file_read(const char* filename, file_body* file)
+file_read(const char* filename, FileBody* file, RingMemory* ring = NULL)
 {
     HANDLE fp = CreateFileA((LPCSTR) filename,
         GENERIC_READ,
@@ -69,6 +70,10 @@ file_read(const char* filename, file_body* file)
         file->content = NULL;
 
         return;
+    }
+
+    if (ring != NULL) {
+        file->content = ring_get_memory(ring, size.QuadPart);
     }
 
     DWORD bytes;
@@ -122,7 +127,7 @@ file_read_struct(const char* filename, void* file, uint32 size)
 }
 
 inline bool
-file_write(const char* filename, const file_body* file)
+file_write(const char* filename, const FileBody* file)
 {
     HANDLE fp = CreateFileA((LPCSTR) filename,
         GENERIC_WRITE,
@@ -247,7 +252,7 @@ file_append(HANDLE fp, const char* file)
 }
 
 inline bool
-file_append(const char* filename, const file_body* file)
+file_append(const char* filename, const FileBody* file)
 {
     HANDLE fp = CreateFileA((LPCSTR) filename,
         FILE_APPEND_DATA,
@@ -305,12 +310,17 @@ inline void relative_to_absolute(const char* rel, char* path)
         return;
     }
 
+    const char* temp = rel;
+    if (temp[0] == '.' && temp[1] == '/') {
+        temp += 2;
+    }
+
     char* last = strrchr(self_path, '\\');
     if (last != NULL) {
         *(last + 1) = '\0';
     }
 
-    snprintf(path, MAX_PATH, "%s%s", self_path, rel);
+    snprintf(path, MAX_PATH, "%s%s", self_path, temp);
 }
 
 void log_to_file(LogPool* logs, HANDLE fp)

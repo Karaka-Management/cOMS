@@ -26,7 +26,7 @@ struct Image {
     byte order_pixels; // RGBA vs BGRA
     byte order_rows; // top-to-bottom vs bottom-to-top
 
-    uint32* pixels;
+    uint32* pixels; // owner of data
 };
 
 #endif

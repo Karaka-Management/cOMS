@@ -9,7 +9,7 @@
 #ifndef TOS_NETWORK_PACKET_CACHE_H
 #define TOS_NETWORK_PACKET_CACHE_H
 
-#include "../../utils/RingMemory.h"
+#include "../../memory/RingMemory.h"
 #include "../../utils/BufferMemory.h"
 
 #if _WIN32

@@ -18,7 +18,7 @@
 inline
 void wchar_to_char(const wchar_t* src, char* dest, int length = 0)
 {
-    char* temp = (char *) src;
+    char* temp = (char* ) src;
     size_t len = wcslen(src) * sizeof(wchar_t);
 
     if (length > 0 && length < len) {
@@ -37,7 +37,7 @@ void wchar_to_char(const wchar_t* src, char* dest, int length = 0)
     *dest = '\0';
 }
 
-inline size_t str_count(const char *str, const char *substr)
+inline size_t str_count(const char* str, const char* substr)
 {
     size_t l1 = strlen(str);
     size_t l2 = strlen(substr);
@@ -54,15 +54,15 @@ inline size_t str_count(const char *str, const char *substr)
     return count;
 }
 
-inline char *strsep(const char **sp, const char *sep)
+inline char* strsep(const char* *sp, const char* sep)
 {
-    char *p, *s;
+    char* p, *s;
 
     if (sp == NULL || *sp == NULL || **sp == '\0') {
         return (NULL);
     }
 
-    s = (char *) *sp;
+    s = (char* ) *sp;
     p = s + strcspn(s, sep);
 
     if (*p != '\0') {
@@ -89,7 +89,7 @@ str_concat(
     *dst = '\0';
 }
 
-char *strtok(char *str, const char *delim, char **saveptr)
+char* strtok(char* str, const char* delim, char* *saveptr)
 {
     if (str == NULL) {
         str = *saveptr;
@@ -99,8 +99,8 @@ char *strtok(char *str, const char *delim, char **saveptr)
         return NULL;
     }
 
-    char *token_start = str;
-    char *token_end   = strpbrk(token_start, delim);
+    char* token_start = str;
+    char* token_end   = strpbrk(token_start, delim);
 
     if (token_end == NULL) {
         *saveptr = NULL;
@@ -139,7 +139,7 @@ char* format_number(size_t number, char* buffer, const char thousands = ',')
     return buffer;
 }
 
-char * format_number(int number, char* buffer, const char thousands = ',')
+char*  format_number(int number, char* buffer, const char thousands = ',')
 {
     int length = snprintf(buffer, 32, "%i", number);
     format_number_render(length, buffer, thousands);
@@ -147,14 +147,14 @@ char * format_number(int number, char* buffer, const char thousands = ',')
     return buffer;
 }
 
-void create_const_name(const unsigned char *name, unsigned char* modified_name)
+void create_const_name(const unsigned char* name, unsigned char* modified_name)
 {
     // Print block
     if (name == NULL) {
         modified_name = NULL;
     } else {
         size_t i;
-        const size_t length = strlen((const char *) name);
+        const size_t length = strlen((const char* ) name);
         for (i = 0; i < length; ++i) {
             modified_name[i] = name[i] == ' ' ? '_' : (unsigned char) toupper(name[i]);
         }
@@ -166,8 +166,8 @@ void create_const_name(const unsigned char *name, unsigned char* modified_name)
 /**
  * Custom implementation of strtok_r/strtok_s
  */
-char* strtok_(char *str, const char *delim, char **key) {
-    char *result;
+char* strtok_(char* str, const char* delim, char* *key) {
+    char* result;
     if (str == NULL) {
         str = *key;
     }
@@ -187,6 +187,19 @@ char* strtok_(char *str, const char *delim, char **key) {
     *key = str;
 
     return result;
+}
+
+bool str_ends_with(const char* str, const char* suffix) {
+    if (!str || !suffix)
+        return false;
+
+    size_t str_len = strlen(str);
+    size_t suffix_len = strlen(suffix);
+
+    if (suffix_len > str_len)
+        return false;
+
+    return strncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
 }
 
 #endif

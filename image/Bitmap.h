@@ -169,16 +169,21 @@ struct Bitmap {
     //      2. rows are padded in multiples of 4 bytes
     //      3. rows start from the bottom (unless the height is negative)
     //      4. pixel data is stored in ABGR (graphics libraries usually need BGRA or RGBA)
-    byte* pixels;
+    byte* pixels; // WARNING: This is not the owner of the data. The owner is the FileBody
 
     uint32 size;
-    byte* data;
+    byte* data; // WARNING: This is not the owner of the data. The owner is the FileBody
 };
 
-void generate_default_bitmap_references(const file_body* file, Bitmap* bitmap)
+void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap)
 {
-    bitmap->size = file->size;
+    bitmap->size = (uint32) file->size;
     bitmap->data = file->content;
+
+    if (bitmap->size < BITMAP_HEADER_SIZE) {
+        // This shouldn't happen
+        return;
+    }
 
     // Fill header
     bitmap->header.identifier[0] = *(file->content + 0);
@@ -241,8 +246,10 @@ void generate_default_bitmap_references(const file_body* file, Bitmap* bitmap)
     bitmap->pixels      = (byte *) (file->content + bitmap->header.offset);
 }
 
-void generate_bmp_image(const file_body* src_data, Image* image)
+void image_bmp_generate(const FileBody* src_data, Image* image)
 {
+    // @performance We are generating the struct and then filling the data.
+    //      There is some asignment/copy overhead
     Bitmap src = {};
     generate_default_bitmap_references(src_data, &src);
 
@@ -254,7 +261,7 @@ void generate_bmp_image(const file_body* src_data, Image* image)
     uint32 width = ROUND_TO_NEAREST(src.dib_header.width, 4);
 
     uint32 pixel_bytes = src.dib_header.bits_per_pixel / 8;
-    if (image->order_pixels = IMAGE_PIXEL_ORDER_BGRA) {
+    if (image->order_pixels == IMAGE_PIXEL_ORDER_BGRA) {
         memcpy((void *) image->pixels, src.pixels, image->length * pixel_bytes);
 
         return;

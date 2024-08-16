@@ -29,7 +29,7 @@
 #if SERVER
     struct SPlayer {
         Mob mob;
-        SMobStats player_stats;
+        SMobStatsPoints player_stats;
 
         char name[MAX_CHAR_NAME_LENGTH];
         char title[MAX_CHAR_TITLE_LENGTH];
@@ -92,7 +92,7 @@
 
 struct CPlayer {
     Mob mob;
-    CMobStats player_stats;
+    SMobStatsPoints player_stats;
 
     char name[MAX_CHAR_NAME_LENGTH];
     char title[MAX_CHAR_TITLE_LENGTH];

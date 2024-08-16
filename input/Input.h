@@ -43,7 +43,10 @@ struct InputState {
 
     // We only consider up to 4 pressed keys
     // Depending on the keyboard you may only be able to detect a limited amount of key presses anyway
+    int up_index;
     uint16 keys_down_old[MAX_KEY_PRESSES];
+
+    int down_index;
     uint16 keys_down[MAX_KEY_PRESSES];
 
     // Mouse

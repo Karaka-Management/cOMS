@@ -102,19 +102,19 @@ void handle_controller_input(ControllerState* states)
         states[controller_index].down = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
         states[controller_index].left = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
         states[controller_index].right = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
-        states[controller_index].start = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_START;
-        states[controller_index].back = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK;
+        states[controller_index].button[6] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_START;
+        states[controller_index].button[7] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK;
 
-        states[controller_index].shoulder_left = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
-        states[controller_index].shoulder_right = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
+        states[controller_index].button[4] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
+        states[controller_index].button[5] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
 
-        states[controller_index].trigger_left = controller_state.Gamepad.bLeftTrigger;
-        states[controller_index].trigger_right = controller_state.Gamepad.bRightTrigger;
+        states[controller_index].trigger[0] = controller_state.Gamepad.bLeftTrigger;
+        states[controller_index].trigger[1] = controller_state.Gamepad.bRightTrigger;
 
-        states[controller_index].button_a = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_A;
-        states[controller_index].button_b = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_B;
-        states[controller_index].button_x = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_X;
-        states[controller_index].button_y = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_Y;
+        states[controller_index].button[0] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_A;
+        states[controller_index].button[1] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_B;
+        states[controller_index].button[2] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_X;
+        states[controller_index].button[3] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_Y;
 
         states[controller_index].stickl_x = controller_state.Gamepad.sThumbLX;
         states[controller_index].stickl_y = controller_state.Gamepad.sThumbLY;

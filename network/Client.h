@@ -15,7 +15,7 @@
 
 #include "SocketConnection.h"
 #include "../stdlib/Types.h"
-#include "../utils/RingMemory.h"
+#include "../memory/RingMemory.h"
 
 #if _WIN32
     #include <winsock2.h>

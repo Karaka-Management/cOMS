@@ -33,15 +33,19 @@ struct SEquipmentStatsPoints {
     // @todo A character cannot do for example fire damage (only items and skills can do that)
     //  This means these stats are unused and just use up memory
     PrimaryStatsPoints primary_char_add;
-    PrimaryStatsRelPoints primary_char_mul;
+    PrimaryStatsPoints primary_char_mul;
 
     SecondaryStatsPoints secondary_char_add;
-    SecondaryStatsRelPoints secondary_char_mul;
+    SecondaryStatsPoints secondary_char_mul;
 
     // Modifies the skills
     // only modifies skills that have these stats != 0
+    // @question is primary for skill necessary?
+    PrimaryStatsPoints primary_skill_add;
+    PrimaryStatsPoints primary_skill_mul;
+
     SecondaryStatsPoints secondary_skill_add;
-    SecondaryStatsRelPoints secondary_skill_mul;
+    SecondaryStatsPoints secondary_skill_mul;
 };
 
 #endif

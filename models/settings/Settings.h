@@ -70,6 +70,13 @@ struct SSettings {
     uint32 message_cache = 1024;
 
     uint32 interpolation_buffer;
+
+    bool is_auction_house_enabled = true;
+    bool is_direct_trading_enabled = true;
+
+    // @todo add more server settings for tournaments, tournament modes
+    // @todo add more server settings for raids and dungeons
+    // @todo add more settings for pvp
 };
 
 // Player settings that the server needs to know about
@@ -94,6 +101,7 @@ struct CSettings {
     byte gpu_api = SETTING_TYPE_GPU_API_NONE;
     byte gpu_type = SETTING_TYPE_GPU_MEDIUM;
     byte gpu_fps = SETTING_TYPE_UNLIMITED;
+    byte gpu_memory = 4;
 
     byte gpu_aspect_ratio;
     byte gpu_resolution;

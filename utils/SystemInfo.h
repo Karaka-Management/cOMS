@@ -36,6 +36,7 @@
 
 // @todo implement for arm?
 // @todo implement for linux?
+// @todo move to platform specifc files
 
 struct CpuCacheInfo {
     int level;

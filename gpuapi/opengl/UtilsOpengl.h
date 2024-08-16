@@ -10,7 +10,8 @@
 #define TOS_GPUAPI_OPENGL_UTILS_H
 
 #include "../../stdlib/Types.h"
-#include "../../utils/RingMemory.h"
+#include "../../memory/RingMemory.h"
+#include "../../utils/TestUtils.h"
 #include "../../models/Attrib.h"
 #include "../../models/Texture.h"
 
@@ -54,6 +55,8 @@ void window_create(Window* window, void*)
         NULL,
         NULL
     );
+
+    ASSERT_SIMPLE(window->hwnd_lib);
 
     //glfwSetInputMode(window->hwnd_lib, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -126,24 +129,26 @@ void prepare_texture(TextureFile* texture, uint32 texture_unit)
 }
 
 inline
-void load_texture_to_gpu(const TextureFile* texture)
+void load_texture_to_gpu(const TextureFile* texture, int mipmap_level = 0)
 {
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
     glTexImage2D(
-        texture_data_type, 0, GL_RGBA,
+        texture_data_type, mipmap_level, GL_RGBA,
         texture->image.width, texture->image.height,
         0, GL_RGBA, GL_UNSIGNED_BYTE,
         texture->image.pixels
     );
 
-    // @question use mipmap?
+    if (mipmap_level > -1) {
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
 }
 
 inline
 void texture_use(const TextureFile* texture, uint32 texture_unit)
 {
     glActiveTexture(GL_TEXTURE0 + texture_unit);
-    glBindTexture(GL_TEXTURE_2D, texture->id);
+    glBindTexture(GL_TEXTURE_2D, (GLuint) texture->id);
 }
 
 GLuint make_shader(GLenum type, const char *source, RingMemory* ring)
@@ -173,7 +178,7 @@ GLuint load_shader(GLenum type, const char *path, RingMemory* ring) {
     uint64 temp = ring->pos;
 
     // @bug potential bug for shaders > 4 mb
-    file_body file;
+    FileBody file;
     file.content = ring_get_memory(ring, MEGABYTE * 4);
 
     // @todo consider to accept file as parameter and load file before
@@ -357,6 +362,21 @@ void gpuapi_buffer_delete(GLuint buffer)
     glDeleteBuffers(1, &buffer);
 }
 
+int get_gpu_free_memory()
+{
+    GLint available = 0;
+    glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &available);
+
+    if (available != 0) {
+        return available;
+    }
+
+    glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &available);
+
+    return available;
+}
+
+/*
 void render_9_patch(GLuint texture,
     int imgWidth, int imgHeight,
     int img_x1, int img_x2,
@@ -367,5 +387,6 @@ void render_9_patch(GLuint texture,
 {
 
 }
+*/
 
 #endif

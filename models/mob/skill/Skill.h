@@ -27,6 +27,7 @@ struct Skill
     // @todo animations
     void* animation_casting;
     void* animation_channeling;
+    void* icon;
 
     // @todo e.g. attack command, movement command, etc. for totems and minions
     void* commands;
@@ -63,34 +64,34 @@ struct Skill
     // You can have 2 stats for 2 target types (e.g. you could create a buff and debuff in one skill)
     // 1
     PrimaryStatsPoints stats1_primary_add;
-    PrimaryStatsRelPoints stats1_primary_mul;
+    PrimaryStatsPoints stats1_primary_mul;
 
     SecondaryStatsPoints stats1_secondary_add;
-    SecondaryStatsRelPoints stats1_secondary_mul;
+    SecondaryStatsPoints stats1_secondary_mul;
     StatsTarget stats1_target;
 
     // 2
     PrimaryStatsPoints stats2_primary_add;
-    PrimaryStatsRelPoints stats2_primary_mul;
+    PrimaryStatsPoints stats2_primary_mul;
 
     SecondaryStatsPoints stats2_secondary_add;
-    SecondaryStatsRelPoints stats2_secondary_mul;
+    SecondaryStatsPoints stats2_secondary_mul;
     StatsTarget stats2_target;
 
     // Modifiers
     // Char
     PrimaryStatsPoints primary_char_add;
-    PrimaryStatsRelPoints primary_char_mul;
+    PrimaryStatsPoints primary_char_mul;
 
     SecondaryStatsPoints secondary_char_add;
-    SecondaryStatsRelPoints secondary_char_mul;
+    SecondaryStatsPoints secondary_char_mul;
 
     // Item
     PrimaryStatsPoints primary_item_add;
-    PrimaryStatsRelPoints primary_item_mul;
+    PrimaryStatsPoints primary_item_mul;
 
     SecondaryStatsPoints secondary_item_add;
-    SecondaryStatsRelPoints secondary_item_mul;
+    SecondaryStatsPoints secondary_item_mul;
 
     int skill_movement; // none, follows target, random moevement, random movement in aoe
     // @todo how to make specific custom movement pattern for boss fights
@@ -109,6 +110,7 @@ struct Skill
 
     bool is_range;
     void* attack_anim;
+    int movement_pattern; // the skill moves in a specific pattern (e.g. straight line, random, circular motion, left/right wave, ...)
 
     bool is_melee;
 

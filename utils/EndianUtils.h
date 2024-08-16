@@ -25,49 +25,48 @@ inline
 bool is_little_endian()
 {
     uint32 num = 1;
-
     return ((int32) (*(char *) & num)) == 1;
 }
 
 inline
-void endian_swap(uint16 *val)
+uint16 endian_swap(const uint16* val)
 {
     uint16 v = *val;
-    *val = ((v << 8) | (v >> 8));
+    return ((v << 8) | (v >> 8));
 }
 
 inline
-void endian_swap(int16 *val)
+int16 endian_swap(const int16* val)
 {
     uint16 v = (uint16) (*val);
-    *val = (int16) ((v << 8) | (v >> 8));
+    return (int16) ((v << 8) | (v >> 8));
 }
 
 inline
-void endian_swap(uint32 *val)
+uint32 endian_swap(const uint32* val)
 {
     uint32 v = *val;
-    *val = ((v << 24)
+    return ((v << 24)
         | ((v & 0xFF00) << 8)
         | ((v >> 8) & 0xFF00)
         | (v >> 24));
 }
 
 inline
-void endian_swap(int32 *val)
+int32 endian_swap(const int32* val)
 {
     uint32 v = (uint32) (*val);
-    *val = (int32) ((v << 24)
+    return (int32) ((v << 24)
         | ((v & 0xFF00) << 8)
         | ((v >> 8) & 0xFF00)
         | (v >> 24));
 }
 
 inline
-void endian_swap(uint64 *val)
+uint64 endian_swap(const uint64* val)
 {
     uint64 v = *val;
-    *val = ((v << 56)
+    return ((v << 56)
         | ((v & 0x000000000000FF00ULL) << 40)
         | ((v & 0x0000000000FF0000ULL) << 24)
         | ((v & 0x00000000FF000000ULL) << 8)
@@ -78,10 +77,10 @@ void endian_swap(uint64 *val)
 }
 
 inline
-void endian_swap(int64 *val)
+int64 endian_swap(const int64* val)
 {
     uint64 v = (uint64) (*val);
-    *val = (int64) ((v << 56)
+    return (int64) ((v << 56)
         | ((v & 0x000000000000FF00ULL) << 40)
         | ((v & 0x0000000000FF0000ULL) << 24)
         | ((v & 0x00000000FF000000ULL) << 8)
@@ -89,6 +88,20 @@ void endian_swap(int64 *val)
         | ((v & 0x0000FF0000000000ULL) >> 24)
         | ((v & 0x00FF000000000000ULL) >> 40)
         | (v >> 56));
+}
+
+inline
+float endian_swap(const float* val)
+{
+    uint32* ival = (uint32 *) val;
+    return (float) endian_swap(ival);
+}
+
+inline
+double endian_swap(const double* val)
+{
+    uint64* ival = (uint64 *) val;
+    return (double) endian_swap(ival);
 }
 
 #endif

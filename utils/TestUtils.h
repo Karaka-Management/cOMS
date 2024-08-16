@@ -133,7 +133,7 @@ void profile_function(const char* func_name, void (*func)(void*), void* data, in
 
 #if DEBUG
     #define ASSERT_SIMPLE(a)                             \
-        if ((a) == false) {                              \
+        if (!(a)) {                                      \
             *(volatile int *)0 = 0;                      \
         }
 #else

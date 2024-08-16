@@ -6,9 +6,10 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_RING_MEMORY_H
-#define TOS_UTILS_RING_MEMORY_H
+#ifndef TOS_MEMORY_RING_MEMORY_H
+#define TOS_MEMORY_RING_MEMORY_H
 
+#include <string.h>
 #include "../stdlib/Types.h"
 #include "MathUtils.h"
 #include "TestUtils.h"

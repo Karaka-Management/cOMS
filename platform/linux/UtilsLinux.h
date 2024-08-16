@@ -72,13 +72,17 @@ uint64 last_modified(const char* filename)
 }
 
 inline
-void file_read(const char* filename, file_body* file)
+void file_read(const char* filename, FileBody* file, RingMemory* ring = NULL)
 {
     FILE *fp = fopen(filename, "rb");
     fseek(fp, 0, SEEK_END);
 
     file->size = ftell(fp);
     rewind(fp);
+
+    if (ring != NULL) {
+        file->content = ring_get_memory(ring, file->size);
+    }
 
     fread(file->content, 1, file->size, fp);
 
@@ -92,11 +96,6 @@ uint64_t file_read_struct(const char* filename, void* file, uint32 size) {
         return 0;
     }
 
-    fseek(fp, 0, SEEK_END);
-    long fsize = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-
-    ASSERT_SIMPLE(fsize > size);
     size_t read_bytes = fread(file, 1, size, fp);
     fclose(fp);
 
@@ -104,7 +103,7 @@ uint64_t file_read_struct(const char* filename, void* file, uint32 size) {
 }
 
 inline
-bool file_write(const char* filename, const file_body* file) {
+bool file_write(const char* filename, const FileBody* file) {
     FILE *fp = fopen(filename, "wb");
     if (!fp) {
         return false;
@@ -186,7 +185,7 @@ inline bool file_append(FILE* fp, const char* file) {
     return written == length;
 }
 
-inline bool file_append(const char* filename, const file_body* file) {
+inline bool file_append(const char* filename, const FileBody* file) {
     FILE *fp = get_append_handle(filename);
     if (!fp) {
         return false;
@@ -212,6 +211,11 @@ void self_path(char* path) {
 
 inline void relative_to_absolute(const char* rel, char* path)
 {
+    const char* temp = rel;
+    if (temp[0] == '.' && temp[1] == '/') {
+        temp += 2;
+    }
+
     char self_path[MAX_PATH];
     ssize_t count = readlink("/proc/self/exe", self_path, MAX_PATH - 1);
     if (count == -1) {
@@ -224,7 +228,7 @@ inline void relative_to_absolute(const char* rel, char* path)
         *(last + 1) = '\0';
     }
 
-    snprintf(path, MAX_PATH, "%s%s", self_path, rel);
+    snprintf(path, MAX_PATH, "%s%s", self_path, temp);
 }
 
 inline

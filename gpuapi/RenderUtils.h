@@ -156,11 +156,13 @@ void entity_clip_space_from_local_sse(float* clip_space, const float* local_spac
     mat4vec4_mult_sse(mat, local_space, clip_space);
 }
 
+/*
 inline
 void entity_screen_space(float* screen_space, const float* clip_space, const float* viewport_mat)
 {
     // @todo implement
 }
+*/
 
 inline
 void entity_world_space_sse(float* world_space, const float* local_space, const float* model_mat)
@@ -180,11 +182,13 @@ void entity_clip_space_sse(float* clip_space, const float* view_space, const flo
     mat4vec4_mult_sse(projection_mat, view_space, clip_space);
 }
 
+/*
 inline
 void entity_screen_space_sse(float* screen_space, const float* clip_space, const float* viewport_mat)
 {
     // @todo implement
 }
+*/
 
 inline
 void entity_world_space_sse(__m128* world_space, const __m128* local_space, const __m128* model_mat)
@@ -204,10 +208,12 @@ void entity_clip_space_sse(__m128* clip_space, const __m128* view_space, const _
     mat4vec4_mult_sse(projection_mat, view_space, clip_space);
 }
 
+/*
 inline
 void entity_screen_space_sse(__m128* screen_space, const __m128* clip_space, const __m128* viewport_mat)
 {
     // @todo implement
 }
+*/
 
 #endif

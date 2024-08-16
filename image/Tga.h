@@ -42,14 +42,22 @@ struct TgaHeader {
 struct Tga {
     TgaHeader header;
 
-    byte* pixels;
+    byte* pixels; // WARNING: This is not the owner of the data. The owner is the FileBody
 
     uint32 size;
-    byte* data;
+    byte* data; // WARNING: This is not the owner of the data. The owner is the FileBody
 };
 
-void generate_default_tga_references(const file_body* file, Tga* tga)
+void generate_default_tga_references(const FileBody* file, Tga* tga)
 {
+    tga->size = (uint32) file->size;
+    tga->data = file->content;
+
+    if (tga->size < TGA_HEADER_SIZE) {
+        // This shouldn't happen
+        return;
+    }
+
     tga->header.id_length = file->content[0];
     tga->header.color_map_type = file->content[1];
     tga->header.image_type = file->content[2];
@@ -68,8 +76,10 @@ void generate_default_tga_references(const file_body* file, Tga* tga)
         + tga->header.color_map_length * (tga->header.color_map_bits / 8); // can be 0
 }
 
-void generate_tga_image(const file_body* src_data, Image* image)
+void image_tga_generate(const FileBody* src_data, Image* image)
 {
+    // @performance We are generating the struct and then filling the data.
+    //      There is some asignment/copy overhead
     Tga src = {};
     generate_default_tga_references(src_data, &src);
 
