@@ -12,7 +12,6 @@
 #include <string.h>
 #include "../stdlib/Types.h"
 #include "Asset.h"
-#include "AssetType.h"
 #include "../memory/ChunkMemory.h"
 #include "../utils/TestUtils.h"
 #include "../stdlib/HashMap.h"

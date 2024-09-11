@@ -12,11 +12,12 @@
 #include "../stdlib/Types.h"
 #include "../object/Vertex.h"
 #include "../stdlib/HashMap.h"
+#include "AssetType.h"
 
 #define MAX_ASSET_NAME_LENGTH 32
 
 struct Asset {
-    // The id is the same as its location in memory/in the ecs array
+    // The id is the same as its location in memory/in the ams array
     // This is is only an internal id and NOT the same as a db id (e.g. player id)
     uint64 internal_id;
 
@@ -25,9 +26,9 @@ struct Asset {
 
     char name[MAX_ASSET_NAME_LENGTH];
 
-    uint32 type;
+    AssetType type;
 
-    // Counts the references to this entity
+    // Counts the references to this asset
     // e.g. textures
     int reference_count;
 
@@ -36,26 +37,26 @@ struct Asset {
     uint64 ram_size;
     uint64 vram_size;
 
-    // Usually 1 but in some cases an ECS may hold entities of variable chunk length
+    // Usually 1 but in some cases an ams may hold entities of variable chunk length
     // For textures for example a 128x128 is of size 1 but 256x256 is of size 4
     uint32 size;
 
     // Describes if the memory is currently available in ram/vram
-    // E.g. a entity might be uploaded to the gpu and no longer held in ram (or the other way around)
+    // E.g. an asset might be uploaded to the gpu and no longer held in ram (or the other way around)
     bool is_ram;
     bool is_vram;
 
     Asset* next;
     Asset* prev;
 
-    // A entity can reference up to N other entities
+    // An asset can reference up to N other entities
     // This allows us to quickly update the other entities
     // Example: A player pulls N mobs
     // @bug This means there are hard limits on how many mobs can be pulled by a player
-    Asset* entity_references[50];
-    bool free_entity_references[50];
+    Asset* references[50];
+    uint64 free_references; // bits show which is free
 
-    // Actual memory address
+    // Actual memory address and specific asset data
     byte* self;
 };
 

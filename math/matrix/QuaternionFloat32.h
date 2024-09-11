@@ -5,6 +5,7 @@
  * @license   OMS License 2.0
  * @version   1.0.0
  * @link      https://jingga.app
+ * @link      https://danceswithcode.net/engineeringnotes/quaternions/quaternions.html
  */
 #ifndef TOS_MATH_MATRIX_QUATERNION_FLOAT32_H
 #define TOS_MATH_MATRIX_QUATERNION_FLOAT32_H
@@ -12,40 +13,56 @@
 #include "../../stdlib/Intrinsics.h"
 #include "../../stdlib/Mathtypes.h"
 #include "../../utils/MathUtils.h"
+#include "../../utils/TestUtils.h"
 
+inline
+void quaternion_unit(v4_f32* quat)
+{
+    f32 length = sqrtf(quat->w * quat->w + quat->x * quat->x + quat->y * quat->y + quat->z * quat->z);
+
+    quat->w /= length;
+    quat->x /= length;
+    quat->y /= length;
+    quat->z /= length;
+}
+
+inline
 void quaternion_from_euler(v4_f32* quat, float pitch, float yaw, float roll)
 {
     float y = OMS_RAD2DEG(yaw * 0.5f);
-    float cy = cosf_approx(y);
-    float sy = sinf_approx(y);
+    float cy = cosf(y);
+    float sy = sinf(y);
 
     float p = OMS_RAD2DEG(pitch * 0.5f);
-    float cp = cosf_approx(p);
-    float sp = sinf_approx(p);
+    float cp = cosf(p);
+    float sp = sinf(p);
 
     float r = OMS_RAD2DEG(roll * 0.5f);
-    float cr = cosf_approx(r);
-    float sr = sinf_approx(r);
+    float cr = cosf(r);
+    float sr = sinf(r);
 
     quat->w = cr * cp * cy + sr * sp * sy;
     quat->x = sr * cp * cy - cr * sp * sy;
     quat->y = cr * sp * cy + sr * cp * sy;
     quat->z = cr * cp * sy - sr * sp * cy;
+
+    quaternion_unit(quat);
 }
 
+inline
 void quaternion_from_euler(v4_f32* quat, const v3_f32* v)
 {
-    float y = OMS_RAD2DEG(v->y * 0.5f);
-    float cy = cosf_approx(y);
-    float sy = sinf_approx(y);
+    float y = OMS_RAD2DEG(v->v * 0.5f);
+    float cy = cosf(y);
+    float sy = sinf(y);
 
-    float p = OMS_RAD2DEG(v->x * 0.5f);
-    float cp = cosf_approx(p);
-    float sp = sinf_approx(p);
+    float p = OMS_RAD2DEG(v->u * 0.5f);
+    float cp = cosf(p);
+    float sp = sinf(p);
 
-    float r = OMS_RAD2DEG(v->z * 0.5f);
-    float cr = cosf_approx(r);
-    float sr = sinf_approx(r);
+    float r = OMS_RAD2DEG(v->w * 0.5f);
+    float cr = cosf(r);
+    float sr = sinf(r);
 
     quat->w = cr * cp * cy + sr * sp * sy;
     quat->x = sr * cp * cy - cr * sp * sy;
@@ -53,27 +70,27 @@ void quaternion_from_euler(v4_f32* quat, const v3_f32* v)
     quat->z = cr * cp * sy - sr * sp * cy;
 }
 
-void euler_from_quaternion(const v4_f32* quat, v3_f32* v) {
+void quaternion_to_euler(const v4_f32* quat, v3_f32* v) {
     // Pitch
     float sinp = 2.0f * (quat->w * quat->x + quat->y * quat->z);
     float cosp = 1.0f - 2.0f * (quat->x * quat->x + quat->y * quat->y);
-    v->pitch = atan2f_approx(sinp, cosp);
+    v->pitch = atan2f(sinp, cosp);
 
-    // Yaw
-    float siny = 2.0f * (quat->w * quat->y - quat->z * quat->x);
-
-    if (siny >= 1.0f) {
-        v->yaw = OMS_PI_OVER_TWO;
-    } else if (siny <= -1.0f ) {
-        v->yaw = -OMS_PI_OVER_TWO;
+    // Check for gimbal lock
+    float sinp_check = 2.0f * (quat->w * quat->x + quat->y * quat->z);
+    if (OMS_ABS(sinp_check) >= 0.9999f) {
+        v->yaw = atan2f(quat->x * quat->z - quat->w * quat->y, quat->w * quat->x + quat->y * quat->z);
+        v->roll = 0.0f;
     } else {
-        v->yaw = asinf_approx(siny);
-    }
+        // Yaw
+        float siny = 2.0f * (quat->w * quat->y - quat->z * quat->x);
+        v->yaw = asinf(siny);
 
-    // Roll
-    float sinr = 2.0f * (quat->w * quat->z + quat->x * quat->y);
-    float cosr = 1.0f - 2.0f * (quat->y * quat->y + quat->z * quat->z);
-    v->roll = atan2f_approx(sinr, cosr);
+        // Roll
+        float sinr = 2.0f * (quat->w * quat->z + quat->x * quat->y);
+        float cosr = 1.0f - 2.0f * (quat->y * quat->y + quat->z * quat->z);
+        v->roll = atan2f(sinr, cosr);
+    }
 }
 
 void quaternion_multiply(v4_f32* quat, const v4_f32* quat1, const v4_f32* quat2)
@@ -97,21 +114,140 @@ void quaternion_inverse(v4_f32* quat, const v4_f32* quat_origin) {
 }
 
 inline
-void quaternion_rotate_euler(v4_f32* quat, const v4_f32* quat_origin, const v4_f32* euler)
+void quaternion_to_rotation(f32* matrix, const v4_f32* quat)
 {
-    quaternion_multiply(quat, quat_origin, euler);
+    matrix[0] = 1.0f - 2.0f * (quat->y * quat->y + quat->z * quat->z);
+    matrix[1] = 2.0f * (quat->x * quat->y - quat->z * quat->w);
+    matrix[2] = 2.0f * (quat->x * quat->z + quat->y * quat->w);
+    matrix[3] = 0.0f;
+
+    matrix[4] = 2.0f * (quat->x * quat->y + quat->z * quat->w);
+    matrix[5] = 1.0f - 2.0f * (quat->x * quat->x + quat->z * quat->z);
+    matrix[6] = 2.0f * (quat->y * quat->z - quat->x * quat->w);
+    matrix[7] = 0.0f;
+
+    matrix[8] = 2.0f * (quat->x * quat->z - quat->y * quat->w);
+    matrix[9] = 2.0f * (quat->y * quat->z + quat->x * quat->w);
+    matrix[10] = 1.0f - 2.0f * (quat->x * quat->x + quat->y * quat->y);
+    matrix[11] = 0.0f;
+
+    matrix[12] = 0.0f;
+    matrix[13] = 0.0f;
+    matrix[14] = 0.0f;
+    matrix[15] = 1.0f;
 }
 
 inline
-void quaternion_rotate_quaternion(v4_f32* quat, const v4_f32* quat_origin, const v4_f32* quat_rot)
+void quaternion_to_rotation(f32* matrix, const v4_f32* quat)
 {
-    v4_f32 quat_tmp;
-    quaternion_multiply(&quat_tmp, quat_rot, quat_origin);
+    matrix[0] = 1.0f - 2.0f * (quat->y * quat->y + quat->z * quat->z);
+    matrix[1] = 2.0f * (quat->x * quat->y - quat->z * quat->w);
+    matrix[2] = 2.0f * (quat->x * quat->z + quat->y * quat->w);
 
-    v4_f32 rot_;
-    quaternion_inverse(&rot_, quat_rot);
+    matrix[3] = 2.0f * (quat->x * quat->y + quat->z * quat->w);
+    matrix[4] = 1.0f - 2.0f * (quat->x * quat->x + quat->z * quat->z);
+    matrix[5] = 2.0f * (quat->y * quat->z - quat->x * quat->w);
 
-    quaternion_multiply(quat, &quat_tmp, &rot_);
+    matrix[6] = 2.0f * (quat->x * quat->z - quat->y * quat->w);
+    matrix[7] = 2.0f * (quat->y * quat->z + quat->x * quat->w);
+    matrix[8] = 1.0f - 2.0f * (quat->x * quat->x + quat->y * quat->y);
+}
+
+inline
+void quaternion_from_vec(v4_f32* quat, const v4_f32* vec)
+{
+    quat->x = vec->x;
+    quat->y = vec->y;
+    quat->z = vec->z;
+    quat->w = 0;
+}
+
+inline
+void quaternion_from_vec(v4_f32* quat, const v3_f32* vec)
+{
+    quat->x = vec->x;
+    quat->y = vec->y;
+    quat->z = vec->z;
+    quat->w = 0;
+}
+
+inline
+void quaternion_to_vec(v4_f32* vec, const v4_f32* quat)
+{
+    vec->x = quat->x;
+    vec->y = quat->y;
+    vec->z = quat->z;
+    vec->w = 0.0f;
+}
+
+inline
+void quaternion_to_vec(v3_f32* vec, const v4_f32* quat)
+{
+    vec->x = quat->x;
+    vec->y = quat->y;
+    vec->z = quat->z;
+}
+
+// active = point rotated respective to coordinate system
+inline
+void quaternion_rotate_active(v4_f32* p, const v4_f32* quat, const v4_f32* quat_inv)
+{
+    ASSERT_SIMPLE(OMS_ABS(x * x + y * y + z * z + w * z - 1.0f) < 0.01);
+
+    v4_f32 p_tmp;
+    quaternion_multiply(&p_tmp, quat_inv, p);
+    quaternion_multiply(p, &p_tmp, quat);
+}
+
+// passive = coordinate system is rotated
+inline
+void quaternion_rotate_passive(v4_f32* p, const v4_f32* quat, const v4_f32* quat_inv)
+{
+    ASSERT_SIMPLE(OMS_ABS(x * x + y * y + z * z + w * w - 1.0f) < 0.01);
+
+    v4_f32 p_tmp;
+    quaternion_multiply(&p_tmp, quat, p);
+    quaternion_multiply(p, &p_tmp, quat_inv);
+}
+
+// Rotation algorithm
+// 1. create quat from pitch/yaw/roll
+// 2. convert the quat to unit length
+// 3. create quat_inv
+// 4. create quat from vec
+// 5. call quat_rotate_*
+// 6. convert quat to vec
+// @todo Since this is usually done on multiple vecs, we should probably accept an array of vecs and then use simd
+void quaternion_rotate_active(v4_f32* vec, float pitch, float yaw, float roll)
+{
+    v4_f32 q;
+    quaternion_from_euler(&q, pitch, yaw, roll); // q is already in unit length
+
+    v4_f32 q_inv;
+    quaternion_inverse(&q_inv, &q);
+
+    v4_f32 p;
+    quaternion_from_vec(&p, vec);
+
+    quaternion_rotate_active(&p, &q, &q_inv);
+
+    quaternion_to_vec(vec, &p);
+}
+
+void quaternion_rotate_passive(v4_f32* vec, float pitch, float yaw, float roll)
+{
+    v4_f32 q;
+    quaternion_from_euler(&q, pitch, yaw, roll); // q is already in unit length
+
+    v4_f32 q_inv;
+    quaternion_inverse(&q_inv, &q);
+
+    v4_f32 p;
+    quaternion_from_vec(&p, vec);
+
+    quaternion_rotate_passive(&p, &q, &q_inv);
+
+    quaternion_to_vec(vec, &p);
 }
 
 #endif

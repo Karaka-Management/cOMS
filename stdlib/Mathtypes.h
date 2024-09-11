@@ -119,20 +119,23 @@ struct v3_f32 {
                 f32 x;
                 f32 r;
                 f32 pitch;
+                f32 u;
             };
             union {
                 f32 y;
                 f32 g;
                 f32 yaw;
+                f32 v;
             };
             union {
                 f32 z;
                 f32 b;
                 f32 roll;
+                f32 w;
             };
         };
 
-        f32 v[3];
+        f32 vec[3];
     };
 };
 
@@ -145,7 +148,7 @@ struct v4_f32 {
             f32 w;
         };
 
-        f32 v[4];
+        f32 vec[4];
     };
 };
 

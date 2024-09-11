@@ -31,6 +31,13 @@ struct HashEntryInt64 {
     int64 value;
 };
 
+struct HashEntryVoidP {
+    int64 element_id;
+    char key[MAX_KEY_LENGTH];
+    HashEntryVoidP* next;
+    void* value;
+};
+
 struct HashEntryFloat {
     int64 element_id;
     char key[MAX_KEY_LENGTH];
@@ -70,6 +77,7 @@ void hashmap_create(HashMap* hm, int count, int element_size, RingMemory* ring)
     hm->buf.alignment = 1;
 }
 
+// WARNING: element_size = element size + remaining HashEntry data size
 void hashmap_create(HashMap* hm, int count, int element_size, BufferMemory* buf)
 {
     hm->table = (void **) buffer_get_memory(buf, count * sizeof(void *));
@@ -90,6 +98,7 @@ int64 hashmap_get_buffer_size(int count, int element_size)
         + sizeof(uint64) * CEIL_DIV(count, 64); // free
 }
 
+// WARNING: element_size = element size + remaining HashEntry data size
 void hashmap_create(HashMap* hm, int count, int element_size, byte* buf)
 {
     hm->table = (void **) buf;
@@ -129,6 +138,21 @@ void hashmap_insert(HashMap* hm, const char* key, int64 value) {
 
     entry->value = value;
     entry->next = (HashEntryInt64 *) hm->table[index];
+    hm->table[index] = entry;
+}
+
+void hashmap_insert(HashMap* hm, const char* key, void* value) {
+    uint64 index = hash_djb2(key) % hm->buf.count;
+
+    int64 element = chunk_reserve(&hm->buf, 1);
+    HashEntryVoidP* entry = (HashEntryVoidP *) chunk_get_element(&hm->buf, element, true);
+    entry->element_id = element;
+
+    strncpy(entry->key, key, MAX_KEY_LENGTH);
+    entry->key[MAX_KEY_LENGTH - 1] = '\0';
+
+    entry->value = value;
+    entry->next = (HashEntryVoidP *) hm->table[index];
     hm->table[index] = entry;
 }
 

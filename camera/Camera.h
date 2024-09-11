@@ -22,8 +22,14 @@ struct Camera {
     v4_f32 orientation;
 
     float speed;
+    float sensitivity;
     float zoom;
 };
+
+void camera_look_at(Camera* camera, const v3_f32* at)
+{
+
+}
 
 // you can have up to 4 camera movement inputs at the same time
 void camera_movement(Camera* camera, CameraMovement* movement, float dt)
@@ -31,11 +37,11 @@ void camera_movement(Camera* camera, CameraMovement* movement, float dt)
     f32 velocity = camera->speed * dt;
 
     bool has_pos = false;
-    v4_f32 pos;
+    v4_f32 pos = {};
 
     bool has_view = false;
-    v3_f32 view;
-    v4_f32 quaternion;
+    v3_f32 view = {};
+    v4_f32 quaternion = {};
 
     for (int i = 0; i < 4; i++) {
         switch(movement[i]) {

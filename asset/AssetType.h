@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ASSET_TYPES_H
-#define TOS_ASSET_TYPES_H
+#ifndef TOS_ASSET_TYPE_H
+#define TOS_ASSET_TYPE_H
 
 enum AssetType {
     ASSET_TYPE_OBJ,

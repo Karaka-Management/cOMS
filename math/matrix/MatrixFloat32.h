@@ -12,6 +12,7 @@
 #include "../../stdlib/Intrinsics.h"
 #include "../../stdlib/Mathtypes.h"
 #include "../../utils/MathUtils.h"
+#include "../../utils/TestUtils.h"
 #include <math.h>
 
 void mat3_identity(float* matrix)
@@ -58,6 +59,8 @@ void mat4_identity(__m128* matrix)
 // https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
 void mat4_rotation(float* matrix, float x, float y, float z, float angle)
 {
+    ASSERT_SIMPLE(OMS_ABS(x * x + y * y + z * z - 1.0f) < 0.01)
+
     // @todo replace with quaternions
     float s = sinf(angle);
     float c = cosf(angle);
@@ -78,22 +81,52 @@ void mat4_rotation(float* matrix, float x, float y, float z, float angle)
     matrix[0] = mx * x + c;
     matrix[1] = mxy - zs;
     matrix[2] = mzx + ys;
-    matrix[3] = 0;
+    matrix[3] = 0.0f;
 
     matrix[4] = mxy + zs;
     matrix[5] = my * y + c;
     matrix[6] = myz - xs;
-    matrix[7] = 0;
+    matrix[7] = 0.0f;
 
     matrix[8] = mzx - ys;
     matrix[9] = myz + xs;
     matrix[10] = mz * z + c;
-    matrix[11] = 0;
+    matrix[11] = 0.0f;
 
-    matrix[12] = 0;
-    matrix[13] = 0;
-    matrix[14] = 0;
-    matrix[15] = 1;
+    matrix[12] = 0.0f;
+    matrix[13] = 0.0f;
+    matrix[14] = 0.0f;
+    matrix[15] = 1.0f;
+}
+
+void mat4_rotation(float* matrix, float pitch, float yaw, float roll)
+{
+    float cos_pitch = cosf(pitch);
+    float sin_pitch = sinf(pitch);
+    float cos_yaw = cosf(yaw);
+    float sin_yaw = sinf(yaw);
+    float cos_roll = cosf(roll);
+    float sin_roll = sinf(roll);
+
+    matrix[0] = cos_yaw * cos_roll;
+    matrix[1] = cos_yaw * sin_roll;
+    matrix[2] = -sin_yaw;
+    matrix[3] = 0.0f;
+
+    matrix[4] = sin_pitch * sin_yaw * cos_roll - cos_pitch * sin_roll;
+    matrix[5] = sin_pitch * sin_yaw * sin_roll + cos_pitch * cos_roll;
+    matrix[6] = sin_pitch * cos_yaw;
+    matrix[7] = 0.0f;
+
+    matrix[8] = cos_pitch * sin_yaw * cos_roll + sin_pitch * sin_roll;
+    matrix[9] = cos_pitch * sin_yaw * sin_roll - sin_pitch * cos_roll;
+    matrix[10] = cos_pitch * cos_yaw;
+    matrix[11] = 0.0f;
+
+    matrix[12] = 0.0f;
+    matrix[13] = 0.0f;
+    matrix[14] = 0.0f;
+    matrix[15] = 1.0f;
 }
 
 void mat3vec3_mult(const float* matrix, const float* vector, float* result)
@@ -253,25 +286,21 @@ void mat4mat4_mult(const float* a, const float* b, float* result, int steps = 8)
             )
         );
     } else {
-        // Row 0
         result[0] = a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12];
         result[1] = a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13];
         result[2] = a[0] * b[2] + a[1] * b[6] + a[2] * b[10] + a[3] * b[14];
         result[3] = a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3] * b[15];
 
-        // Row 1
         result[4] = a[4] * b[0] + a[5] * b[4] + a[6] * b[8] + a[7] * b[12];
         result[5] = a[4] * b[1] + a[5] * b[5] + a[6] * b[9] + a[7] * b[13];
         result[6] = a[4] * b[2] + a[5] * b[6] + a[6] * b[10] + a[7] * b[14];
         result[7] = a[4] * b[3] + a[5] * b[7] + a[6] * b[11] + a[7] * b[15];
 
-        // Row 2
         result[8] = a[8] * b[0] + a[9] * b[4] + a[10] * b[8] + a[11] * b[12];
         result[9] = a[8] * b[1] + a[9] * b[5] + a[10] * b[9] + a[11] * b[13];
         result[10] = a[8] * b[2] + a[9] * b[6] + a[10] * b[10] + a[11] * b[14];
         result[11] = a[8] * b[3] + a[9] * b[7] + a[10] * b[11] + a[11] * b[15];
 
-        // Row 3
         result[12] = a[12] * b[0] + a[13] * b[4] + a[14] * b[8] + a[15] * b[12];
         result[13] = a[12] * b[1] + a[13] * b[5] + a[14] * b[9] + a[15] * b[13];
         result[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14];
@@ -351,6 +380,8 @@ void mat4mat4_mult_sse(const __m128* a, const __m128* b_transpose, __m128* resul
 // @performance Consider to replace with 1d array
 void mat4_frustum_planes(float planes[6][4], float radius, float *matrix) {
     // @todo make this a setting
+    // @bug fix to row-major system
+    // @todo don't use 2d arrays
     float znear = 0.125;
     float zfar = radius * 32 + 64;
 
@@ -442,25 +473,25 @@ void mat4_ortho(
     float tb_delta = top - bottom;
     float fn_delta = far_dist - near_dist;
 
-    matrix[0] = 2 / rl_delta;
-    matrix[1] = 0;
-    matrix[2] = 0;
-    matrix[3] = 0;
+    matrix[0] = 2.0f / rl_delta;
+    matrix[1] = 0.0f;
+    matrix[2] = 0.0f;
+    matrix[3] = 0.0f;
 
-    matrix[4] = 0;
-    matrix[5] = 2 / tb_delta;
-    matrix[6] = 0;
-    matrix[7] = 0;
+    matrix[4] = 0.0f;
+    matrix[5] = 2.0f / tb_delta;
+    matrix[6] = 0.0f;
+    matrix[7] = 0.0f;
 
-    matrix[8] = 0;
-    matrix[9] = 0;
-    matrix[10] = -2 / fn_delta;
-    matrix[11] = 0;
+    matrix[8] = 0.0f;
+    matrix[9] = 0.0f;
+    matrix[10] = -2.0f / fn_delta;
+    matrix[11] = 0.0f;
 
     matrix[12] = -(right + left) / rl_delta;
     matrix[13] = -(top + bottom) / tb_delta;
     matrix[14] = -(far_dist + near_dist) / fn_delta;
-    matrix[15] = 1;
+    matrix[15] = 1.0f;
 }
 
 void mat4_translate(float* matrix, float dx, float dy, float dz, int steps = 8)
@@ -469,12 +500,115 @@ void mat4_translate(float* matrix, float dx, float dy, float dz, int steps = 8)
     memcpy(temp, matrix, sizeof(float) * 16);
 
     alignas(64) float translation_matrix[16];
-    translation_matrix[0] = 1;   translation_matrix[1] = 0;   translation_matrix[2] = 0;   translation_matrix[3] = 0;
-    translation_matrix[4] = 0;   translation_matrix[5] = 1;   translation_matrix[6] = 0;   translation_matrix[7] = 0;
-    translation_matrix[8] = 0;   translation_matrix[9] = 0;   translation_matrix[10] = 1;  translation_matrix[11] = 0;
-    translation_matrix[12] = dx; translation_matrix[13] = dy; translation_matrix[14] = dz; translation_matrix[15] = 1;
+    translation_matrix[0] = 1.0f;   translation_matrix[1] = 0.0f;   translation_matrix[2] = 0.0f;   translation_matrix[3] = dx;
+    translation_matrix[4] = 0.0f;   translation_matrix[5] = 1.0f;   translation_matrix[6] = 0.0f;   translation_matrix[7] = dy;
+    translation_matrix[8] = 0.0f;   translation_matrix[9] = 0.0f;   translation_matrix[10] = 1.0f;  translation_matrix[11] = dz;
+    translation_matrix[12] = 0.0f; translation_matrix[13] = 0.0f; translation_matrix[14] = 0.0f; translation_matrix[15] = 1.0f;
 
-    mat4mat4_mult(temp, translation_matrix, matrix, steps);
+    mat4mat4_mult(temp, translation_matrix, matrix, 1);
+}
+
+void mat4_translation(float* matrix, float dx, float dy, float dz)
+{
+    matrix[0] = 1.0f;   matrix[1] = 0.0f;   matrix[2] = 0.0f;   matrix[3] = dx;
+    matrix[4] = 0.0f;   matrix[5] = 1.0f;   matrix[6] = 0.0f;   matrix[7] = dy;
+    matrix[8] = 0.0f;   matrix[9] = 0.0f;   matrix[10] = 1.0f;  matrix[11] = dz;
+    matrix[12] = 0.0f; matrix[13] = 0.0f; matrix[14] = 0.0f; matrix[15] = 1.0f;
+}
+
+void mat4_translation_sparse(float* matrix, float dx, float dy, float dz)
+{
+    matrix[3] = dx;
+    matrix[7] = dy;
+    matrix[11] = dz;
+}
+
+// @todo unroll these loops below
+void mat4_transpose(const float* matrix, float* transposed)
+{
+    for (int i = 0; i < 4; ++i) {
+        for (int j = i + 1; j < 4; ++j) {
+            int index1 = i * 4 + j;
+            int index2 = j * 4 + i;
+
+            transposed[index1] = transposed[index2];
+            transposed[index2] = matrix[index1];
+        }
+    }
+}
+
+void mat4_transpose(float* matrix)
+{
+    float temp;
+
+    for (int i = 0; i < 4; ++i) {
+        for (int j = i + 1; j < 4; ++j) {
+            int index1 = i * 4 + j;
+            int index2 = j * 4 + i;
+
+            temp = matrix[index1];
+            matrix[index1] = matrix[index2];
+            matrix[index2] = temp;
+        }
+    }
+}
+
+void mat3_transpose(const float* matrix, float* transposed)
+{
+    for (int i = 0; i < 3; ++i) {
+        for (int j = i + 1; j < 3; ++j) {
+            int index1 = i * 3 + j;
+            int index2 = j * 3 + i;
+
+            transposed[index1] = transposed[index2];
+            transposed[index2] = matrix[index1];
+        }
+    }
+}
+
+void mat3_transpose(float* matrix)
+{
+    float temp;
+
+    for (int i = 0; i < 3; ++i) {
+        for (int j = i + 1; j < 3; ++j) {
+            int index1 = i * 3 + j;
+            int index2 = j * 3 + i;
+
+            temp = matrix[index1];
+            matrix[index1] = matrix[index2];
+            matrix[index2] = temp;
+        }
+    }
+}
+
+void mat2_transpose(const float* matrix, float* transposed)
+{
+    for (int i = 0; i < 2; ++i) {
+        for (int j = i + 1; j < 2; ++j) {
+            int index1 = i * 2 + j;
+            int index2 = j * 2 + i;
+
+            transposed[index1] = transposed[index2];
+            transposed[index2] = matrix[index1];
+        }
+    }
+}
+
+void mat2_transpose(float* matrix)
+{
+    float temp;
+
+    for (int i = 0; i < 2; ++i) {
+        for (int j = i + 1; j < 2; ++j) {
+            int index1 = i * 2 + j;
+            int index2 = j * 2 + i;
+
+            temp = matrix[index1];
+            matrix[index1] = matrix[index2];
+            matrix[index2] = temp;
+        }
+    }
 }
 
 #endif
