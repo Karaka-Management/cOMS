@@ -52,6 +52,29 @@ int sprintf_s(char *buffer, size_t sizeOfBuffer, const char *format, ...) {
     return result;
 }
 
+inline void relative_to_absolute(const char* rel, char* path)
+{
+    const char* temp = rel;
+    if (temp[0] == '.' && temp[1] == '/') {
+        temp += 2;
+    }
+
+    char self_path[MAX_PATH];
+    ssize_t count = readlink("/proc/self/exe", self_path, MAX_PATH - 1);
+    if (count == -1) {
+        return;
+    }
+    self_path[count] = '\0';
+
+    char* last = strrchr(self_path, '/');
+    if (last != NULL) {
+        *(last + 1) = '\0';
+    }
+
+    snprintf(path, MAX_PATH, "%s%s", self_path, temp);
+}
+
+// @todo implement relative path support, similar to UtilsWin32
 inline
 uint64 file_size(const char* filename) {
     struct stat st;
@@ -207,28 +230,6 @@ void self_path(char* path) {
     } else {
         path[0] = '\0';
     }
-}
-
-inline void relative_to_absolute(const char* rel, char* path)
-{
-    const char* temp = rel;
-    if (temp[0] == '.' && temp[1] == '/') {
-        temp += 2;
-    }
-
-    char self_path[MAX_PATH];
-    ssize_t count = readlink("/proc/self/exe", self_path, MAX_PATH - 1);
-    if (count == -1) {
-        return;
-    }
-    self_path[count] = '\0';
-
-    char* last = strrchr(self_path, '/');
-    if (last != NULL) {
-        *(last + 1) = '\0';
-    }
-
-    snprintf(path, MAX_PATH, "%s%s", self_path, temp);
 }
 
 inline

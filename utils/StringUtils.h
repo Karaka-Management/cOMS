@@ -139,7 +139,7 @@ char* format_number(size_t number, char* buffer, const char thousands = ',')
     return buffer;
 }
 
-char*  format_number(int number, char* buffer, const char thousands = ',')
+char* format_number(int number, char* buffer, const char thousands = ',')
 {
     int length = snprintf(buffer, 32, "%i", number);
     format_number_render(length, buffer, thousands);
@@ -147,7 +147,21 @@ char*  format_number(int number, char* buffer, const char thousands = ',')
     return buffer;
 }
 
-void create_const_name(const unsigned char* name, unsigned char* modified_name)
+char toupper_ascii(char c)
+{
+    return c >= 'a' && c <= 'z'
+        ? c & 0x5f
+        : c;
+}
+
+char tolower_ascii(char c)
+{
+    return c >= 'A' && c <= 'Z'
+        ? c | 0x20
+        : c;
+}
+
+void create_const_name(const unsigned char* name, char* modified_name)
 {
     // Print block
     if (name == NULL) {
@@ -156,7 +170,7 @@ void create_const_name(const unsigned char* name, unsigned char* modified_name)
         size_t i;
         const size_t length = strlen((const char* ) name);
         for (i = 0; i < length; ++i) {
-            modified_name[i] = name[i] == ' ' ? '_' : (unsigned char) toupper(name[i]);
+            modified_name[i] = name[i] == ' ' ? '_' : toupper_ascii(name[i]);
         }
 
         modified_name[i] = '\0';
@@ -200,6 +214,38 @@ bool str_ends_with(const char* str, const char* suffix) {
         return false;
 
     return strncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
+}
+
+// WARNING: result needs to have the correct length
+void str_replace(const char* str, const char* search, const char* replace, char* result) {
+    if (str == NULL || search == NULL || replace == NULL || result == NULL) {
+        return;
+    }
+
+    size_t search_len = strlen(search);
+    size_t replace_len = strlen(replace);
+
+    if (search_len == 0) {
+        strcpy(result, str);
+        return;
+    }
+
+    const char* current = str;
+    char* result_ptr = result;
+
+    while ((current = strstr(current, search)) != NULL) {
+        size_t bytes_to_copy = current - str;
+        memcpy(result_ptr, str, bytes_to_copy);
+        result_ptr += bytes_to_copy;
+
+        memcpy(result_ptr, replace, replace_len);
+        result_ptr += replace_len;
+
+        current += search_len;
+        str = current;
+    }
+
+    strcpy(result_ptr, str);
 }
 
 #endif

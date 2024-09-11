@@ -19,6 +19,7 @@
 
 #include "Types.h"
 
+/*
 inline f32 sqrt(f32 a) { return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(a))); }
 inline f64 sqrt(f64 a)
 {
@@ -26,6 +27,7 @@ inline f64 sqrt(f64 a)
 
     return _mm_cvtsd_f64(_mm_sqrt_sd(temp, temp));
 }
+*/
 
 inline f32 rsqrt(f32 a) { return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(a))); }
 inline f64 rsqrt(f64 a)

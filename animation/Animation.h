@@ -10,15 +10,18 @@
 #ifndef TOS_ANIMATION_H
 #define TOS_ANIMATION_H
 
-#include <math.h>
 #include "../utils/MathUtils.h"
 
 #include "AnimationEaseType.h"
 
 inline
-float lerp_approx(float a, float b, float t)
+float lerp(float a, float b, float t)
 {
     return a + t * (b - a);
+}
+
+float smoothstep(float t) {
+    return t * t * (3 - 2 * t);
 }
 
 float anim_ease(float t, AnimationEaseType type) {
@@ -180,6 +183,11 @@ float anim_ease_in_quart(float t) {
 inline
 float anim_ease_out_quart(float t) {
     return 1 - pow(1 - t, 4);
+}
+
+inline
+float anim_ease_in_perlin(float t) {
+    return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
 inline

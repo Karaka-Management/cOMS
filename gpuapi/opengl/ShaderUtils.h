@@ -9,82 +9,79 @@
 #ifndef TOS_GPUAPI_OPENGL_SHADER_UTILS_H
 #define TOS_GPUAPI_OPENGL_SHADER_UTILS_H
 
-#include "../../../EngineDependencies/opengl/glew/include/GL/glew.h"
-#include "../../../EngineDependencies/opengl/glfw/include/glfw3.h"
-
 #include "../../stdlib/Types.h"
 
 inline
-void shader_set_value(uint32 id, const char* name, bool value)
+void shader_set_value(OpenGL* gl, uint32 id, const char* name, bool value)
 {
-    glUniform1i(glGetUniformLocation(id, name), (int) value);
+    gl->glUniform1i(gl->glGetUniformLocation(id, name), (int) value);
 }
 
 inline
-void shader_set_value(uint32 id, const char* name, int value)
+void shader_set_value(OpenGL* gl, uint32 id, const char* name, int value)
 {
-    glUniform1i(glGetUniformLocation(id, name), value);
+    gl->glUniform1i(gl->glGetUniformLocation(id, name), value);
 }
 
 inline
-void shader_set_value(uint32 id, const char* name, float value)
+void shader_set_value(OpenGL* gl, uint32 id, const char* name, float value)
 {
-    glUniform1f(glGetUniformLocation(id, name), value);
+    gl->glUniform1f(gl->glGetUniformLocation(id, name), value);
 }
 
 inline
-void shader_set_v2(uint32 id, const char* name, float* value)
+void shader_set_v2(OpenGL* gl, uint32 id, const char* name, float* value)
 {
-    glUniform2fv(glGetUniformLocation(id, name), 1, value);
+    gl->glUniform2fv(gl->glGetUniformLocation(id, name), 1, value);
 }
 
 inline
-void shader_set_v3(uint32 id, const char* name, float* value)
+void shader_set_v3(OpenGL* gl, uint32 id, const char* name, float* value)
 {
-    glUniform3fv(glGetUniformLocation(id, name), 1, value);
+    gl->glUniform3fv(gl->glGetUniformLocation(id, name), 1, value);
 }
 
 inline
-void shader_set_v4(uint32 id, const char* name, float* value)
+void shader_set_v4(OpenGL* gl, uint32 id, const char* name, float* value)
 {
-    glUniform4fv(glGetUniformLocation(id, name), 1, value);
+    gl->glUniform4fv(gl->glGetUniformLocation(id, name), 1, value);
 }
 
 inline
-void shader_set_m2(uint32 id, const char* name, float* value)
+void shader_set_m2(OpenGL* gl, uint32 id, const char* name, float* value)
 {
-    glUniformMatrix2fv(glGetUniformLocation(id, name), 1, GL_FALSE, value);
+    gl->glUniformMatrix2fv(gl->glGetUniformLocation(id, name), 1, GL_FALSE, value);
 }
 
 inline
-void shader_set_m3(uint32 id, const char* name, float* value)
+void shader_set_m3(OpenGL* gl, uint32 id, const char* name, float* value)
 {
-    glUniformMatrix3fv(glGetUniformLocation(id, name), 1, GL_FALSE, value);
+    gl->glUniformMatrix3fv(gl->glGetUniformLocation(id, name), 1, GL_FALSE, value);
 }
 
 inline
-void shader_set_m4(uint32 id, const char* name, float* value)
+void shader_set_m4(OpenGL* gl, uint32 id, const char* name, float* value)
 {
-    glUniformMatrix4fv(glGetUniformLocation(id, name), 1, GL_FALSE, value);
+    gl->glUniformMatrix4fv(gl->glGetUniformLocation(id, name), 1, GL_FALSE, value);
 }
 
 inline
-void shader_check_link_errors(uint32 id, char* log)
+void shader_check_link_errors(OpenGL* gl, uint32 id, char* log)
 {
     GLint success;
-    glGetProgramiv(id, GL_LINK_STATUS, &success);
+    gl->glGetProgramiv(id, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(id, 1024, NULL, log);
+        gl->glGetProgramInfoLog(id, 1024, NULL, log);
     }
 }
 
 inline
-void shader_check_compile_errors(uint32 id, char* log)
+void shader_check_compile_errors(OpenGL* gl, uint32 id, char* log)
 {
     GLint success;
-    glGetShaderiv(id, GL_COMPILE_STATUS, &success);
+    gl->glGetShaderiv(id, GL_COMPILE_STATUS, &success);
     if (!success) {
-        glGetShaderInfoLog(id, 1024, NULL, log);
+        gl->glGetShaderInfoLog(id, 1024, NULL, log);
     }
 }
 

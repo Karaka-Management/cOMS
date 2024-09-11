@@ -425,6 +425,37 @@ unsigned int get_gpu_info(GpuInfo* info) {
     return i;
 }
 
+struct DisplayInfo {
+    char name[64];
+    int width;
+    int height;
+    int hz;
+};
+
+unsigned int get_display_info(DisplayInfo* info) {
+    DISPLAY_DEVICE device;
+    DEVMODE mode;
+
+    device.cb = sizeof(DISPLAY_DEVICE);
+
+    int i = 0;
+
+    while (EnumDisplayDevices(NULL, i, &device, 0)) {
+        mode.dmSize = sizeof(mode);
+
+        if (EnumDisplaySettings(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
+            strcpy(info[i].name, device.DeviceName);
+            info[i].width = mode.dmPelsWidth;
+            info[i].height = mode.dmPelsHeight;
+            info[i].hz = mode.dmDisplayFrequency;
+        }
+
+        ++i;
+    }
+
+    return i;
+}
+
 struct SystemInfo {
     OSInfo os;
     MainboardInfo mainboard;
@@ -437,6 +468,9 @@ struct SystemInfo {
 
     GpuInfo gpu[2];
     int gpu_count;
+
+    DisplayInfo display[6];
+    int display_count;
 };
 
 void render_system_info(char* buf, const SystemInfo* info) {
@@ -487,8 +521,16 @@ void render_system_info(char* buf, const SystemInfo* info) {
         "GPU:\n"
         "==============\n"
         "Name: %s\n" "VRAM: %d\n"
-        "\n"
         "Name: %s\n" "VRAM: %d\n"
+        "\n"
+        "Display:\n"
+        "==============\n"
+        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
+        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
+        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
+        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
+        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
+        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
         "\n"
         "RAM:\n"
         "==============\n"
@@ -507,6 +549,12 @@ void render_system_info(char* buf, const SystemInfo* info) {
         info->cpu.simd.sse, info->cpu.simd.avx256, info->cpu.simd.avx512 > 0 ? avx512[info->cpu.simd.avx512 - 1] : "0",
         info->gpu[0].name, info->gpu[0].vram,
         info->gpu_count < 2 ? "" : info->gpu[1].name, info->gpu_count < 2 ? 0 : info->gpu[1].vram,
+        info->display[0].name, info->display[0].width, info->display[0].height, info->display[0].hz,
+        info->display_count < 2 ? "" : info->display[1].name, info->display_count < 2 ? 0 : info->display[1].width, info->display_count < 2 ? 0 : info->display[1].height, info->display_count < 2 ? 0 : info->display[1].hz,
+        info->display_count < 3 ? "" : info->display[2].name, info->display_count < 3 ? 0 : info->display[2].width, info->display_count < 3 ? 0 : info->display[2].height, info->display_count < 3 ? 0 : info->display[2].hz,
+        info->display_count < 4 ? "" : info->display[3].name, info->display_count < 4 ? 0 : info->display[3].width, info->display_count < 4 ? 0 : info->display[3].height, info->display_count < 4 ? 0 : info->display[3].hz,
+        info->display_count < 5 ? "" : info->display[4].name, info->display_count < 5 ? 0 : info->display[4].width, info->display_count < 5 ? 0 : info->display[4].height, info->display_count < 5 ? 0 : info->display[4].hz,
+        info->display_count < 6 ? "" : info->display[5].name, info->display_count < 6 ? 0 : info->display[5].width, info->display_count < 6 ? 0 : info->display[5].height, info->display_count < 6 ? 0 : info->display[5].hz,
         info->ram.memory
     );
 }
@@ -519,6 +567,7 @@ void get_system_info(SystemInfo* info)
     get_cpu_info(&info->cpu);
     get_ram_info(&info->ram);
     info->gpu_count = get_gpu_info(info->gpu);
+    info->display_count = get_display_info(info->display);
 }
 
 #endif

@@ -13,6 +13,7 @@
 #include <xmmintrin.h>
 
 #include "../Types.h"
+#include "../../utils/BitUtils.h"
 #include "SIMD_F32.h"
 
 // @todo a lot of sse functions require high level (e.g. sse4.1) this needs to be changed to be more general
@@ -1557,12 +1558,78 @@ void simd_add(const int32* a, const f32* b, int32* result, int size, int steps)
 }
 
 // WARNING: only works with SSE4.2
-// WARNING: incl. \0 both strings must be <= 16
-bool simd_str_compare(const char* str1, const char* str2) {
-    __m128i s1 = _mm_loadu_si128((const __m128i*) str1);
-    __m128i s2 = _mm_loadu_si128((const __m128i*) str2);
+// WARNING: incl. \0 both strings must be <= 16 length
+bool str_compare_avx512(const char* str1, const char* str2) {
+    __m128i s1 = _mm_loadu_si128((const __m128i *)  str1);
+    __m128i s2 = _mm_loadu_si128((const __m128i *)  str2);
 
     return _mm_cmpistrc(s1, s2, _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_EACH) == 0;
 }
+
+void
+endian_swap(const int* val, int* result, int size, int steps)
+{
+    int i = 0;
+
+    if (steps == 16) {
+        const __m512i mask_512 = _mm512_setr_epi8(
+            3, 2, 1, 0,  7, 6, 5, 4,    11, 10, 9, 8,  15, 14, 13, 12,
+            19, 18, 17, 16,  23, 22, 21, 20, 27, 26, 25, 24,  31, 30, 29, 28,
+            35, 34, 33, 32,  39, 38, 37, 36, 43, 42, 41, 40,  47, 46, 45, 44,
+            51, 50, 49, 48,  55, 54, 53, 60, 59, 58, 57, 56,  64, 63, 62, 61
+        );
+
+        for (i = 0; i <= size - steps; i += steps) {
+            __m512i vec = _mm512_loadu_si512((const __m512i *) (val + i));
+            vec = _mm512_shuffle_epi8(vec, mask_512);
+
+            _mm512_storeu_si512((__m512i *) (result + i), vec);
+        }
+    } else if (steps == 8) {
+        const __m256i mask_256 = _mm256_setr_epi8(
+            3, 2, 1, 0,  7, 6, 5, 4,
+            11, 10, 9, 8,  15, 14, 13, 12,
+            19, 18, 17, 16,  23, 22, 21, 20,
+            27, 26, 25, 24,  31, 30, 29, 28
+        );
+
+        for (i = 0; i <= size - steps; i += steps) {
+            __m256i vec = _mm256_loadu_si256((const __m256i *) (val + i));
+            vec = _mm256_shuffle_epi8(vec, mask_256);
+
+            _mm256_storeu_si256((__m256i *) (result + i), vec);
+        }
+    } else if (steps == 4) {
+        const __m128i mask_128 = _mm_setr_epi8(
+            3, 2, 1, 0,
+            7, 6, 5, 4,
+            11, 10, 9, 8,
+            15, 14, 13, 12
+        );
+
+        for (i = 0; i <= size - steps; i += steps) {
+             __m128i vec = _mm_loadu_si128((const __m128i *) (val + i));
+            vec = _mm_shuffle_epi8(vec, mask_128);
+
+            _mm_storeu_si128((__m128i *) (result + i), vec);
+        }
+    }
+
+    for (; i < size; ++i) {
+        uint32 v = ((uint32 *) val)[i];
+        ((int32 *) result)[i] = ((v << 24)
+            | ((v & 0xFF00) << 8)
+            | ((v >> 8) & 0xFF00)
+            | (v >> 24));
+    }
+}
+
+#if _WIN32 || __LITTLE_ENDIAN
+    #define SWAP_ENDIAN_LITTLE_SIMD(val, result, size, steps) ((void)0)
+    #define SWAP_ENDIAN_BIG_SIMD(val, result, size, steps) endian_swap((val), (result), (size), (steps))
+#else
+    #define SWAP_ENDIAN_LITTLE_SIMD(val, result, size, steps) endian_swap((val), (result), (size), (steps))
+    #define SWAP_ENDIAN_BIG_SIMD(val, result, size, steps) ((void)0)
+#endif
 
 #endif

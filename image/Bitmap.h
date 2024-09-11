@@ -43,12 +43,6 @@ struct DIB_BITMAPCOREHEADER {
 #define DIB_BITMAP_TYPE_OS21XBITMAPHEADER DIB_BITMAP_TYPE_BITMAPCOREHEADER
 #define DIB_OS21XBITMAPHEADER DIB_BITMAPCOREHEADER
 
-#define DIB_BITMAP_TYPE_OS22XBITMAPHEADER 64
-struct DIB_OS22XBITMAPHEADER {
-    // @todo implement
-    //      They don't use a size as first value? how do I know if this is the correct header?
-};
-
 #define DIB_BITMAP_TYPE_BITMAPINFOHEADER 40
 struct DIB_BITMAPINFOHEADER {
     uint32 size;
@@ -58,10 +52,35 @@ struct DIB_BITMAPINFOHEADER {
     uint16 bits_per_pixel;
     uint32 compression_method;
     uint32 raw_image_size;
-    //int32 horizontal_ppm;
-    //int32 vertical_ppm;
+    int32 horizontal_ppm;
+    int32 vertical_ppm;
     uint32 color_palette;
     uint32 important_colors;
+};
+
+#define DIB_BITMAP_TYPE_OS22XBITMAPHEADER 64
+// OR BITMAPINFOHEADER2
+struct DIB_OS22XBITMAPHEADER {
+    uint32 size;
+    int32 width;
+    int32 height;
+    uint16 color_planes;
+    uint16 bits_per_pixel;
+    uint32 compression_method;
+    uint32 raw_image_size;
+    int32 horizontal_ppm;
+    int32 vertical_ppm;
+    uint32 color_palette;
+    uint32 important_colors;
+
+    uint16 units;
+    uint16 padding;
+    uint16 bit_direction;
+    uint16 halftoning_algorithm;
+    int32 halftoning_parameter_1;
+    int32 halftoning_parameter_2;
+    int32 color_encoding;
+    int32 application_identifier;
 };
 
 #define DIB_BITMAPINFOHEADER_COMPRESSION_BI_RGB 0x0000
@@ -90,16 +109,16 @@ struct DIB_BITMAPV3INFOHEADER {
 
 };
 
-struct CIEXYZ {
+struct TOS_CIEXYZ {
     int32 ciexyzX;
     int32 ciexyzY;
     int32 ciexyzZ;
 };
 
-struct CIEXYZTRIPLE {
-    CIEXYZ ciexyzRed;
-    CIEXYZ ciexyzGreen;
-    CIEXYZ ciexyzBlue;
+struct TOS_CIEXYZTRIPLE {
+    TOS_CIEXYZ ciexyzRed;
+    TOS_CIEXYZ ciexyzGreen;
+    TOS_CIEXYZ ciexyzBlue;
 };
 
 #define DIB_BITMAP_TYPE_BITMAPV4HEADER 108
@@ -111,8 +130,8 @@ struct DIB_BITMAPV4HEADER {
     uint16 bits_per_pixel;
     int32 compression_method;
     int32 raw_image_size;
-    //int32 horizontal_ppm;
-    //int32 vertical_ppm;
+    int32 horizontal_ppm;
+    int32 vertical_ppm;
     uint32 color_palette;
     uint32 important_colors;
 
@@ -121,7 +140,7 @@ struct DIB_BITMAPV4HEADER {
     int32 bV4BlueMask;
     int32 bV4AlphaMask;
     int32 bV4CSType;
-    CIEXYZTRIPLE bV4Endpoints;
+    TOS_CIEXYZTRIPLE bV4Endpoints;
     int32 bV4GammaRed;
     int32 bV4GammaGreen;
     int32 bV4GammaBlue;
@@ -136,8 +155,8 @@ struct DIB_BITMAPV5HEADER {
     uint16 bits_per_pixel;
     int32 compression_method;
     int32 raw_image_size;
-    //int32 horizontal_ppm;
-    //int32 vertical_ppm;
+    int32 horizontal_ppm;
+    int32 vertical_ppm;
     uint32 color_palette;
     uint32 important_colors;
 
@@ -146,7 +165,7 @@ struct DIB_BITMAPV5HEADER {
     int32 bV5BlueMask;
     int32 bV5AlphaMask;
     int32 bV5CSType;
-    CIEXYZTRIPLE bV5Endpoints;
+    TOS_CIEXYZTRIPLE bV5Endpoints;
     int32 bV5GammaRed;
     int32 bV5GammaGreen;
     int32 bV5GammaBlue;
@@ -158,7 +177,7 @@ struct DIB_BITMAPV5HEADER {
 
 struct Bitmap {
     BitmapHeader header;
-    byte dib_header_type;
+    uint32 dib_header_type;
     DIB_BITMAPINFOHEADER dib_header; // Despite the different header types we use this one for simplicity
     uint32* extra_bit_mask; // 3-4 = 12-16 bytes
     byte color_table_size;
@@ -215,6 +234,7 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap)
         case DIB_BITMAP_TYPE_BITMAPV4HEADER:
         case DIB_BITMAP_TYPE_BITMAPV3INFOHEADER:
         case DIB_BITMAP_TYPE_BITMAPV2INFOHEADER:
+        case DIB_BITMAP_TYPE_OS22XBITMAPHEADER:
         case DIB_BITMAP_TYPE_BITMAPINFOHEADER: {
                 bitmap->dib_header.size               = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset)));
                 bitmap->dib_header.width              = SWAP_ENDIAN_LITTLE(*((int32 *) (dib_header_offset + 4)));
@@ -223,6 +243,8 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap)
                 bitmap->dib_header.bits_per_pixel     = SWAP_ENDIAN_LITTLE(*((uint16 *) (dib_header_offset + 14)));
                 bitmap->dib_header.compression_method = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 16)));
                 bitmap->dib_header.raw_image_size     = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 20)));
+                bitmap->dib_header.horizontal_ppm     = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 24)));
+                bitmap->dib_header.vertical_ppm       = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 28)));
                 bitmap->dib_header.color_palette      = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 32)));
                 bitmap->dib_header.important_colors   = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset + 36)));
 

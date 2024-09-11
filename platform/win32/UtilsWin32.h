@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <windows.h>
 #include <string.h>
+#include <malloc.h>
+
 #ifdef _MSC_VER
     #include  <io.h>
 #endif
@@ -19,20 +21,57 @@
 #include "../../stdlib/Types.h"
 #include "../../utils/Utils.h"
 #include "../../utils/TestUtils.h"
+#include "../../memory/RingMemory.h"
 
 #define strtok_r strtok_s
 
+inline void relative_to_absolute(const char* rel, char* path)
+{
+    char self_path[MAX_PATH];
+    if (GetModuleFileNameA(NULL, self_path, MAX_PATH) == 0) {
+        return;
+    }
+
+    const char* temp = rel;
+    if (temp[0] == '.' && temp[1] == '/') {
+        temp += 2;
+    }
+
+    char* last = strrchr(self_path, '\\');
+    if (last != NULL) {
+        *(last + 1) = '\0';
+    }
+
+    snprintf(path, MAX_PATH, "%s%s", self_path, temp);
+}
+
 inline uint64
-file_size(const char* filename)
+file_size(const char* path)
 {
     // @performance Profile against fseek strategy
-    HANDLE fp = CreateFileA((LPCSTR) filename,
-        GENERIC_READ,
-        FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
+    HANDLE fp;
+    if (*path == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileA((LPCSTR) full_path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileA((LPCSTR) path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    }
 
     if (fp == INVALID_HANDLE_VALUE) {
         return 0;
@@ -48,16 +87,47 @@ file_size(const char* filename)
     return size.QuadPart;
 }
 
-inline void
-file_read(const char* filename, FileBody* file, RingMemory* ring = NULL)
+inline
+uint64 time_ms()
 {
-    HANDLE fp = CreateFileA((LPCSTR) filename,
-        GENERIC_READ,
-        FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
+    LARGE_INTEGER frequency;
+    LARGE_INTEGER counter;
+
+    if (!QueryPerformanceFrequency(&frequency)) {
+        return 0;
+    }
+
+    QueryPerformanceCounter(&counter);
+
+    return (counter.QuadPart * 1000) / frequency.QuadPart;
+}
+
+inline void
+file_read(const char* path, FileBody* file, RingMemory* ring = NULL)
+{
+    HANDLE fp;
+    if (*path == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileA((LPCSTR) full_path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileA((LPCSTR) path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    }
 
     if (fp == INVALID_HANDLE_VALUE) {
         file->size = 0;
@@ -92,15 +162,31 @@ file_read(const char* filename, FileBody* file, RingMemory* ring = NULL)
 }
 
 inline uint64
-file_read_struct(const char* filename, void* file, uint32 size)
+file_read_struct(const char* path, void* file, uint32 size)
 {
-    HANDLE fp = CreateFileA((LPCSTR) filename,
-        GENERIC_READ,
-        FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
+    HANDLE fp;
+    if (*path == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileA((LPCSTR) full_path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileA((LPCSTR) path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    }
 
     if (fp == INVALID_HANDLE_VALUE) {
         return 0;
@@ -127,15 +213,31 @@ file_read_struct(const char* filename, void* file, uint32 size)
 }
 
 inline bool
-file_write(const char* filename, const FileBody* file)
+file_write(const char* path, const FileBody* file)
 {
-    HANDLE fp = CreateFileA((LPCSTR) filename,
-        GENERIC_WRITE,
-        0,
-        NULL,
-        CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
+    HANDLE fp;
+    if (*path == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileA((LPCSTR) full_path,
+            GENERIC_WRITE,
+            0,
+            NULL,
+            CREATE_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileA((LPCSTR) path,
+            GENERIC_WRITE,
+            0,
+            NULL,
+            CREATE_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    }
 
     if (fp == INVALID_HANDLE_VALUE) {
         return false;
@@ -155,18 +257,30 @@ file_write(const char* filename, const FileBody* file)
 }
 
 inline bool
-file_write_struct(const char* filename, const void* file, uint32 size)
+file_write_struct(const char* path, const void* file, uint32 size)
 {
-    HANDLE fp = CreateFileA((LPCSTR) filename,
-        GENERIC_WRITE,
-        0,
-        NULL,
-        CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
+    HANDLE fp;
+    if (*path == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
 
-    if (fp == INVALID_HANDLE_VALUE) {
-        return false;
+        fp = CreateFileA((LPCSTR) full_path,
+            GENERIC_WRITE,
+            0,
+            NULL,
+            CREATE_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileA((LPCSTR) path,
+            GENERIC_WRITE,
+            0,
+            NULL,
+            CREATE_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
     }
 
     DWORD written;
@@ -188,15 +302,31 @@ file_copy(const char* src, const char* dst)
 }
 
 inline
-HANDLE get_append_handle(const char* filename)
+HANDLE get_append_handle(const char* path)
 {
-    HANDLE fp = CreateFileA((LPCSTR) filename,
-        FILE_APPEND_DATA,
-        0,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
+    HANDLE fp;
+    if (*path == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileA((LPCSTR) full_path,
+            FILE_APPEND_DATA,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileA((LPCSTR) path,
+            FILE_APPEND_DATA,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    }
 
     if (fp == INVALID_HANDLE_VALUE) {
         return NULL;
@@ -206,15 +336,31 @@ HANDLE get_append_handle(const char* filename)
 }
 
 inline bool
-file_append(const char* filename, const char* file)
+file_append(const char* path, const char* file)
 {
-    HANDLE fp = CreateFileA((LPCSTR) filename,
-        FILE_APPEND_DATA,
-        0,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
+    HANDLE fp;
+    if (*path == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileA((LPCSTR) full_path,
+            FILE_APPEND_DATA,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileA((LPCSTR) path,
+            FILE_APPEND_DATA,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    }
 
     if (fp == INVALID_HANDLE_VALUE) {
         return false;
@@ -242,6 +388,7 @@ file_append(HANDLE fp, const char* file)
     DWORD written;
     DWORD length = (DWORD) strlen(file); // @question WHY is WriteFile not supporting larger data?
     ASSERT_SIMPLE(length < MAX_INT32);
+
     if (!WriteFile(fp, file, length, &written, NULL)) {
         CloseHandle(fp);
         return false;
@@ -252,15 +399,48 @@ file_append(HANDLE fp, const char* file)
 }
 
 inline bool
-file_append(const char* filename, const FileBody* file)
+file_append(HANDLE fp, const char* file, size_t length)
 {
-    HANDLE fp = CreateFileA((LPCSTR) filename,
-        FILE_APPEND_DATA,
-        0,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
+    if (fp == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    DWORD written;
+    if (!WriteFile(fp, file, (uint32) length, &written, NULL)) {
+        CloseHandle(fp);
+        return false;
+    }
+
+    CloseHandle(fp);
+    return true;
+}
+
+inline bool
+file_append(const char* path, const FileBody* file)
+{
+    HANDLE fp;
+    if (*path == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = CreateFileA((LPCSTR) full_path,
+            FILE_APPEND_DATA,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    } else {
+        fp = CreateFileA((LPCSTR) path,
+            FILE_APPEND_DATA,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+    }
 
     if (fp == INVALID_HANDLE_VALUE) {
         return false;
@@ -279,12 +459,21 @@ file_append(const char* filename, const FileBody* file)
 }
 
 inline
-uint64 last_modified(const char* filename)
+uint64 last_modified(const char* path)
 {
-    FILETIME modified = {};
-
     WIN32_FIND_DATA find_data;
-    HANDLE fp = FindFirstFileA(filename, (LPWIN32_FIND_DATAA) &find_data);
+
+    HANDLE fp;
+    if (*path == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        fp = FindFirstFileA(full_path, (LPWIN32_FIND_DATAA) &find_data);
+    } else {
+        fp = FindFirstFileA(path, (LPWIN32_FIND_DATAA) &find_data);
+    }
+
+    FILETIME modified = {};
     if(fp != INVALID_HANDLE_VALUE) {
         modified = find_data.ftLastWriteTime;
         FindClose(fp);
@@ -299,98 +488,45 @@ uint64 last_modified(const char* filename)
 
 inline void self_path(char* path)
 {
-    //HMODULE dll = GetModuleHandle(NULL);
     GetModuleFileNameA(NULL, (LPSTR) path, MAX_PATH);
 }
 
-inline void relative_to_absolute(const char* rel, char* path)
-{
-    char self_path[MAX_PATH];
-    if (GetModuleFileNameA(NULL, self_path, MAX_PATH) == 0) {
-        return;
-    }
-
-    const char* temp = rel;
-    if (temp[0] == '.' && temp[1] == '/') {
-        temp += 2;
-    }
-
-    char* last = strrchr(self_path, '\\');
-    if (last != NULL) {
-        *(last + 1) = '\0';
-    }
-
-    snprintf(path, MAX_PATH, "%s%s", self_path, temp);
-}
-
-void log_to_file(LogPool* logs, HANDLE fp)
+void log_to_file(RingMemory* logs, HANDLE fp)
 {
     // we don't log an empty log pool
     if (logs->pos == 0) {
         return;
     }
 
-    char *offset = logs->memory;
-    for (uint32 i = 0; i < logs->pos * MAX_LOG_LENGTH + MAX_LOG_LENGTH; ++i) {
-        if (*offset == '\0') {
-            *offset = '\n';
-
-            // @performance would it make sense to jump to the next log message
-            //          we know that after \0 until the end of this log message everything is 0
-        }
-
-        ++offset;
-    }
-
-    logs->memory[logs->count * MAX_LOG_LENGTH - 1] = '\0';
-    file_append(fp, logs->memory);
+    file_append(fp, (char *) logs->memory, logs->size);
+    memset(logs->memory, 0, logs->size);
 
     // reset log position to start of memory pool
     logs->pos = 0;
+    logs->start = 0;
 }
 
 // snprintf(logs->memory + logs->pos * MAX_LOG_LENGTH, MAX_LOG_LENGTH, "My text %s", str1);
-// log(log, NULL);
-void log(LogPool* logs, HANDLE fp = NULL)
+void log(RingMemory* logs, const char* str, HANDLE fp = NULL)
 {
-    // Zero memory after \0 until end of THIS log message
-    // Older log messages that are coming after are retained
-    // Older log messages can come after this log message due to the ring memory
-    char *offset = logs->memory + logs->pos * MAX_LOG_LENGTH;
-    bool ended = false;
-    for (uint32 i = 0; i < MAX_LOG_LENGTH; ++i) {
-        if (ended) {
-            *offset = 0;
-            ++offset;
+    size_t length = strlen(str);
+    ASSERT_SIMPLE(length < MAX_LOG_LENGTH);
 
-            continue;
-        }
+    char* temp = (char *) ring_get_memory(logs, length + 1);
+    strcpy(temp, str);
+    temp[length] = '\0';
 
-        if (*offset == '\0') {
-            ended = true;
-        }
-
-        ++offset;
-    }
-
-    ++logs->pos;
-    // write log pool to file
-    if (logs->pos >= logs->count) {
-        if (fp != NULL) {
-            log_to_file(logs, fp);
-        }
-
-        // reset log position to start of memory pool
-        logs->pos = 0;
+    if (fp != NULL && logs->size - logs->pos < MAX_LOG_LENGTH) {
+        log_to_file(logs, fp);
     }
 }
 
 #if (LOG_LEVEL == 0)
     // Don't perform any logging at log level 0
-    #define LOG(logs, fp)
-    #define LOG_TO_FILE(logs, fp)
+    #define LOG(logs, str, fp) ((void)0)
+    #define LOG_TO_FILE(logs, fp) ((void)0)
 #else
-    #define LOG(logs, fp) log(logs, fp);
+    #define LOG(logs, str, fp) log(logs, str, fp);
     #define LOG_TO_FILE(logs, fp) log_to_file(logs, fp);
 #endif
 

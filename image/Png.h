@@ -128,9 +128,10 @@ void huffman_png_compute(uint32 symbol_count, uint32* symbol_code_length, PngHuf
     }
 }
 
+inline
 PngHuffmanEntry huffman_png_decode(PngHuffman* huff, const byte* data, int pos)
 {
-    uint32 index = get_bits(data, huff->max_code_length, pos);
+    uint32 index = (uint32) get_bits(data, huff->max_code_length, pos);
     return huff->entries[index];
 }
 
@@ -142,7 +143,7 @@ void png_filter_reconstruct(uint32 width, uint32 height, const byte* decompresse
 
     for (uint32 y = 0; y < height; ++y) {
         byte filter = *decompressed;
-        byte* current_row = ;
+        byte* current_row = 0; // @todo need actual value
 
         switch (filter) {
             case 0: {
@@ -240,6 +241,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
     int i = 33;
 
     // r is the re-shift value in case we need to go back
+    // @todo r unused?
     int r = 0;
 
     // b is the current bit to read
@@ -290,11 +292,11 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
         // DEFLATE Algorithm
         // @bug the following 3 lines are wrong, they don't have to start at a bit 0/1
         //      A block doesn't have to start at an byte boundary
-        byte BFINAL = get_bits(src_data->content + i, 1, b);
+        byte BFINAL = (byte) get_bits(src_data->content + i, 1, b);
         i += (b > 7 - 1);
         b = (b + 1) & 7;
 
-        byte BTYPE = get_bits(src_data->content + i, 2, b);
+        byte BTYPE = (byte) get_bits(src_data->content + i, 2, b);
         i += (b > 7 - 2);
         b = (b + 2) & 7;
 
@@ -305,6 +307,8 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
             }
 
             uint16 len = *((uint16 *) (src_data->content + i + 1));
+
+            // @todo nlen unused?
             uint16 nlen = *((uint16 *) (src_data->content + i + 3));
 
             memcpy(image->pixels + out_pos, src_data->content + i + 5, len);
@@ -324,15 +328,15 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
 
             if (BTYPE == 2) {
                 // Compressed with dynamic Huffman code
-                huffman_literal = get_bits(src_data->content + i, 5, b);
+                huffman_literal = (uint32) get_bits(src_data->content + i, 5, b);
                 i += (b > 7 - 5);
                 b = (b + 5) & 7;
 
-                huffman_dist = get_bits(src_data->content + i, 5, b);
+                huffman_dist = (uint32) get_bits(src_data->content + i, 5, b);
                 i += (b > 7 - 5);
                 b = (b + 5) & 7;
 
-                uint32 huffman_code_length = get_bits(src_data->content + i, 4, b);
+                uint32 huffman_code_length = (uint32) get_bits(src_data->content + i, 4, b);
                 i += (b > 7 - 4);
                 b = (b + 4) & 7;
 
@@ -343,7 +347,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
                 uint32 huffman_code_length_table[19] = {};
 
                 for (uint32 j = 0; j < huffman_code_length; ++j) {
-                    huffman_code_length_table[HUFFMAN_CODE_LENGTH_ALPHA[j]] = get_bits(src_data->content + i, 3, b);
+                    huffman_code_length_table[HUFFMAN_CODE_LENGTH_ALPHA[j]] = (uint32) get_bits(src_data->content + i, 3, b);
                     i += (b > 7 - 3);
                     b = (b + 3) & 7;
                 }
@@ -367,17 +371,17 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
                     if (encoded_length <= 15) {
                         rep_val = encoded_length;
                     } else if (encoded_length == 16) {
-                        rep_count = 3 + get_bits(src_data->content + i, 2, b);
+                        rep_count = 3 + (uint32) get_bits(src_data->content + i, 2, b);
                         i += (b > 7 - 2);
                         b = (b + 2) & 7;
 
                         rep_val = literal_length_dist_table[literal_length_count - 1];
                     } else if (encoded_length == 17) {
-                        rep_count = 3 + get_bits(src_data->content + i, 3, b);
+                        rep_count = 3 + (uint32) get_bits(src_data->content + i, 3, b);
                         i += (b > 7 - 3);
                         b = (b + 3) & 7;
                     } else if (encoded_length == 18) {
-                        rep_count = 11 + get_bits(src_data->content + i, 7, b);
+                        rep_count = 11 + (uint32) get_bits(src_data->content + i, 7, b);
                         i += (b > 7 - 7);
                         b = (b + 7) & 7;
                     }
@@ -423,7 +427,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
                     uint32 length = length_tab.symbol;
 
                     if (length_tab.bits_used) {
-                        uint32 extra_bits = get_bits(src_data->content + i, length_tab.bits_used, b);
+                        uint32 extra_bits = (uint32) get_bits(src_data->content + i, length_tab.bits_used, b);
                         i += (b + length_tab.bits_used) / 8;
                         b = (b + length_tab.bits_used) & 7;
 
@@ -440,7 +444,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
                     uint32 dist = dist_tab.symbol;
 
                     if (dist_tab.bits_used) {
-                        uint32 extra_bits = get_bits(src_data->content + i, dist_tab.bits_used, b);
+                        uint32 extra_bits = (uint32) get_bits(src_data->content + i, dist_tab.bits_used, b);
                         i += (b + dist_tab.bits_used) / 8;
                         b = (b + dist_tab.bits_used) & 7;
 
@@ -461,7 +465,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
     image->height = src.ihdr.height;
 
     // @todo fix pixels parameter
-    png_filter_reconstruct(image->width, image->height, image->pixels, image->pixels, steps);
+    png_filter_reconstruct(image->width, image->height, (byte *) image->pixels, (byte *) image->pixels, steps);
 
     return true;
 }

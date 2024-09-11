@@ -23,14 +23,14 @@
 
         wchar_t pipe_name[32];
         wsprintfW(pipe_name, L"\\\\.\\pipe\\fastpipe%x", GetCurrentProcessId());
-        HANDLE fast_pip = CreateFileW(pipe_name, GENERIC_READ|GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0);
+        HANDLE fast_pip = CreateFileW(pipe_name, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0);
 
         if(fast_pip != INVALID_HANDLE_VALUE) {
             SetStdHandle(STD_OUTPUT_HANDLE, fast_pip);
             SetStdHandle(STD_INPUT_HANDLE, fast_pip);
 
-            int std_out = _open_osfhandle((intptr_t) fast_pip, O_WRONLY|O_TEXT);
-            int std_in = _open_osfhandle((intptr_t) fast_pip, O_RDONLY|O_TEXT);
+            int std_out = _open_osfhandle((intptr_t) fast_pip, O_WRONLY | O_TEXT);
+            int std_in = _open_osfhandle((intptr_t) fast_pip, O_RDONLY | O_TEXT);
 
             _dup2(std_out, _fileno(stdout));
             _dup2(std_in, _fileno(stdin));

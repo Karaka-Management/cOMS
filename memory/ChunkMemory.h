@@ -11,50 +11,81 @@
 
 #include <string.h>
 #include "../stdlib/Types.h"
-#include "MathUtils.h"
+#include "../utils/MathUtils.h"
+#include "Allocation.h"
 
 struct ChunkMemory {
     byte* memory;
 
     uint64 count;
     uint64 chunk_size;
-    uint64 last_pos = -1;
+    int64 last_pos;
+    int alignment;
 
     // length = count
     // free describes which locations are used and which are free
-    // @performance using uint32 or even uint64 might be faster
-    //      since we can check for free elements faster if the memory is almost filled
-    //      at the moment we can only check 8 elements at a time
     uint64* free;
 };
 
 inline
-byte* chunk_get_memory(ChunkMemory* buf, uint64 element)
+void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int alignment = 1)
 {
-    return buf->memory + element * buf->chunk_size;
+    buf->memory = alignment < 2
+        ? (byte *) playform_alloc(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64))
+        : (byte *) playform_alloc_aligned(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64), alignment);
+
+    buf->count = count;
+    buf->chunk_size = chunk_size;
+    buf->last_pos = -1;
+    buf->alignment = alignment;
+    buf->free = (uint64 *) (buf->memory + count * chunk_size);
+}
+
+inline
+void chunk_free(ChunkMemory* buf)
+{
+    if (buf->alignment < 2) {
+        platform_free(buf->memory, buf->count * buf->chunk_size);
+    } else {
+        platform_aligned_free(buf->memory, buf->count * buf->chunk_size);
+    }
+}
+
+inline
+byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false)
+{
+    byte* offset = buf->memory + element * buf->chunk_size;
+
+    if (zeroed) {
+        memset((void *) offset, 0, buf->chunk_size);
+    }
+
+    return offset;
 }
 
 /**
  * In some cases we know exactly which index is free
  */
-void chunk_reserve_index(ChunkMemory* buf, int64 index, int elements = 1, bool zeroed = false)
+void chunk_reserve_index(ChunkMemory* buf, int64 index, int64 elements = 1, bool zeroed = false)
 {
-    int byte_index = index / 64;
+    int64 byte_index = index / 64;
     int bit_index = index % 64;
 
     // Mark the bits as reserved
     for (int j = 0; j < elements; ++j) {
-        int current_byte_index = byte_index + (bit_index + j) / 64;
+        int64 current_byte_index = byte_index + (bit_index + j) / 64;
         int current_bit_index = (bit_index + j) % 64;
-        buf->free[current_byte_index] |= (1 << current_bit_index);
+        buf->free[current_byte_index] |= (1LL << current_bit_index);
     }
 
     if (zeroed) {
         memset(buf->memory + index * buf->chunk_size, 0, elements * buf->chunk_size);
     }
+
+    buf->last_pos = index;
 }
 
-int64 chunk_reserve(ChunkMemory* buf, int elements = 1, bool zeroed = false)
+int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
 {
     int64 byte_index = (buf->last_pos + 1) / 64;
     int bit_index;
@@ -63,8 +94,14 @@ int64 chunk_reserve(ChunkMemory* buf, int elements = 1, bool zeroed = false)
     byte mask;
 
     int i = 0;
-    while (free_element < 0 && i < (buf->count + 7) / 64) {
+    int64 max_bytes = (buf->count + 7) / 64;
+
+    while (free_element < 0 && i < buf->count) {
         ++i;
+
+        if (byte_index >= max_bytes) {
+            byte_index = 0;
+        }
 
         if (buf->free[byte_index] == 0xFF) {
             ++byte_index;
@@ -78,7 +115,7 @@ int64 chunk_reserve(ChunkMemory* buf, int elements = 1, bool zeroed = false)
 
             // Check if there are 'elements' consecutive free bits
             for (int j = 0; j < elements; ++j) {
-                int current_byte_index = byte_index + (bit_index + j) / 64;
+                uint64 current_byte_index = byte_index + (bit_index + j) / 64;
                 int current_bit_index = (bit_index + j) % 64;
 
                 if (current_byte_index >= (buf->count + 7) / 64) {
@@ -98,9 +135,9 @@ int64 chunk_reserve(ChunkMemory* buf, int elements = 1, bool zeroed = false)
 
                 // Mark the bits as reserved
                 for (int j = 0; j < elements; ++j) {
-                    int current_byte_index = byte_index + (bit_index + j) / 64;
+                    int64 current_byte_index = byte_index + (bit_index + j) / 64;
                     int current_bit_index = (bit_index + j) % 64;
-                    buf->free[current_byte_index] |= (1 << current_bit_index);
+                    buf->free[current_byte_index] |= (1LL << current_bit_index);
                 }
 
                 break;
@@ -119,21 +156,27 @@ int64 chunk_reserve(ChunkMemory* buf, int elements = 1, bool zeroed = false)
         memset(buf->memory + free_element * buf->chunk_size, 0, elements * buf->chunk_size);
     }
 
+    buf->last_pos = free_element;
+
     return free_element;
 }
 
 byte* chunk_find_free(ChunkMemory* buf)
 {
-    int byte_index = (buf->last_pos + 1) / 64;
+    int64 byte_index = (buf->last_pos + 1) / 64;
     int bit_index;
 
     int64 free_element = -1;
     byte mask;
 
     int i = 0;
-    int max_loop = buf->count * buf->chunk_size;
+    int64 max_bytes = (buf->count + 7) / 64;
 
-    while (free_element < 0 && i < max_loop) {
+    while (free_element < 0 && i < buf->count) {
+        if (byte_index >= max_bytes) {
+            byte_index = 0;
+        }
+
         if (buf->free[byte_index] == 0xFF) {
             ++i;
             ++byte_index;
@@ -148,6 +191,8 @@ byte* chunk_find_free(ChunkMemory* buf)
             mask = 1 << bit_index;
             if ((buf->free[byte_index] & mask) == 0) {
                 free_element = byte_index * 64 + bit_index;
+                buf->free[byte_index] |= (1LL << bit_index);
+
                 break;
             }
         }
@@ -157,15 +202,13 @@ byte* chunk_find_free(ChunkMemory* buf)
         return NULL;
     }
 
-    buf->free[byte_index] |= (1 << bit_index);
-
     return buf->memory + free_element * buf->chunk_size;
 }
 
 inline
-void chunk_element_free(ChunkMemory* buf, uint64 element)
+void chunk_free_element(ChunkMemory* buf, uint64 element)
 {
-    int byte_index = element / 64;
+    int64 byte_index = element / 64;
     int bit_index = element % 64;
 
     buf->free[byte_index] &= ~(1 << bit_index);

@@ -11,11 +11,12 @@
 #define TOS_UTILS_MATH_UTILS_H
 
 #include "../stdlib/Intrinsics.h"
+#include <math.h>
 
 #define OMS_PI 3.14159265358979323846f
-#define OMS_PI_OVER_TWO OMS_PI / 2.0f
-#define OMS_PI_OVER_FOUR OMS_PI / 4.0f
-#define OMS_TWO_PI 2 * OMS_PI
+#define OMS_PI_OVER_TWO (OMS_PI / 2.0f)
+#define OMS_PI_OVER_FOUR (OMS_PI / 4.0f)
+#define OMS_TWO_PI (2 * OMS_PI)
 
 #define OMS_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define OMS_MIN(a, b) ((a) > (b) ? (b) : (a))
@@ -24,6 +25,9 @@
 #define OMS_DEG2RAD(angle) ((angle) * OMS_PI / 180.0f)
 #define OMS_RAD2DEG(angle) ((angle) * 180.0f / OMS_PI)
 #define ROUND_TO_NEAREST(a, b) (((a) + ((b) - 1)) & ~((b) - 1))
+#define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
+
+#define SQRT_2 1.4142135623730950488016887242097f
 
 // @question Consider to implement table based sine wave + approximation if necessary
 // [-PI/2, PI/2]
@@ -42,7 +46,7 @@ float sinf_approx(float x)
 inline
 float cosf_approx(float x)
 {
-    return sinf_approx(x + OMS_PI_OVER_TWO);
+    return sinf_approx(x + OMS_RAD2DEG(OMS_PI_OVER_TWO));
 }
 
 inline
@@ -103,7 +107,7 @@ float asinf_approx(float x)
     result -= 0.2121144f;
     result *= x;
     result += 1.5707288f;
-    result *= sqrt(1.0f - x);
+    result *= sqrtf(1.0f - x);
     result -= 2 * negate * result;
 
     return negate * OMS_PI + result;

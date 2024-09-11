@@ -10,33 +10,27 @@
 #define TOS_UTILS_WINDOWS_H
 
 #include <windows.h>
+#include "Window.h"
 #include "../../stdlib/Types.h"
-
-struct Window {
-    bool is_fullscreen;
-    int32 width;
-    int32 height;
-    char name[32];
-
-    int32 x;
-    int32 y;
-
-    HWND hwnd;
-};
+#include "../../utils/TestUtils.h"
 
 void window_create(Window* window, void* proc)
 {
+    ASSERT_SIMPLE(proc);
+
     WNDPROC wndproc = (WNDPROC) proc;
-    WNDCLASSEX wc = {};
+    WNDCLASSEXA wc = {};
     HINSTANCE hinstance = GetModuleHandle(0);
 
-    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.cbSize = sizeof(WNDCLASSEXA);
     wc.style = CS_OWNDC;
     wc.lpfnWndProc = wndproc;
     wc.hInstance = hinstance;
-    wc.lpszClassName = (LPCWSTR) window->name;
+    wc.lpszClassName = (LPCSTR) window->name;
 
-    RegisterClassEx(&wc);
+    if (!RegisterClassExA(&wc)) {
+        return;
+    }
 
     if (window->is_fullscreen) {
         window->width  = GetSystemMetrics(SM_CXSCREEN);
@@ -57,7 +51,7 @@ void window_create(Window* window, void* proc)
         window->y = 0;
     }
 
-    window->hwnd = CreateWindowEx((DWORD) NULL,
+    window->hwnd = CreateWindowExA((DWORD) NULL,
         wc.lpszClassName, NULL,
         WS_OVERLAPPEDWINDOW,
         window->x, window->y,
@@ -65,6 +59,10 @@ void window_create(Window* window, void* proc)
         window->height,
         NULL, NULL, hinstance, window
     );
+
+    window->hdc = GetDC(window->hwnd);
+
+    ASSERT_SIMPLE(window->hwnd);
 
     //SetWindowLongA(window->hwnd, GWL_STYLE, 0);
 }

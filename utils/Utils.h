@@ -71,17 +71,37 @@ byte get_bits(byte data, int bits_to_read, int start_pos)
 }
 
 inline
-uint32 get_bits(const byte* data, int bits_to_read, int start_pos)
+uint64 get_bits(const byte* data, int bits_to_read, int start_pos)
 {
+    if (bits_to_read <= 0 || bits_to_read > sizeof(uint64)) {
+        return 0;
+    }
+
     int byte_index = start_pos / 8;
     int bit_offset = start_pos % 8;
 
-    uint32_t mask = (1 << bits_to_read) - 1;
+    uint64_t mask = (1ULL << bits_to_read) - 1;
+    uint64_t result = 0;
 
-    uint32_t result = (data[byte_index] >> bit_offset);
+    int bits_read = 0;
 
-    if (bit_offset + bits_to_read > 8) {
-        result |= (data[byte_index + 1] << (8 - bit_offset));
+    while (bits_read < bits_to_read) {
+        int bits_in_current_byte = 8 - bit_offset;
+        int bits_to_take = bits_to_read - bits_read;
+
+        if (bits_to_take > bits_in_current_byte) {
+            bits_to_take = bits_in_current_byte;
+        }
+
+        uint8_t current_byte = data[byte_index];
+        current_byte >>= bit_offset;
+        current_byte &= (1 << bits_to_take) - 1;
+
+        result |= ((uint64_t)current_byte << bits_read);
+
+        bits_read += bits_to_take;
+        bit_offset = 0;
+        byte_index++;
     }
 
     result &= mask;

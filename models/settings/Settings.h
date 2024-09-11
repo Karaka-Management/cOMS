@@ -101,7 +101,7 @@ struct CSettings {
     byte gpu_api = SETTING_TYPE_GPU_API_NONE;
     byte gpu_type = SETTING_TYPE_GPU_MEDIUM;
     byte gpu_fps = SETTING_TYPE_UNLIMITED;
-    byte gpu_memory = 4;
+    byte gpu_memory = 4; // how much vram are we using on the gpu
 
     byte gpu_aspect_ratio;
     byte gpu_resolution;
@@ -144,9 +144,6 @@ struct CSettings {
     byte gpu_caustics_quality;
     byte gpu_footprint_quality; // mostly used for snow, sand mud
     bool gpu_screen_effects; // e.g. water droplets/dust/freezing on screen
-
-    byte gpu_memory = 7;
-    byte cpu_memory = 10;
 
     bool gpu_raytracing = false;
     bool gpu_lense_effect = true;
@@ -414,6 +411,14 @@ struct CSettings {
     byte hotkeys_marker_3 = 0x33; // 3
     byte hotkeys_marker_4 = 0x34; // 4
     byte hotkeys_marker_5 = 0x35; // 5
+
+    // Camera settings/positions
+    // Makes it easy to switch to customizable camera positions
+    byte hotkeys_camera_1 = 0x0;
+    byte hotkeys_camera_2 = 0x0;
+    byte hotkeys_camera_3 = 0x0;
+
+    // @todo implement the actual camera settings
 };
 
 #endif

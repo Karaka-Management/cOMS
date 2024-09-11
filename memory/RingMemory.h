@@ -11,32 +11,86 @@
 
 #include <string.h>
 #include "../stdlib/Types.h"
-#include "MathUtils.h"
-#include "TestUtils.h"
+#include "../utils/MathUtils.h"
+#include "../utils/TestUtils.h"
+#include "Allocation.h"
+#include "BufferMemory.h"
 
 struct RingMemory {
     byte* memory;
 
     uint64 size;
     uint64 pos;
+    int alignment;
 
     // The following two indices are only used in special cases such as iterating through a portion
     // of the ring memory. In such cases it may be necessary to know where the start and end are.
     // Examples for such cases are if a worker thread is pulling data from this ring memory in chunks.
+
+    // @question Is it guaranteed that if a thread realizes end changed, that also the memory is changed
+    //      or is it possible that end changed but it still has old *memory in the cache?
+    //      if yes we need to also check and wait for *memory != NULL and obviously set the memory to NULL
+    //      after using it.
     uint64 start;
     uint64 end;
 };
 
 inline
+void ring_alloc(RingMemory* ring, uint64 size, int alignment = 1)
+{
+    ring->memory = alignment < 2
+        ? (byte *) playform_alloc(size)
+        : (byte *) playform_alloc_aligned(size, alignment);
+
+    ring->size = size;
+    ring->pos = 0;
+    ring->alignment = alignment;
+    ring->start = 0;
+    ring->end = 0;
+}
+
+inline
+void ring_create(RingMemory* ring, BufferMemory* buf, uint64 size, int alignment = 1)
+{
+    ring->memory = buffer_get_memory(buf, size, alignment);
+
+    ring->size = size;
+    ring->pos = 0;
+    ring->alignment = alignment;
+    ring->start = 0;
+    ring->end = 0;
+}
+
+inline
+void ring_free(RingMemory* buf)
+{
+    if (buf->alignment < 2) {
+        platform_free(buf->memory, buf->size);
+    } else {
+        platform_aligned_free(buf->memory, buf->size);
+    }
+}
+
+inline
 uint64 ring_calculate_position(const RingMemory* ring, uint64 pos, uint64 size, byte aligned = 1)
 {
-    if (aligned > 1 && ring->pos > 0) {
-        pos = ROUND_TO_NEAREST(pos, aligned);
+    if (aligned) {
+        uintptr_t address = (uintptr_t) ring->memory;
+        int64 adjustment = (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
+
+        pos += adjustment;
     }
 
     size = ROUND_TO_NEAREST(size, aligned);
     if (pos + size > ring->size) {
         pos = 0;
+
+        if (aligned > 1) {
+            uintptr_t address = (uintptr_t) ring->memory;
+            int64 adjustment = (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
+
+            pos += adjustment;
+        }
     }
 
     return pos;
@@ -46,13 +100,23 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 1, bool zero
 {
     ASSERT_SIMPLE(size <= ring->size);
 
-    if (aligned > 1 && ring->pos > 0) {
-        ring->pos = ROUND_TO_NEAREST(ring->pos, aligned);
+    if (aligned > 1) {
+        uintptr_t address = (uintptr_t) ring->memory;
+        int64 adjustment = (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
+
+        ring->pos += adjustment;
     }
 
     size = ROUND_TO_NEAREST(size, aligned);
     if (ring->pos + size > ring->size) {
         ring->pos = 0;
+
+        if (aligned > 1) {
+            uintptr_t address = (uintptr_t) ring->memory;
+            int64 adjustment = (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
+
+            ring->pos += adjustment;
+        }
     }
 
     byte* offset = (byte *) (ring->memory + ring->pos);
@@ -68,11 +132,9 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 1, bool zero
 // Used if the ring only contains elements of a certain size
 // This way you can get a certain element
 inline
-byte *ring_get_element(const RingMemory* ring, uint64 element_count, uint64 element, uint64 size)
+byte* ring_get_element(const RingMemory* ring, uint64 element_count, uint64 element, uint64 size)
 {
-    uint64 index = (element % element_count) - 1;
-    index = index < 0 ? element_count : index;
-
+    int64 index = (element % element_count) - 1;
     return ring->memory + index * size;
 }
 

@@ -10,13 +10,12 @@
 #define TOS_ATTRIB_H
 
 #if OPENGL
-    #include "../../EngineDependencies/opengl/glew/include/GL/glew.h"
+    #include "../gpuapi/opengl/Opengl.h"
+    #include "../object/Vertex.h"
 
     struct Attrib {
         GLuint program;
-        GLuint position;
-        GLuint normal;
-        GLuint uv;
+        VertexRef vertices;
         GLuint matrix;
         GLuint sampler;
         GLuint camera;

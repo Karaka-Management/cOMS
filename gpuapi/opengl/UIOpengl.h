@@ -15,8 +15,7 @@
 #include "../../ui/UIButton.h"
 #include "../../ui/UIWindow.h"
 
-#include "../../../EngineDependencies/opengl/glew/include/GL/glew.h"
-#include "../../../EngineDependencies/opengl/glfw/include/glfw3.h"
+#include <gl/GL.h>
 
 void render_button(UIButton* btn)
 {

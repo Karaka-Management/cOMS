@@ -11,23 +11,54 @@
 
 #include <string.h>
 #include "../stdlib/Types.h"
-#include "MathUtils.h"
-#include "TestUtils.h"
+#include "../utils/MathUtils.h"
+#include "../utils/TestUtils.h"
+#include "Allocation.h"
 
 struct BufferMemory {
     byte* memory;
 
     uint64 size;
     uint64 pos;
+    int alignment;
 };
 
 inline
-byte* buffer_get_memory(BufferMemory* buf, uint64 size, byte aligned = 1, bool zeroed = false)
+void buffer_alloc(BufferMemory* buf, uint64 size, int alignment = 1)
+{
+    buf->memory = alignment < 2
+        ? (byte *) playform_alloc(size)
+        : (byte *) playform_alloc_aligned(size, alignment);
+
+    buf->alignment = alignment;
+    buf->size = size;
+}
+
+inline
+void buffer_free(BufferMemory* buf)
+{
+    if (buf->alignment < 2) {
+        platform_free(buf->memory, buf->size);
+    } else {
+        platform_aligned_free(buf->memory, buf->size);
+    }
+}
+
+inline
+void buffer_reset(BufferMemory* buf)
+{
+    // @bug arent we wasting element 0 (see get_memory, we are not using 0 only next element)
+    buf->pos = 0;
+}
+
+inline
+byte* buffer_get_memory(BufferMemory* buf, uint64 size, int aligned = 1, bool zeroed = false)
 {
     ASSERT_SIMPLE(size <= buf->size);
 
-    if (aligned > 1 && buf->pos > 0) {
-        buf->pos = ROUND_TO_NEAREST(buf->pos, aligned);
+    if (aligned > 1) {
+        uintptr_t address = (uintptr_t) buf->memory;
+        buf->pos += (aligned - ((address + buf->pos) & (aligned - 1))) % aligned;
     }
 
     size = ROUND_TO_NEAREST(size, aligned);

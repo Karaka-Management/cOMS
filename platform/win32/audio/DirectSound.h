@@ -77,9 +77,6 @@ void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_settin
         return;
     }
 
-    setting->buffer_size = setting->sample_rate * setting->sample_size;
-    setting->buffer = (int16 *) calloc(setting->sample_rate, setting->sample_size);
-
     // Create secondary buffer
     DSBUFFERDESC bufferDesc2;
     ZeroMemory(&bufferDesc2, sizeof(DSBUFFERDESC));

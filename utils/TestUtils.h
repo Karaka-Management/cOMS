@@ -29,14 +29,6 @@ struct TimingStat {
     double delta_time;
 };
 
-struct LogPool {
-    char* memory;
-    uint32 pos;
-    uint32 count;
-
-    // uint32 size = count * MAX_LOG_LENGTH
-};
-
 // IMPORTANT: This function should only be called when you actually use this data
 //      e.g. log to display or file
 inline

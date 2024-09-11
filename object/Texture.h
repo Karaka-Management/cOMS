@@ -34,12 +34,13 @@
 
 #include "../stdlib/Types.h"
 #include "../image/Image.h"
-#include "Attrib.h"
+#include "../models/Attrib.h"
 
-struct TextureFile {
+struct Texture {
     uint64 id;
 
-    // @question Should the texture hold the texture unit? If yes remember to update prepare_texture()
+    // @question Should the texture hold the texture unit?
+    //  If yes remember to update prepare_texture()
 
     byte texture_data_type;
 
@@ -51,9 +52,7 @@ struct TextureFile {
 
     Image image;
 
-    #if OPENGL
-    Attrib attrib;
-    #endif
+    int32 texture_ref;
 };
 
 #endif

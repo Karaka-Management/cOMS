@@ -26,6 +26,10 @@ typedef float f32;
 typedef double f64;
 
 typedef unsigned char byte;
+typedef char sbyte;
+
+typedef uintptr_t umm;
+typedef intptr_t smm;
 
 #define KILOBYTE 1024
 #define MEGABYTE 1048576

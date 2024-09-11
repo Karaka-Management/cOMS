@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_DIRECT3D_UTILS
-#define TOS_GPUAPI_DIRECT3D_UTILS
+#ifndef TOS_GPUAPI_DIRECTX_UTILS_H
+#define TOS_GPUAPI_DIRECTX_UTILS_H
 
 #include <windows.h>
 #include <wrl.h>
@@ -60,7 +60,7 @@ void window_create(Window* window, void* proc)
     wc.style = CS_OWNDC;
     wc.lpfnWndProc = wndproc;
     wc.hInstance = hinstance;
-    wc.lpszClassName = (LPCWSTR) window->name;
+    wc.lpszClassName = (LPCSTR) window->name;
 
     RegisterClassEx(&wc);
 
