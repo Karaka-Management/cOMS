@@ -161,8 +161,6 @@ GLuint shader_make(OpenGL* gl, GLenum type, const char *source, RingMemory* ring
     gl->glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 
     if (status == GL_FALSE) {
-        ASSERT_SIMPLE(false);
-
         GLint length;
         gl->glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
 
@@ -170,13 +168,15 @@ GLuint shader_make(OpenGL* gl, GLenum type, const char *source, RingMemory* ring
 
         gl->glGetShaderInfoLog(shader, length, NULL, info);
 
+        ASSERT_SIMPLE(false);
+
         // @todo log
     }
 
     return shader;
 }
 
-GLuint shader_load(OpenGL* gl, GLenum type, const char *path, RingMemory* ring) {
+GLuint shader_load(OpenGL* gl, GLenum type, const char* path, RingMemory* ring) {
     uint64 temp = ring->pos;
 
     FileBody file;
@@ -191,11 +191,21 @@ GLuint shader_load(OpenGL* gl, GLenum type, const char *path, RingMemory* ring) 
     return result;
 }
 
-GLuint program_make(OpenGL* gl, GLuint shader1, GLuint shader2, RingMemory* ring) {
+GLuint program_make(
+    OpenGL* gl,
+    GLuint vertex_shader,
+    GLuint fragment_shader,
+    GLint geometry_shader,
+    RingMemory* ring
+) {
     GLuint program = gl->glCreateProgram();
 
-    gl->glAttachShader(program, shader1);
-    gl->glAttachShader(program, shader2);
+    if (geometry_shader > -1) {
+        gl->glAttachShader(program, geometry_shader);
+    }
+
+    gl->glAttachShader(program, vertex_shader);
+    gl->glAttachShader(program, fragment_shader);
     gl->glLinkProgram(program);
 
     GLint status;
@@ -216,20 +226,40 @@ GLuint program_make(OpenGL* gl, GLuint shader1, GLuint shader2, RingMemory* ring
     }
 
     // @question really?
-    gl->glDetachShader(program, shader1);
-    gl->glDetachShader(program, shader2);
+    if (geometry_shader > -1) {
+        gl->glDetachShader(program, geometry_shader);
+    }
+
+    gl->glDetachShader(program, vertex_shader);
+    gl->glDetachShader(program, fragment_shader);
 
     // @question really?
-    gl->glDeleteShader(shader1);
-    gl->glDeleteShader(shader2);
+    if (geometry_shader > -1) {
+        gl->glDeleteShader(geometry_shader);
+    }
+
+    gl->glDeleteShader(vertex_shader);
+    gl->glDeleteShader(fragment_shader);
 
     return program;
 }
 
-GLuint program_load(OpenGL* gl, const char *path1, const char *path2, RingMemory* ring) {
-    GLuint shader1 = shader_load(gl, GL_VERTEX_SHADER, path1, ring);
-    GLuint shader2 = shader_load(gl, GL_FRAGMENT_SHADER, path2, ring);
-    GLuint program = program_make(gl, shader1, shader2, ring);
+GLuint program_load(
+    OpenGL* gl,
+    const char* path1,
+    const char* path2,
+    const char* path3,
+    RingMemory* ring
+) {
+    GLuint vertex_shader = shader_load(gl, GL_VERTEX_SHADER, path1, ring);
+    GLuint fragment_shader = shader_load(gl, GL_FRAGMENT_SHADER, path2, ring);
+
+    GLint geometry_shader = -1;
+    if (path3) {
+        geometry_shader = shader_load(gl, GL_GEOMETRY_SHADER, path3, ring);
+    }
+
+    GLuint program = program_make(gl, vertex_shader, fragment_shader, geometry_shader, ring);
 
     return program;
 }
@@ -444,6 +474,30 @@ uint32 gpuapi_buffer_generate(OpenGL* gl, int size, void* data)
     gl->glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 
     return vbo;
+}
+
+inline
+uint32 gpuapi_shaderbuffer_generate(OpenGL* gl, int size, void* data)
+{
+    uint32 sbo;
+
+    gl->glGenBuffers(1, &sbo);
+    gl->glBindBuffer(GL_SHADER_STORAGE_BUFFER, sbo);
+    gl->glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_DRAW);
+
+    return sbo;
+}
+
+inline
+uint32 gpuapi_uniformbuffer_generate(OpenGL* gl, int size, void* data)
+{
+    uint32 ubo;
+
+    gl->glGenBuffers(1, &ubo);
+    gl->glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    gl->glBufferData(GL_UNIFORM_BUFFER, size, data, GL_STATIC_DRAW);
+
+    return ubo;
 }
 
 inline

@@ -9,8 +9,6 @@
 #ifndef TOS_GPUAPI_OPENGL_H
 #define TOS_GPUAPI_OPENGL_H
 
-#include <gl/GL.h>
-
 // @todo remove some of the unused consts below
 
 //

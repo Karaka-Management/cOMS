@@ -22,6 +22,7 @@
 // @bug This means players might not be able to transition from one area to another?!
 
 struct AssetManagementSystem {
+    // @question is this even necessary or could we integrate this directly into the system here?
     HashMap hash_map;
 
     // The indices of asset_memory and asset_data_memory are always linked
@@ -161,7 +162,10 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint64 el
     // @performance Do we really want a double linked list. Are we really using this feature or is the free_index enough?
     if (free_asset > 0 && free_asset < ams->asset_memory.count - 1) {
         Asset* next = ams->first;
-        while (next->next->internal_id < asset->internal_id && next->internal_id < ams->asset_memory.count) {
+        while (next->next != NULL
+            && next->next->internal_id < asset->internal_id
+            && next->internal_id < ams->asset_memory.count
+        ) {
             next = next->next;
         }
 

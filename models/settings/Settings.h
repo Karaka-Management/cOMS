@@ -406,11 +406,13 @@ struct CSettings {
     byte hotkeys_menu = 0x1B; // ESC
     byte hotkeys_window_close = 0x1B; // ESC
 
-    byte hotkeys_marker_1 = 0x31; // 1
-    byte hotkeys_marker_2 = 0x32; // 2
-    byte hotkeys_marker_3 = 0x33; // 3
-    byte hotkeys_marker_4 = 0x34; // 4
-    byte hotkeys_marker_5 = 0x35; // 5
+    byte hotkeys_marker_1 = 0x31;
+    byte hotkeys_marker_2 = 0x32;
+    byte hotkeys_marker_3 = 0x33;
+    byte hotkeys_marker_4 = 0x34;
+    byte hotkeys_marker_5 = 0x35;
+    byte hotkeys_marker_6 = 0x36;
+    byte hotkeys_ping = 0x37;
 
     // Camera settings/positions
     // Makes it easy to switch to customizable camera positions

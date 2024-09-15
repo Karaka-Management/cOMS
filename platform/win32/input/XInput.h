@@ -98,6 +98,7 @@ void handle_controller_input(ControllerState* states)
             continue;
         }
 
+        /*
         states[controller_index].up = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
         states[controller_index].down = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
         states[controller_index].left = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
@@ -123,6 +124,7 @@ void handle_controller_input(ControllerState* states)
         states[controller_index].stickr_x = controller_state.Gamepad.sThumbRX;
         states[controller_index].stickr_y = controller_state.Gamepad.sThumbRY;
         states[controller_index].stickr_press = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
+        */
 
         ++controller_index;
     }
