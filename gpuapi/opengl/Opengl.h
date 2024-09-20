@@ -727,6 +727,9 @@ typedef char GLchar;
 typedef ptrdiff_t GLsizeiptr;
 typedef ptrdiff_t GLintptr;
 
+// Some apis require a different sign for various operations (left/right)
+#define GPU_API_SIGN -1
+
 #if _WIN32
     #include "OpenglWin32.h"
 #else

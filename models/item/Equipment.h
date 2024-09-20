@@ -25,6 +25,9 @@ struct SEquipmentStatsPoints {
     // Item requirements
     PrimaryStatsPoints requirements;
 
+    // @todo Find a way to add/multiply stats on conditions
+    //      e.g. x% or x amount of health/resource
+
     // Item stats
     // items cannot have stats like str, they can only modify primary stats of chars (see below)
     SecondaryStatsPoints secondary_item;

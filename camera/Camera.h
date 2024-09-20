@@ -16,110 +16,428 @@
 
 #include "CameraMovement.h"
 
+#define CAMERA_MAX_INPUTS 4
+
+// @todo Please check out if we can switch to quaternions. We tried but failed.
+// The functions with a 2 at the end are our current backup solution which shouldn't be used (probably)
+
 struct Camera {
-    // left handed cartesian coordinates
     v3_f32 location;
     v4_f32 orientation;
+
+    v3_f32 front;
+    v3_f32 right;
+    v3_f32 up;
+    v3_f32 world_up;
 
     float speed;
     float sensitivity;
     float zoom;
+
+    float fov;
+    float znear;
+    float zfar;
+    float aspect;
 };
 
-void camera_look_at(Camera* camera, const v3_f32* at)
+void
+camera_update_vectors2(Camera* camera)
 {
+    camera->front.x = cosf(OMS_DEG2RAD(camera->orientation.x)) * cosf(OMS_DEG2RAD(camera->orientation.y));
+    camera->front.y = sinf(OMS_DEG2RAD(camera->orientation.x));
+    camera->front.z = cosf(OMS_DEG2RAD(camera->orientation.x)) * sinf(OMS_DEG2RAD(camera->orientation.y));
+    vec3_normalize_f32(&camera->front);
 
+    vec3_cross(&camera->right, &camera->front, &camera->world_up); // @bug
+    vec3_normalize_f32(&camera->right);
+
+    vec3_cross(&camera->up, &camera->right, &camera->front);
+    vec3_normalize_f32(&camera->up);
 }
 
-// you can have up to 4 camera movement inputs at the same time
-void camera_movement(Camera* camera, CameraMovement* movement, float dt)
+void
+camera_update_vectors(Camera* camera)
 {
-    f32 velocity = camera->speed * dt;
+    v3_f32 z = {0.0f, 0.0f, -1.0f};
+    quaternion_rotate_vector(&camera->front, &camera->orientation, &z);
+    vec3_normalize_f32(&camera->front);
 
-    bool has_pos = false;
-    v4_f32 pos = {};
+    vec3_cross(&camera->right, &camera->front, &camera->world_up);
+    vec3_normalize_f32(&camera->right);
 
-    bool has_view = false;
-    v3_f32 view = {};
-    v4_f32 quaternion = {};
+    vec3_cross(&camera->up, &camera->right, &camera->front);
+    vec3_normalize_f32(&camera->up);
+}
 
-    for (int i = 0; i < 4; i++) {
-        switch(movement[i]) {
-            case CAMERA_MOVEMENT_FORWARD: {
-                    pos.z = velocity;
-                    has_pos = true;
-                } break;
-            case CAMERA_MOVEMENT_BACK: {
-                    pos.z = velocity;
-                    has_pos = true;
-                } break;
-            case CAMERA_MOVEMENT_LEFT: {
-                    pos.x = velocity;
-                    has_pos = true;
-                } break;
-            case CAMERA_MOVEMENT_RIGHT: {
-                    pos.x = velocity;
-                    has_pos = true;
-                } break;
-            case CAMERA_MOVEMENT_UP: {
-                    pos.y = velocity;
-                    has_pos = true;
-                } break;
-            case CAMERA_MOVEMENT_DOWN: {
-                    pos.y = velocity;
-                    has_pos = true;
-                } break;
-            case CAMERA_MOVEMENT_PITCH_UP: {
-                    view.pitch += velocity;
-                    has_view = true;
-                } break;
-            case CAMERA_MOVEMENT_PITCH_DOWN: {
-                    view.pitch -= velocity;
-                    has_view = true;
-                } break;
-            case CAMERA_MOVEMENT_ROLL_LEFT: {
-                    view.roll += velocity;
-                    has_view = true;
-                } break;
-            case CAMERA_MOVEMENT_ROLL_RIGHT: {
-                    view.roll -= velocity;
-                    has_view = true;
-                } break;
-            case CAMERA_MOVEMENT_YAW_LEFT: {
-                    view.yaw += velocity;
-                    has_view = true;
-                } break;
-            case CAMERA_MOVEMENT_YAW_RIGHT: {
-                    view.yaw -= velocity;
-                    has_view = true;
-                } break;
-            case CAMERA_MOVEMENT_ZOOM_IN: {
-                    camera->zoom += velocity;
-                } break;
-            case CAMERA_MOVEMENT_ZOOM_OUT: {
-                    camera->zoom -= velocity;
-                } break;
-            default: {}
+void camera_rotate2(Camera* camera, float dx, float dy, float dt)
+{
+    f32 velocity = camera->sensitivity; // @todo do we need dt?
+
+    dx *= velocity;
+    dy *= velocity;
+
+    camera->orientation.x += dy;
+    camera->orientation.y += dx;
+
+    if (true) {
+        if (camera->orientation.x > 89.0f) {
+            camera->orientation.x = 89.0f;
+        } else if (camera->orientation.x < -89.0f) {
+            camera->orientation.x = -89.0f;
+        }
+
+        if (camera->orientation.y > 360.0f || camera->orientation.y < -360.0f) {
+            camera->orientation.y -= 360.0f;
         }
     }
 
-    // A position change updates the position AND the quaternion
-    if (has_pos) {
-        // @question this might be wrong/bad since pos is not a normalized vector
-        v4_f32 quat_temp = camera->orientation;
-        quaternion_rotate_euler(&camera->orientation, &quat_temp, &pos);
+    camera_update_vectors2(camera);
+}
 
-        camera->location.x += pos.x;
-        camera->location.y += pos.y;
-        camera->location.z += pos.z;
+void camera_rotate(Camera* camera, float dx, float dy, float dt)
+{
+    f32 velocity = camera->sensitivity; // @todo do we need dt?
+
+    dx *= velocity;
+    dy *= velocity;
+
+    v4_f32 yaw_quat;
+    quaternion_from_axis_angle(&yaw_quat, &camera->world_up, dx);
+
+    v4_f32 pitch_quat;
+    quaternion_from_axis_angle(&pitch_quat, &camera->right, dy);
+
+    v4_f32 result;
+    quaternion_multiply(&result, &camera->orientation, &pitch_quat);
+    quaternion_multiply(&camera->orientation, &yaw_quat, &result);
+    quaternion_unit(&camera->orientation);
+
+    // constrain pitch
+    if (true) {
+        v3_f32 euler;
+        quaternion_to_euler(&camera->orientation, &euler);
+
+        bool found_constrain = false;
+
+        float pitch = euler.x;
+        if (pitch > 89.0f) {
+            pitch = 89.0f;
+            found_constrain = true;
+        } else if (pitch < -89.0f) {
+            pitch = -89.0f;
+            found_constrain = true;
+        }
+
+        if (found_constrain) {
+            v4_f32 constrained;
+            quaternion_from_axis_angle(&constrained, &camera->right, pitch);
+            quaternion_multiply(&camera->orientation, &yaw_quat, &constrained);
+            quaternion_unit(&camera->orientation);
+        }
     }
 
-    // A view change only updates the quaternion
-    if (has_view) {
-        v4_f32 quat_temp = camera->orientation;
-        quaternion_from_euler(&quaternion, &view);
-        quaternion_multiply(&camera->orientation, &quat_temp, &quaternion);
+    camera_update_vectors(camera);
+}
+
+// you can have up to 4 camera movement inputs at the same time
+void camera_movement(Camera* camera, CameraMovement* movement, float dt, bool relative_to_world = true)
+{
+    f32 velocity = camera->speed * dt;
+
+    if (relative_to_world) {
+        for (int i = 0; i < CAMERA_MAX_INPUTS; i++) {
+            switch(movement[i]) {
+                case CAMERA_MOVEMENT_FORWARD: {
+                        camera->location.z += velocity;
+                    } break;
+                case CAMERA_MOVEMENT_BACK: {
+                        camera->location.z -= velocity;
+                    } break;
+                case CAMERA_MOVEMENT_LEFT: {
+                        camera->location.x -= velocity;
+                    } break;
+                case CAMERA_MOVEMENT_RIGHT: {
+                        camera->location.x += velocity;
+                    } break;
+                case CAMERA_MOVEMENT_UP: {
+                        camera->location.y += velocity;
+                    } break;
+                case CAMERA_MOVEMENT_DOWN: {
+                        camera->location.y -= velocity;
+                    } break;
+                case CAMERA_MOVEMENT_PITCH_UP: {
+                        camera->orientation.x += velocity;
+                    } break;
+                case CAMERA_MOVEMENT_PITCH_DOWN: {
+                        camera->orientation.x -= velocity;
+                    } break;
+                case CAMERA_MOVEMENT_ROLL_LEFT: {
+                        camera->orientation.z += velocity;
+                    } break;
+                case CAMERA_MOVEMENT_ROLL_RIGHT: {
+                        camera->orientation.z -= velocity;
+                    } break;
+                case CAMERA_MOVEMENT_YAW_LEFT: {
+                        camera->orientation.y += velocity;
+                    } break;
+                case CAMERA_MOVEMENT_YAW_RIGHT: {
+                        camera->orientation.y -= velocity;
+                    } break;
+                case CAMERA_MOVEMENT_ZOOM_IN: {
+                        camera->zoom += velocity;
+                    } break;
+                case CAMERA_MOVEMENT_ZOOM_OUT: {
+                        camera->zoom -= velocity;
+                    } break;
+                default: {}
+            }
+        }
+    } else {
+        v3_f32 forward = camera->front;
+
+        v3_f32 right;
+        vec3_cross(&right, &forward, &camera->world_up);
+        vec3_normalize_f32(&right);
+
+        v3_f32 up;
+        vec3_cross(&up, &right, &forward);
+        vec3_normalize_f32(&up);
+
+        for (int i = 0; i < CAMERA_MAX_INPUTS; i++) {
+            switch(movement[i]) {
+                case CAMERA_MOVEMENT_FORWARD: {
+                        camera->location.x += forward.x * velocity;
+                        camera->location.y += forward.y * velocity;
+                        camera->location.z += forward.z * velocity;
+                    } break;
+                case CAMERA_MOVEMENT_BACK: {
+                        camera->location.x -= forward.x * velocity;
+                        camera->location.y -= forward.y * velocity;
+                        camera->location.z -= forward.z * velocity;
+                    } break;
+                case CAMERA_MOVEMENT_LEFT: {
+                        camera->location.x -= right.x * velocity;
+                        camera->location.y -= right.y * velocity;
+                        camera->location.z -= right.z * velocity;
+                    } break;
+                case CAMERA_MOVEMENT_RIGHT: {
+                        camera->location.x += right.x * velocity;
+                        camera->location.y += right.y * velocity;
+                        camera->location.z += right.z * velocity;
+                    } break;
+                case CAMERA_MOVEMENT_UP: {
+                        camera->location.x += up.x * velocity;
+                        camera->location.y += up.y * velocity;
+                        camera->location.z += up.z * velocity;
+                    } break;
+                case CAMERA_MOVEMENT_DOWN: {
+                        camera->location.x -= up.x * velocity;
+                        camera->location.y -= up.y * velocity;
+                        camera->location.z -= up.z * velocity;
+                    } break;
+                case CAMERA_MOVEMENT_PITCH_UP: {
+                        camera->orientation.x += velocity;
+                    } break;
+                case CAMERA_MOVEMENT_PITCH_DOWN: {
+                        camera->orientation.x -= velocity;
+                    } break;
+                case CAMERA_MOVEMENT_ROLL_LEFT: {
+                        camera->orientation.z += velocity;
+                    } break;
+                case CAMERA_MOVEMENT_ROLL_RIGHT: {
+                        camera->orientation.z -= velocity;
+                    } break;
+                case CAMERA_MOVEMENT_YAW_LEFT: {
+                        camera->orientation.z += velocity;
+                    } break;
+                case CAMERA_MOVEMENT_YAW_RIGHT: {
+                        camera->orientation.z -= velocity;
+                    } break;
+                case CAMERA_MOVEMENT_ZOOM_IN: {
+                        camera->zoom += velocity;
+                    } break;
+                case CAMERA_MOVEMENT_ZOOM_OUT: {
+                        camera->zoom -= velocity;
+                    } break;
+                default: {}
+            }
+        }
     }
+}
+
+inline
+void camera_projection_matrix_lh(const Camera* __restrict camera, float* __restrict projection)
+{
+    mat4_identity_sparse(projection);
+    mat4_perspective_sparse_lh(
+        projection,
+        camera->fov,
+        camera->aspect,
+        camera->znear,
+        camera->zfar
+    );
+}
+
+inline
+void camera_projection_matrix_rh(const Camera* __restrict camera, float* __restrict projection)
+{
+    mat4_identity_sparse(projection);
+    mat4_perspective_sparse_rh(
+        projection,
+        camera->fov,
+        camera->aspect,
+        camera->znear,
+        camera->zfar
+    );
+}
+
+// This is usually not used, since it is included in the view matrix
+// expects the identity matrix
+inline
+void camera_translation_matrix_sparse(const Camera* __restrict camera, float* translation)
+{
+    translation[3] = camera->location.x;
+    translation[7] = camera->location.y;
+    translation[11] = camera->location.z;
+}
+
+// @performance this function seems worth while to fully convert to simd
+//  even if we are not really looping anything we do have some repetetive operations (rotate, dot)
+/*
+void
+camera_view_matrix_sparse(const Camera* __restrict camera, float* __restrict view)
+{
+    // @performance orientation gets converted to a quat every time, pull this out
+
+    v3_f32 up = {0.0f, 1.0f, 0.0f};
+    quaternion_rotate_active(&up, camera->orientation.pitch, camera->orientation.yaw, camera->orientation.roll);
+
+    v3_f32 right = {1.0f, 0.0f, 0.0f};
+    quaternion_rotate_active(&up, camera->orientation.pitch, camera->orientation.yaw, camera->orientation.roll);
+
+    v3_f32 forward = {0.0f, 0.0f, 1.0f};
+    quaternion_rotate_active(&forward, camera->orientation.pitch, camera->orientation.yaw, camera->orientation.roll);
+
+    view[0] = right.x;
+    view[1] = right.y;
+    view[2] = right.z;
+
+    view[4] = up.x;
+    view[5] = up.y;
+    view[6] = up.z;
+
+    view[8] = -forward.x;
+    view[9] = -forward.y;
+    view[10] = -forward.z;
+
+    // Set the translation part
+    v3_f32 right_v3 = {right.x, right.y, right.z};
+    view[3] = -v3_dot(&right_v3, &camera->location);
+
+    v3_f32 up_v3 = {up.x, up.y, up.z};
+    view[7] = -v3_dot(&up_v3, &camera->location);
+
+    v3_f32 forward_v3 = {forward.x, forward.y, forward.z};
+    view[11] = v3_dot(&forward_v3, &camera->location);
+
+    // Last element of matrix (homogeneous coordinate)
+    view[15] = 1.0f;
+}
+*/
+
+// https://github.com/g-truc/glm/blob/33b4a621a697a305bc3a7610d290677b96beb181/glm/ext/matrix_transform.inl
+// https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/camera.h
+void
+camera_view_matrix_sparse_lh(const Camera* __restrict camera, float* __restrict view)
+{
+    // We are skipping some things because some things either get neutralized
+    //  (e.g. position - (position + front), other values are already normalized (e.g. front)
+    v3_f32 f = { camera->front.x, camera->front.y, camera->front.z };
+
+    v3_f32 s;
+    vec3_cross(&s, &camera->up, &f);
+    vec3_normalize_f32(&s);
+
+    v3_f32 u;
+    vec3_cross(&u, &f, &s);
+
+    view[0] = s.x;
+    view[1] = s.y;
+    view[2] = s.z;
+    view[3] = 0.0f;
+    view[4] = u.x;
+    view[5] = u.y;
+    view[6] = u.z;
+    view[7] = 0.0f;
+    view[8] = f.x;
+    view[9] = f.y;
+    view[10] = f.z;
+    view[11] = 0;
+    view[12] = -vec3_dot(&s, &camera->location);
+    view[13] = -vec3_dot(&u, &camera->location);
+    view[14] = -vec3_dot(&f, &camera->location);
+    view[15] = 1.0f;
+}
+
+void
+camera_view_matrix_sparse_rh(const Camera* __restrict camera, float* __restrict view)
+{
+    // We are skipping some things because some things either get neutralized
+    //  (e.g. position - (position + front), other values are already normalized (e.g. front)
+    v3_f32 f = { -camera->front.x, -camera->front.y, -camera->front.z };
+
+    v3_f32 s;
+    vec3_cross(&s, &f, &camera->up);
+    vec3_normalize_f32(&s);
+
+    v3_f32 u;
+    vec3_cross(&u, &s, &f);
+
+    view[0] = s.x;
+    view[1] = s.y;
+    view[2] = s.z;
+    view[3] = 0.0f;
+    view[4] = u.x;
+    view[5] = u.y;
+    view[6] = u.z;
+    view[7] = 0.0f;
+    view[8] = f.x;
+    view[9] = f.y;
+    view[10] = f.z;
+    view[11] = 0;
+    view[12] = -vec3_dot(&s, &camera->location);
+    view[13] = -vec3_dot(&u, &camera->location);
+    view[14] = vec3_dot(&f, &camera->location);
+    view[15] = 1.0f;
+}
+
+void
+camera_view_right_handed2(float* view)
+{
+    // Translation part
+    view[12] = view[3];
+    view[13] = view[7];
+    view[14] = view[11];
+    view[15] = 1.0f; // @todo could be removed
+
+    float temp;
+    temp = view[1];
+    view[1] = view[4];
+    view[4] = temp;
+
+    temp = view[2];
+    view[2] = view[8];
+    view[8] = -temp;
+
+    view[3] = 0.0f; // @todo could be removed
+
+    temp = view[6];
+    view[6] = view[9];
+    view[9] = -temp;
+
+    view[7] = 0.0f; // @todo could be removed
+    view[10] = -view[10];
+    view[11] = 0.0f; // @todo could be removed
 }
 
 #endif

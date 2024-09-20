@@ -37,6 +37,27 @@ void wchar_to_char(const wchar_t* src, char* dest, int length = 0)
     *dest = '\0';
 }
 
+inline
+int str_to_int(const char *str)
+{
+    int result = 0;
+
+    int sign = 1;
+    if (*str == '-') {
+        sign = -1;
+        ++str;
+    }
+
+    while (*str >= '0' && *str <= '9') {
+        result *= 10;
+        result += (*str - '0');
+
+        ++str;
+    }
+
+    return result * sign;
+}
+
 inline size_t str_count(const char* str, const char* substr)
 {
     size_t l1 = strlen(str);

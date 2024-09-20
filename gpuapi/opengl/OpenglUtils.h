@@ -14,6 +14,7 @@
 #include "../../utils/TestUtils.h"
 #include "../../models/Attrib.h"
 #include "../../object/Texture.h"
+#include "../../utils/StringUtils.h"
 
 #include "../RenderUtils.h"
 #include "Opengl.h"
@@ -24,63 +25,52 @@
     #include "../../platform/win32/Window.h"
 #endif
 
-/*
-struct Window {
-    bool is_fullscreen;
-    int32 width;
-    int32 height;
-    char name[32];
+inline
+void change_viewport(Window* w, int offset_x = 0, int offset_y = 0)
+{
+    glViewport(offset_x, offset_y, w->width, w->height);
+}
 
-    int32 x;
-    int32 y;
+inline
+void vsync_set(bool on)
+{
+    wglSwapIntervalEXT((int) on);
+}
 
-    GLFWwindow* hwnd_lib;
+inline
+void wireframe_mode(bool on)
+{
+    if (on) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    } else {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+}
 
-    #ifdef _WIN32
-        HWND hwnd;
-    #endif
+struct OpenglInfo {
+    char* renderer;
+    int major;
+    int minor;
 };
-*/
 
-/*
-inline
-void window_create(Window* window, void*)
+void opengl_info(OpenglInfo* info)
 {
-    //GLFWmonitor *monitor = glfwGetPrimaryMonitor();
-    window->hwnd_lib = glfwCreateWindow(
-        window->width,
-        window->height,
-        window->name,
-        NULL,
-        NULL
-    );
+    info->renderer = (char *) glGetString(GL_RENDERER);
+    info->major = 1;
+    info->minor = 0;
 
-    ASSERT_SIMPLE(window->hwnd_lib);
+    char* version = (char *) glGetString(GL_VERSION);
 
-    //glfwSetInputMode(window->hwnd_lib, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    for (char *at = version; *at; ++at) {
+        if (*at == '.') {
+            info->major = str_to_int(version);
 
-    glfwMakeContextCurrent(window->hwnd_lib);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-
-    #if GLFW_EXPOSE_NATIVE_WIN32
-        window->hwnd = glfwGetWin32Window(window->hwnd_lib);
-    #endif
+            ++at;
+            info->minor = str_to_int(at);
+            break;
+        }
+    }
 }
-
-inline
-void window_open(Window* window)
-{
-    glfwMakeContextCurrent(window->hwnd_lib);
-    glViewport(window->x, window->y, window->width, window->height);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-}
-
-inline
-void window_close(Window* window)
-{
-    glfwWindowShouldClose(window->hwnd_lib);
-}
-*/
 
 inline
 uint32 get_texture_data_type(uint32 texture_data_type)

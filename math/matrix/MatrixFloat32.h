@@ -15,6 +15,261 @@
 #include "../../utils/TestUtils.h"
 #include <math.h>
 
+// @todo Implement intrinsic versions!
+
+void vec2_normalize_f32(float* __restrict x, float* __restrict y)
+{
+    float d = sqrtf((*x) * (*x) + (*y) * (*y));
+
+    *x /= d;
+    *y /= d;
+}
+
+inline
+void vec2_add(v2_f32* __restrict vec, const v2_f32* a, const v2_f32* b) {
+    vec->x = a->x + b->x;
+    vec->y = a->y + b->y;
+}
+
+inline
+void vec2_add(v2_f32* __restrict vec, const v2_f32* b) {
+    vec->x += b->x;
+    vec->y += b->y;
+}
+
+inline
+void vec2_sub(v2_f32* __restrict vec, const v2_f32* a, const v2_f32* b) {
+    vec->x = a->x - b->x;
+    vec->y = a->y - b->y;
+}
+
+inline
+void vec2_sub(v2_f32* __restrict vec, const v2_f32* b) {
+    vec->x -= b->x;
+    vec->y -= b->y;
+}
+
+inline
+void vec2_mul(v2_f32* vec, const v2_f32* a, float s) {
+    vec->x = a->x * s;
+    vec->y = a->y * s;
+}
+
+inline
+void vec2_mul(v2_f32* vec, float s) {
+    vec->x *= s;
+    vec->y *= s;
+}
+
+inline
+float vec2_mul(const v2_f32* a, const v2_f32* b) {
+    return a->x * b->x + a->y * b->y;
+}
+
+inline
+void vec2_mul(v2_f32* __restrict vec, const v2_f32* a, const v2_f32* b) {
+    vec->x = a->x * b->x;
+    vec->y = a->y * b->y;
+}
+
+inline
+void vec2_mul(v2_f32* __restrict vec, const v2_f32* b) {
+    vec->x *= b->x;
+    vec->y *= b->y;
+}
+
+inline
+float vec2_cross(const v2_f32* a, const v2_f32* b) {
+    return a->x * b->y - a->y * b->x;
+}
+
+inline
+float vec2_dot(const v2_f32* a, const v2_f32* b) {
+    return a->x * b->x + a->y * b->y;
+}
+
+void vec3_normalize_f32(float* __restrict x, float* __restrict y, float* __restrict z)
+{
+    float d = sqrtf((*x) * (*x) + (*y) * (*y) + (*z) * (*z));
+
+    *x /= d;
+    *y /= d;
+    *z /= d;
+}
+
+void vec3_normalize_f32(v3_f32* vec)
+{
+    float d = sqrtf(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
+
+    vec->x /= d;
+    vec->y /= d;
+    vec->z /= d;
+}
+
+inline
+void vec3_add(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) {
+    vec->x = a->x + b->x;
+    vec->y = a->y + b->y;
+    vec->z = a->z + b->z;
+}
+
+inline
+void vec3_add(v3_f32* __restrict vec, const v3_f32* b) {
+    vec->x += b->x;
+    vec->y += b->y;
+    vec->z += b->z;
+}
+
+inline
+void vec3_sub(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) {
+    vec->x = a->x - b->x;
+    vec->y = a->y - b->y;
+    vec->z = a->z - b->z;
+}
+
+inline
+void vec3_sub(v3_f32* __restrict vec, const v3_f32* b) {
+    vec->x -= b->x;
+    vec->y -= b->y;
+    vec->z -= b->z;
+}
+
+inline
+void vec3_mul(v3_f32* vec, const v3_f32* a, float s) {
+    vec->x = a->x * s;
+    vec->y = a->y * s;
+    vec->z = a->z * s;
+}
+
+inline
+void vec3_mul(v3_f32* vec, float s) {
+    vec->x *= s;
+    vec->y *= s;
+    vec->z *= s;
+}
+
+inline
+float vec3_mul(const v3_f32* a, const v3_f32* b) {
+    return a->x * b->x + a->y * b->y + a->z * b->z;
+}
+
+inline
+void vec3_mul(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) {
+    vec->x = a->x * b->x;
+    vec->y = a->y * b->y;
+    vec->z = a->z * b->z;
+}
+
+inline
+void vec3_mul(v3_f32* __restrict vec, const v3_f32* b) {
+    vec->x *= b->x;
+    vec->y *= b->y;
+    vec->z *= b->z;
+}
+
+void vec3_cross(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) {
+    vec->x = a->y * b->z - a->z * b->y;
+    vec->y = a->z * b->x - a->x * b->z;
+    vec->z = a->x * b->y - a->y * b->x;
+}
+
+float vec3_dot(const v3_f32* a, const v3_f32* b) {
+    return a->x * b->x + a->y * b->y + a->z * b->z;
+}
+
+void vec4_normalize_f32(float* __restrict x, float* __restrict y, float* __restrict z, float* __restrict w)
+{
+    float d = sqrtf((*x) * (*x) + (*y) * (*y) + (*z) * (*z) + (*w) * (*w));
+
+    *x /= d;
+    *y /= d;
+    *z /= d;
+    *w /= d;
+}
+
+inline
+void vec4_add(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) {
+    vec->x = a->x + b->x;
+    vec->y = a->y + b->y;
+    vec->z = a->z + b->z;
+    vec->w = a->w + b->w;
+}
+
+inline
+void vec4_add(v4_f32* __restrict vec, const v4_f32* b) {
+    vec->x += b->x;
+    vec->y += b->y;
+    vec->z += b->z;
+    vec->w += b->w;
+}
+
+inline
+void vec4_sub(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) {
+    vec->x = a->x - b->x;
+    vec->y = a->y - b->y;
+    vec->z = a->z - b->z;
+    vec->w = a->w - b->w;
+}
+
+inline
+void vec4_sub(v4_f32* __restrict vec, const v4_f32* b) {
+    vec->x -= b->x;
+    vec->y -= b->y;
+    vec->z -= b->z;
+    vec->w -= b->w;
+}
+
+inline
+void vec4_mul(v4_f32* vec, const v4_f32* a, float s) {
+    vec->x = a->x * s;
+    vec->y = a->y * s;
+    vec->z = a->z * s;
+    vec->w = a->w * s;
+}
+
+inline
+void vec4_mul(v4_f32* vec, float s) {
+    vec->x *= s;
+    vec->y *= s;
+    vec->z *= s;
+    vec->w *= s;
+}
+
+inline
+float vec4_mul(const v4_f32* a, const v4_f32* b) {
+    return a->x * b->x + a->y * b->y + a->z * b->z + a->w * b->w;
+}
+
+inline
+void vec4_mul(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) {
+    vec->x = a->x * b->x;
+    vec->y = a->y * b->y;
+    vec->z = a->z * b->z;
+    vec->w = a->w * b->w;
+}
+
+inline
+void vec4_mul(v4_f32* __restrict vec, const v4_f32* b) {
+    vec->x *= b->x;
+    vec->y *= b->y;
+    vec->z *= b->z;
+    vec->w *= b->w;
+}
+
+inline
+float vec4_dot(const v4_f32* a, const v4_f32* b) {
+    return a->x * b->x + a->y * b->y + a->z * b->z + a->w * b->w;
+}
+
+inline
+void vec4_cross(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b, const v4_f32* c) {
+    vec->x = a->y * (b->z * c->w - b->w * c->z) - a->z * (b->y * c->w - b->w * c->y) + a->w * (b->y * c->z - b->z * c->y);
+    vec->y = -(a->x * (b->z * c->w - b->w * c->z) - a->z * (b->x * c->w - b->w * c->x) + a->w * (b->x * c->z - b->z * c->x));
+    vec->z = a->x * (b->y * c->w - b->w * c->y) - a->y * (b->x * c->w - b->w * c->x) + a->w * (b->x * c->y - b->y * c->x);
+    vec->w = -(a->x * (b->y * c->z - b->z * c->y) - a->y * (b->x * c->z - b->z * c->x) + a->z * (b->x * c->y - b->y * c->x));
+}
+
+inline
 void mat3_identity(float* matrix)
 {
     matrix[0] = 1.0f; matrix[1] = 0.0f; matrix[2] = 0.0f;
@@ -22,11 +277,13 @@ void mat3_identity(float* matrix)
     matrix[6] = 0.0f; matrix[7] = 0.0f; matrix[8] = 1.0f;
 }
 
+inline
 void mat3_identity_sparse(float* matrix)
 {
     matrix[0] = 1.0f; matrix[4] = 1.0f; matrix[8] = 1.0f;
 }
 
+inline
 void mat3_identity(__m128* matrix)
 {
     matrix[0] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
@@ -34,6 +291,7 @@ void mat3_identity(__m128* matrix)
     matrix[2] = _mm_set_ps(0.0f, 0.0f, 1.0f, 0.0f);
 }
 
+inline
 void mat4_identity(float* matrix)
 {
     matrix[0] = 1.0f;  matrix[1] = 0.0f;  matrix[2] = 0.0f;  matrix[3] = 0.0f;
@@ -42,11 +300,13 @@ void mat4_identity(float* matrix)
     matrix[12] = 0.0f; matrix[13] = 0.0f; matrix[14] = 0.0f; matrix[15] = 1.0f;
 }
 
+inline
 void mat4_identity_sparse(float* matrix)
 {
     matrix[0] = 1.0f; matrix[5] = 1.0f; matrix[10] = 1.0f; matrix[15] = 1.0f;
 }
 
+inline
 void mat4_identity(__m128* matrix)
 {
     matrix[0] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
@@ -59,7 +319,7 @@ void mat4_identity(__m128* matrix)
 // https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
 void mat4_rotation(float* matrix, float x, float y, float z, float angle)
 {
-    ASSERT_SIMPLE(OMS_ABS(x * x + y * y + z * z - 1.0f) < 0.01)
+    ASSERT_SIMPLE(OMS_ABS(x * x + y * y + z * z - 1.0f) < 0.01);
 
     // @todo replace with quaternions
     float s = sinf(angle);
@@ -129,23 +389,16 @@ void mat4_rotation(float* matrix, float pitch, float yaw, float roll)
     matrix[15] = 1.0f;
 }
 
-void mat3vec3_mult(const float* matrix, const float* vector, float* result)
+inline
+void mat3vec3_mult(const float* __restrict matrix, const float* __restrict vector, float* __restrict result)
 {
     result[0] = matrix[0] * vector[0] + matrix[1] * vector[1] + matrix[2] * vector[2];
     result[1] = matrix[3] * vector[0] + matrix[4] * vector[1] + matrix[5] * vector[2];
     result[2] = matrix[6] * vector[0] + matrix[7] * vector[1] + matrix[8] * vector[2];
-
-    /*
-    for (int i = 0; i < 3; ++i) {
-        result[i] = matrix[i * 3 + 0] * vector[0]
-            + matrix[i * 3 + 1] * vector[1]
-            + matrix[i * 3 + 2] * vector[2];
-    }
-    */
 }
 
 // @question could simple mul add sse be faster?
-void mat3vec3_mult_sse(const float* matrix, const float* vector, float* result)
+void mat3vec3_mult_sse(const float* __restrict matrix, const float* __restrict vector, float* __restrict result)
 {
     __m128 vec = _mm_loadu_ps(vector);
     vec = _mm_insert_ps(vec, _mm_setzero_ps(), 0x30); // vec[3] = 0
@@ -161,7 +414,7 @@ void mat3vec3_mult_sse(const float* matrix, const float* vector, float* result)
 }
 
 // @question could simple mul add sse be faster?
-void mat3vec3_mult_sse(const __m128* matrix, const __m128* vector, float* result)
+void mat3vec3_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, float* __restrict result)
 {
     for (int i = 0; i < 3; ++i) {
         __m128 dot = _mm_dp_ps(matrix[i], *vector, 0xF1);
@@ -171,14 +424,15 @@ void mat3vec3_mult_sse(const __m128* matrix, const __m128* vector, float* result
 }
 
 // @question could simple mul add sse be faster?
-void mat3vec3_mult_sse(const __m128* matrix, const __m128* vector, __m128* result)
+void mat3vec3_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, __m128* __restrict result)
 {
     for (int i = 0; i < 4; ++i) {
         result[i] = _mm_dp_ps(matrix[i], *vector, 0xF1);
     }
 }
 
-void mat4vec4_mult(const float* matrix, const float* vector, float* result)
+inline
+void mat4vec4_mult(const float* __restrict matrix, const float* __restrict vector, float* __restrict result)
 {
     result[0] = matrix[0] * vector[0] + matrix[1] * vector[1] + matrix[2] * vector[2] + matrix[3] * vector[3];
     result[1] = matrix[4] * vector[0] + matrix[5] * vector[1] + matrix[6] * vector[2] + matrix[7] * vector[3];
@@ -187,7 +441,7 @@ void mat4vec4_mult(const float* matrix, const float* vector, float* result)
 }
 
 // @question could simple mul add sse be faster?
-void mat4vec4_mult_sse(const float* matrix, const float* vector, float* result)
+void mat4vec4_mult_sse(const float* __restrict matrix, const float* __restrict vector, float* __restrict result)
 {
     __m128 vec = _mm_loadu_ps(vector);
 
@@ -200,7 +454,7 @@ void mat4vec4_mult_sse(const float* matrix, const float* vector, float* result)
 }
 
 // @question could simple mul add sse be faster?
-void mat4vec4_mult_sse(const __m128* matrix, const __m128* vector, float* result)
+void mat4vec4_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, float* __restrict result)
 {
     for (int i = 0; i < 4; ++i) {
         __m128 dot = _mm_dp_ps(matrix[i], *vector, 0xF1);
@@ -210,14 +464,38 @@ void mat4vec4_mult_sse(const __m128* matrix, const __m128* vector, float* result
 }
 
 // @question could simple mul add sse be faster?
-void mat4vec4_mult_sse(const __m128* matrix, const __m128* vector, __m128* result)
+void mat4vec4_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, __m128* __restrict result)
 {
     for (int i = 0; i < 4; ++i) {
         result[i] = _mm_dp_ps(matrix[i], *vector, 0xF1);
     }
 }
 
-void mat4mat4_mult(const float* a, const float* b, float* result, int steps = 8)
+inline
+void mat4mat4_mult(const float* __restrict a, const float* __restrict b, float* __restrict result)
+{
+    result[0] = a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12];
+    result[1] = a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13];
+    result[2] = a[0] * b[2] + a[1] * b[6] + a[2] * b[10] + a[3] * b[14];
+    result[3] = a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3] * b[15];
+
+    result[4] = a[4] * b[0] + a[5] * b[4] + a[6] * b[8] + a[7] * b[12];
+    result[5] = a[4] * b[1] + a[5] * b[5] + a[6] * b[9] + a[7] * b[13];
+    result[6] = a[4] * b[2] + a[5] * b[6] + a[6] * b[10] + a[7] * b[14];
+    result[7] = a[4] * b[3] + a[5] * b[7] + a[6] * b[11] + a[7] * b[15];
+
+    result[8] = a[8] * b[0] + a[9] * b[4] + a[10] * b[8] + a[11] * b[12];
+    result[9] = a[8] * b[1] + a[9] * b[5] + a[10] * b[9] + a[11] * b[13];
+    result[10] = a[8] * b[2] + a[9] * b[6] + a[10] * b[10] + a[11] * b[14];
+    result[11] = a[8] * b[3] + a[9] * b[7] + a[10] * b[11] + a[11] * b[15];
+
+    result[12] = a[12] * b[0] + a[13] * b[4] + a[14] * b[8] + a[15] * b[12];
+    result[13] = a[12] * b[1] + a[13] * b[5] + a[14] * b[9] + a[15] * b[13];
+    result[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14];
+    result[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15];
+}
+
+void mat4mat4_mult(const float* __restrict a, const float* __restrict b, float* __restrict result, int steps)
 {
     if (steps > 1) {
         // @todo check http://fhtr.blogspot.com/2010/02/4x4-float-matrix-multiplication-using.html
@@ -286,29 +564,11 @@ void mat4mat4_mult(const float* a, const float* b, float* result, int steps = 8)
             )
         );
     } else {
-        result[0] = a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12];
-        result[1] = a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13];
-        result[2] = a[0] * b[2] + a[1] * b[6] + a[2] * b[10] + a[3] * b[14];
-        result[3] = a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3] * b[15];
-
-        result[4] = a[4] * b[0] + a[5] * b[4] + a[6] * b[8] + a[7] * b[12];
-        result[5] = a[4] * b[1] + a[5] * b[5] + a[6] * b[9] + a[7] * b[13];
-        result[6] = a[4] * b[2] + a[5] * b[6] + a[6] * b[10] + a[7] * b[14];
-        result[7] = a[4] * b[3] + a[5] * b[7] + a[6] * b[11] + a[7] * b[15];
-
-        result[8] = a[8] * b[0] + a[9] * b[4] + a[10] * b[8] + a[11] * b[12];
-        result[9] = a[8] * b[1] + a[9] * b[5] + a[10] * b[9] + a[11] * b[13];
-        result[10] = a[8] * b[2] + a[9] * b[6] + a[10] * b[10] + a[11] * b[14];
-        result[11] = a[8] * b[3] + a[9] * b[7] + a[10] * b[11] + a[11] * b[15];
-
-        result[12] = a[12] * b[0] + a[13] * b[4] + a[14] * b[8] + a[15] * b[12];
-        result[13] = a[12] * b[1] + a[13] * b[5] + a[14] * b[9] + a[15] * b[13];
-        result[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14];
-        result[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15];
+        mat4mat4_mult(a, b, result);
     }
 }
 
-void mat4mat4_mult_sse(const __m128* a, const __m128* b_transposed, float* result)
+void mat4mat4_mult_sse(const __m128* __restrict a, const __m128* __restrict b_transposed, float* __restrict result)
 {
     __m128 dot;
 
@@ -366,7 +626,8 @@ void mat4mat4_mult_sse(const __m128* a, const __m128* b_transposed, float* resul
     result[15] = _mm_cvtss_f32(dot);
 }
 
-void mat4mat4_mult_sse(const __m128* a, const __m128* b_transpose, __m128* result)
+inline
+void mat4mat4_mult_sse(const __m128* __restrict a, const __m128* __restrict b_transpose, __m128* __restrict result)
 {
     for (int i = 0; i < 4; ++i) {
         result[i] = _mm_mul_ps(a[0], b_transpose[i]);
@@ -418,7 +679,7 @@ void mat4_frustum_planes(float planes[6][4], float radius, float *matrix) {
     planes[5][3] = zfar * m[15] - m[14];
 }
 
-void mat4_frustum_sparse(
+void mat4_frustum_sparse_rh(
     float *matrix,
     float left, float right, float bottom, float top,
     float znear, float zfar
@@ -450,8 +711,40 @@ void mat4_frustum_sparse(
     //matrix[15] = 0.0f;
 }
 
+void mat4_frustum_sparse_lh(
+    float *matrix,
+    float left, float right, float bottom, float top,
+    float znear, float zfar
+ ) {
+    float temp, temp2, temp3, temp4;
+    temp = 2.0f * znear;
+    temp2 = right - left;
+    temp3 = top - bottom;
+    temp4 = zfar - znear;
+
+    matrix[0] = temp / temp2;
+    //matrix[1] = 0.0f;
+    //matrix[2] = 0.0f;
+    //matrix[3] = 0.0f;
+
+    //matrix[4] = 0.0f;
+    matrix[5] = temp / temp3;
+    //matrix[6] = 0.0f;
+    //matrix[7] = 0.0f;
+
+    matrix[8] = (right + left) / temp2;
+    matrix[9] = (top + bottom) / temp3;
+    matrix[10] = (zfar + znear) / temp4;
+    matrix[11] = 1.0f;
+
+    //matrix[12] = 0.0f;
+    //matrix[13] = 0.0f;
+    matrix[14] = (temp * zfar) / temp4;
+    //matrix[15] = 0.0f;
+}
+
 // fov needs to be in rad
-void mat4_perspective_sparse(
+void mat4_perspective_sparse_lh(
     float *matrix, float fov, float aspect,
     float znear, float zfar)
 {
@@ -461,7 +754,20 @@ void mat4_perspective_sparse(
     ymax = znear * tanf(fov * 0.5f);
     xmax = ymax * aspect;
 
-    mat4_frustum_sparse(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
+    mat4_frustum_sparse_lh(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
+}
+
+void mat4_perspective_sparse_rh(
+    float *matrix, float fov, float aspect,
+    float znear, float zfar)
+{
+    ASSERT_SIMPLE(znear > 0.0f);
+
+    float ymax, xmax;
+    ymax = znear * tanf(fov * 0.5f);
+    xmax = ymax * aspect;
+
+    mat4_frustum_sparse_rh(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
 }
 
 void mat4_ortho(
@@ -494,7 +800,21 @@ void mat4_ortho(
     matrix[15] = 1.0f;
 }
 
-void mat4_translate(float* matrix, float dx, float dy, float dz, int steps = 8)
+void mat4_translate(float* matrix, float dx, float dy, float dz)
+{
+    float temp[16];
+    memcpy(temp, matrix, sizeof(float) * 16);
+
+    float translation_matrix[16];
+    translation_matrix[0] = 1.0f;   translation_matrix[1] = 0.0f;   translation_matrix[2] = 0.0f;   translation_matrix[3] = dx;
+    translation_matrix[4] = 0.0f;   translation_matrix[5] = 1.0f;   translation_matrix[6] = 0.0f;   translation_matrix[7] = dy;
+    translation_matrix[8] = 0.0f;   translation_matrix[9] = 0.0f;   translation_matrix[10] = 1.0f;  translation_matrix[11] = dz;
+    translation_matrix[12] = 0.0f; translation_matrix[13] = 0.0f; translation_matrix[14] = 0.0f; translation_matrix[15] = 1.0f;
+
+    mat4mat4_mult(temp, translation_matrix, matrix);
+}
+
+void mat4_translate(float* matrix, float dx, float dy, float dz, int steps)
 {
     alignas(64) float temp[16];
     memcpy(temp, matrix, sizeof(float) * 16);
@@ -505,9 +825,10 @@ void mat4_translate(float* matrix, float dx, float dy, float dz, int steps = 8)
     translation_matrix[8] = 0.0f;   translation_matrix[9] = 0.0f;   translation_matrix[10] = 1.0f;  translation_matrix[11] = dz;
     translation_matrix[12] = 0.0f; translation_matrix[13] = 0.0f; translation_matrix[14] = 0.0f; translation_matrix[15] = 1.0f;
 
-    mat4mat4_mult(temp, translation_matrix, matrix, 1);
+    mat4mat4_mult(temp, translation_matrix, matrix, steps);
 }
 
+inline
 void mat4_translation(float* matrix, float dx, float dy, float dz)
 {
     matrix[0] = 1.0f;   matrix[1] = 0.0f;   matrix[2] = 0.0f;   matrix[3] = dx;
@@ -516,6 +837,7 @@ void mat4_translation(float* matrix, float dx, float dy, float dz)
     matrix[12] = 0.0f; matrix[13] = 0.0f; matrix[14] = 0.0f; matrix[15] = 1.0f;
 }
 
+inline
 void mat4_translation_sparse(float* matrix, float dx, float dy, float dz)
 {
     matrix[3] = dx;
@@ -523,92 +845,112 @@ void mat4_translation_sparse(float* matrix, float dx, float dy, float dz)
     matrix[11] = dz;
 }
 
-// @todo unroll these loops below
-void mat4_transpose(const float* matrix, float* transposed)
+inline
+void mat4_scale(float* matrix, float dx, float dy, float dz)
 {
-    for (int i = 0; i < 4; ++i) {
-        for (int j = i + 1; j < 4; ++j) {
-            int index1 = i * 4 + j;
-            int index2 = j * 4 + i;
-
-            transposed[index1] = transposed[index2];
-            transposed[index2] = matrix[index1];
-        }
-    }
+    matrix[0] = dx;   matrix[1] = 0.0f;   matrix[2] = 0.0f;   matrix[3] = 0.0f;
+    matrix[4] = 0.0f;   matrix[5] = dy;   matrix[6] = 0.0f;   matrix[7] = 0.0f;
+    matrix[8] = 0.0f;   matrix[9] = 0.0f;   matrix[10] = dz;  matrix[11] = 0.0f;
+    matrix[12] = 0.0f; matrix[13] = 0.0f; matrix[14] = 0.0f; matrix[15] = 1.0f;
 }
 
+inline
+void mat4_scale_sparse(float* matrix, float dx, float dy, float dz)
+{
+    matrix[0] = dx;
+    matrix[5] = dy;
+    matrix[10] = dz;
+}
+
+inline
+void mat4_transpose(const float* __restrict matrix, float* __restrict transposed)
+{
+    transposed[1] = matrix[4];
+    transposed[2] = matrix[8];
+    transposed[3] = matrix[12];
+    transposed[4] = matrix[1];
+    transposed[6] = matrix[9];
+    transposed[7] = matrix[13];
+    transposed[8] = matrix[2];
+    transposed[9] = matrix[6];
+    transposed[11] = matrix[14];
+    transposed[12] = matrix[3];
+    transposed[13] = matrix[7];
+    transposed[14] = matrix[11];
+}
+
+inline
 void mat4_transpose(float* matrix)
 {
     float temp;
 
-    for (int i = 0; i < 4; ++i) {
-        for (int j = i + 1; j < 4; ++j) {
-            int index1 = i * 4 + j;
-            int index2 = j * 4 + i;
+    temp = matrix[1];
+    matrix[1] = matrix[4];
+    matrix[4] = temp;
 
-            temp = matrix[index1];
-            matrix[index1] = matrix[index2];
-            matrix[index2] = temp;
-        }
-    }
+    temp = matrix[2];
+    matrix[2] = matrix[8];
+    matrix[8] = temp;
+
+    temp = matrix[3];
+    matrix[3] = matrix[12];
+    matrix[12] = temp;
+
+    temp = matrix[6];
+    matrix[6] = matrix[9];
+    matrix[9] = temp;
+
+    temp = matrix[7];
+    matrix[7] = matrix[13];
+    matrix[13] = temp;
+
+    temp = matrix[11];
+    matrix[11] = matrix[14];
+    matrix[14] = temp;
 }
 
-void mat3_transpose(const float* matrix, float* transposed)
+inline
+void mat3_transpose(const float* __restrict matrix, float* __restrict transposed)
 {
-    for (int i = 0; i < 3; ++i) {
-        for (int j = i + 1; j < 3; ++j) {
-            int index1 = i * 3 + j;
-            int index2 = j * 3 + i;
-
-            transposed[index1] = transposed[index2];
-            transposed[index2] = matrix[index1];
-        }
-    }
+    transposed[1] = matrix[3];
+    transposed[2] = matrix[6];
+    transposed[3] = matrix[1];
+    transposed[5] = matrix[7];
+    transposed[6] = matrix[2];
+    transposed[7] = matrix[5];
 }
 
+inline
 void mat3_transpose(float* matrix)
 {
     float temp;
 
-    for (int i = 0; i < 3; ++i) {
-        for (int j = i + 1; j < 3; ++j) {
-            int index1 = i * 3 + j;
-            int index2 = j * 3 + i;
+    temp = matrix[1];
+    matrix[1] = matrix[3];
+    matrix[3] = temp;
 
-            temp = matrix[index1];
-            matrix[index1] = matrix[index2];
-            matrix[index2] = temp;
-        }
-    }
+    temp = matrix[2];
+    matrix[2] = matrix[6];
+    matrix[6] = temp;
+
+    temp = matrix[5];
+    matrix[5] = matrix[7];
+    matrix[7] = temp;
 }
 
-void mat2_transpose(const float* matrix, float* transposed)
+inline
+void mat2_transpose(const float* __restrict matrix, float* __restrict transposed)
 {
-    for (int i = 0; i < 2; ++i) {
-        for (int j = i + 1; j < 2; ++j) {
-            int index1 = i * 2 + j;
-            int index2 = j * 2 + i;
-
-            transposed[index1] = transposed[index2];
-            transposed[index2] = matrix[index1];
-        }
-    }
+    transposed[1] = matrix[2];
+    transposed[2] = matrix[1];
 }
 
+inline
 void mat2_transpose(float* matrix)
 {
-    float temp;
-
-    for (int i = 0; i < 2; ++i) {
-        for (int j = i + 1; j < 2; ++j) {
-            int index1 = i * 2 + j;
-            int index2 = j * 2 + i;
-
-            temp = matrix[index1];
-            matrix[index1] = matrix[index2];
-            matrix[index2] = temp;
-        }
-    }
+    float temp = matrix[1];
+    matrix[1] = matrix[2];
+    matrix[2] = temp;
 }
 
 #endif

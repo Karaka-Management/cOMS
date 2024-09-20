@@ -151,23 +151,4 @@ struct v4_f32_16 {
     };
 };
 
-void vec3_normalize_f32(float* x, float* y, float* z)
-{
-    float d = sqrt((*x) * (*x) + (*y) * (*y) + (*z) * (*z));
-
-    *x /= d;
-    *y /= d;
-    *z /= d;
-}
-
-void vec4_normalize_f32(float* x, float* y, float* z, float* w)
-{
-    float d = sqrt((*x) * (*x) + (*y) * (*y) + (*z) * (*z) + (*w) * (*w));
-
-    *x /= d;
-    *y /= d;
-    *z /= d;
-    *w /= d;
-}
-
 #endif

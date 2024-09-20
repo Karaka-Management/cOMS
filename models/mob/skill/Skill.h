@@ -22,6 +22,12 @@ struct Skill
     // const char name[MAX_SKILL_NAME];
     // const char description[MAX_SKILL_DESCRIPTION];
 
+    // @todo implement charged skills
+    //      e.g. you gain one charge every: x seconds, x mob kills, x dmg, ...
+    //      max charges
+    //      you can then use these charges
+    //      -> we could then have things that also reduce charges
+
     int id;
 
     // @todo animations

@@ -55,7 +55,7 @@ void xinput_load() {
 }
 // END: Dynamically load XInput
 
-ControllerState* init_controllers()
+ControllerInput* init_controllers()
 {
     uint32 c = 0;
     for (uint32 controller_index = 0; controller_index < XUSER_MAX_COUNT; ++controller_index) {
@@ -67,7 +67,7 @@ ControllerState* init_controllers()
 
     // We always want at least one empty controller slot
     // @todo Change so that we store the actual number of devices
-    ControllerState *controllers = (ControllerState *) calloc((c + 1), sizeof(ControllerState));
+    ControllerInput *controllers = (ControllerInput *) calloc((c + 1), sizeof(ControllerInput));
 
     if (c == 0) {
         return controllers;
@@ -87,7 +87,7 @@ ControllerState* init_controllers()
     return controllers;
 }
 
-void handle_controller_input(ControllerState* states)
+void handle_controller_input(ControllerInput* states)
 {
     uint32 controller_index = 0;
     while(states[controller_index].is_connected) {

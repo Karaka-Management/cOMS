@@ -46,8 +46,10 @@ void update_timing_stat(TimingStat *stat)
 // In such cases use the following macro.
 #if DEBUG
     #define UPDATE_TIMING_STAT(stat) update_timing_stat(stat)
+    #define DEBUG_OUTPUT(str) OutputDebugStringA(str)
 #else
     #define UPDATE_TIMING_STAT(stat) ((void)0)
+    #define DEBUG_OUTPUT(str) ((void)0)
 #endif
 
 void profile_function(const char* func_name, void (*func)(void*), void* data, int iterations)

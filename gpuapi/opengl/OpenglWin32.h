@@ -1184,8 +1184,10 @@ typedef HGLRC WINAPI wgl_create_context_attribs_arb(HDC hDC, HGLRC hShareContext
 typedef BOOL WINAPI wgl_get_pixel_format_attrib_iv_arb(HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, int *piValues);
 typedef BOOL WINAPI wgl_get_pixel_format_attrib_fv_arb(HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, FLOAT *pfValues);
 typedef BOOL WINAPI wgl_choose_pixel_format_arb(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
+typedef BOOL WINAPI wgl_swap_interval_ext(int interval);
 typedef const char * WINAPI wgl_get_extensions_string_ext(void);
 
+// @question consider to make all these functions global
 struct OpenGL {
     type_glTexImage2DMultisample* glTexImage2DMultisample;
     type_glBindFramebuffer* glBindFramebuffer;
@@ -1249,8 +1251,11 @@ struct OpenGL {
 
     wgl_choose_pixel_format_arb* wglChoosePixelFormatARB;
     wgl_create_context_attribs_arb* wglCreateContextAttribsARB;
+    wgl_swap_interval_ext* wglSwapIntervalEXT;
     wgl_get_extensions_string_ext* wglGetExtensionsStringEXT;
 };
+
+static wgl_swap_interval_ext* wglSwapIntervalEXT;
 
 void set_pixel_format(HDC hdc, OpenGL* gl)
 {
@@ -1368,6 +1373,8 @@ void opengl_init(Window* window, OpenGL* gl)
 
     gl->wglChoosePixelFormatARB = (wgl_choose_pixel_format_arb *) wglGetProcAddress("wglChoosePixelFormatARB");
     gl->wglCreateContextAttribsARB = (wgl_create_context_attribs_arb *) wglGetProcAddress("wglCreateContextAttribsARB");
+    gl->wglSwapIntervalEXT = (wgl_swap_interval_ext *) wglGetProcAddress("wglSwapIntervalEXT");
+    wglSwapIntervalEXT = gl->wglSwapIntervalEXT;
     gl->wglGetExtensionsStringEXT = (wgl_get_extensions_string_ext *) wglGetProcAddress("wglGetExtensionsStringEXT");
 
     set_pixel_format(window->hdc, gl);
@@ -1444,6 +1451,10 @@ void opengl_init(Window* window, OpenGL* gl)
     gl->glGetShaderiv = (type_glGetShaderiv *) wglGetProcAddress("glGetShaderiv");
     gl->glDrawArraysInstanced = (type_glDrawArraysInstanced *) wglGetProcAddress("glDrawArraysInstanced");
     gl->glDrawElementsInstanced = (type_glDrawElementsInstanced *) wglGetProcAddress("glDrawElementsInstanced");
+
+    if (gl->wglSwapIntervalEXT) {
+        gl->wglSwapIntervalEXT(0);
+    }
 
     // @todo now do: OpenGLInit
 }

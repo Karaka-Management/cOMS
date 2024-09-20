@@ -19,11 +19,17 @@
 #include "../../../memory/BufferMemory.h"
 #include <winDNS.h>
 
+#define INPUT_MOUSE_BUTTON_1 1
+#define INPUT_MOUSE_BUTTON_2 2
+#define INPUT_MOUSE_BUTTON_3 4
+#define INPUT_MOUSE_BUTTON_4 8
+#define INPUT_MOUSE_BUTTON_5 16
+
 // IMPORTANT:
 // Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions requried
 // aligned memory. So far we only figured out that 4 bytes works, maybe this needs to be 8 in the future?!
 
-int input_init(HWND hwnd, InputState* states, RingMemory* ring, BufferMemory* buf)
+int input_init(HWND hwnd, Input* __restrict states, RingMemory* ring)
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
@@ -111,7 +117,16 @@ int input_init(HWND hwnd, InputState* states, RingMemory* ring, BufferMemory* bu
     return i;
 }
 
-void input_raw_handle(RAWINPUT* raw, InputState* states, int state_count)
+void input_mouse_position(HWND hwnd, v2_int32* pos)
+{
+    POINT p;
+    if (GetCursorPos(&p) && ScreenToClient(hwnd, &p)) {
+        pos->x = p.x;
+        pos->y = p.y;
+    }
+}
+
+void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, uint64 time)
 {
     uint32 i = 0;
     if (raw->header.dwType == RIM_TYPEMOUSE) {
@@ -126,40 +141,93 @@ void input_raw_handle(RAWINPUT* raw, InputState* states, int state_count)
             return;
         }
 
-        InputState* input_state = states + i;
-
-        if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) {
-            RECT rect;
-
-            // @todo move out, this is slow and should be stored in Window
-            // @performance this is slow and should be handled in the WindowProc !!!
-            if (raw->data.mouse.usFlags & MOUSE_VIRTUAL_DESKTOP) {
-                rect.left = GetSystemMetrics(SM_XVIRTUALSCREEN);
-                rect.top = GetSystemMetrics(SM_YVIRTUALSCREEN);
-                rect.right = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-                rect.bottom = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-            } else {
-                rect.left = 0;
-                rect.top = 0;
-                rect.right = GetSystemMetrics(SM_CXSCREEN);
-                rect.bottom = GetSystemMetrics(SM_CYSCREEN);
+        if (raw->data.mouse.usButtonFlags) {
+            // @question should all of these be else ifs?
+            if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) {
+                states[i].state.mouse_down |= INPUT_MOUSE_BUTTON_1;
+                states[i].state.keys_down_time[0] = time;
+            } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) {
+                states[i].state.mouse_down &= ~INPUT_MOUSE_BUTTON_1;
             }
 
-            input_state->x_last = input_state->x;
-            input_state->y_last = input_state->y;
+            if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) {
+                states[i].state.mouse_down |= INPUT_MOUSE_BUTTON_2;
+                states[i].state.keys_down_time[1] = time;
+            } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) {
+                states[i].state.mouse_down &= ~INPUT_MOUSE_BUTTON_2;
+            }
 
-            input_state->x = MulDiv(raw->data.mouse.lLastX, rect.right, 65535) + rect.left;
-            input_state->y = MulDiv(raw->data.mouse.lLastY, rect.bottom, 65535) + rect.top;
+            if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) {
+                states[i].state.mouse_down |= INPUT_MOUSE_BUTTON_3;
+                states[i].state.keys_down_time[2] = time;
+            } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) {
+                states[i].state.mouse_down &= ~INPUT_MOUSE_BUTTON_3;
+            }
 
-            input_state->state_change_mouse = true;
-        } else if (raw->data.mouse.lLastX != 0 || raw->data.mouse.lLastY != 0) {
-            input_state->x_last = input_state->x;
-            input_state->y_last = input_state->y;
+            if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN) {
+                states[i].state.mouse_down |= INPUT_MOUSE_BUTTON_4;
+                states[i].state.keys_down_time[3] = time;
+            } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP) {
+                states[i].state.mouse_down &= ~INPUT_MOUSE_BUTTON_4;
+            }
 
-            input_state->x = input_state->x + raw->data.mouse.lLastX;
-            input_state->y = input_state->y + raw->data.mouse.lLastY;
+            if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN) {
+                states[i].state.mouse_down |= INPUT_MOUSE_BUTTON_5;
+                states[i].state.keys_down_time[4] = time;
+            } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP) {
+                states[i].state.mouse_down &= ~INPUT_MOUSE_BUTTON_5;
+            }
 
-            input_state->state_change_mouse = true;
+            if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) {
+                states[i].state.wheel_delta += raw->data.mouse.usButtonData;
+            }
+
+            if (raw->data.mouse.usButtonFlags & RI_MOUSE_HWHEEL) {
+                states[i].state.hwheel_delta += raw->data.mouse.usButtonData;
+            }
+
+            states[i].state_change_mouse = true;
+            states[i].state_change_mouse_button = true;
+
+            // @question is mouse wheel really considered a button change?
+            states[i].state_change_button = true;
+        }
+
+        if (states[i].mouse_movement) {
+            // do we want to handle mouse movement for every individual movement, or do we want to pull it
+            if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) {
+                RECT rect;
+
+                // @todo move out, this is slow and should be stored in Window
+                // @performance this is slow and should be handled in the WindowProc !!!
+                if (raw->data.mouse.usFlags & MOUSE_VIRTUAL_DESKTOP) {
+                    rect.left = GetSystemMetrics(SM_XVIRTUALSCREEN);
+                    rect.top = GetSystemMetrics(SM_YVIRTUALSCREEN);
+                    rect.right = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+                    rect.bottom = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+                } else {
+                    rect.left = 0;
+                    rect.top = 0;
+                    rect.right = GetSystemMetrics(SM_CXSCREEN);
+                    rect.bottom = GetSystemMetrics(SM_CYSCREEN);
+                }
+
+                states[i].state.dx += raw->data.mouse.lLastX;
+                states[i].state.dy += raw->data.mouse.lLastY;
+
+                states[i].state.x = MulDiv(raw->data.mouse.lLastX, rect.right, 65535) + rect.left;
+                states[i].state.y = MulDiv(raw->data.mouse.lLastY, rect.bottom, 65535) + rect.top;
+
+                states[i].state_change_mouse = true;
+            } else if (raw->data.mouse.lLastX != 0 || raw->data.mouse.lLastY != 0) {
+                states[i].state.dx += raw->data.mouse.lLastX;
+                states[i].state.dy += raw->data.mouse.lLastY;
+
+                states[i].state.x = states[i].state.x + raw->data.mouse.lLastX;
+                states[i].state.y = states[i].state.y + raw->data.mouse.lLastY;
+
+                states[i].state_change_mouse = true;
+            }
         }
     } else if (raw->header.dwType == RIM_TYPEKEYBOARD) {
         // @todo Change so we can directly access the correct state (maybe map handle address to index?)
@@ -173,23 +241,69 @@ void input_raw_handle(RAWINPUT* raw, InputState* states, int state_count)
             return;
         }
 
-        InputState* input_state = states + i;
+        // @todo change to MakeCode instead of VKey
+        // @performance Some of the things down here seem unneccessary. We shouldn't have to loop all elements!
+        if (raw->data.keyboard.Flags == RI_KEY_BREAK) {
+            // Key is already released
+            if (keyboard_is_released(&states[i].state, (uint8) raw->data.keyboard.VKey)) {
+                for (int j = 0; j < MAX_KEY_PRESSES; ++j) {
+                    if (states[i].state.keys_down[j] == (uint8) raw->data.keyboard.VKey) {
+                        states[i].state.keys_down[j] = 0;
 
-        RAWKEYBOARD raw_kb =  raw->data.keyboard;
+                        break;
+                    }
+                }
 
-        if (raw_kb.Flags & RI_KEY_BREAK) {
-            input_state->keys_down_old[input_state->up_index++] = (uint8) raw_kb.VKey;
+                return;
+            }
+
+            bool empty = true;
+            for (int j = 0; j < MAX_KEY_PRESSES; ++j) {
+                if (empty && states[i].state.keys_up[j] == 0) {
+                    states[i].state.keys_up[j] = (uint8) raw->data.keyboard.VKey;
+
+                    empty = false;
+                }
+
+                // remove pressed key
+                if (states[i].state.keys_down[j] == (uint8) raw->data.keyboard.VKey) {
+                    states[i].state.keys_down[j] = 0;
+                }
+            }
+        } else if (raw->data.keyboard.Flags == RI_KEY_MAKE) {
+            // Key is already released
+            if (keyboard_is_pressed(&states[i].state, (uint8) raw->data.keyboard.VKey)) {
+                for (int j = 0; j < MAX_KEY_PRESSES; ++j) {
+                    if (states[i].state.keys_up[j] == (uint8) raw->data.keyboard.VKey) {
+                        states[i].state.keys_up[j] = 0;
+
+                        break;
+                    }
+                }
+
+                return;
+            }
+
+            bool empty = true;
+            for (int j = 0; j < MAX_KEY_PRESSES; ++j) {
+                if (empty && states[i].state.keys_down[j] == 0) {
+                    states[i].state.keys_down[j] = (uint8) raw->data.keyboard.VKey;
+                    states[i].state.keys_down_time[MAX_MOUSE_PRESSES + j] = time;
+                    empty = false;
+                }
+
+                // remove released key
+                if (states[i].state.keys_up[j] == (uint8) raw->data.keyboard.VKey) {
+                    states[i].state.keys_up[j] = 0;
+                }
+            }
         }
 
-        if (raw_kb.Flags & RI_KEY_MAKE) {
-            input_state->keys_down[input_state->down_index++] = (uint8) raw_kb.VKey;
-        }
-
-        input_state->state_change_keyboard = true;
+        states[i].state_change_button = true;
     }
 }
 
-void input_handle(LPARAM lParam, InputState* states, int state_count, RingMemory* ring)
+void input_handle(LPARAM lParam, Input* __restrict states, int state_count, RingMemory* ring, uint64 time)
 {
     uint32 db_size;
     GetRawInputData((HRAWINPUT) lParam, RID_INPUT, NULL, &db_size, sizeof(RAWINPUTHEADER));
@@ -203,13 +317,18 @@ void input_handle(LPARAM lParam, InputState* states, int state_count, RingMemory
         return;
     }
 
-    input_raw_handle((RAWINPUT *) lpb, states, state_count);
+    input_raw_handle((RAWINPUT *) lpb, states, state_count, time);
 }
 
-void input_handle_buffered(LPARAM lParam, int buffer_size, InputState* states, int state_count, RingMemory* ring)
+// @bug Somehow this function skips some inputs (input_handle works)!!!!!
+void input_handle_buffered(int buffer_size, Input* __restrict states, int state_count, RingMemory* ring, uint64 time)
 {
     uint32 cb_size;
+
     GetRawInputBuffer(NULL, &cb_size, sizeof(RAWINPUTHEADER));
+    if (!cb_size) {
+        return;
+    }
 
     // Max input messages (e.g. 16)
     cb_size *= buffer_size;
@@ -217,19 +336,28 @@ void input_handle_buffered(LPARAM lParam, int buffer_size, InputState* states, i
     PRAWINPUT raw_input = (PRAWINPUT) ring_get_memory(ring, cb_size, 4);
 
     uint32 input;
-    uint32 cb_size_t = cb_size;
 
-    while ((input = GetRawInputBuffer(raw_input, &cb_size_t, sizeof(RAWINPUTHEADER))) > 0) {
+    while (true) {
+        uint32 cb_size_t = cb_size;
+        input = GetRawInputBuffer(raw_input, &cb_size_t, sizeof(RAWINPUTHEADER));
+
+        if (input == 0 || input == (uint32) -1) {
+            break;
+        }
+
         PRAWINPUT pri = raw_input;
         for (uint32 i = 0; i < input; ++i) {
-            input_raw_handle(pri, states, state_count);
+            if (!pri->header.hDevice) {
+                break;
+            }
+
+            input_raw_handle(pri, states, state_count, time);
 
             pri = NEXTRAWINPUTBLOCK(pri);
         }
-
-        // @question is this asign necessary?
-        cb_size_t = cb_size;
     }
+
+    ASSERT_SIMPLE(input != (uint32) -1)
 }
 
 #endif
