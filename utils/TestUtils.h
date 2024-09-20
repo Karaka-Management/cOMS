@@ -10,6 +10,7 @@
 #define TOS_UTILS_TEST_UTILS_H
 
 #include <time.h>
+#include <stdio.h>
 #include "../stdlib/Types.h"
 
 #if _WIN32

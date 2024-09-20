@@ -13,10 +13,12 @@
 #include "../stdlib/Types.h"
 #include "../utils/MathUtils.h"
 #include "Allocation.h"
+#include "DebugMemory.h"
 
 struct ChunkMemory {
     byte* memory;
 
+    uint32 id;
     uint64 count;
     uint64 chunk_size;
     int64 last_pos;
@@ -26,6 +28,8 @@ struct ChunkMemory {
     // free describes which locations are used and which are free
     uint64* free;
 };
+
+// @todo implement memory usage visualization
 
 inline
 void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int alignment = 1)
@@ -81,6 +85,8 @@ void chunk_reserve_index(ChunkMemory* buf, int64 index, int64 elements = 1, bool
     if (zeroed) {
         memset(buf->memory + index * buf->chunk_size, 0, elements * buf->chunk_size);
     }
+
+    DEBUG_MEMORY(&debug_memory[buf->id], index * buf->chunk_size, elements * buf->chunk_size);
 
     buf->last_pos = index;
 }
@@ -155,6 +161,8 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
     if (zeroed) {
         memset(buf->memory + free_element * buf->chunk_size, 0, elements * buf->chunk_size);
     }
+
+    DEBUG_MEMORY(&debug_memory[buf->id], free_element * buf->chunk_size, elements * buf->chunk_size);
 
     buf->last_pos = free_element;
 

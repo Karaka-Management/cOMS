@@ -1,7 +1,7 @@
 #ifndef TOS_UI_LAYOUT_H
 #define TOS_UI_LAYOUT_H
 
-#include "../stdlib/Mathtypes.h"
+#include "../stdlib/Types.h"
 
 #include "UIPosition.h"
 #include "UILocation.h"

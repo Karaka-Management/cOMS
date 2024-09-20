@@ -15,10 +15,12 @@
 #include "../utils/TestUtils.h"
 #include "Allocation.h"
 #include "BufferMemory.h"
+#include "DebugMemory.h"
 
 struct RingMemory {
     byte* memory;
 
+    uint32 id;
     uint64 size;
     uint64 pos;
     int alignment;
@@ -34,6 +36,8 @@ struct RingMemory {
     uint64 start;
     uint64 end;
 };
+
+// @todo implement memory usage visualization
 
 inline
 void ring_alloc(RingMemory* ring, uint64 size, int alignment = 1)
@@ -124,6 +128,8 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 1, bool zero
         memset((void *) offset, 0, size);
     }
 
+    DEBUG_MEMORY(&debug_memory[ring->id], ring->pos, size);
+
     ring->pos += size;
 
     return offset;
@@ -142,6 +148,7 @@ inline
 void ring_reset(RingMemory* ring)
 {
     ring->pos = 0;
+    DEBUG_MEMORY_RESET(&debug_memory[ring->id]);
 }
 
 /**

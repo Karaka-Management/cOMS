@@ -10,7 +10,7 @@
 #ifndef TOS_PARTICLE_H
 #define TOS_PARTICLE_H
 
-#include "../stdlib/Mathtypes.h"
+#include "../stdlib/Types.h"
 
 struct Particle {
     v3_f32 position;

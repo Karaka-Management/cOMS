@@ -10,7 +10,6 @@
 #define TOS_MATH_MATRIX_FLOAT32_H
 
 #include "../../stdlib/Intrinsics.h"
-#include "../../stdlib/Mathtypes.h"
 #include "../../utils/MathUtils.h"
 #include "../../utils/TestUtils.h"
 #include <math.h>

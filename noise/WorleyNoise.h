@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../stdlib/Mathtypes.h"
+#include "../stdlib/Types.h"
 
 #define WORLEY_FEATURE_POINTS 4
 

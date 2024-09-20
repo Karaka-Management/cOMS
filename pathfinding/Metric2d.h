@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../stdlib/Mathtypes.h"
+#include "../stdlib/Types.h"
 #include "../utils/MathUtils.h"
 #include "../memory/RingMemory.h"
 

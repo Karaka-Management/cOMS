@@ -9,7 +9,7 @@
 #ifndef TOS_MODELS_LOCATION_H
 #define TOS_MODELS_LOCATION_H
 
-#include "../stdlib/Mathtypes.h"
+#include "../stdlib/Types.h"
 
 struct Location {
     v3_f32 position;

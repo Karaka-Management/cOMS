@@ -13,7 +13,9 @@
 #include "../chat/ChatStatus.h"
 #include "setting_types.h"
 
-#if __linux__
+#if _WIN32
+    #include <windows.h>
+#else __linux__
     #include <linux/limits.h>
     #define MAX_PATH PATH_MAX
 #endif

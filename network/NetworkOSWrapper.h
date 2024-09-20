@@ -12,8 +12,16 @@
 #if _WIN32
     #include <winsock2.h>
     #include <windows.h>
-    #define close closesocket
-    #define sleep Sleep
+
+    inline
+    int close(SOCKET sock) {
+        return closesocket(sock);
+    }
+
+    inline
+    void sleep(unsigned long time) {
+        Sleep(time);
+    }
 #endif
 
 #endif

@@ -14,14 +14,18 @@
 #include "../utils/MathUtils.h"
 #include "../utils/TestUtils.h"
 #include "Allocation.h"
+#include "DebugMemory.h"
 
 struct BufferMemory {
     byte* memory;
 
+    uint32 id;
     uint64 size;
     uint64 pos;
     int alignment;
 };
+
+// @todo implement memory usage visualization
 
 inline
 void buffer_alloc(BufferMemory* buf, uint64 size, int alignment = 1)
@@ -49,6 +53,7 @@ void buffer_reset(BufferMemory* buf)
 {
     // @bug arent we wasting element 0 (see get_memory, we are not using 0 only next element)
     buf->pos = 0;
+    DEBUG_MEMORY_RESET(&debug_memory[buf->id]);
 }
 
 inline
@@ -68,6 +73,8 @@ byte* buffer_get_memory(BufferMemory* buf, uint64 size, int aligned = 1, bool ze
     if (zeroed) {
         memset((void *) offset, 0, size);
     }
+
+    DEBUG_MEMORY(&debug_memory[buf->id], buf->pos, size);
 
     buf->pos += size;
 

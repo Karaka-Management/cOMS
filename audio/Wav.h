@@ -132,7 +132,7 @@ void generate_default_wav_references(const FileBody* file, Wav* wav)
      wav->sample_data = wav->data + WAV_HEADER_SIZE;
 }
 
-void generate_wav_image(const FileBody* src_data, Audio* audio)
+void generate_wav_audio(const FileBody* src_data, Audio* audio)
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some asignment/copy overhead

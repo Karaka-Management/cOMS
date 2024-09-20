@@ -10,7 +10,6 @@
 #define TOS_CAMERA_H
 
 #include "../stdlib/Types.h"
-#include "../stdlib/Mathtypes.h"
 
 #include "../math/matrix/MatrixFloat32.h"
 

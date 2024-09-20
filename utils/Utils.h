@@ -9,6 +9,8 @@
 #ifndef TOS_UTILS_H
 #define TOS_UTILS_H
 
+#include <stdlib.h>
+
 #include "../stdlib/Types.h"
 
 #define ARRAY_COUNT(a) (sizeof(a) / sizeof((a)[0]))

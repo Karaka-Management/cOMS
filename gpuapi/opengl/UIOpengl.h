@@ -10,7 +10,6 @@
 #define TOS_GPUAPI_OPENGL_UI_H
 
 #include "../../stdlib/Types.h"
-#include "../../stdlib/Mathtypes.h"
 
 #include "../../ui/UIButton.h"
 #include "../../ui/UIWindow.h"

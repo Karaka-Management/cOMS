@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "../stdlib/Mathtypes.h"
 #include "../math/matrix/MatrixFloat32.h"
 
 void make_character(
