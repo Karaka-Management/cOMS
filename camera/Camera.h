@@ -48,7 +48,7 @@ camera_update_vectors2(Camera* camera)
     camera->front.z = cosf(OMS_DEG2RAD(camera->orientation.x)) * sinf(OMS_DEG2RAD(camera->orientation.y));
     vec3_normalize_f32(&camera->front);
 
-    vec3_cross(&camera->right, &camera->front, &camera->world_up); // @bug
+    vec3_cross(&camera->right, &camera->front, &camera->world_up);
     vec3_normalize_f32(&camera->right);
 
     vec3_cross(&camera->up, &camera->right, &camera->front);
@@ -69,15 +69,13 @@ camera_update_vectors(Camera* camera)
     vec3_normalize_f32(&camera->up);
 }
 
+// @bug up and down rotation is OK but left/right rotation is not what I would expect
 void camera_rotate2(Camera* camera, float dx, float dy, float dt)
 {
-    f32 velocity = camera->sensitivity; // @todo do we need dt?
+    f32 velocity = camera->sensitivity;
 
-    dx *= velocity;
-    dy *= velocity;
-
-    camera->orientation.x += dy;
-    camera->orientation.y += dx;
+    camera->orientation.x += dy * camera->sensitivity;
+    camera->orientation.y -= dx * camera->sensitivity;
 
     if (true) {
         if (camera->orientation.x > 89.0f) {
@@ -86,8 +84,10 @@ void camera_rotate2(Camera* camera, float dx, float dy, float dt)
             camera->orientation.x = -89.0f;
         }
 
-        if (camera->orientation.y > 360.0f || camera->orientation.y < -360.0f) {
+        if (camera->orientation.y > 360.0f) {
             camera->orientation.y -= 360.0f;
+        } else if (camera->orientation.y < -360.0f) {
+            camera->orientation.y += 360.0f;
         }
     }
 
@@ -196,7 +196,7 @@ void camera_movement(Camera* camera, CameraMovement* movement, float dt, bool re
         v3_f32 forward = camera->front;
 
         v3_f32 right;
-        vec3_cross(&right, &forward, &camera->world_up);
+        vec3_cross(&right, &camera->world_up, &forward);
         vec3_normalize_f32(&right);
 
         v3_f32 up;
@@ -384,60 +384,31 @@ camera_view_matrix_sparse_rh(const Camera* __restrict camera, float* __restrict 
 {
     // We are skipping some things because some things either get neutralized
     //  (e.g. position - (position + front), other values are already normalized (e.g. front)
-    v3_f32 f = { -camera->front.x, -camera->front.y, -camera->front.z };
+    v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
-    v3_f32 s;
-    vec3_cross(&s, &f, &camera->up);
-    vec3_normalize_f32(&s);
+    v3_f32 xaxis;
+    vec3_cross(&xaxis, &zaxis, &camera->world_up);
+    vec3_normalize_f32(&xaxis);
 
-    v3_f32 u;
-    vec3_cross(&u, &s, &f);
+    v3_f32 yaxis;
+    vec3_cross(&yaxis, &zaxis, &xaxis);
 
-    view[0] = s.x;
-    view[1] = s.y;
-    view[2] = s.z;
+    view[0] = xaxis.x;
+    view[1] = yaxis.x;
+    view[2] = zaxis.x;
     view[3] = 0.0f;
-    view[4] = u.x;
-    view[5] = u.y;
-    view[6] = u.z;
+    view[4] = xaxis.y;
+    view[5] = yaxis.y;
+    view[6] = zaxis.y;
     view[7] = 0.0f;
-    view[8] = f.x;
-    view[9] = f.y;
-    view[10] = f.z;
+    view[8] = xaxis.z;
+    view[9] = yaxis.z;
+    view[10] = zaxis.z;
     view[11] = 0;
-    view[12] = -vec3_dot(&s, &camera->location);
-    view[13] = -vec3_dot(&u, &camera->location);
-    view[14] = vec3_dot(&f, &camera->location);
+    view[12] = -vec3_dot(&xaxis, &camera->location);
+    view[13] = -vec3_dot(&yaxis, &camera->location);
+    view[14] = -vec3_dot(&zaxis, &camera->location);
     view[15] = 1.0f;
-}
-
-void
-camera_view_right_handed2(float* view)
-{
-    // Translation part
-    view[12] = view[3];
-    view[13] = view[7];
-    view[14] = view[11];
-    view[15] = 1.0f; // @todo could be removed
-
-    float temp;
-    temp = view[1];
-    view[1] = view[4];
-    view[4] = temp;
-
-    temp = view[2];
-    view[2] = view[8];
-    view[8] = -temp;
-
-    view[3] = 0.0f; // @todo could be removed
-
-    temp = view[6];
-    view[6] = view[9];
-    view[9] = -temp;
-
-    view[7] = 0.0f; // @todo could be removed
-    view[10] = -view[10];
-    view[11] = 0.0f; // @todo could be removed
 }
 
 #endif
