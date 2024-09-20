@@ -12,7 +12,7 @@
 #include "../stdlib/Types.h"
 #include "../stdlib/Mathtypes.h"
 
-#include "../math/matrix/QuaternionFloat32.h"
+#include "../math/matrix/MatrixFloat32.h"
 
 #include "CameraMovement.h"
 
@@ -41,7 +41,7 @@ struct Camera {
 };
 
 void
-camera_update_vectors2(Camera* camera)
+camera_update_vectors(Camera* camera)
 {
     camera->front.x = cosf(OMS_DEG2RAD(camera->orientation.x)) * cosf(OMS_DEG2RAD(camera->orientation.y));
     camera->front.y = sinf(OMS_DEG2RAD(camera->orientation.x));
@@ -55,25 +55,8 @@ camera_update_vectors2(Camera* camera)
     vec3_normalize_f32(&camera->up);
 }
 
-void
-camera_update_vectors(Camera* camera)
+void camera_rotate(Camera* camera, float dx, float dy, float dt)
 {
-    v3_f32 z = {0.0f, 0.0f, -1.0f};
-    quaternion_rotate_vector(&camera->front, &camera->orientation, &z);
-    vec3_normalize_f32(&camera->front);
-
-    vec3_cross(&camera->right, &camera->front, &camera->world_up);
-    vec3_normalize_f32(&camera->right);
-
-    vec3_cross(&camera->up, &camera->right, &camera->front);
-    vec3_normalize_f32(&camera->up);
-}
-
-// @bug up and down rotation is OK but left/right rotation is not what I would expect
-void camera_rotate2(Camera* camera, float dx, float dy, float dt)
-{
-    f32 velocity = camera->sensitivity;
-
     camera->orientation.x += dy * camera->sensitivity;
     camera->orientation.y -= dx * camera->sensitivity;
 
@@ -88,51 +71,6 @@ void camera_rotate2(Camera* camera, float dx, float dy, float dt)
             camera->orientation.y -= 360.0f;
         } else if (camera->orientation.y < -360.0f) {
             camera->orientation.y += 360.0f;
-        }
-    }
-
-    camera_update_vectors2(camera);
-}
-
-void camera_rotate(Camera* camera, float dx, float dy, float dt)
-{
-    f32 velocity = camera->sensitivity; // @todo do we need dt?
-
-    dx *= velocity;
-    dy *= velocity;
-
-    v4_f32 yaw_quat;
-    quaternion_from_axis_angle(&yaw_quat, &camera->world_up, dx);
-
-    v4_f32 pitch_quat;
-    quaternion_from_axis_angle(&pitch_quat, &camera->right, dy);
-
-    v4_f32 result;
-    quaternion_multiply(&result, &camera->orientation, &pitch_quat);
-    quaternion_multiply(&camera->orientation, &yaw_quat, &result);
-    quaternion_unit(&camera->orientation);
-
-    // constrain pitch
-    if (true) {
-        v3_f32 euler;
-        quaternion_to_euler(&camera->orientation, &euler);
-
-        bool found_constrain = false;
-
-        float pitch = euler.x;
-        if (pitch > 89.0f) {
-            pitch = 89.0f;
-            found_constrain = true;
-        } else if (pitch < -89.0f) {
-            pitch = -89.0f;
-            found_constrain = true;
-        }
-
-        if (found_constrain) {
-            v4_f32 constrained;
-            quaternion_from_axis_angle(&constrained, &camera->right, pitch);
-            quaternion_multiply(&camera->orientation, &yaw_quat, &constrained);
-            quaternion_unit(&camera->orientation);
         }
     }
 
@@ -294,96 +232,54 @@ void camera_projection_matrix_rh(const Camera* __restrict camera, float* __restr
 // This is usually not used, since it is included in the view matrix
 // expects the identity matrix
 inline
-void camera_translation_matrix_sparse(const Camera* __restrict camera, float* translation)
+void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, float* translation)
+{
+    translation[12] = camera->location.x;
+    translation[13] = camera->location.y;
+    translation[14] = camera->location.z;
+}
+
+inline
+void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, float* translation)
 {
     translation[3] = camera->location.x;
     translation[7] = camera->location.y;
     translation[11] = camera->location.z;
 }
 
-// @performance this function seems worth while to fully convert to simd
-//  even if we are not really looping anything we do have some repetetive operations (rotate, dot)
-/*
 void
-camera_view_matrix_sparse(const Camera* __restrict camera, float* __restrict view)
+camera_view_matrix_lh(const Camera* __restrict camera, float* __restrict view)
 {
-    // @performance orientation gets converted to a quat every time, pull this out
+    v3_f32 zaxis = { camera->front.x, camera->front.y, camera->front.z };
 
-    v3_f32 up = {0.0f, 1.0f, 0.0f};
-    quaternion_rotate_active(&up, camera->orientation.pitch, camera->orientation.yaw, camera->orientation.roll);
+    v3_f32 xaxis;
+    vec3_cross(&xaxis, &camera->world_up, &zaxis);
+    vec3_normalize_f32(&xaxis);
 
-    v3_f32 right = {1.0f, 0.0f, 0.0f};
-    quaternion_rotate_active(&up, camera->orientation.pitch, camera->orientation.yaw, camera->orientation.roll);
+    v3_f32 yaxis;
+    vec3_cross(&yaxis, &zaxis, &xaxis);
 
-    v3_f32 forward = {0.0f, 0.0f, 1.0f};
-    quaternion_rotate_active(&forward, camera->orientation.pitch, camera->orientation.yaw, camera->orientation.roll);
-
-    view[0] = right.x;
-    view[1] = right.y;
-    view[2] = right.z;
-
-    view[4] = up.x;
-    view[5] = up.y;
-    view[6] = up.z;
-
-    view[8] = -forward.x;
-    view[9] = -forward.y;
-    view[10] = -forward.z;
-
-    // Set the translation part
-    v3_f32 right_v3 = {right.x, right.y, right.z};
-    view[3] = -v3_dot(&right_v3, &camera->location);
-
-    v3_f32 up_v3 = {up.x, up.y, up.z};
-    view[7] = -v3_dot(&up_v3, &camera->location);
-
-    v3_f32 forward_v3 = {forward.x, forward.y, forward.z};
-    view[11] = v3_dot(&forward_v3, &camera->location);
-
-    // Last element of matrix (homogeneous coordinate)
-    view[15] = 1.0f;
-}
-*/
-
-// https://github.com/g-truc/glm/blob/33b4a621a697a305bc3a7610d290677b96beb181/glm/ext/matrix_transform.inl
-// https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/camera.h
-void
-camera_view_matrix_sparse_lh(const Camera* __restrict camera, float* __restrict view)
-{
-    // We are skipping some things because some things either get neutralized
-    //  (e.g. position - (position + front), other values are already normalized (e.g. front)
-    v3_f32 f = { camera->front.x, camera->front.y, camera->front.z };
-
-    v3_f32 s;
-    vec3_cross(&s, &camera->up, &f);
-    vec3_normalize_f32(&s);
-
-    v3_f32 u;
-    vec3_cross(&u, &f, &s);
-
-    view[0] = s.x;
-    view[1] = s.y;
-    view[2] = s.z;
+    view[0] = xaxis.x;
+    view[1] = yaxis.x;
+    view[2] = zaxis.x;
     view[3] = 0.0f;
-    view[4] = u.x;
-    view[5] = u.y;
-    view[6] = u.z;
+    view[4] = xaxis.y;
+    view[5] = yaxis.y;
+    view[6] = zaxis.y;
     view[7] = 0.0f;
-    view[8] = f.x;
-    view[9] = f.y;
-    view[10] = f.z;
+    view[8] = xaxis.z;
+    view[9] = yaxis.z;
+    view[10] = zaxis.z;
     view[11] = 0;
-    view[12] = -vec3_dot(&s, &camera->location);
-    view[13] = -vec3_dot(&u, &camera->location);
-    view[14] = -vec3_dot(&f, &camera->location);
+    view[12] = -vec3_dot(&xaxis, &camera->location);
+    view[13] = -vec3_dot(&yaxis, &camera->location);
+    view[14] = -vec3_dot(&zaxis, &camera->location);
     view[15] = 1.0f;
 }
 
 void
-camera_view_matrix_sparse_rh(const Camera* __restrict camera, float* __restrict view)
+camera_view_matrix_rh(const Camera* __restrict camera, float* __restrict view)
 {
-    // We are skipping some things because some things either get neutralized
-    //  (e.g. position - (position + front), other values are already normalized (e.g. front)
     v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
     v3_f32 xaxis;

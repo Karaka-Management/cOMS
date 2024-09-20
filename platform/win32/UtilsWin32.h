@@ -6,13 +6,12 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_WIN32_H
-#define TOS_UTILS_WIN32_H
+#ifndef TOS_PLATFORM_WIN32_UTILS_H
+#define TOS_PLATFORM_WIN32_UTILS_H
 
 #include <stdio.h>
 #include <windows.h>
 #include <string.h>
-#include <malloc.h>
 
 #ifdef _MSC_VER
     #include  <io.h>
