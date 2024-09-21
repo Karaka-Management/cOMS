@@ -55,7 +55,7 @@ void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int chunk_size, i
     ams->asset_data_memory.chunk_size = chunk_size;
     ams->asset_data_memory.last_pos = -1;
     ams->asset_data_memory.alignment = 1;
-    ams->asset_data_memory.memory = buffer_get_memory(buf, chunk_size * count);
+    ams->asset_data_memory.memory = buffer_get_memory(buf, chunk_size * count, 64);
     ams->asset_data_memory.free = (uint64 *) buffer_get_memory(buf, CEIL_DIV(count, 64) * sizeof(uint64));
 
     ams->first = NULL;

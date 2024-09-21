@@ -15,9 +15,10 @@
 #include "../../../stdlib/Types.h"
 #include "../../../audio/AudioSetting.h"
 #include "../../../utils/MathUtils.h"
+#include "../../../log/Log.h"
 
 struct DirectSoundSetting {
-    LPDIRECTSOUND8 direct_sound;
+    LPDIRECTSOUND8 audio_handle;
     LPDIRECTSOUNDBUFFER primary_buffer;
     LPDIRECTSOUNDBUFFER secondary_buffer;
 };
@@ -32,19 +33,21 @@ HRESULT WINAPI DirectSoundCreate8Stub(LPCGUID, LPDIRECTSOUND8*, LPUNKNOWN) {
 void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_setting) {
     HMODULE lib = LoadLibraryExA((LPCSTR) "dsound.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!lib) {
-        // @todo Log
+        LOG(log_memory, "DirectSound: Couldn't load dsound.dll\n", log_fp, true, true);
+
         return;
     }
 
     audio_create* DirectSoundCreate8 = (audio_create *) GetProcAddress(lib, "DirectSoundCreate8");
 
-    if (!DirectSoundCreate8 || !SUCCEEDED(DirectSoundCreate8(0, &api_setting->direct_sound, 0))) {
-        // @todo Log
+    if (!DirectSoundCreate8 || !SUCCEEDED(DirectSoundCreate8(0, &api_setting->audio_handle, 0))) {
+        LOG(log_memory, "DirectSound: DirectSoundCreate8 failed\n", log_fp, true, true);
+
         return;
     }
 
-    if(!SUCCEEDED(api_setting->direct_sound->SetCooperativeLevel(hwnd, DSSCL_PRIORITY))) {
-        // @todo Log
+    if(!SUCCEEDED(api_setting->audio_handle->SetCooperativeLevel(hwnd, DSSCL_PRIORITY))) {
+        LOG(log_memory, "DirectSound: SetCooperativeLevel failed.\n", log_fp, true, true);
 
         return;
     }
@@ -59,35 +62,36 @@ void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_settin
     wf.cbSize = 0;
 
     // Create primary buffer
-    DSBUFFERDESC bufferDesc;
-    ZeroMemory(&bufferDesc, sizeof(DSBUFFERDESC));
+    DSBUFFERDESC buffer_desc;
+    ZeroMemory(&buffer_desc, sizeof(DSBUFFERDESC));
 
-    bufferDesc.dwSize = sizeof(DSBUFFERDESC);
-    bufferDesc.dwFlags = DSBCAPS_PRIMARYBUFFER;
+    buffer_desc.dwSize = sizeof(DSBUFFERDESC);
+    buffer_desc.dwFlags = DSBCAPS_PRIMARYBUFFER;
 
-    if(!SUCCEEDED(api_setting->direct_sound->CreateSoundBuffer(&bufferDesc, &api_setting->primary_buffer, 0))) {
-        // @todo Log
+    if(!SUCCEEDED(api_setting->audio_handle->CreateSoundBuffer(&buffer_desc, &api_setting->primary_buffer, 0))) {
+        LOG(log_memory, "DirectSound: CreateSoundBuffer1 failed.\n", log_fp, true, true);
 
         return;
     }
 
     if (!SUCCEEDED(api_setting->primary_buffer->SetFormat(&wf))) {
-        // @todo Log
+        LOG(log_memory, "DirectSound: SetFormat failed.\n", log_fp, true, true);
 
         return;
     }
 
     // Create secondary buffer
-    DSBUFFERDESC bufferDesc2;
-    ZeroMemory(&bufferDesc2, sizeof(DSBUFFERDESC));
+    DSBUFFERDESC buffer_desc2;
+    ZeroMemory(&buffer_desc2, sizeof(DSBUFFERDESC));
 
-    bufferDesc2.dwSize = sizeof(DSBUFFERDESC);
-    bufferDesc2.dwFlags = 0;
-    bufferDesc2.dwBufferBytes = setting->buffer_size;
-    bufferDesc2.lpwfxFormat = &wf;
+    buffer_desc2.dwSize = sizeof(DSBUFFERDESC);
+    // @todo check alterntaive flags
+    buffer_desc2.dwFlags = DSBCAPS_CTRLFREQUENCY | DSBCAPS_CTRLFX | DSBCAPS_CTRLVOLUME | DSBCAPS_GETCURRENTPOSITION2;
+    buffer_desc2.dwBufferBytes = setting->buffer_size;
+    buffer_desc2.lpwfxFormat = &wf;
 
-    if(!SUCCEEDED(api_setting->direct_sound->CreateSoundBuffer(&bufferDesc2, &api_setting->secondary_buffer, 0))) {
-        // @todo Log
+    if(!SUCCEEDED(api_setting->audio_handle->CreateSoundBuffer(&buffer_desc2, &api_setting->secondary_buffer, 0))) {
+        LOG(log_memory, "DirectSound: CreateSoundBuffer2 failed.\n", log_fp, true, true);
 
         return;
     }
@@ -107,8 +111,8 @@ void audio_play(AudioSetting* setting, DirectSoundSetting* api_setting)
 inline
 void audio_free(AudioSetting*, DirectSoundSetting* api_setting)
 {
-    if (api_setting->direct_sound) {
-        api_setting->direct_sound->Release();
+    if (api_setting->audio_handle) {
+        api_setting->audio_handle->Release();
     }
 
     if (api_setting->primary_buffer) {
@@ -129,7 +133,8 @@ uint32 audio_buffer_fillable(const AudioSetting* setting, const DirectSoundSetti
     DWORD player_cursor;
     DWORD write_cursor;
     if (!SUCCEEDED(api_setting->secondary_buffer->GetCurrentPosition(&player_cursor, &write_cursor))) {
-        // @todo Log
+        LOG(log_memory, "DirectSound: GetCurrentPosition failed.\n", log_fp, true, true);
+
         return 0;
     }
 
@@ -151,10 +156,14 @@ uint32 audio_buffer_fillable(const AudioSetting* setting, const DirectSoundSetti
 }
 
 inline
-void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting, uint32 bytes_to_write)
+void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting)
 {
-    if (bytes_to_write == 0) {
+    if (setting->sample_buffer_size == 0) {
         return;
+    }
+
+    if (!setting->is_playing) {
+        audio_play(setting, api_setting);
     }
 
     void *region1;
@@ -166,16 +175,12 @@ void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting, u
     DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
 
     api_setting->secondary_buffer->Lock(
-        bytes_to_lock, bytes_to_write,
+        bytes_to_lock, setting->sample_buffer_size,
         &region1, &region1_size,
         &region2, &region2_size,
         0
     );
 
-    // @question Do we even need to use memcpy? Can't we use the buffer directly?
-    //      Probably depends on what lock actually does to region1/region2
-    //      Of course we would than need some mechanism to check when we can write into the buffer
-    //      See XAudio2 for this, we would probably need a second buffer as well
     memcpy(
         (void *) region1,
         (void *) setting->buffer,
@@ -192,7 +197,7 @@ void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting, u
 
     api_setting->secondary_buffer->Unlock(region1, region1_size, region2, region2_size);
 
-    setting->sample_index += bytes_to_write / setting->sample_size;
+    setting->sample_index += setting->sample_buffer_size / setting->sample_size;
     setting->sample_buffer_size = 0;
 }
 

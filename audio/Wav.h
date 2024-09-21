@@ -64,7 +64,7 @@ void generate_default_wav_references(const FileBody* file, Wav* wav)
 
     // Check if we can copy memory directly
     // The struct layout and header size should match on x86, but we still check it
-    if (sizeof(WavHeader) == WAV_HEADER_SIZE) {
+    if constexpr (sizeof(WavHeader) == WAV_HEADER_SIZE) {
         memcpy(&wav->header, file->content, WAV_HEADER_SIZE);
 
         // swap endian if we are on big endian system
@@ -129,23 +129,26 @@ void generate_default_wav_references(const FileBody* file, Wav* wav)
         wav->header.data_size = SWAP_ENDIAN_LITTLE(*((uint32 *) *(wav->data + 40)));
     }
 
-     wav->sample_data = wav->data + WAV_HEADER_SIZE;
+    wav->sample_data = wav->data + WAV_HEADER_SIZE;
 }
 
-void generate_wav_audio(const FileBody* src_data, Audio* audio)
+void wav_audio_generate(const FileBody* src_data, Audio* audio)
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some asignment/copy overhead
     Wav src = {};
     generate_default_wav_references(src_data, &src);
 
-    audio->sample_rate = src.header.bits_per_sample;
-    audio->sample_size = src.header.byte_per_bloc;
-    audio->frequency = src.header.frequency;
+    if (!src.size) {
+        return;
+    }
+
+    audio->sample_rate = src.header.frequency;
+    audio->sample_size = (src.header.bits_per_sample / 8) * src.header.nbr_channels;
     audio->channels = src.header.nbr_channels;
     audio->byte_per_sec = src.header.byte_per_sec;
     audio->bloc_size = src.header.bloc_size;
-    audio->size = src.size - WAV_HEADER_SIZE;
+    audio->size = src.header.data_size;
 
     memcpy((void *) audio->data, src.sample_data, audio->size);
 }

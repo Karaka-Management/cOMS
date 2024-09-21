@@ -77,7 +77,6 @@ void debug_memory_add_range(DebugMemory* mem, uint64 start, uint64 end)
 inline
 void debug_memory_reset(DebugMemory* mem)
 {
-    mem->size = 0;
     mem->usage = 0;
 
     mem->debug_range_idx = 0;

@@ -11,13 +11,15 @@
 
 #include <xaudio2.h>
 #include <windows.h>
+#include <objbase.h>
 
 #include "../../../stdlib/Types.h"
 #include "../../../audio/AudioSetting.h"
 #include "../../../utils/MathUtils.h"
+#include "../../../log/Log.h"
 
 struct XAudio2Setting {
-    IXAudio2* xaudio2;
+    IXAudio2* audio_handle;
     IXAudio2SourceVoice* source_voice;
     IXAudio2MasteringVoice* mastering_voice;
 
@@ -32,31 +34,37 @@ HRESULT WINAPI XAudio2CreateStub(IXAudio2**, UINT32, XAUDIO2_PROCESSOR) {
 // END: Dynamically load XAudio2
 
 void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
+    CoInitialize(NULL);
     HMODULE lib = LoadLibraryExA((LPCSTR) "xaudio2_9.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!lib) {
-            // @todo Log
+        LOG(log_memory, "Xaudio2: Couldn't load xaudio2_9.dll\n", log_fp, true, true);
+
         lib = LoadLibraryExA((LPCSTR) "xaudio2_8.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     }
 
     if (!lib) {
-        // @todo Log
+        LOG(log_memory, "Xaudio2: Couldn't load xaudio2_8.dll\n", log_fp, true, true);
+
         return;
     }
 
     audio_create* XAudio2Create = (audio_create *) GetProcAddress(lib, "XAudio2Create");
-    if (!XAudio2Create || !SUCCEEDED(XAudio2Create(&api_setting->xaudio2, 0, XAUDIO2_DEFAULT_PROCESSOR))) {
-        // @todo Log
+    if (!XAudio2Create || !SUCCEEDED(XAudio2Create(&api_setting->audio_handle, 0, XAUDIO2_DEFAULT_PROCESSOR))) {
+        LOG(log_memory, "Xaudio2: XAudio2Create failed\n", log_fp, true, true);
+
         return;
     }
 
-    if (!SUCCEEDED(api_setting->xaudio2->CreateMasteringVoice(
+    HRESULT hr;
+    if (!SUCCEEDED(hr = api_setting->audio_handle->CreateMasteringVoice(
         &api_setting->mastering_voice,
         XAUDIO2_DEFAULT_CHANNELS,
         setting->sample_rate,
         0,
-        NULL
-    ))) {
-        // @todo Log
+        NULL))
+    ) {
+        LOG(log_memory, "Xaudio2: CreateMasteringVoice failed\n", log_fp, true, true);
+
         return;
     }
 
@@ -69,15 +77,16 @@ void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
     wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign; // = buffer_size
     wf.cbSize = 0;
 
-    if (!SUCCEEDED(api_setting->xaudio2->CreateSourceVoice(&api_setting->source_voice, &wf))) {
-        // @todo Log
+    if (!SUCCEEDED(api_setting->audio_handle->CreateSourceVoice(&api_setting->source_voice, &wf))) {
+        LOG(log_memory, "Xaudio2: CreateSourceVoice failed\n", log_fp, true, true);
+
         return;
     }
 
+    // @todo consider to remove mallocs/callocs
     setting->buffer_size = setting->sample_rate * setting->sample_size;
     setting->buffer = (int16 *) calloc(setting->sample_rate, setting->sample_size);
 
-    // @question Consider to move to the heap?
     api_setting->internal_buffer[0].Flags = 0;
     api_setting->internal_buffer[0].AudioBytes = setting->buffer_size;
     api_setting->internal_buffer[0].pAudioData = (byte *) malloc(setting->buffer_size * sizeof(byte));
@@ -104,13 +113,15 @@ void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
 inline
 void audio_play(AudioSetting* setting, XAudio2Setting* api_setting) {
     if (!api_setting->source_voice) {
-        // @todo Log
-
         return;
     }
 
     api_setting->source_voice->Start(0, XAUDIO2_COMMIT_NOW);
     setting->is_playing = true;
+
+    if (setting->sample_index > 1) {
+        setting->sample_index = 0;
+    }
 }
 
 inline
@@ -136,8 +147,8 @@ void audio_free(AudioSetting* setting, XAudio2Setting* api_setting)
         api_setting->mastering_voice->DestroyVoice();
     }
 
-    if (api_setting->xaudio2) {
-        api_setting->xaudio2->Release();
+    if (api_setting->audio_handle) {
+        api_setting->audio_handle->Release();
     }
 }
 
@@ -151,8 +162,6 @@ inline
 uint32 audio_buffer_fillable(const AudioSetting* setting, const XAudio2Setting* api_setting)
 {
     if (!api_setting->source_voice) {
-        // @todo Log
-
         return 0;
     }
 
@@ -166,29 +175,30 @@ uint32 audio_buffer_fillable(const AudioSetting* setting, const XAudio2Setting* 
 }
 
 inline
-void audio_play_buffer(AudioSetting* setting, XAudio2Setting* api_setting, uint32 bytes_to_write) {
-    if (!api_setting->source_voice) {
-        // @todo Log
-
+void audio_play_buffer(AudioSetting* setting, XAudio2Setting* api_setting) {
+    if (!api_setting->source_voice || setting->sample_buffer_size == 0) {
         return;
     }
 
-    if (bytes_to_write == 0) {
-        return;
+    if (!setting->is_playing) {
+        audio_play(setting, api_setting);
     }
+
+    uint32 idx = setting->sample_output % 2;
 
     memcpy(
-        (void *) api_setting->internal_buffer[setting->sample_index].pAudioData,
+        (void *) api_setting->internal_buffer[idx].pAudioData,
         setting->buffer,
-        bytes_to_write
+        setting->sample_buffer_size
     );
 
-    if (!SUCCEEDED(api_setting->source_voice->SubmitSourceBuffer(&api_setting->internal_buffer[setting->sample_index]))) {
-        // @todo Log
+    if (!SUCCEEDED(api_setting->source_voice->SubmitSourceBuffer(&api_setting->internal_buffer[idx]))) {
+        LOG(log_memory, "Xaudio2: SubmitSourceBuffer failed\n", log_fp, true, true);
+
         return;
     }
 
-    setting->sample_index = (setting->sample_index + 1) % 2;
+    setting->sample_index += setting->sample_buffer_size / setting->sample_size;
     setting->sample_buffer_size = 0;
 }
 

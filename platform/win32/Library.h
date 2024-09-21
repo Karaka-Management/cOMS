@@ -76,7 +76,7 @@ bool library_load(Library* lib)
 
     lib->is_valid = true;
     for (int c = 0; c < lib->function_count; ++c) {
-        void* function = GetProcAddress(lib->handle, lib->function_names[c]);
+        void* function = (void *) GetProcAddress(lib->handle, (LPCSTR) lib->function_names[c]);
         if (function) {
             lib->functions[c] = function;
         } else {

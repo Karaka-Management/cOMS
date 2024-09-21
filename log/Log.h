@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <string.h>
 
+// @todo Make this file not rely on any other header except Types.
+
 #include "../stdlib/Types.h"
 #include "../platform/win32/UtilsWin32.h"
 #include "../memory/RingMemory.h"

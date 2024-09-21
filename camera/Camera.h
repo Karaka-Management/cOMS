@@ -54,7 +54,7 @@ camera_update_vectors(Camera* camera)
     vec3_normalize_f32(&camera->up);
 }
 
-void camera_rotate(Camera* camera, float dx, float dy, float dt)
+void camera_rotate(Camera* camera, int32 dx, int32 dy, float dt)
 {
     camera->orientation.x += dy * camera->sensitivity;
     camera->orientation.y -= dx * camera->sensitivity;
