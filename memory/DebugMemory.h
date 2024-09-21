@@ -14,13 +14,20 @@
 
 #include "../stdlib/Types.h"
 
+// required for __rdtsc
+#if _WIN32
+    #include <intrin.h>
+#else
+    #include <x86intrin.h>
+#endif
+
 struct DebugMemoryRange {
     uint64 start;
     uint64 end;
+    uint64 time;
 };
 
 struct DebugMemory {
-    uint64 size;
     uint64 usage;
 
     uint64 debug_range_size;
@@ -43,7 +50,7 @@ void debug_memory_resize(DebugMemory* mem)
     DebugMemoryRange* old = mem->debug_ranges;
 
     mem->debug_range_size += 100;
-    mem->debug_ranges = (DebugMemoryRange *) malloc(mem->debug_range_size * sizeof(DebugMemoryRange));
+    mem->debug_ranges = (DebugMemoryRange *) calloc(mem->debug_range_size, sizeof(DebugMemoryRange));
 
     if (old) {
         memcpy(mem->debug_ranges, old, mem->debug_range_size - 100);
@@ -60,13 +67,19 @@ void debug_memory_add_range(DebugMemory* mem, uint64 start, uint64 end)
     mem->debug_ranges[mem->debug_range_idx].start = start;
     mem->debug_ranges[mem->debug_range_idx].end = end;
 
+    // @question consider to use other time_ms() since __rdtsc is variable (boost, power saving)
+    mem->debug_ranges[mem->debug_range_idx].time = __rdtsc();
+
     ++mem->debug_range_idx;
+    mem->usage += end - start;
 }
 
 inline
 void debug_memory_reset(DebugMemory* mem)
 {
+    mem->size = 0;
     mem->usage = 0;
+
     mem->debug_range_idx = 0;
 }
 

@@ -32,6 +32,7 @@ struct TimingStat {
 inline
 void update_timing_stat(TimingStat *stat)
 {
+    // @question consider to use other time_ms() since __rdtsc is variable (boost, power saving)
     uint64 new_tick_count = __rdtsc();
 
     stat->delta_tick = new_tick_count - stat->old_tick_count;
