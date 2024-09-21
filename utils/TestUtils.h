@@ -9,8 +9,8 @@
 #ifndef TOS_UTILS_TEST_UTILS_H
 #define TOS_UTILS_TEST_UTILS_H
 
-#include <time.h>
 #include <stdio.h>
+#include <time.h>
 #include "../stdlib/Types.h"
 
 #if _WIN32
@@ -19,12 +19,9 @@
     #include <x86intrin.h>
 #endif
 
-#define MAX_LOG_LENGTH 128
-
 global_persist uint64 performance_count_frequency;
 struct TimingStat {
     uint64 old_tick_count;
-    uint64 new_tick_count;
 
     uint64 delta_tick;
     double delta_time;
@@ -35,12 +32,12 @@ struct TimingStat {
 inline
 void update_timing_stat(TimingStat *stat)
 {
-    stat->new_tick_count = __rdtsc();
+    uint64 new_tick_count = __rdtsc();
 
-    stat->delta_tick = stat->new_tick_count - stat->old_tick_count;
+    stat->delta_tick = new_tick_count - stat->old_tick_count;
     stat->delta_time = (double) stat->delta_tick / (double) performance_count_frequency;
 
-    stat->old_tick_count = stat->new_tick_count;
+    stat->old_tick_count = new_tick_count;
 }
 
 // Sometimes we want to only do logging in debug mode.
@@ -49,22 +46,9 @@ void update_timing_stat(TimingStat *stat)
     #define UPDATE_TIMING_STAT(stat) update_timing_stat(stat)
     #define DEBUG_OUTPUT(str) OutputDebugStringA(str)
 #else
-    #define UPDATE_TIMING_STAT(stat) ((void)0)
-    #define DEBUG_OUTPUT(str) ((void)0)
+    #define UPDATE_TIMING_STAT(stat) ((void) 0)
+    #define DEBUG_OUTPUT(str) ((void) 0)
 #endif
-
-void profile_function(const char* func_name, void (*func)(void*), void* data, int iterations)
-{
-    clock_t start = clock();
-    for (int i = 0; i < iterations; ++i) {
-        func(data);
-    }
-
-    clock_t end = clock();
-    double elapsed_time = (double)(end - start) / CLOCKS_PER_SEC;
-
-    printf("Time taken by %s: %f seconds\n", func_name, elapsed_time);
-}
 
 #define ASSERT_EQUALS(a, b, t1, t2)                      \
     ({                                                   \
@@ -132,7 +116,7 @@ void profile_function(const char* func_name, void (*func)(void*), void* data, in
             *(volatile int *)0 = 0;                      \
         }
 #else
-    #define ASSERT_SIMPLE(a) ((void)0)
+    #define ASSERT_SIMPLE(a) ((void) 0)
 #endif
 
 #define ASSERT_TRUE(a)                                   \

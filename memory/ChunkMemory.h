@@ -29,8 +29,6 @@ struct ChunkMemory {
     uint64* free;
 };
 
-// @todo implement memory usage visualization
-
 inline
 void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int alignment = 1)
 {

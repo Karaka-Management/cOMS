@@ -299,6 +299,11 @@ file_copy(const char* src, const char* dst)
 {
     CopyFileA((LPCSTR) src, (LPCSTR) dst, false);
 }
+inline
+void close_handle(HANDLE fp)
+{
+    CloseHandle(fp);
+}
 
 inline
 HANDLE get_append_handle(const char* path)
@@ -312,7 +317,7 @@ HANDLE get_append_handle(const char* path)
             FILE_APPEND_DATA,
             0,
             NULL,
-            OPEN_EXISTING,
+            OPEN_ALWAYS,
             FILE_ATTRIBUTE_NORMAL,
             NULL
         );
@@ -321,7 +326,7 @@ HANDLE get_append_handle(const char* path)
             FILE_APPEND_DATA,
             0,
             NULL,
-            OPEN_EXISTING,
+            OPEN_ALWAYS,
             FILE_ATTRIBUTE_NORMAL,
             NULL
         );
@@ -410,7 +415,6 @@ file_append(HANDLE fp, const char* file, size_t length)
         return false;
     }
 
-    CloseHandle(fp);
     return true;
 }
 
@@ -489,44 +493,5 @@ inline void self_path(char* path)
 {
     GetModuleFileNameA(NULL, (LPSTR) path, MAX_PATH);
 }
-
-void log_to_file(RingMemory* logs, HANDLE fp)
-{
-    // we don't log an empty log pool
-    if (logs->pos == 0) {
-        return;
-    }
-
-    file_append(fp, (char *) logs->memory, logs->size);
-    memset(logs->memory, 0, logs->size);
-
-    // reset log position to start of memory pool
-    logs->pos = 0;
-    logs->start = 0;
-}
-
-// snprintf(logs->memory + logs->pos * MAX_LOG_LENGTH, MAX_LOG_LENGTH, "My text %s", str1);
-void log(RingMemory* logs, const char* str, HANDLE fp = NULL)
-{
-    size_t length = strlen(str);
-    ASSERT_SIMPLE(length < MAX_LOG_LENGTH);
-
-    char* temp = (char *) ring_get_memory(logs, length + 1);
-    strcpy(temp, str);
-    temp[length] = '\0';
-
-    if (fp != NULL && logs->size - logs->pos < MAX_LOG_LENGTH) {
-        log_to_file(logs, fp);
-    }
-}
-
-#if (LOG_LEVEL == 0)
-    // Don't perform any logging at log level 0
-    #define LOG(logs, str, fp) ((void)0)
-    #define LOG_TO_FILE(logs, fp) ((void)0)
-#else
-    #define LOG(logs, str, fp) log(logs, str, fp);
-    #define LOG_TO_FILE(logs, fp) log_to_file(logs, fp);
-#endif
 
 #endif

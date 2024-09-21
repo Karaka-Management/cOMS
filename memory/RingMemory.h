@@ -10,9 +10,11 @@
 #define TOS_MEMORY_RING_MEMORY_H
 
 #include <string.h>
+
 #include "../stdlib/Types.h"
 #include "../utils/MathUtils.h"
 #include "../utils/TestUtils.h"
+
 #include "Allocation.h"
 #include "BufferMemory.h"
 #include "DebugMemory.h"
@@ -36,8 +38,6 @@ struct RingMemory {
     uint64 start;
     uint64 end;
 };
-
-// @todo implement memory usage visualization
 
 inline
 void ring_alloc(RingMemory* ring, uint64 size, int alignment = 1)

@@ -33,9 +33,9 @@ struct DebugMemory {
     #define DEBUG_MEMORY_RESET(mem) debug_memory_reset((mem))
     #define DEBUG_MEMORY_FREE(mem, start, end) debug_memory_add_range((mem), (start), (end))
 #else
-    #define DEBUG_MEMORY(mem, start, end) ((void)0)
-    #define DEBUG_MEMORY_RESET(mem) ((void)0)
-    #define DEBUG_MEMORY_FREE(mem, start, end) ((void)0)
+    #define DEBUG_MEMORY(mem, start, end) ((void) 0)
+    #define DEBUG_MEMORY_RESET(mem) ((void) 0)
+    #define DEBUG_MEMORY_FREE(mem, start, end) ((void) 0)
 #endif
 
 void debug_memory_resize(DebugMemory* mem)

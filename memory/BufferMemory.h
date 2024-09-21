@@ -25,8 +25,6 @@ struct BufferMemory {
     int alignment;
 };
 
-// @todo implement memory usage visualization
-
 inline
 void buffer_alloc(BufferMemory* buf, uint64 size, int alignment = 1)
 {
