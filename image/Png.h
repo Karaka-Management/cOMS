@@ -419,14 +419,17 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
         chunk.length = SWAP_ENDIAN_BIG(*((uint32 *) stream.pos));
         stream.pos += sizeof(chunk.length);
 
-        chunk.type = SWAP_ENDIAN_BIG(*((uint32 *) stream.pos));
+        chunk.type = *((uint32 *) stream.pos);
         stream.pos += sizeof(chunk.type);
 
-        if (chunk.type == 'IEND') {
+        if (chunk.type == SWAP_ENDIAN_BIG('IEND')) {
             // we arrived at the end of the file
             break;
-        } else if (chunk.type != 'IDAT') {
-            // some other data?!
+        } else if (chunk.type != SWAP_ENDIAN_BIG('IDAT')) {
+            // some other data
+
+            // Jump to next chunk
+            stream.pos += chunk.length + sizeof(chunk.crc);
 
             continue;
         }
