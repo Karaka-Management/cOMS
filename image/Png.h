@@ -7,6 +7,7 @@
  * @link      https://jingga.app
  *
  * png: https://www.w3.org/TR/2003/REC-PNG-20031110/
+ * png: https://www.w3.org/TR/PNG-Chunks.html
  * zlib: https://www.ietf.org/rfc/rfc1950.txt
  * deflate: https://www.ietf.org/rfc/rfc1951.txt
  */
@@ -15,7 +16,7 @@
 
 #include <string.h>
 #include "../stdlib/Types.h"
-#include "../utils/Utils.h"
+#include "../utils/BitUtils.h"
 #include "../utils/EndianUtils.h"
 #include "Image.h"
 
@@ -23,31 +24,66 @@
 #define PNG_HEADER_SIZE 8
 
 struct PngHeader {
-    byte signature[8];
+    uint8 signature[8];
 };
+
+/*
+The following table describes the chunk layout.
+Please note that we do NOT support most of this
+
+Critical chunks (order is defined):
+
+    Name  Multiple  Ordering constraints
+    IHDR    No      Must be first
+    PLTE    No      Before IDAT (optional)
+    IDAT    Yes     Multiple IDATs must be consecutive
+    IEND    No      Must be last
+
+Ancillary chunks (order is not defined):
+
+    Name  Multiple  Ordering constraints
+    cHRM    No      Before PLTE and IDAT
+    gAMA    No      Before PLTE and IDAT
+    iCCP    No      Before PLTE and IDAT
+    sBIT    No      Before PLTE and IDAT
+    sRGB    No      Before PLTE and IDAT
+    bKGD    No      After PLTE, before IDAT
+    hIST    No      After PLTE, before IDAT
+    tRNS    No      After PLTE, before IDAT
+    pHYs    No      Before IDAT
+    sPLT    Yes     Before IDAT
+    tIME    No      None
+    iTXt    Yes     None
+    tEXt    Yes     None
+    zTXt    Yes     None
+*/
+#define PNG_CHUNK_SIZE_MIN 12
 
 struct PngChunk {
     uint32 length;
     uint32 type;
+    // +data here, can be 0
     uint32 crc;
 };
 
+// Special chunk
+#define PNG_IHDR_SIZE 25
 struct PngIHDR {
     uint32 length;
     uint32 type;
     uint32 width;
     uint32 height;
-    byte bit_depth;
-    byte colory_type;
-    byte compression;
-    byte filter;
-    byte interlace;
+    uint8 bit_depth;
+    uint8 colory_type;
+    uint8 compression;
+    uint8 filter;
+    uint8 interlace;
     uint32 crc;
 };
 
 struct PngIDATHeader {
-    byte zlib_method_flag;
-    byte add_flag;
+    uint8 zlib_method_flag;
+    uint8 add_flag;
 };
 
 struct Png {
@@ -55,10 +91,10 @@ struct Png {
     PngIHDR ihdr;
 
     // Encoded pixel data
-    byte* pixels; // WARNING: This is not the owner of the data. The owner is the FileBody
+    uint8* pixels; // WARNING: This is not the owner of the data. The owner is the FileBody
 
     uint32 size;
-    byte* data; // WARNING: This is not the owner of the data. The owner is the FileBody
+    uint8* data; // WARNING: This is not the owner of the data. The owner is the FileBody
 };
 
 struct PngHuffmanEntry {
@@ -72,7 +108,7 @@ struct PngHuffman {
     PngHuffmanEntry entries[32768]; // 2^15
 };
 
-static const byte PNG_SIGNATURE[] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
+static const uint8 PNG_SIGNATURE[] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
 static const uint32 HUFFMAN_BIT_COUNTS[][2] = {{143, 8}, {255, 9}, {279, 7}, {287, 8}, {319, 5}};
 static const uint32 HUFFMAN_CODE_LENGTH_ALPHA[] = {
     16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
@@ -91,7 +127,7 @@ static const PngHuffmanEntry PNG_DIST_EXTRA[] = {
     {4097, 11}, {6145, 11}, {8193, 12}, {12289, 12}, {16385, 13}, {24577, 13}
 };
 
-void huffman_png_compute(uint32 symbol_count, uint32* symbol_code_length, PngHuffman* huff)
+void huffman_png_compute(uint32 symbol_count, const uint32* __restrict symbol_code_length, PngHuffman* huff)
 {
     uint32 code_length_hist[16] = {};
     for (uint32 i = 0; i < symbol_count; ++i) {
@@ -118,7 +154,7 @@ void huffman_png_compute(uint32 symbol_count, uint32* symbol_code_length, PngHuf
 
         for (uint32 j = 0; j < entries; ++j) {
             uint32 base_index = (code << bits) | j;
-            uint32 index = reverse_bits(base_index, huff->max_code_length);
+            uint32 index = bits_reverse(base_index, huff->max_code_length);
 
             PngHuffmanEntry* entry = huff->entries + index;
 
@@ -129,41 +165,140 @@ void huffman_png_compute(uint32 symbol_count, uint32* symbol_code_length, PngHuf
 }
 
 inline
-PngHuffmanEntry huffman_png_decode(PngHuffman* huff, const byte* data, int pos)
+uint16 huffman_png_decode(PngHuffman* __restrict huff, BitWalk* __restrict stream)
 {
-    uint32 index = (uint32) get_bits(data, huff->max_code_length, pos);
-    return huff->entries[index];
+    // huff->max_code_length has a length of a maximum of 15 -> span a maximum of 3 bytes
+    uint32 index = SWAP_ENDIAN_BIG(BITS_GET_32(BYTES_MERGE_4(stream->pos), stream->bit_pos, huff->max_code_length));
+
+    bits_walk(stream, huff->entries[index].bits_used);
+
+    return huff->entries[index].symbol;
 }
 
-void png_filter_reconstruct(uint32 width, uint32 height, const byte* decompressed, byte* finalized, int steps)
+inline
+uint8 png_filter_1_and_2(const uint8* __restrict x, const uint8* __restrict a, uint32 channel)
 {
-    uint32 zero = 0;
-    byte* prev_row = NULL;
-    byte prev_row_advance = 0;
+    return x[channel] + a[channel];
+}
+
+inline
+uint8 png_filter_3(const uint8* x, const uint8* a, const uint8* b, uint32 channel)
+{
+    return x[channel] + (uint8) (((uint32) a[channel] + (uint32) b[channel]) / 2);
+}
+
+inline
+uint8 png_filter_4(const uint8* x, const uint8* a_full, const uint8* b_full, const uint8* c_full, uint32 channel)
+{
+    int32 a = (int32) a_full[channel];
+    int32 b = (int32) b_full[channel];
+    int32 c = (int32) c_full[channel];
+    int32 p = a + b - c;
+    int32 pa = p >= a ? p - a : a - p;
+    int32 pb = p >= b ? p - b : b - p;
+    int32 pc = p >= c ? p - c : c - p;
+
+    int32 paeth;
+    if (pa < pb && pa <= pc) {
+        paeth = a;
+    } else if (pb <= pc) {
+        paeth = b;
+    } else {
+        paeth = c;
+    }
+
+    return x[channel] + (uint8) paeth;
+}
+
+void png_filter_reconstruct(uint32 width, uint32 height, const uint8* decompressed, uint8* finalized, int steps = 8)
+{
+    uint64 zero = 0;
+    uint8* prev_row = (uint8 *) &zero;
+    uint8 prev_row_advance = 0;
+
+    const uint8* src = decompressed;
+    uint8* dest = finalized;
 
     for (uint32 y = 0; y < height; ++y) {
-        byte filter = *decompressed;
-        byte* current_row = 0; // @todo need actual value
+        uint8 filter = *decompressed;
+        uint8* current_row = dest;
 
         switch (filter) {
             case 0: {
-                    memcpy(finalized + y * width, decompressed + y * width, width);
+                    memcpy(dest, src, width * sizeof(uint32));
+                    dest += 4 * width;
+                    src += 4 * width;
                 } break;
             case 1: {
-                    // no simd possible, well 4 + 4 probably not worth it
+                    uint32 a_pixel = 0;
+                    for (uint32 x = 0; x < width; ++x) {
+                        // png_filter_1_and_2
+                        dest[0] = src[0] + ((uint8 *) &a_pixel)[0];
+                        dest[1] = src[1] + ((uint8 *) &a_pixel)[1];
+                        dest[2] = src[2] + ((uint8 *) &a_pixel)[2];
+                        dest[3] = src[3] + ((uint8 *) &a_pixel)[3];
 
+                        a_pixel = *(uint32 *) dest;
+
+                        dest += 4;
+                        src += 4;
+                    }
                 } break;
             case 2: {
+                    // @performance this is simd optimizable
                     // requires manual simd impl. since prev_row_advance can be 0 or 4
+                    uint8* b_pixel = prev_row;
+                    for (uint32 x = 0; x < width; ++x) {
+                        // png_filter_1_and_2
+                        dest[0] = src[0] + b_pixel[0];
+                        dest[1] = src[1] + b_pixel[1];
+                        dest[2] = src[2] + b_pixel[2];
+                        dest[3] = src[3] + b_pixel[3];
+
+                        b_pixel += prev_row_advance;
+
+                        dest += 4;
+                        src += 4;
+                    }
                 } break;
             case 3: {
-                    // no simd possible, well 4 + 4 probably not worth it
+                    uint32 a_pixel = 0;
+                    uint8* b_pixel = prev_row;
+                    for (uint32 x = 0; x < width; ++x) {
+                        // png_filter_3
+                        dest[0] = src[0] + (uint8) (((uint32) ((uint8 *) &a_pixel)[0] + (uint32) b_pixel[0]) / 2);
+                        dest[1] = src[1] + (uint8) (((uint32) ((uint8 *) &a_pixel)[1] + (uint32) b_pixel[1]) / 2);
+                        dest[2] = src[2] + (uint8) (((uint32) ((uint8 *) &a_pixel)[2] + (uint32) b_pixel[2]) / 2);
+                        dest[3] = src[3] + (uint8) (((uint32) ((uint8 *) &a_pixel)[3] + (uint32) b_pixel[3]) / 2);
+
+                        a_pixel = *(uint32 *) dest;
+                        b_pixel += prev_row_advance;
+
+                        dest += 4;
+                        src += 4;
+                    }
                 } break;
             case 4: {
-                    // no simd possible, well 4 + 4 probably not worth it
+                    uint32 a_pixel = 0;
+                    uint32 c_pixel = 0;
+                    uint8* b_pixel = prev_row;
+                    for (uint32 x = 0; x < width; ++x) {
+                        // png_filter_4
+                        dest[0] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 0);
+                        dest[1] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 1);
+                        dest[2] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 2);
+                        dest[3] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 3);
+
+                        a_pixel = *(uint32 *) dest;
+                        c_pixel = *(uint32 *) b_pixel;
+                        b_pixel += prev_row_advance;
+
+                        dest += 4;
+                        src += 4;
+                    }
                 } break;
             default: {
-
+                ASSERT_SIMPLE(false);
             }
         }
 
@@ -177,22 +312,30 @@ void generate_default_png_references(const FileBody* file, Png* png)
     png->size = (uint32) file->size;
     png->data = file->content;
 
-    if (png->size < 33) {
+    if (png->size < PNG_IHDR_SIZE + PNG_HEADER_SIZE) {
         // This shouldn't happen
+        ASSERT_SIMPLE(false);
         return;
     }
 
     // The first chunk MUST be IHDR -> we handle it here
-    memcpy(png, file->content, 29);
-    png->ihdr.crc = SWAP_ENDIAN_BIG((uint32 *) (file->content + 30));
+    ASSERT_SIMPLE_CONST(PNG_HEADER_SIZE + PNG_IHDR_SIZE == 33);
+    memcpy(png, file->content, PNG_HEADER_SIZE + PNG_IHDR_SIZE);
 
-    png->ihdr.length = SWAP_ENDIAN_BIG(&png->ihdr.length);
-    png->ihdr.type = SWAP_ENDIAN_BIG(&png->ihdr.type);
-    png->ihdr.width = SWAP_ENDIAN_BIG(&png->ihdr.width);
-    png->ihdr.height = SWAP_ENDIAN_BIG(&png->ihdr.height);
+    png->ihdr.length = SWAP_ENDIAN_BIG(png->ihdr.length);
+    png->ihdr.type = SWAP_ENDIAN_BIG(png->ihdr.type);
+    png->ihdr.width = SWAP_ENDIAN_BIG(png->ihdr.width);
+    png->ihdr.height = SWAP_ENDIAN_BIG(png->ihdr.height);
+    png->ihdr.crc = SWAP_ENDIAN_BIG(png->ihdr.crc);
 }
 
-bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
+// Below you will often see code like SWAP_ENDIAN_BIG(BITS_GET_16(BYTES_MERGE_2()))
+//      1. Merge two bytes together creating a "new" data structure from which we can easily read bits
+//          1.1. This is required to read bits that cross multiple bytes
+//          1.2. Only if you read more than 8 bits will you need to merge 4 bytes
+//      2. Now we can retrieve the bits from this data structure at a position with a length
+//      3. Whenever we use the result as an integer (16 or 32 bits) we need to consider the endianness
+bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring, int32 steps = 8)
 {
     // @performance We are generating the struct and then filling the data.
     //      There is some asignment/copy overhead
@@ -205,154 +348,169 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
     //  3. temp pixel buffer (larger)
     //  4. final pixel buffer (already here)
 
+    // @todo Consider to support (0, 2, 3, 4, and 6)
+    //      A simple black and white image or a image without alpha should be supported
     if (src.ihdr.bit_depth != 8
         || src.ihdr.colory_type != 6
         || src.ihdr.compression != 0
         || src.ihdr.filter != 0
         || src.ihdr.interlace != 0
     ) {
-        // We don't support this type of png
+        // We don't support this type of png (see comment below)
+        ASSERT_SIMPLE(false);
+
+        /*
+        Color   Allowed     Interpretation
+        Type    Bit Depths
+
+        0       1,2,4,8,16  Each pixel is a grayscale sample.
+        2       8,16        Each pixel is an R,G,B triple.
+        3       1,2,4,8     Each pixel is a palette index, a PLTE chunk must appear.
+        4       8,16        Each pixel is a grayscale sample, followed by an alpha sample.
+        6       8,16        Each pixel is an R,G,B triple, followed by an alpha sample.
+        */
+
         return false;
     }
 
-    PngChunk chunk;
-    PngIDATHeader idat_header;
+    // @performance Could we probably avoid this? There is some overhead using this.
+    //      We are only using it because there might be situations where there is a bit overhang to another chunk
+    BitWalk stream;
+    // Note: If we would support more png formats this offset would be wrong
+    stream.pos = src_data->content + PNG_IHDR_SIZE + PNG_HEADER_SIZE;
+    stream.bit_pos = 0;
 
-    bool is_first_idat = true;
-
-    uint32 out_pos = 0;
-
-    // @question the following is a lot of data, should this be moved to heap?
     uint32 literal_length_dist_table[512];
 
-    PngHuffman literal_length_huffman;
-    literal_length_huffman.max_code_length = 15;
-    literal_length_huffman.count = 1 << literal_length_huffman.max_code_length;
+    PngHuffman* literal_length_huffman = (PngHuffman *) ring_get_memory(ring, sizeof(PngHuffman));
+    literal_length_huffman->max_code_length = 15;
+    literal_length_huffman->count = 1 << literal_length_huffman->max_code_length;
 
-    PngHuffman distance_huffman;
-    distance_huffman.max_code_length = 15;
-    distance_huffman.count = 1 << distance_huffman.max_code_length;
+    PngHuffman* distance_huffman = (PngHuffman *) ring_get_memory(ring, sizeof(PngHuffman));
+    distance_huffman->max_code_length = 15;
+    distance_huffman->count = 1 << distance_huffman->max_code_length;
 
-    PngHuffman dictionary_huffman;
-    dictionary_huffman.max_code_length = 7;
-    dictionary_huffman.count = 1 << dictionary_huffman.max_code_length;
+    PngHuffman* dictionary_huffman = (PngHuffman *) ring_get_memory(ring, sizeof(PngHuffman));
+    dictionary_huffman->max_code_length = 7;
+    dictionary_huffman->count = 1 << dictionary_huffman->max_code_length;
 
-    // i is the current byte to read
-    int i = 33;
+    // We need full width * height, since we don't know how much data this IDAT actually holds
+    uint8* finalized = ring_get_memory(ring, src.ihdr.width * src.ihdr.height * 4);
 
-    // r is the re-shift value in case we need to go back
-    // @todo r unused?
-    int r = 0;
+    // Needs some extra space
+    uint8* decompressed = ring_get_memory(ring, src.ihdr.width * src.ihdr.height * 4 + src.ihdr.height);
 
-    // b is the current bit to read
-    int b = 0;
+    uint8* dest = decompressed;
 
-    while(i < src.size) {
-        chunk.length = SWAP_ENDIAN_BIG((uint32 *) (src_data->content + i));
-        chunk.type = SWAP_ENDIAN_BIG((uint32 *) (src_data->content + i + 4));
+    // @bug We might not be able/allowed to simply iterate this loop below since data might be split accross chunks
+    //      If that is the case we have to first create a linked list of all the actual data and then we perform the actions below on this linked list
+    //      This ofcourse poses the challenge of handling the border between two list elements
+    //      Copying data would be slow so we ideally would like to iterate through that list and just handle the border
+    //      since the border only becomes relevant at the beginning of every loop we should be fine, no?
 
+    uint8 BFINAL = 0;
+    while(stream.pos - src_data->content < src.size && BFINAL == 0) {
+        PngChunk chunk;
+        PngIDATHeader idat_header;
+
+        // @bug the code below doesn't need bit walk on the first loop, what about the second loop?
         // For our png reader, we only care about IDAT
         //  @question consider PLTE, tRNS, gAMA, iCCP
+        chunk.length = SWAP_ENDIAN_BIG(*((uint32 *) stream.pos));
+        stream.pos += sizeof(chunk.length);
+
+        chunk.type = SWAP_ENDIAN_BIG(*((uint32 *) stream.pos));
+        stream.pos += sizeof(chunk.type);
+
         if (chunk.type == 'IEND') {
+            // we arrived at the end of the file
             break;
         } else if (chunk.type != 'IDAT') {
-            // IDAT chunks are continuous and we don't care for anything else
-            if (!is_first_idat) {
-                break;
-            }
+            // some other data?!
 
-            i += chunk.length + 12;
             continue;
         }
 
-        if (is_first_idat) {
-            idat_header.zlib_method_flag = *(src_data->content + i + 8);
-            idat_header.add_flag = *(src_data->content + i + 9);
+        // @question Not sure if this below is actually the case
+        // @bug Is this even correct, we might have an overhang from the previous chunk
+        //  Then we need to:
+        //      read n bits from the previous chunk
+        //      move accross the chunk header data
+        //      read another x bits from the new chunk
+        //
+        //  This means we cannot jump here (or better we need to check if the bit position is != 0)
+        // BUT WE MIGHT NOT CARE ABOUT MULTIPLE IDAT CHUNKS?
+        idat_header.zlib_method_flag = *stream.pos;
+        ++stream.pos;
 
-            byte CM = idat_header.zlib_method_flag & 0xF;
-            byte FDICT = (idat_header.add_flag >> 5) & 0x1;
+        idat_header.add_flag = *stream.pos;
+        ++stream.pos;
 
-            is_first_idat = false;
+        uint8 CM = idat_header.zlib_method_flag & 0xF;
+        uint8 FDICT = (idat_header.add_flag >> 5) & 0x1;
 
-            if (CM != 8 || FDICT != 0) {
-                return false;
-            }
-
-            i += 10;
+        if (CM != 8 || FDICT != 0) {
+            // Not supported
+            return false;
         }
 
-        // @bug The algorithm below works on "blocks".
-        //      Could it be possible that a block is spread accross 2 IDAT chunks?
-        //      If so this would be bad and break the code below
-        //      We could solve this by just having another counting variable and jump to the next block
+        // This data might be stored in the prvious IDAT chunk?!
+        BFINAL = (uint8) SWAP_ENDIAN_BIG(BITS_GET_8(*stream.pos, stream.bit_pos, 1));
+        bits_walk(&stream, 1);
 
-        // start: src_data->content + i + 8
-        // end: src_data->content + i + 8 + length - 1
-
-        // DEFLATE Algorithm
-        // @bug the following 3 lines are wrong, they don't have to start at a bit 0/1
-        //      A block doesn't have to start at an byte boundary
-        byte BFINAL = (byte) get_bits(src_data->content + i, 1, b);
-        i += (b > 7 - 1);
-        b = (b + 1) & 7;
-
-        byte BTYPE = (byte) get_bits(src_data->content + i, 2, b);
-        i += (b > 7 - 2);
-        b = (b + 2) & 7;
+        uint32 BTYPE = SWAP_ENDIAN_BIG(BITS_GET_8(BYTES_MERGE_2(stream.pos), stream.bit_pos, 2));
+        bits_walk(&stream, 2);
 
         if (BTYPE == 0) {
-            // starts at byte boundary -> position = +1 of previous byte
-            if (b == 0) {
-                i -= 1;
-            }
+            // starts at uint8 boundary -> position = +1 of previous uint8
+            bits_flush(&stream);
 
-            uint16 len = *((uint16 *) (src_data->content + i + 1));
+            uint16 len = *((uint16 *) stream.pos);
+            stream.pos += 2;
 
-            // @todo nlen unused?
-            uint16 nlen = *((uint16 *) (src_data->content + i + 3));
+            uint16 nlen = *((uint16 *) stream.pos);
+            stream.pos += 2;
 
-            memcpy(image->pixels + out_pos, src_data->content + i + 5, len);
-            out_pos += len;
+            ASSERT_SIMPLE(len == ~nlen);
 
-            i += 5 + len;
-            b = 0;
+            memcpy(dest, &stream.pos, len);
+            stream.pos += len;
+        } else if (BTYPE == 3) {
+            // Invalid BTYPE
+            ASSERT_SIMPLE(false);
         } else {
             // @question is this even required or are we overwriting anyways?
-            memset(&literal_length_dist_table, 0, 512 * 4);
-            memset(&literal_length_huffman.entries, 0, sizeof(PngHuffmanEntry) * 15);
-            memset(&distance_huffman.entries, 0, sizeof(PngHuffmanEntry) * 15);
-            memset(&dictionary_huffman.entries, 0, sizeof(PngHuffmanEntry) * 7);
+            memset(&literal_length_dist_table, 0, sizeof(literal_length_dist_table));
+            memset(literal_length_huffman->entries, 0, sizeof(PngHuffmanEntry) * literal_length_huffman->max_code_length);
+            memset(distance_huffman->entries, 0, sizeof(PngHuffmanEntry) * distance_huffman->max_code_length);
+            memset(dictionary_huffman->entries, 0, sizeof(PngHuffmanEntry) * dictionary_huffman->max_code_length);
 
             uint32 huffman_literal = 0;
             uint32 huffman_dist = 0;
 
             if (BTYPE == 2) {
                 // Compressed with dynamic Huffman code
-                huffman_literal = (uint32) get_bits(src_data->content + i, 5, b);
-                i += (b > 7 - 5);
-                b = (b + 5) & 7;
+                huffman_literal = SWAP_ENDIAN_BIG(BITS_GET_16(BYTES_MERGE_2(stream.pos), stream.bit_pos, 5));
+                bits_walk(&stream, 5);
 
-                huffman_dist = (uint32) get_bits(src_data->content + i, 5, b);
-                i += (b > 7 - 5);
-                b = (b + 5) & 7;
+                huffman_dist = SWAP_ENDIAN_BIG(BITS_GET_16(BYTES_MERGE_2(stream.pos), stream.bit_pos, 5));
+                bits_walk(&stream, 5);
 
-                uint32 huffman_code_length = (uint32) get_bits(src_data->content + i, 4, b);
-                i += (b > 7 - 4);
-                b = (b + 4) & 7;
+                uint32 huffman_code_length = SWAP_ENDIAN_BIG(BITS_GET_16(BYTES_MERGE_2(stream.pos), stream.bit_pos, 4));
+                bits_walk(&stream, 5);
 
                 huffman_literal += 257;
                 huffman_dist += 1;
                 huffman_code_length += 4;
 
-                uint32 huffman_code_length_table[19] = {};
+                uint32 huffman_code_length_table[ARRAY_COUNT(HUFFMAN_CODE_LENGTH_ALPHA)] = {};
 
                 for (uint32 j = 0; j < huffman_code_length; ++j) {
-                    huffman_code_length_table[HUFFMAN_CODE_LENGTH_ALPHA[j]] = (uint32) get_bits(src_data->content + i, 3, b);
-                    i += (b > 7 - 3);
-                    b = (b + 3) & 7;
+                    huffman_code_length_table[HUFFMAN_CODE_LENGTH_ALPHA[j]] = SWAP_ENDIAN_BIG(BITS_GET_16(BYTES_MERGE_2(stream.pos), stream.bit_pos, 3));
+                    bits_walk(&stream, 3);
                 }
 
-                huffman_png_compute(19, huffman_code_length_table, &dictionary_huffman);
+                huffman_png_compute(ARRAY_COUNT(HUFFMAN_CODE_LENGTH_ALPHA), huffman_code_length_table, dictionary_huffman);
 
                 uint32 literal_length_count = 0;
                 uint32 length_count = huffman_literal + huffman_dist;
@@ -362,31 +520,26 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
                     uint32 rep_count = 1;
                     uint32 rep_val = 0;
 
-                    PngHuffmanEntry dict = huffman_png_decode(&dictionary_huffman, src_data->content + i, b);
-                    i += (b + dict.bits_used) / 8;
-                    b = (b + dict.bits_used) & 7;
-
-                    uint32 encoded_length = dict.bits_used;
+                    uint32 encoded_length = huffman_png_decode(dictionary_huffman, &stream);
 
                     if (encoded_length <= 15) {
                         rep_val = encoded_length;
                     } else if (encoded_length == 16) {
-                        rep_count = 3 + (uint32) get_bits(src_data->content + i, 2, b);
-                        i += (b > 7 - 2);
-                        b = (b + 2) & 7;
+                        rep_count = 3 + SWAP_ENDIAN_BIG(BITS_GET_8(BYTES_MERGE_2(stream.pos), stream.bit_pos, 2));
+                        bits_walk(&stream, 2);
 
                         rep_val = literal_length_dist_table[literal_length_count - 1];
                     } else if (encoded_length == 17) {
-                        rep_count = 3 + (uint32) get_bits(src_data->content + i, 3, b);
-                        i += (b > 7 - 3);
-                        b = (b + 3) & 7;
+                        rep_count = 3 + SWAP_ENDIAN_BIG(BITS_GET_8(BYTES_MERGE_2(stream.pos), stream.bit_pos, 3));
+                        bits_walk(&stream, 3);
                     } else if (encoded_length == 18) {
-                        rep_count = 11 + (uint32) get_bits(src_data->content + i, 7, b);
-                        i += (b > 7 - 7);
-                        b = (b + 7) & 7;
+                        rep_count = 11 + SWAP_ENDIAN_BIG(BITS_GET_8(BYTES_MERGE_2(stream.pos), stream.bit_pos, 7));
+                        bits_walk(&stream, 7);
                     }
 
-                    memset(literal_length_dist_table + literal_length_count, rep_val, rep_count);
+                    while (rep_count--) {
+                        literal_length_dist_table[literal_length_count++] = rep_val;
+                    }
                 }
             } else if (BTYPE == 1) {
                 // Compressed with fixed Huffman code
@@ -394,7 +547,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
                 huffman_dist = 32;
 
                 uint32 bit_index = 0;
-                for(uint32 range_index = 0; range_index < 5; ++range_index) {
+                for(uint32 range_index = 0; range_index < ARRAY_COUNT(HUFFMAN_BIT_COUNTS); ++range_index) {
                     uint32 bit_count = HUFFMAN_BIT_COUNTS[range_index][1];
                     uint32 last = HUFFMAN_BIT_COUNTS[range_index][0];
 
@@ -404,68 +557,65 @@ bool image_png_generate(const FileBody* src_data, Image* image, int steps = 8)
                 }
             }
 
-            huffman_png_compute(huffman_literal, literal_length_dist_table, &literal_length_huffman);
-            huffman_png_compute(huffman_dist, literal_length_dist_table + huffman_literal, &distance_huffman);
+            huffman_png_compute(huffman_literal, literal_length_dist_table, literal_length_huffman);
+            huffman_png_compute(huffman_dist, literal_length_dist_table + huffman_literal, distance_huffman);
 
             while (true) {
-                PngHuffmanEntry literal = huffman_png_decode(&literal_length_huffman, src_data->content + i, b);
-                i += (b + literal.bits_used) / 8;
-                b = (b + literal.bits_used) & 7;
-
-                uint32 literal_length = literal.bits_used;
-
+                uint32 literal_length = huffman_png_decode(literal_length_huffman, &stream);
                 if (literal_length == 256) {
                     break;
                 }
 
                 if (literal_length <= 255) {
-                    *(image->pixels + out_pos) = (byte) (literal_length & 0xFF);
-                    ++out_pos;
+                    *dest++ = (literal_length & 0xFF);
                 } else {
                     uint32 length_tab_index = literal_length - 257;
                     PngHuffmanEntry length_tab = PNG_LENGTH_EXTRA[length_tab_index];
                     uint32 length = length_tab.symbol;
 
                     if (length_tab.bits_used) {
-                        uint32 extra_bits = (uint32) get_bits(src_data->content + i, length_tab.bits_used, b);
-                        i += (b + length_tab.bits_used) / 8;
-                        b = (b + length_tab.bits_used) & 7;
+                        // @performance If we knew that bits_used is always <= 15 we could use more efficient MERGE/GET
+                        uint32 extra_bits = SWAP_ENDIAN_BIG(BITS_GET_32(BYTES_MERGE_4(stream.pos), stream.bit_pos, length_tab.bits_used));
+                        bits_walk(&stream, length_tab.bits_used);
 
                         length += extra_bits;
                     }
 
-                    PngHuffmanEntry tab = huffman_png_decode(&distance_huffman, src_data->content + i, b);
-                    i += (b + tab.bits_used) / 8;
-                    b = (b + tab.bits_used) & 7;
-
-                    uint32 dist_tab_index = tab.bits_used;
+                    uint32 dist_tab_index = huffman_png_decode(distance_huffman, &stream);
 
                     PngHuffmanEntry dist_tab = PNG_DIST_EXTRA[dist_tab_index];
                     uint32 dist = dist_tab.symbol;
 
                     if (dist_tab.bits_used) {
-                        uint32 extra_bits = (uint32) get_bits(src_data->content + i, dist_tab.bits_used, b);
-                        i += (b + dist_tab.bits_used) / 8;
-                        b = (b + dist_tab.bits_used) & 7;
+                        // @performance If we knew that bits_used is always <= 15 we could use more efficient MERGE/GET
+                        uint32 extra_bits = SWAP_ENDIAN_BIG(BITS_GET_32(BYTES_MERGE_4(stream.pos), stream.bit_pos, dist_tab.bits_used));
+                        bits_walk(&stream, dist_tab.bits_used);
 
                         dist += extra_bits;
                     }
 
-                    memcpy(image->pixels + out_pos, image->pixels + out_pos - dist, length);
+                    // @performance Maybe we could use memcopy depending on length and dist
+                    uint8* source = dest - dist;
+                    while (length--) {
+                        *dest++ = *source++;
+                    }
                 }
             }
         }
 
-        if (BFINAL == 0) {
-            break;
-        }
+        // Skip the CRC
+        stream.pos += sizeof(chunk.crc);
+        stream.bit_pos = 0;
     }
 
     image->width = src.ihdr.width;
     image->height = src.ihdr.height;
+    image->pixel_count = image->width * image->height;
+    image->has_alpha = true;
+    image->order_pixels = IMAGE_PIXEL_ORDER_RGBA;
+    image->order_rows = IMAGE_ROW_ORDER_TOP_TO_BOTTOM;
 
-    // @todo fix pixels parameter
-    png_filter_reconstruct(image->width, image->height, (byte *) image->pixels, (byte *) image->pixels, steps);
+    png_filter_reconstruct(src.ihdr.width, src.ihdr.height, decompressed, finalized, steps);
 
     return true;
 }

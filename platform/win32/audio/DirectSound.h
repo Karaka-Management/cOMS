@@ -109,6 +109,16 @@ void audio_play(AudioSetting* setting, DirectSoundSetting* api_setting)
 }
 
 inline
+void audio_stop(AudioSetting* setting, DirectSoundSetting* api_setting) {
+    if (!api_setting->secondary_buffer) {
+        return;
+    }
+
+    api_setting->secondary_buffer->Stop();
+    setting->is_playing = false;
+}
+
+inline
 void audio_free(AudioSetting*, DirectSoundSetting* api_setting)
 {
     if (api_setting->audio_handle) {

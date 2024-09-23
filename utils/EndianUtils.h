@@ -11,6 +11,10 @@
 
 #include "../stdlib/Types.h"
 
+#define SWAP_ENDIAN_16(val) ((((val) << 8) | ((val) >> 8)))
+#define SWAP_ENDIAN_32(val) (((val) << 24) | (((val) & 0xFF00) << 8) | (((val) >> 8) & 0xFF00) | ((val) >> 24))
+#define SWAP_ENDIAN_64(val) (((val) << 56) | (((val) & 0x000000000000FF00ULL) << 40) | (((val) & 0x0000000000FF0000ULL) << 24) | (((val) & 0x00000000FF000000ULL) << 8) | (((val) & 0x000000FF00000000ULL) >> 8) | (((val) & 0x0000FF0000000000ULL) >> 24) | (((val) & 0x00FF000000000000ULL) >> 40) | ((val) >> 56))
+
 // Automatically perform endian swap if necessary
 // If we are on little endian (e.g. Win32) we swap big endian data but not little endian
 #if _WIN32 || __LITTLE_ENDIAN
@@ -29,79 +33,71 @@ bool is_little_endian()
 }
 
 inline
-uint16 endian_swap(const uint16* val)
+uint16 endian_swap(uint16 val)
 {
-    uint16 v = *val;
-    return ((v << 8) | (v >> 8));
+    return ((val << 8) | (val >> 8));
 }
 
 inline
-int16 endian_swap(const int16* val)
+int16 endian_swap(int16 val)
 {
-    uint16 v = (uint16) (*val);
-    return (int16) ((v << 8) | (v >> 8));
+    return (int16) ((val << 8) | (val >> 8));
 }
 
 inline
-uint32 endian_swap(const uint32* val)
+uint32 endian_swap(uint32 val)
 {
-    uint32 v = *val;
-    return ((v << 24)
-        | ((v & 0xFF00) << 8)
-        | ((v >> 8) & 0xFF00)
-        | (v >> 24));
+    return ((val << 24)
+        | ((val & 0xFF00) << 8)
+        | ((val >> 8) & 0xFF00)
+        | (val >> 24));
 }
 
 inline
-int32 endian_swap(const int32* val)
+int32 endian_swap(int32 val)
 {
-    uint32 v = (uint32) (*val);
-    return (int32) ((v << 24)
-        | ((v & 0xFF00) << 8)
-        | ((v >> 8) & 0xFF00)
-        | (v >> 24));
+    return (int32) ((val << 24)
+        | ((val & 0xFF00) << 8)
+        | ((val >> 8) & 0xFF00)
+        | (val >> 24));
 }
 
 inline
-uint64 endian_swap(const uint64* val)
+uint64 endian_swap(uint64 val)
 {
-    uint64 v = *val;
-    return ((v << 56)
-        | ((v & 0x000000000000FF00ULL) << 40)
-        | ((v & 0x0000000000FF0000ULL) << 24)
-        | ((v & 0x00000000FF000000ULL) << 8)
-        | ((v & 0x000000FF00000000ULL) >> 8)
-        | ((v & 0x0000FF0000000000ULL) >> 24)
-        | ((v & 0x00FF000000000000ULL) >> 40)
-        | (v >> 56));
+    return ((val << 56)
+        | ((val & 0x000000000000FF00ULL) << 40)
+        | ((val & 0x0000000000FF0000ULL) << 24)
+        | ((val & 0x00000000FF000000ULL) << 8)
+        | ((val & 0x000000FF00000000ULL) >> 8)
+        | ((val & 0x0000FF0000000000ULL) >> 24)
+        | ((val & 0x00FF000000000000ULL) >> 40)
+        | (val >> 56));
 }
 
 inline
-int64 endian_swap(const int64* val)
+int64 endian_swap(int64 val)
 {
-    uint64 v = (uint64) (*val);
-    return (int64) ((v << 56)
-        | ((v & 0x000000000000FF00ULL) << 40)
-        | ((v & 0x0000000000FF0000ULL) << 24)
-        | ((v & 0x00000000FF000000ULL) << 8)
-        | ((v & 0x000000FF00000000ULL) >> 8)
-        | ((v & 0x0000FF0000000000ULL) >> 24)
-        | ((v & 0x00FF000000000000ULL) >> 40)
-        | (v >> 56));
+    return (int64) ((val << 56)
+        | ((val & 0x000000000000FF00ULL) << 40)
+        | ((val & 0x0000000000FF0000ULL) << 24)
+        | ((val & 0x00000000FF000000ULL) << 8)
+        | ((val & 0x000000FF00000000ULL) >> 8)
+        | ((val & 0x0000FF0000000000ULL) >> 24)
+        | ((val & 0x00FF000000000000ULL) >> 40)
+        | (val >> 56));
 }
 
 inline
-float endian_swap(const float* val)
+float endian_swap(float val)
 {
-    uint32* ival = (uint32 *) val;
-    return (float) endian_swap(ival);
+    return (float) endian_swap(val);
 }
 
 inline
-double endian_swap(const double* val)
+double endian_swap(double val)
 {
-    uint64* ival = (uint64 *) val;
-    return (double) endian_swap(ival);
+    return (double) endian_swap(val);
 }
 
 #endif

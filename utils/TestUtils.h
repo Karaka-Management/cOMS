@@ -114,10 +114,16 @@ void update_timing_stat(TimingStat *stat)
 #if DEBUG
     #define ASSERT_SIMPLE(a)                             \
         if (!(a)) {                                      \
-            *(volatile int *)0 = 0;                      \
+            *(volatile int *) 0 = 0;                     \
+        }
+
+    #define ASSERT_SIMPLE_CONST(a)                       \
+        if constexpr (!(a)) {                            \
+            *(volatile int *) 0 = 0;                     \
         }
 #else
     #define ASSERT_SIMPLE(a) ((void) 0)
+    #define ASSERT_SIMPLE_CONST(a) ((void) 0)
 #endif
 
 #define ASSERT_TRUE(a)                                   \

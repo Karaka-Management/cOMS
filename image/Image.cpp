@@ -29,7 +29,7 @@ void image_from_file(RingMemory* ring, const char* path, Image* image)
     file_read(path, &file, ring);
 
     if (str_ends_with(path, ".png")) {
-        image_png_generate(&file, image);
+        image_png_generate(&file, image, ring);
     } else if (str_ends_with(path, ".tga")) {
         image_tga_generate(&file, image);
     } else if (str_ends_with(path, ".bmp")) {

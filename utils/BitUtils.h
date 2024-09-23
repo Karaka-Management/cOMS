@@ -17,6 +17,244 @@
 #define BIT_UNSET(num, pos) ((num) & ~((uint32) 1 << (pos)))
 #define BIT_FLIP(num, pos) ((num) ^ ((uint32) 1 << (pos)))
 #define BIT_SET_TO(num, pos, x) ((num) & ~((uint32) 1 << (pos)) | ((uint32) (x) << (pos)))
+#define BITS_GET_8(num, pos, to_read) (((num) >> (8 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
+#define BITS_GET_16(num, pos, to_read) (((num) >> (16 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
+#define BITS_GET_32(num, pos, to_read) (((num) >> (32 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
+#define BITS_GET_64(num, pos, to_read) (((num) >> (64 - (pos) - (to_read))) & ((1ULL << (to_read)) - 1))
+#define BYTES_MERGE_2(num) (((num)[0] << 8) | (num)[1])
+#define BYTES_MERGE_4(num) (((num)[0] << 24) | ((num)[1] << 16) | ((num)[2] << 8) | (num)[3])
+#define BYTES_MERGE_8(num) (((uint64_t)(num)[0] << 56) | ((uint64_t)(num)[1] << 48) | ((uint64_t)(num)[2] << 40) | ((uint64_t)(num)[3] << 32) | ((uint64_t)(num)[4] << 24) | ((uint64_t)(num)[5] << 16) | ((uint64_t)(num)[6] << 8)  | ((uint64_t)(num)[7]))
+
+struct BitWalk {
+    byte* pos;
+    uint32 bit_pos;
+};
+
+inline
+void bits_walk(BitWalk* stream, uint32 bits_to_walk)
+{
+    stream->bit_pos += bits_to_walk;
+    stream->pos += stream->bit_pos / 8;
+    stream->bit_pos %= 8;
+}
+
+inline
+void bits_flush(BitWalk* stream)
+{
+    if (stream->bit_pos > 0) {
+        stream->bit_pos = 0;
+        ++stream->pos;
+    }
+}
+
+// inline
+// uint8 bits_consume_8(BitWalk* stream, uint32 bits_to_consume)
+// {
+//     uint8 result;
+
+//     uint32 remaining = 8 - stream->bit_pos;
+//     uint32 range_1 = bits_to_consume >= remaining
+//         ? remaining
+//         : bits_to_consume;
+
+//     result = (*stream->pos >> (remaining - range_1)) & ((1 << range_1) - 1);
+//     stream->bit_pos += range_1;
+
+//     if (bits_to_consume < remaining) {
+//         return result;
+//     }
+
+//     ++stream->pos;
+//     stream->bit_pos = 0;
+//     bits_to_consume -= range_1;
+
+//     /*
+//     uint32 full_bytes = bits_to_consume / 8;
+//     if (full_bytes > 0) {
+//         for (int i = 0; i < full_bytes; ++i) {
+//             result = (result << 8) | *stream->pos;
+
+//             ++stream->pos;
+//         }
+//     }
+//     */
+
+//     if (bits_to_consume == 0) {
+//         return result;
+//     }
+
+//     stream->bit_pos += bits_to_consume;
+
+//     return (result << bits_to_consume) | ((*stream->pos >> (8 - bits_to_consume)) & ((1 << bits_to_consume) - 1));
+// }
+
+// inline
+// uint16 bits_consume_16(BitWalk* stream, uint32 bits_to_consume)
+// {
+//     uint16 result;
+
+//     uint32 remaining = 8 - stream->bit_pos;
+//     uint32 range_1 = bits_to_consume >= remaining
+//         ? remaining
+//         : bits_to_consume;
+
+//     result = (*stream->pos >> (remaining - range_1)) & ((1 << range_1) - 1);
+//     stream->bit_pos += range_1;
+
+//     if (bits_to_consume < remaining) {
+//         return result;
+//     }
+
+//     ++stream->pos;
+//     stream->bit_pos = 0;
+//     bits_to_consume -= range_1;
+
+//     uint32 full_bytes = bits_to_consume / 8;
+//     if (full_bytes > 0) {
+//         for (int i = 0; i < full_bytes; ++i) {
+//             result = (result << 8) | *stream->pos;
+
+//             ++stream->pos;
+//         }
+//     }
+
+//     uint32 range_2 = bits_to_consume - full_bytes * 8;
+//     if (range_2 == 0) {
+//         return result;
+//     }
+
+//     stream->bit_pos += range_2;
+
+//     return (result << range_2) | ((*stream->pos >> (8 - range_2)) & ((1 << range_2) - 1));
+// }
+
+// inline
+// uint32 bits_consume_32(BitWalk* stream, uint32 bits_to_consume)
+// {
+//     uint32 result;
+
+//     uint32 remaining = 8 - stream->bit_pos;
+//     uint32 range_1 = bits_to_consume >= remaining
+//         ? remaining
+//         : bits_to_consume;
+
+//     result = (*stream->pos >> (remaining - range_1)) & ((1 << range_1) - 1);
+//     stream->bit_pos += range_1;
+
+//     if (bits_to_consume < remaining) {
+//         return result;
+//     }
+
+//     ++stream->pos;
+//     stream->bit_pos = 0;
+//     bits_to_consume -= range_1;
+
+//     uint32 full_bytes = bits_to_consume / 8;
+//     if (full_bytes > 0) {
+//         for (int i = 0; i < full_bytes; ++i) {
+//             result = (result << 8) | *stream->pos;
+
+//             ++stream->pos;
+//         }
+//     }
+
+//     uint32 range_2 = bits_to_consume - full_bytes * 8;
+//     if (range_2 == 0) {
+//         return result;
+//     }
+
+//     stream->bit_pos += range_2;
+
+//     return (result << range_2) | ((*stream->pos >> (8 - range_2)) & ((1 << range_2) - 1));
+// }
+
+// inline
+// uint64 bits_consume_64(BitWalk* stream, uint32 bits_to_consume)
+// {
+//     uint64 result;
+
+//     uint32 remaining = 8 - stream->bit_pos;
+//     uint32 range_1 = bits_to_consume >= remaining
+//         ? remaining
+//         : bits_to_consume;
+
+//     result = (*stream->pos >> (remaining - range_1)) & ((1 << range_1) - 1);
+//     stream->bit_pos += range_1;
+
+//     if (bits_to_consume < remaining) {
+//         return result;
+//     }
+
+//     ++stream->pos;
+//     stream->bit_pos = 0;
+//     bits_to_consume -= range_1;
+
+//     uint32 full_bytes = bits_to_consume / 8;
+//     if (full_bytes > 0) {
+//         for (int i = 0; i < full_bytes; ++i) {
+//             result = (result << 8) | *stream->pos;
+
+//             ++stream->pos;
+//         }
+//     }
+
+//     uint32 range_2 = bits_to_consume - full_bytes * 8;
+//     if (range_2 == 0) {
+//         return result;
+//     }
+
+//     stream->bit_pos += range_2;
+
+//     return (result << range_2) | ((*stream->pos >> (8 - range_2)) & ((1 << range_2) - 1));
+// }
+
+// uint8 bits_peek_8(BitWalk* stream, uint32 bits_to_consume) {
+//     byte* pos = stream->pos;
+//     byte bit_pos = stream->bit_pos;
+
+//     uint8 bits = bits_consume_8(stream, bits_to_consume);
+
+//     stream->pos = pos;
+//     stream->bit_pos = bit_pos;
+
+//     return bits;
+// }
+
+// uint16 bits_peek_16(BitWalk* stream, uint32 bits_to_consume) {
+//     byte* pos = stream->pos;
+//     byte bit_pos = stream->bit_pos;
+
+//     uint16 bits = bits_consume_16(stream, bits_to_consume);
+
+//     stream->pos = pos;
+//     stream->bit_pos = bit_pos;
+
+//     return bits;
+// }
+
+// uint32 bits_peek_32(BitWalk* stream, uint32 bits_to_consume) {
+//     byte* pos = stream->pos;
+//     byte bit_pos = stream->bit_pos;
+
+//     uint32 bits = bits_consume_32(stream, bits_to_consume);
+
+//     stream->pos = pos;
+//     stream->bit_pos = bit_pos;
+
+//     return bits;
+// }
+
+// uint64 bits_peek_64(BitWalk* stream, uint32 bits_to_consume) {
+//     byte* pos = stream->pos;
+//     byte bit_pos = stream->bit_pos;
+
+//     uint64 bits = bits_consume_64(stream, bits_to_consume);
+
+//     stream->pos = pos;
+//     stream->bit_pos = bit_pos;
+
+//     return bits;
+// }
 
 inline
 uint32 bytes_merge(byte b0, byte b1, byte b2, byte b3) {
@@ -77,55 +315,8 @@ inline int find_first_set_bit(int value) {
     #endif
 }
 
-
 inline
-byte get_bits(byte data, int bits_to_read, int start_pos)
-{
-    byte mask = (1 << bits_to_read) - 1;
-    return (data >> (8 - start_pos - bits_to_read)) & mask;
-}
-
-inline
-uint64 get_bits(const byte* data, int bits_to_read, int start_pos)
-{
-    if (bits_to_read <= 0 || bits_to_read > sizeof(uint64)) {
-        return 0;
-    }
-
-    int byte_index = start_pos / 8;
-    int bit_offset = start_pos % 8;
-
-    uint64_t mask = (1ULL << bits_to_read) - 1;
-    uint64_t result = 0;
-
-    int bits_read = 0;
-
-    while (bits_read < bits_to_read) {
-        int bits_in_current_byte = 8 - bit_offset;
-        int bits_to_take = bits_to_read - bits_read;
-
-        if (bits_to_take > bits_in_current_byte) {
-            bits_to_take = bits_in_current_byte;
-        }
-
-        uint8_t current_byte = data[byte_index];
-        current_byte >>= bit_offset;
-        current_byte &= (1 << bits_to_take) - 1;
-
-        result |= ((uint64_t)current_byte << bits_read);
-
-        bits_read += bits_to_take;
-        bit_offset = 0;
-        byte_index++;
-    }
-
-    result &= mask;
-
-    return result;
-}
-
-inline
-uint32 reverse_bits(uint32 data, uint32 count)
+uint32 bits_reverse(uint32 data, uint32 count)
 {
     uint32 reversed = 0;
     for (uint32 i = 0; i <= (count / 2); ++i) {

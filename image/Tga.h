@@ -85,36 +85,57 @@ void image_tga_generate(const FileBody* src_data, Image* image)
 
     image->width = src.header.width;
     image->height = src.header.height;
-    image->length = image->width * image->height;
+    image->pixel_count = image->width * image->height;
 
-    // @todo also handle bottom-top/top-bottom order here
     uint32 pixel_bytes = src.header.bits_per_pixel / 8;
-    if (image->order_pixels == IMAGE_PIXEL_ORDER_BGRA) {
-        memcpy((void *) image->pixels, src.pixels, image->length * pixel_bytes);
+    byte alpha_offset = pixel_bytes > 3;
+
+    image->has_alpha |= (bool) alpha_offset;
+
+    // We can check same settings through equality since we use the same values
+    if (image->order_rows == src.header.vertical_ordering
+        && image->order_pixels == src.header.horizonal_ordering
+    ) {
+        // @bug This doesn't consider the situation where we want alpha as a setting but the img doesn't have it
+        memcpy((void *) image->pixels, src.pixels, image->pixel_count * pixel_bytes);
 
         return;
     }
 
-    byte alpha_offset = pixel_bytes == 3 ? 0 : 1;
     uint32 pixel_rgb_bytes = pixel_bytes - alpha_offset;
 
     uint32 row_pos1;
     uint32 row_pos2;
 
-    for (uint32 y = 0; y < src.header.height; ++y) {
-        for (uint32 x = 0; x < src.header.width; ++x) {
-            row_pos1 = y * image->width * pixel_bytes;
-            row_pos2 = src.header.vertical_ordering == 0
-                ? y * image->width * pixel_bytes
-                : (image->height - y - 1) * image->width * pixel_bytes;
+    uint32 width_pixel_bytes = src.header.width * pixel_bytes;
 
-            for (uint32 i = 0; i < pixel_rgb_bytes; ++i) {
-                image->pixels[row_pos1 + x * pixel_bytes + i] = src.pixels[row_pos2 + x * pixel_bytes + pixel_rgb_bytes - i];
+    for (uint32 y = 0; y < src.header.height; ++y) {
+        row_pos1 = y * image->width * pixel_bytes;
+
+        if ((image->order_rows == IMAGE_ROW_ORDER_TOP_TO_BOTTOM && src.header.vertical_ordering == 1)
+            || (image->order_rows == IMAGE_ROW_ORDER_BOTTOM_TO_TOP && src.header.vertical_ordering == 0)
+        ) {
+            row_pos2 = (src.header.height - y - 1) * image->width * pixel_bytes;
+        } else {
+            row_pos2 = y * width_pixel_bytes;
+        }
+
+        for (uint32 x = 0; x < src.header.width; ++x) {
+            if (image->order_pixels == src.header.horizonal_ordering) {
+                for (uint32 i = 0; i < pixel_rgb_bytes; ++i) {
+                    image->pixels[row_pos1 + x * pixel_bytes + i] = src.pixels[row_pos2 + x * pixel_bytes + i];
+                }
+            } else {
+                for (uint32 i = 0; i < pixel_rgb_bytes; ++i) {
+                    image->pixels[row_pos1 + x * pixel_bytes + i] = src.pixels[row_pos2 + x * pixel_bytes + pixel_rgb_bytes - i];
+                }
             }
 
-            // Add alpha channel at end
+            // Add alpha channel at end of every RGB value
             if (alpha_offset > 0) {
                 image->pixels[row_pos1 + x * pixel_bytes + 3] = src.pixels[row_pos2 + x * pixel_bytes + pixel_bytes + 3];
+            } else if (image->has_alpha) {
+                image->pixels[row_pos1 + x * pixel_bytes + 3] = 0xFF;
             }
         }
     }

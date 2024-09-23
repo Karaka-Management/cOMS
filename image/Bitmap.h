@@ -277,41 +277,65 @@ void image_bmp_generate(const FileBody* src_data, Image* image)
 
     image->width = src.dib_header.width;
     image->height = src.dib_header.height;
-    image->length = image->width * image->height;
+    image->pixel_count = image->width * image->height;
 
     // rows are 4 bytes multiples in length
     uint32 width = ROUND_TO_NEAREST(src.dib_header.width, 4);
 
     uint32 pixel_bytes = src.dib_header.bits_per_pixel / 8;
-    if (image->order_pixels == IMAGE_PIXEL_ORDER_BGRA) {
-        memcpy((void *) image->pixels, src.pixels, image->length * pixel_bytes);
+    byte alpha_offset = pixel_bytes > 3;
+
+    image->has_alpha |= (bool) alpha_offset;
+
+    if (image->order_pixels == IMAGE_PIXEL_ORDER_BGRA
+        && image->order_rows == IMAGE_ROW_ORDER_BOTTOM_TO_TOP
+    ) {
+        // @bug This doesn't consider the situation where we want alpha as a setting but the img doesn't have it
+        // @bug This also copies possible padding which will corrupt the image
+        memcpy((void *) image->pixels, src.pixels, image->pixel_count * pixel_bytes);
 
         return;
     }
 
-    byte alpha_offset = pixel_bytes == 3 ? 0 : 1;
+    uint32 pixel_rgb_bytes = pixel_bytes - alpha_offset;
 
-    uint32 row_pos1 = 0;
-    uint32 row_pos2 = 0;
+    uint32 row_pos1;
+    uint32 row_pos2;
+
+    uint32 width_pixel_bytes = width * pixel_bytes;
 
     for (uint32 y = 0; y < src.dib_header.height; ++y) {
+        row_pos1 = y * width_pixel_bytes;
+
+        if (image->order_rows == IMAGE_ROW_ORDER_TOP_TO_BOTTOM) {
+            row_pos2 = (src.dib_header.height - y - 1) * width_pixel_bytes;
+        } else {
+            row_pos2 = y * width_pixel_bytes;
+        }
+
         for (uint32 x = 0; x < width; ++x) {
             if (x >= image->width) {
-                // we don't care about the padding
+                // Bitmaps may have padding at the end of the row
+                // We don't care about that
                 continue;
             }
 
-            row_pos1 = y * width * pixel_bytes;
-            row_pos2 = (src.dib_header.height - y - 1) * width * pixel_bytes;
-
             // Invert byte order
-            for (uint32 i = 0; i < pixel_bytes - alpha_offset; ++i) {
-                image->pixels[row_pos1 + x * pixel_bytes + i] = src.pixels[row_pos2 + x * pixel_bytes + pixel_bytes - alpha_offset - i];
+            if (image->order_pixels == IMAGE_PIXEL_ORDER_RGBA) {
+                for (uint32 i = 0; i < pixel_rgb_bytes; ++i) {
+                    image->pixels[row_pos1 + x * pixel_bytes + i] = src.pixels[row_pos2 + x * pixel_bytes + pixel_rgb_bytes - i];
+                }
+            } else {
+                for (uint32 i = 0; i < pixel_rgb_bytes; ++i) {
+                    image->pixels[row_pos1 + x * pixel_bytes + i] = src.pixels[row_pos2 + x * pixel_bytes + i];
+                }
             }
 
-            // Add alpha channel at end
+            // Add alpha channel at end of every RGB value
             if (alpha_offset > 0) {
                 image->pixels[row_pos1 + x * pixel_bytes + 3] = src.pixels[row_pos2 + x * pixel_bytes + pixel_bytes + 3];
+            } else if (image->has_alpha) {
+                image->pixels[row_pos1 + x * pixel_bytes + 3] = 0xFF;
             }
         }
     }

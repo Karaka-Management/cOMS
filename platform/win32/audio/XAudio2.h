@@ -125,20 +125,18 @@ void audio_play(AudioSetting* setting, XAudio2Setting* api_setting) {
 }
 
 inline
+void audio_stop(AudioSetting* setting, XAudio2Setting* api_setting) {
+    if (!api_setting->source_voice) {
+        return;
+    }
+
+    api_setting->source_voice->Stop(0, XAUDIO2_COMMIT_NOW);
+    setting->is_playing = false;
+}
+
+inline
 void audio_free(AudioSetting* setting, XAudio2Setting* api_setting)
 {
-    if (api_setting->internal_buffer[0].pAudioData) {
-        free((void *) api_setting->internal_buffer[0].pAudioData);
-    }
-
-    if (api_setting->internal_buffer[1].pAudioData) {
-        free((void *) api_setting->internal_buffer[1].pAudioData);
-    }
-
-    if (setting->buffer) {
-        free((void *) setting->buffer);
-    }
-
     if (api_setting->source_voice) {
         api_setting->source_voice->DestroyVoice();
     }
@@ -149,6 +147,18 @@ void audio_free(AudioSetting* setting, XAudio2Setting* api_setting)
 
     if (api_setting->audio_handle) {
         api_setting->audio_handle->Release();
+    }
+
+    if (api_setting->internal_buffer[0].pAudioData) {
+        free((void *) api_setting->internal_buffer[0].pAudioData);
+    }
+
+    if (api_setting->internal_buffer[1].pAudioData) {
+        free((void *) api_setting->internal_buffer[1].pAudioData);
+    }
+
+    if (setting->buffer) {
+        free((void *) setting->buffer);
     }
 }
 
