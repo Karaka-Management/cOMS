@@ -12,18 +12,35 @@
 #include <intrin.h>
 #include "../stdlib/Types.h"
 
-#define IS_BIT_SET(num, pos) ((bool) ((num) & (1 << (pos))))
-#define BIT_SET(num, pos) ((num) | ((uint32) 1 << (pos)))
-#define BIT_UNSET(num, pos) ((num) & ~((uint32) 1 << (pos)))
-#define BIT_FLIP(num, pos) ((num) ^ ((uint32) 1 << (pos)))
-#define BIT_SET_TO(num, pos, x) ((num) & ~((uint32) 1 << (pos)) | ((uint32) (x) << (pos)))
-#define BITS_GET_8(num, pos, to_read) (((num) >> (8 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
-#define BITS_GET_16(num, pos, to_read) (((num) >> (16 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
-#define BITS_GET_32(num, pos, to_read) (((num) >> (32 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
-#define BITS_GET_64(num, pos, to_read) (((num) >> (64 - (pos) - (to_read))) & ((1ULL << (to_read)) - 1))
-#define BYTES_MERGE_2(num) (((num)[0] << 8) | (num)[1])
-#define BYTES_MERGE_4(num) (((num)[0] << 24) | ((num)[1] << 16) | ((num)[2] << 8) | (num)[3])
-#define BYTES_MERGE_8(num) (((uint64_t)(num)[0] << 56) | ((uint64_t)(num)[1] << 48) | ((uint64_t)(num)[2] << 40) | ((uint64_t)(num)[3] << 32) | ((uint64_t)(num)[4] << 24) | ((uint64_t)(num)[5] << 16) | ((uint64_t)(num)[6] << 8)  | ((uint64_t)(num)[7]))
+// Left to right
+#define IS_BIT_SET_L2R(num, pos, bits) ((bool) ((num) & (1 << ((bits - 1) - (pos)))))
+#define BIT_SET_L2R(num, pos, bits) ((num) | ((uint32) 1 << ((bits - 1) - (pos))))
+#define BIT_UNSET_L2R(num, pos, bits) ((num) & ~((uint32) 1 << ((bits - 1) - (pos))))
+#define BIT_FLIP_L2R(num, pos, bits) ((num) ^ ((uint32) 1 << ((bits - 1) - (pos))))
+#define BIT_SET_TO_L2R(num, pos, x, bits) ((num) & ~((uint32) 1 << ((bits - 1) - (pos))) | ((uint32) (x) << ((bits - 1) - (pos))))
+#define BITS_GET_8_L2R(num, pos, to_read) (((num) >> (8 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
+#define BITS_GET_16_L2R(num, pos, to_read) (((num) >> (16 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
+#define BITS_GET_32_L2R(num, pos, to_read) (((num) >> (32 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
+#define BITS_GET_64_L2R(num, pos, to_read) (((num) >> (64 - (pos) - (to_read))) & ((1ULL << (to_read)) - 1))
+
+#define BYTES_MERGE_2_L2R(num) (((num)[0] << 8) | (num)[1])
+#define BYTES_MERGE_4_L2R(num) (((num)[0] << 24) | ((num)[1] << 16) | ((num)[2] << 8) | (num)[3])
+#define BYTES_MERGE_8_L2R(num) (((uint64_t)(num)[0] << 56) | ((uint64_t)(num)[1] << 48) | ((uint64_t)(num)[2] << 40) | ((uint64_t)(num)[3] << 32) | ((uint64_t)(num)[4] << 24) | ((uint64_t)(num)[5] << 16) | ((uint64_t)(num)[6] << 8)  | ((uint64_t)(num)[7]))
+
+// Right to left
+#define IS_BIT_SET_R2L(num, pos) ((bool) ((num) & (1 << (pos))))
+#define BIT_SET_R2L(num, pos) ((num) | ((uint32) 1 << (pos)))
+#define BIT_UNSET_R2L(num, pos) ((num) & ~((uint32) 1 << (pos)))
+#define BIT_FLIP_R2L(num, pos) ((num) ^ ((uint32) 1 << (pos)))
+#define BIT_SET_TO_R2L(num, pos, x) ((num) & ~((uint32) 1 << (pos)) | ((uint32) (x) << (pos)))
+#define BITS_GET_8_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
+#define BITS_GET_16_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
+#define BITS_GET_32_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
+#define BITS_GET_64_R2L(num, pos, to_read) (((num) >> (pos)) & ((1ULL << (to_read)) - 1))
+
+#define BYTES_MERGE_2_R2L(num) (((num)[1] << 8) | (num)[0])
+#define BYTES_MERGE_4_R2L(num) (((num)[3] << 24) | ((num)[2] << 16) | ((num)[1] << 8) | (num)[0])
+#define BYTES_MERGE_8_R2L(num) (((uint64_t)(num)[7] << 56) | ((uint64_t)(num)[6] << 48) | ((uint64_t)(num)[5] << 40) | ((uint64_t)(num)[4] << 32) | ((uint64_t)(num)[3] << 24) | ((uint64_t)(num)[2] << 16) | ((uint64_t)(num)[1] << 8)  | ((uint64_t)(num)[0]))
 
 struct BitWalk {
     byte* pos;

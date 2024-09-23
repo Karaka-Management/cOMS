@@ -285,7 +285,7 @@ bool hotkey_is_pressed(const InputState* __restrict state, const InputMapping* _
         key0 -= MAX_MOUSE_KEYS;
         is_pressed = keyboard_is_pressed(state, key0);
     } else if (key0 > 0) {
-        is_pressed = IS_BIT_SET(state->mouse_down, key0 - 1);
+        is_pressed = IS_BIT_SET_R2L(state->mouse_down, key0 - 1);
     }
 
     if (!is_pressed || key1 == 0) {
@@ -296,7 +296,7 @@ bool hotkey_is_pressed(const InputState* __restrict state, const InputMapping* _
         key1 -= MAX_MOUSE_KEYS;
         is_pressed &= keyboard_is_pressed(state, key1);
     } else if (key1 > 0) {
-        is_pressed &= IS_BIT_SET(state->mouse_down, key1 - 1);
+        is_pressed &= IS_BIT_SET_R2L(state->mouse_down, key1 - 1);
     }
 
     if (!is_pressed || key2 == 0) {
@@ -307,7 +307,7 @@ bool hotkey_is_pressed(const InputState* __restrict state, const InputMapping* _
         key2 -= MAX_MOUSE_KEYS;
         is_pressed &= keyboard_is_pressed(state, key2);
     } else if (key2 > 0) {
-        is_pressed &= IS_BIT_SET(state->mouse_down, key2 - 1);
+        is_pressed &= IS_BIT_SET_R2L(state->mouse_down, key2 - 1);
     }
 
     return is_pressed;
@@ -368,7 +368,7 @@ input_hotkey_state(InputState* __restrict state, const InputMapping* mapping)
     // Some are already handled in the previous section, but some might not be handled, since they are mouse only
     // But this also means, that we ONLY have to search for mouse only hotkeys. It's impossible to find NEW matches with keyboard keys.
     for (int down_state = 0; down_state < MAX_MOUSE_KEYS; ++down_state) {
-        if (!IS_BIT_SET(state->mouse_down, down_state)) {
+        if (!IS_BIT_SET_R2L(state->mouse_down, down_state)) {
             continue;
         }
 

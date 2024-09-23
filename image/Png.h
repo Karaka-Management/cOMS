@@ -74,7 +74,7 @@ struct PngIHDR {
     uint32 width;
     uint32 height;
     uint8 bit_depth;
-    uint8 colory_type;
+    uint8 color_type;
     uint8 compression;
     uint8 filter;
     uint8 interlace;
@@ -95,6 +95,11 @@ struct Png {
 
     uint32 size;
     uint8* data; // WARNING: This is not the owner of the data. The owner is the FileBody
+};
+
+struct PngtRANS {
+    uint32 length;
+    uint8* values;
 };
 
 struct PngHuffmanEntry {
@@ -168,7 +173,7 @@ inline
 uint16 huffman_png_decode(PngHuffman* __restrict huff, BitWalk* __restrict stream)
 {
     // huff->max_code_length has a length of a maximum of 15 -> span a maximum of 3 bytes
-    uint32 index = SWAP_ENDIAN_BIG(BITS_GET_32(BYTES_MERGE_4(stream->pos), stream->bit_pos, huff->max_code_length));
+    uint32 index = BITS_GET_32_R2L(BYTES_MERGE_4_R2L(stream->pos), stream->bit_pos, huff->max_code_length);
 
     bits_walk(stream, huff->entries[index].bits_used);
 
@@ -210,7 +215,7 @@ uint8 png_filter_4(const uint8* x, const uint8* a_full, const uint8* b_full, con
     return x[channel] + (uint8) paeth;
 }
 
-void png_filter_reconstruct(uint32 width, uint32 height, const uint8* decompressed, uint8* finalized, int steps = 8)
+void png_filter_reconstruct(uint32 width, uint32 height, uint32 color_type, const uint8* decompressed, uint8* finalized, int steps = 8)
 {
     uint64 zero = 0;
     uint8* prev_row = (uint8 *) &zero;
@@ -219,82 +224,206 @@ void png_filter_reconstruct(uint32 width, uint32 height, const uint8* decompress
     const uint8* src = decompressed;
     uint8* dest = finalized;
 
+    uint8 bytes_per_pixel = color_type == 2 ? 3 : 4;
+    uint8 out_bytes_per_pixel = bytes_per_pixel; // @todo needs changing for tRANS
+
     for (uint32 y = 0; y < height; ++y) {
         uint8 filter = *decompressed;
         uint8* current_row = dest;
 
         switch (filter) {
             case 0: {
-                    memcpy(dest, src, width * sizeof(uint32));
-                    dest += 4 * width;
-                    src += 4 * width;
+                    if (color_type == 3) {
+                        /* @todo don't forget to handle transparency in tRANS (we need a data structure that holds alphas + length)
+                        for (uint32 x = 0; x < width; ++x) {
+                            dest[0] = palette[*src * 3];
+                            dest[1] = palette[*src * 3 + 1];
+                            dest[2] = palette[*src * 3 + 2];
+
+                            if (alpha && alpha->length < *src) {
+                                // @question Do we need to apply the filter here too?
+                                dest[3] = alpha->values[*src];
+                            }
+
+                            ++src;
+                            dest += out_bytes_per_pixel;
+                        }
+                        */
+                    } else {
+                        memcpy(dest, src, width * bytes_per_pixel);
+                        dest += bytes_per_pixel * width;
+                        src += bytes_per_pixel * width;
+                    }
                 } break;
             case 1: {
                     uint32 a_pixel = 0;
-                    for (uint32 x = 0; x < width; ++x) {
-                        // png_filter_1_and_2
-                        dest[0] = src[0] + ((uint8 *) &a_pixel)[0];
-                        dest[1] = src[1] + ((uint8 *) &a_pixel)[1];
-                        dest[2] = src[2] + ((uint8 *) &a_pixel)[2];
-                        dest[3] = src[3] + ((uint8 *) &a_pixel)[3];
 
-                        a_pixel = *(uint32 *) dest;
+                    if (color_type == 3) {
+                        // @question Is this filter even allowed with palettes?
+                        /* @todo don't forget to handle transparency in tRANS
+                        for (uint32 x = 0; x < width; ++x) {
+                            dest[0] = palette[*src * 3] + ((uint8 *) &a_pixel)[0];
+                            dest[1] = palette[*src * 3 + 1] + ((uint8 *) &a_pixel)[1];
+                            dest[2] = palette[*src * 3 + 2] + ((uint8 *) &a_pixel)[2];
 
-                        dest += 4;
-                        src += 4;
+                            if (alpha && alpha->length < *src) {
+                                // @question Do we need to apply the filter here too?
+                                dest[3] = alpha->values[*src];
+                            }
+
+                            a_pixel = *(uint32 *) dest;
+
+                            dest += out_bytes_per_pixel;
+                            ++src;
+                        }
+                        */
+                    } else {
+                        for (uint32 x = 0; x < width; ++x) {
+                            // png_filter_1_and_2
+                            dest[0] = src[0] + ((uint8 *) &a_pixel)[0];
+                            dest[1] = src[1] + ((uint8 *) &a_pixel)[1];
+                            dest[2] = src[2] + ((uint8 *) &a_pixel)[2];
+
+                            if (bytes_per_pixel > 3) {
+                                dest[3] = src[3] + ((uint8 *) &a_pixel)[3];
+                            }
+
+                            a_pixel = *(uint32 *) dest;
+
+                            dest += bytes_per_pixel;
+                            src += bytes_per_pixel;
+                        }
                     }
                 } break;
             case 2: {
-                    // @performance this is simd optimizable
-                    // requires manual simd impl. since prev_row_advance can be 0 or 4
                     uint8* b_pixel = prev_row;
-                    for (uint32 x = 0; x < width; ++x) {
-                        // png_filter_1_and_2
-                        dest[0] = src[0] + b_pixel[0];
-                        dest[1] = src[1] + b_pixel[1];
-                        dest[2] = src[2] + b_pixel[2];
-                        dest[3] = src[3] + b_pixel[3];
 
-                        b_pixel += prev_row_advance;
+                    if (color_type == 3) {
+                        // @question Is this filter even allowed with palettes?
+                        /* @todo don't forget to handle transparency in tRANS
+                        for (uint32 x = 0; x < width; ++x) {
+                            dest[0] = palette[*src * 3] + b_pixel[0];
+                            dest[1] = palette[*src * 3 + 1] + b_pixel[1];
+                            dest[2] = palette[*src * 3 + 2] + b_pixel[2];
 
-                        dest += 4;
-                        src += 4;
+                            if (alpha && alpha->length < *src) {
+                                // @question Do we need to apply the filter here too?
+                                dest[3] = alpha->values[*src];
+                            }
+
+                            b_pixel += prev_row_advance;
+
+                            dest += out_bytes_per_pixel;
+                            ++src;
+                        }
+                        */
+                    } else {
+                        // @performance this is simd optimizable
+                        // requires manual simd impl. since prev_row_advance can be 0 or 4
+                        for (uint32 x = 0; x < width; ++x) {
+                            // png_filter_1_and_2
+                            dest[0] = src[0] + b_pixel[0];
+                            dest[1] = src[1] + b_pixel[1];
+                            dest[2] = src[2] + b_pixel[2];
+
+                            if (bytes_per_pixel > 3) {
+                                dest[3] = src[3] + b_pixel[3];
+                            }
+
+                            b_pixel += prev_row_advance;
+
+                            dest += bytes_per_pixel;
+                            src += bytes_per_pixel;
+                        }
                     }
                 } break;
             case 3: {
                     uint32 a_pixel = 0;
                     uint8* b_pixel = prev_row;
-                    for (uint32 x = 0; x < width; ++x) {
-                        // png_filter_3
-                        dest[0] = src[0] + (uint8) (((uint32) ((uint8 *) &a_pixel)[0] + (uint32) b_pixel[0]) / 2);
-                        dest[1] = src[1] + (uint8) (((uint32) ((uint8 *) &a_pixel)[1] + (uint32) b_pixel[1]) / 2);
-                        dest[2] = src[2] + (uint8) (((uint32) ((uint8 *) &a_pixel)[2] + (uint32) b_pixel[2]) / 2);
-                        dest[3] = src[3] + (uint8) (((uint32) ((uint8 *) &a_pixel)[3] + (uint32) b_pixel[3]) / 2);
 
-                        a_pixel = *(uint32 *) dest;
-                        b_pixel += prev_row_advance;
+                    if (color_type == 3) {
+                        // @question Is this filter even allowed with palettes?
+                        /* @todo don't forget to handle transparency in tRANS
+                        for (uint32 x = 0; x < width; ++x) {
+                            dest[0] = palette[*src * 3] + (uint8) (((uint32) ((uint8 *) &a_pixel)[0] + (uint32) b_pixel[0]) / 2);
+                            dest[1] = palette[*src * 3 + 1] + (uint8) (((uint32) ((uint8 *) &a_pixel)[1] + (uint32) b_pixel[1]) / 2);
+                            dest[2] = palette[*src * 3 + 2] + (uint8) (((uint32) ((uint8 *) &a_pixel)[2] + (uint32) b_pixel[2]) / 2);
 
-                        dest += 4;
-                        src += 4;
+                            if (alpha && alpha->length < *src) {
+                                // @question Do we need to apply the filter here too?
+                                dest[3] = alpha->values[*src];
+                            }
+
+                            a_pixel = *(uint32 *) dest;
+                            b_pixel += prev_row_advance;
+
+                            dest += out_bytes_per_pixel;
+                            ++src;
+                        }
+                        */
+                    } else {
+                        for (uint32 x = 0; x < width; ++x) {
+                            // png_filter_3
+                            dest[0] = src[0] + (uint8) (((uint32) ((uint8 *) &a_pixel)[0] + (uint32) b_pixel[0]) / 2);
+                            dest[1] = src[1] + (uint8) (((uint32) ((uint8 *) &a_pixel)[1] + (uint32) b_pixel[1]) / 2);
+                            dest[2] = src[2] + (uint8) (((uint32) ((uint8 *) &a_pixel)[2] + (uint32) b_pixel[2]) / 2);
+
+                            if (bytes_per_pixel > 3) {
+                                dest[3] = src[3] + (uint8) (((uint32) ((uint8 *) &a_pixel)[3] + (uint32) b_pixel[3]) / 2);
+                            }
+
+                            a_pixel = *(uint32 *) dest;
+                            b_pixel += prev_row_advance;
+
+                            dest += bytes_per_pixel;
+                            src += bytes_per_pixel;
+                        }
                     }
                 } break;
             case 4: {
                     uint32 a_pixel = 0;
                     uint32 c_pixel = 0;
                     uint8* b_pixel = prev_row;
-                    for (uint32 x = 0; x < width; ++x) {
-                        // png_filter_4
-                        dest[0] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 0);
-                        dest[1] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 1);
-                        dest[2] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 2);
-                        dest[3] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 3);
 
-                        a_pixel = *(uint32 *) dest;
-                        c_pixel = *(uint32 *) b_pixel;
-                        b_pixel += prev_row_advance;
+                    if (color_type == 3) {
+                        // @question Is this filter even allowed with palettes?
+                        /* @todo don't forget to handle transparency in tRANS
+                        for (uint32 x = 0; x < width; ++x) {
+                            dest[0] = png_filter_4(&palette[*src * 3], (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 0);
+                            dest[1] = png_filter_4(&palette[*src * 3], (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 1);
+                            dest[2] = png_filter_4(&palette[*src * 3], (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 2);
 
-                        dest += 4;
-                        src += 4;
+                            if (alpha && alpha->length < *src) {
+                                // @question Do we need to apply the filter here too?
+                                dest[3] = alpha->values[*src];
+                            }
+
+                            a_pixel = *(uint32 *) dest;
+                            c_pixel = *(uint32 *) b_pixel;
+                            b_pixel += prev_row_advance;
+
+                            dest += out_bytes_per_pixel;
+                            ++src;
+                        }
+                        */
+                    } else {
+                        for (uint32 x = 0; x < width; ++x) {
+                            // png_filter_4
+                            dest[0] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 0);
+                            dest[1] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 1);
+                            dest[2] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 2);
+
+                            if (bytes_per_pixel > 3) {
+                                dest[3] = png_filter_4(src, (uint8 *) &a_pixel, b_pixel, (uint8 *) &c_pixel, 3);
+                            }
+
+                            a_pixel = *(uint32 *) dest;
+                            c_pixel = *(uint32 *) b_pixel;
+                            b_pixel += prev_row_advance;
+
+                            dest += bytes_per_pixel;
+                            src += bytes_per_pixel;
+                        }
                     }
                 } break;
             default: {
@@ -303,7 +432,7 @@ void png_filter_reconstruct(uint32 width, uint32 height, const uint8* decompress
         }
 
         prev_row = current_row;
-        prev_row_advance = 4;
+        prev_row_advance = bytes_per_pixel;
     }
 }
 
@@ -329,12 +458,9 @@ void generate_default_png_references(const FileBody* file, Png* png)
     png->ihdr.crc = SWAP_ENDIAN_BIG(png->ihdr.crc);
 }
 
-// Below you will often see code like SWAP_ENDIAN_BIG(BITS_GET_16(BYTES_MERGE_2()))
-//      1. Merge two bytes together creating a "new" data structure from which we can easily read bits
-//          1.1. This is required to read bits that cross multiple bytes
-//          1.2. Only if you read more than 8 bits will you need to merge 4 bytes
-//      2. Now we can retrieve the bits from this data structure at a position with a length
-//      3. Whenever we use the result as an integer (16 or 32 bits) we need to consider the endianness
+// @performance Profile: BITS_GET_16_R2L(SWAP_ENDIAN_BIG((uint16) *stream.pos)) vs BITS_GET_16_R2L(BYTES_MERGE_2_R2L())
+// Below you will often see code like BITS_GET_16_R2L(BYTES_MERGE_2_R2L()) OR BITS_GET_16_R2L(SWAP_ENDIAN_BIG())
+// Both do th same, they retrieve bits WHILE considering the endianness
 bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring, int32 steps = 8)
 {
     // @performance We are generating the struct and then filling the data.
@@ -342,16 +468,9 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
     Png src = {};
     generate_default_png_references(src_data, &src);
 
-    // @todo We probably need the following buffers
-    //  1. file buffer (already here)
-    //  2. block buffer
-    //  3. temp pixel buffer (larger)
-    //  4. final pixel buffer (already here)
-
-    // @todo Consider to support (0, 2, 3, 4, and 6)
-    //      A simple black and white image or a image without alpha should be supported
+    // @todo Support color_type == 3
     if (src.ihdr.bit_depth != 8
-        || src.ihdr.colory_type != 6
+        || (src.ihdr.color_type != 6 && src.ihdr.color_type != 2)
         || src.ihdr.compression != 0
         || src.ihdr.filter != 0
         || src.ihdr.interlace != 0
@@ -370,6 +489,17 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
         6       8,16        Each pixel is an R,G,B triple, followed by an alpha sample.
         */
 
+        return false;
+    }
+
+    uint32 bytes_per_pixel;
+    if (src.ihdr.color_type == 6) {
+        bytes_per_pixel = 4;
+    } else if (src.ihdr.color_type == 2) {
+        bytes_per_pixel = 3;
+    } else if (src.ihdr.color_type == 3) {
+        bytes_per_pixel = 1;
+    } else {
         return false;
     }
 
@@ -395,10 +525,14 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
     dictionary_huffman->count = 1 << dictionary_huffman->max_code_length;
 
     // We need full width * height, since we don't know how much data this IDAT actually holds
-    uint8* finalized = ring_get_memory(ring, src.ihdr.width * src.ihdr.height * 4);
+    uint8* finalized = ring_get_memory(ring, src.ihdr.width * src.ihdr.height * bytes_per_pixel);
 
     // Needs some extra space
-    uint8* decompressed = ring_get_memory(ring, src.ihdr.width * src.ihdr.height * 4 + src.ihdr.height);
+    uint8* decompressed = ring_get_memory(ring, src.ihdr.width * src.ihdr.height * bytes_per_pixel + src.ihdr.height);
+
+    uint8* palette;
+    // @todo remove, we can store this information directly in the palette
+    PngtRANS transparency;
 
     uint8* dest = decompressed;
 
@@ -425,6 +559,31 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
         if (chunk.type == SWAP_ENDIAN_BIG('IEND')) {
             // we arrived at the end of the file
             break;
+        } else if (chunk.type == SWAP_ENDIAN_BIG('PLTE')) {
+            // @todo change so that the tRANS directly sets the alpha for the respective color
+            //      This means we increase the palette by 1 byte per index (chunk.length/3*4)
+            palette = ring_get_memory(ring, chunk.length);
+            memcpy(palette, stream.pos, chunk.length);
+
+            stream.pos += chunk.length + sizeof(chunk.crc);
+
+            continue;
+        } else if (chunk.type == SWAP_ENDIAN_BIG('tRNS')) {
+            // @todo remove, we can store this information directly in the palette
+            transparency.values = ring_get_memory(ring, chunk.length);
+            memcpy(transparency.values, stream.pos, chunk.length);
+
+            if (src.ihdr.color_type == 3) {
+                transparency.length = chunk.length;
+            } else if (src.ihdr.color_type == 2) {
+                transparency.length = chunk.length / 3;
+            } else {
+                transparency.length = 1; // We don't support 16 bit colors, only 8
+            }
+
+            stream.pos += chunk.length + sizeof(chunk.crc);
+
+            continue;
         } else if (chunk.type != SWAP_ENDIAN_BIG('IDAT')) {
             // some other data
 
@@ -449,6 +608,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
         idat_header.add_flag = *stream.pos;
         ++stream.pos;
 
+        // https://www.ietf.org/rfc/rfc1950.txt - zlib
         uint8 CM = idat_header.zlib_method_flag & 0xF;
         uint8 FDICT = (idat_header.add_flag >> 5) & 0x1;
 
@@ -457,11 +617,12 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
             return false;
         }
 
+        // https://www.ietf.org/rfc/rfc1951.txt - defalte
         // This data might be stored in the prvious IDAT chunk?!
-        BFINAL = (uint8) SWAP_ENDIAN_BIG(BITS_GET_8(*stream.pos, stream.bit_pos, 1));
+        BFINAL = (uint8) BITS_GET_8_R2L(*stream.pos, stream.bit_pos, 1);
         bits_walk(&stream, 1);
 
-        uint32 BTYPE = SWAP_ENDIAN_BIG(BITS_GET_8(BYTES_MERGE_2(stream.pos), stream.bit_pos, 2));
+        uint32 BTYPE = BITS_GET_16_R2L(BYTES_MERGE_2_R2L(stream.pos), stream.bit_pos, 2);
         bits_walk(&stream, 2);
 
         if (BTYPE == 0) {
@@ -476,11 +637,13 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
 
             ASSERT_SIMPLE(len == ~nlen);
 
-            memcpy(dest, &stream.pos, len);
+            memcpy(dest, stream.pos, len);
             stream.pos += len;
         } else if (BTYPE == 3) {
-            // Invalid BTYPE
+            // Invalid BTYPE / reserved
             ASSERT_SIMPLE(false);
+
+            return false;
         } else {
             // @question is this even required or are we overwriting anyways?
             memset(&literal_length_dist_table, 0, sizeof(literal_length_dist_table));
@@ -493,13 +656,13 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
 
             if (BTYPE == 2) {
                 // Compressed with dynamic Huffman code
-                huffman_literal = SWAP_ENDIAN_BIG(BITS_GET_16(BYTES_MERGE_2(stream.pos), stream.bit_pos, 5));
+                huffman_literal = BITS_GET_16_R2L(BYTES_MERGE_2_R2L(stream.pos), stream.bit_pos, 5);
                 bits_walk(&stream, 5);
 
-                huffman_dist = SWAP_ENDIAN_BIG(BITS_GET_16(BYTES_MERGE_2(stream.pos), stream.bit_pos, 5));
+                huffman_dist = BITS_GET_16_R2L(BYTES_MERGE_2_R2L(stream.pos), stream.bit_pos, 5);
                 bits_walk(&stream, 5);
 
-                uint32 huffman_code_length = SWAP_ENDIAN_BIG(BITS_GET_16(BYTES_MERGE_2(stream.pos), stream.bit_pos, 4));
+                uint32 huffman_code_length = BITS_GET_16_R2L(BYTES_MERGE_2_R2L(stream.pos), stream.bit_pos, 4);
                 bits_walk(&stream, 5);
 
                 huffman_literal += 257;
@@ -509,7 +672,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
                 uint32 huffman_code_length_table[ARRAY_COUNT(HUFFMAN_CODE_LENGTH_ALPHA)] = {};
 
                 for (uint32 j = 0; j < huffman_code_length; ++j) {
-                    huffman_code_length_table[HUFFMAN_CODE_LENGTH_ALPHA[j]] = SWAP_ENDIAN_BIG(BITS_GET_16(BYTES_MERGE_2(stream.pos), stream.bit_pos, 3));
+                    huffman_code_length_table[HUFFMAN_CODE_LENGTH_ALPHA[j]] = BITS_GET_16_R2L(BYTES_MERGE_2_R2L(stream.pos), stream.bit_pos, 3);
                     bits_walk(&stream, 3);
                 }
 
@@ -528,15 +691,15 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
                     if (encoded_length <= 15) {
                         rep_val = encoded_length;
                     } else if (encoded_length == 16) {
-                        rep_count = 3 + SWAP_ENDIAN_BIG(BITS_GET_8(BYTES_MERGE_2(stream.pos), stream.bit_pos, 2));
+                        rep_count = 3 + BITS_GET_16_R2L(BYTES_MERGE_2_R2L(stream.pos), stream.bit_pos, 2);
                         bits_walk(&stream, 2);
 
                         rep_val = literal_length_dist_table[literal_length_count - 1];
                     } else if (encoded_length == 17) {
-                        rep_count = 3 + SWAP_ENDIAN_BIG(BITS_GET_8(BYTES_MERGE_2(stream.pos), stream.bit_pos, 3));
+                        rep_count = 3 + BITS_GET_16_R2L(BYTES_MERGE_2_R2L(stream.pos), stream.bit_pos, 3);
                         bits_walk(&stream, 3);
                     } else if (encoded_length == 18) {
-                        rep_count = 11 + SWAP_ENDIAN_BIG(BITS_GET_8(BYTES_MERGE_2(stream.pos), stream.bit_pos, 7));
+                        rep_count = 11 + BITS_GET_16_R2L(BYTES_MERGE_2_R2L(stream.pos), stream.bit_pos, 7);
                         bits_walk(&stream, 7);
                     }
 
@@ -578,7 +741,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
 
                     if (length_tab.bits_used) {
                         // @performance If we knew that bits_used is always <= 15 we could use more efficient MERGE/GET
-                        uint32 extra_bits = SWAP_ENDIAN_BIG(BITS_GET_32(BYTES_MERGE_4(stream.pos), stream.bit_pos, length_tab.bits_used));
+                        uint32 extra_bits = BITS_GET_32_R2L(BYTES_MERGE_4_R2L(stream.pos), stream.bit_pos, length_tab.bits_used);
                         bits_walk(&stream, length_tab.bits_used);
 
                         length += extra_bits;
@@ -591,7 +754,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
 
                     if (dist_tab.bits_used) {
                         // @performance If we knew that bits_used is always <= 15 we could use more efficient MERGE/GET
-                        uint32 extra_bits = SWAP_ENDIAN_BIG(BITS_GET_32(BYTES_MERGE_4(stream.pos), stream.bit_pos, dist_tab.bits_used));
+                        uint32 extra_bits = BITS_GET_32_R2L(BYTES_MERGE_4_R2L(stream.pos), stream.bit_pos, dist_tab.bits_used);
                         bits_walk(&stream, dist_tab.bits_used);
 
                         dist += extra_bits;
@@ -614,11 +777,11 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
     image->width = src.ihdr.width;
     image->height = src.ihdr.height;
     image->pixel_count = image->width * image->height;
-    image->has_alpha = true;
+    image->has_alpha = (src.ihdr.color_type == 6);
     image->order_pixels = IMAGE_PIXEL_ORDER_RGBA;
     image->order_rows = IMAGE_ROW_ORDER_TOP_TO_BOTTOM;
 
-    png_filter_reconstruct(src.ihdr.width, src.ihdr.height, decompressed, finalized, steps);
+    png_filter_reconstruct(src.ihdr.width, src.ihdr.height, src.ihdr.color_type, decompressed, finalized, steps);
 
     return true;
 }

@@ -357,7 +357,7 @@ void input_handle_buffered(int buffer_size, Input* __restrict states, int state_
         }
     }
 
-    ASSERT_SIMPLE(input != (uint32) -1)
+    ASSERT_SIMPLE(input != (uint32) -1);
 }
 
 #endif
