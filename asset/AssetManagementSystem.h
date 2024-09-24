@@ -96,6 +96,7 @@ void ams_create(AssetManagementSystem* ams, byte* buf, int chunk_size, int count
     ams->last = NULL;
 }
 
+inline
 uint64 ams_get_vram_usage(AssetManagementSystem* ams)
 {
     uint64 size = 0;
@@ -119,19 +120,18 @@ void ams_free_asset(AssetManagementSystem* ams, Asset* asset)
     }
 }
 
+inline
 Asset* ams_get_asset(AssetManagementSystem* ams, uint64 element)
 {
     return (Asset *) chunk_get_element(&ams->asset_memory, element, false);
 }
 
+inline
 Asset* ams_get_asset(AssetManagementSystem* ams, const char* key)
 {
-    HashEntryInt64* entry = (HashEntryInt64 *) hashmap_get_entry(&ams->hash_map, key);
-    if (entry == NULL) {
-        return NULL;
-    }
+    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
 
-    return (Asset *) chunk_get_element(&ams->asset_memory, entry->value, false);
+    return entry ? (Asset *) entry->value : NULL;
 }
 
 // @todo implement defragment command to optimize memory layout since the memory layout will become fragmented over time
@@ -153,7 +153,7 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint64 el
     strncpy(asset->name, name, name_length);
     asset->name[name_length] = '\0';
 
-    hashmap_insert(&ams->hash_map, name, free_asset);
+    hashmap_insert(&ams->hash_map, name, (uintptr_t) asset);
 
     chunk_reserve_index(&ams->asset_data_memory, free_asset, elements, true);
     asset->self = chunk_get_element(&ams->asset_data_memory, free_asset);

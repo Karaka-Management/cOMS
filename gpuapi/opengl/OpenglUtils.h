@@ -109,12 +109,12 @@ uint32 get_texture_data_type(uint32 texture_data_type)
 // 4. load_texture_to_gpu
 
 inline
-void prepare_texture(Texture* texture, uint32 texture_unit)
+void prepare_texture(Texture* texture)
 {
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
 
     glGenTextures(1, (GLuint *) &texture->id);
-    glActiveTexture(GL_TEXTURE0 + texture_unit);
+    glActiveTexture(GL_TEXTURE0 + texture->sample_id);
     glBindTexture(texture_data_type, (GLuint) texture->id);
 }
 
@@ -166,6 +166,7 @@ GLuint shader_make(GLenum type, const char *source, RingMemory* ring)
     return shader;
 }
 
+inline
 GLuint shader_load(GLenum type, const char* path, RingMemory* ring) {
     uint64 temp = ring->pos;
 
@@ -179,6 +180,15 @@ GLuint shader_load(GLenum type, const char* path, RingMemory* ring) {
     ring->pos = temp;
 
     return result;
+}
+
+inline
+int32 program_get_size(uint32 program)
+{
+    int32 size;
+    glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &size);
+
+    return size;
 }
 
 GLuint program_make(
@@ -195,6 +205,7 @@ GLuint program_make(
 
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
+    glProgramParameteri(program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
     glLinkProgram(program);
 
     GLint status;
@@ -263,27 +274,28 @@ void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int count) {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    glVertexAttribPointer(vertices->position, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
-    glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->data_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
+    glEnableVertexAttribArray(vertices->data_id);
 
     // normal attribute
-    glVertexAttribPointer(vertices->normal, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
-    glEnableVertexAttribArray(vertices->normal);
+    glVertexAttribPointer(vertices->normal_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
+    glEnableVertexAttribArray(vertices->normal_id);
 
     // texture coord attribute
-    glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(float) * 6));
-    glEnableVertexAttribArray(vertices->tex_coord);
+    // vs glVertexAttribPointer
+    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(float) * 6));
+    glEnableVertexAttribArray(vertices->tex_coord_id);
 
     // color attribute
-    glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 8));
-    glEnableVertexAttribArray(vertices->color);
+    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 8));
+    glEnableVertexAttribArray(vertices->color_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    glDisableVertexAttribArray(vertices->position);
-    glDisableVertexAttribArray(vertices->normal);
-    glDisableVertexAttribArray(vertices->tex_coord);
-    glDisableVertexAttribArray(vertices->color);
+    glDisableVertexAttribArray(vertices->data_id);
+    glDisableVertexAttribArray(vertices->normal_id);
+    glDisableVertexAttribArray(vertices->tex_coord_id);
+    glDisableVertexAttribArray(vertices->color_id);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -293,22 +305,22 @@ void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int count
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    glVertexAttribPointer(vertices->position, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
-    glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->data_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
+    glEnableVertexAttribArray(vertices->data_id);
 
     // normal attribute
-    glVertexAttribPointer(vertices->normal, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
-    glEnableVertexAttribArray(vertices->normal);
+    glVertexAttribPointer(vertices->normal_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
+    glEnableVertexAttribArray(vertices->normal_id);
 
     // color attribute
-    glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 8));
-    glEnableVertexAttribArray(vertices->color);
+    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 8));
+    glEnableVertexAttribArray(vertices->color_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    glDisableVertexAttribArray(vertices->position);
-    glDisableVertexAttribArray(vertices->normal);
-    glDisableVertexAttribArray(vertices->color);
+    glDisableVertexAttribArray(vertices->data_id);
+    glDisableVertexAttribArray(vertices->normal_id);
+    glDisableVertexAttribArray(vertices->color_id);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -318,22 +330,22 @@ void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int count) 
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    glVertexAttribPointer(vertices->position, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
-    glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->data_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
+    glEnableVertexAttribArray(vertices->data_id);
 
     // normal attribute
-    glVertexAttribPointer(vertices->normal, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
-    glEnableVertexAttribArray(vertices->normal);
+    glVertexAttribPointer(vertices->normal_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
+    glEnableVertexAttribArray(vertices->normal_id);
 
     // texture coord attribute
-    glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(float) * 6));
-    glEnableVertexAttribArray(vertices->tex_coord);
+    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(float) * 6));
+    glEnableVertexAttribArray(vertices->tex_coord_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    glDisableVertexAttribArray(vertices->position);
-    glDisableVertexAttribArray(vertices->normal);
-    glDisableVertexAttribArray(vertices->tex_coord);
+    glDisableVertexAttribArray(vertices->data_id);
+    glDisableVertexAttribArray(vertices->normal_id);
+    glDisableVertexAttribArray(vertices->tex_coord_id);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -343,22 +355,23 @@ void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int count) {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    glVertexAttribPointer(vertices->position, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
-    glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->position_id, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
+    glEnableVertexAttribArray(vertices->position_id);
 
     // texture coord attribute
-    glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(float) * 2));
-    glEnableVertexAttribArray(vertices->tex_coord);
+    // vs glVertexAttribPointer
+    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(float) * 2));
+    glEnableVertexAttribArray(vertices->tex_coord_id);
 
     // color attribute
-    glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(float) * 4));
-    glEnableVertexAttribArray(vertices->color);
+    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(float) * 4));
+    glEnableVertexAttribArray(vertices->color_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    glDisableVertexAttribArray(vertices->position);
-    glDisableVertexAttribArray(vertices->tex_coord);
-    glDisableVertexAttribArray(vertices->color);
+    glDisableVertexAttribArray(vertices->position_id);
+    glDisableVertexAttribArray(vertices->tex_coord_id);
+    glDisableVertexAttribArray(vertices->color_id);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -368,17 +381,17 @@ void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int count
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    glVertexAttribPointer(vertices->position, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
-    glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->data_id, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
+    glEnableVertexAttribArray(vertices->data_id);
 
     // color attribute
-    glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(float) * 4));
-    glEnableVertexAttribArray(vertices->color);
+    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(float) * 4));
+    glEnableVertexAttribArray(vertices->color_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    glDisableVertexAttribArray(vertices->position);
-    glDisableVertexAttribArray(vertices->color);
+    glDisableVertexAttribArray(vertices->data_id);
+    glDisableVertexAttribArray(vertices->color_id);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -388,35 +401,20 @@ void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int count) 
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    glVertexAttribPointer(vertices->position, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
-    glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->data_id, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
+    glEnableVertexAttribArray(vertices->data_id);
 
     // texture coord attribute
-    glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(float) * 2));
-    glEnableVertexAttribArray(vertices->tex_coord);
+    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(float) * 2));
+    glEnableVertexAttribArray(vertices->tex_coord_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    glDisableVertexAttribArray(vertices->position);
-    glDisableVertexAttribArray(vertices->tex_coord);
+    glDisableVertexAttribArray(vertices->data_id);
+    glDisableVertexAttribArray(vertices->tex_coord_id);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-
-struct TextRender {
-    uint32 align;
-    uint32 x;
-    uint32 y;
-    float scale; // @is it really scale or is it position in texture map?
-    VertexRef vertices;
-    char* text;
-
-    TextShader shader_data;
-};
-
-#define TEXT_ALIGN_LEFT 0
-#define TEXT_ALIGN_CENTER 1
-#define TEXT_ALIGN_RIGHT 2
 
 inline
 int calculate_face_size(int components, int faces)
@@ -511,42 +509,75 @@ int get_gpu_free_memory()
     return available;
 }
 
+struct TextRender {
+    uint32 align;
+    uint32 x;
+    uint32 y;
+    float scale;
+    VertexRef vertices;
+    char* text;
+
+    uint32 sampler_id;
+
+    TextShader shader_data;
+};
+
+#define TEXT_ALIGN_LEFT 0
+#define TEXT_ALIGN_CENTER 1
+#define TEXT_ALIGN_RIGHT 2
+
+// @performance This needs to handle batched randering, isolated rendering is WAY to inefficient
 inline
-void render_text(
+void render_text_batched(
+    RingMemory* ring,
     int width, int height,
     TextRender* text_data
 ) {
     glUseProgram(text_data->shader_data.program_id);
-    glUniform1i(text_data->shader_data.sampler_id, 1);
+    glUniform1i(text_data->shader_data.sampler_addr, text_data->vertices.sampler_id);
 
     // @performance Instead of re-creating the matrix every render call just use the id to activate it
     // 2d projection
     if (text_data->shader_data.matrix_id == 0) {
         float matrix[16] = {};
         mat4_ortho_sparse_rh(matrix, 0.0f, (float) width, 0.0f, (float) height, -1.0f, 1.0f);
-        glUniformMatrix4fv(text_data->shader_data.matrix_id, 1, GL_FALSE, matrix);
+        glUniformMatrix4fv(text_data->shader_data.matrix_addr, 1, GL_FALSE, matrix);
+        text_data->shader_data.matrix_id = 1;
+        // @bug this is wrong, we need to make buffer instead. We don't want to upload the matrix every time
+        //      Isn't this buffer the same for every text?
+        //      If yes, consider to save the orth projection matrix globally and change it whenever we change the resolution/window dimensions
     } else {
-
+        // @question Do we even need to bind it if we never change it?
+        // We also never bind our projection matrix apart from the first time and it works. This should be the same no?
+        //glBindVertexArray(text_data->shader_data.matrix_id);
     }
 
     int length = (int) strlen(text_data->text);
     float x = text_data->x - text_data->scale * text_data->align * (length - 1) / 2;
 
-    // @todo fix
-    GLfloat *data = NULL; //malloc_faces(4, length); // sizeof(GLfloat) * 6 * 4 * length
+    // @performance Only create when the text got removed from memory
+    if (text_data->vertices.data_id == 0) {
+        GLfloat *data = (GLfloat *) ring_get_memory(ring, sizeof(GLfloat) * 6 * 4 * length);
 
-    for (int i = 0; i < length; i++) {
-        make_character(data + i * 24, x, (float) text_data->y, text_data->scale / 2, text_data->scale, text_data->text[i]);
-        x += text_data->scale;
+        for (int i = 0; i < length; i++) {
+            make_character(data + i * 24, x, (float) text_data->y, text_data->scale / 2, text_data->scale, text_data->text[i]);
+            x += text_data->scale;
+        }
+
+        text_data->vertices.data_id = gpuapi_buffer_generate(sizeof(GLfloat) * 6 * 4 * length, data);
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, text_data->vertices.data_id);
+        //glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW); Is this required?
     }
-
-    GLuint buffer = gpuapi_buffer_generate(sizeof(GLfloat) * 6 * 4 * length, data);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    draw_triangles_2d(&text_data->vertices, buffer, length * 6);
+    draw_triangles_2d(&text_data->vertices, text_data->vertices.data_id, length * 6);
     glDisable(GL_BLEND);
-    glDeleteBuffers(1, &buffer);
+
+    // @performance We should only delete the buffer, when the text becomes invisible
+    // @todo remember to implement a remove logic for all the buffers
+    //glDeleteBuffers(1, &text_data->vertices.data_id);
 }
 
 /*

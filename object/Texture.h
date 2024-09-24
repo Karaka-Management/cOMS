@@ -38,6 +38,7 @@
 
 struct Texture {
     uint64 id;
+    byte sample_id;
 
     // @question Should the texture hold the texture unit?
     //  If yes remember to update prepare_texture()

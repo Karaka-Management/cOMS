@@ -1040,7 +1040,6 @@ extern "C" {
         (GLenum target, GLenum pname, GLfloat *params);
 }
 
-
 typedef void WINAPI type_glTexImage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations);
 static type_glTexImage2DMultisample* glTexImage2DMultisample;
 
@@ -1218,6 +1217,9 @@ static type_glDrawArraysInstanced* glDrawArraysInstanced;
 typedef void WINAPI type_glDrawElementsInstanced(GLenum mode, GLint count, GLenum type, const void* indices, GLsizei instancecount);
 static type_glDrawElementsInstanced* glDrawElementsInstanced;
 
+typedef void WINAPI type_glProgramParameteri(GLuint program, GLenum pname, GLint value);
+static type_glProgramParameteri* glProgramParameteri;
+
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
 #define WGL_CONTEXT_LAYER_PLANE_ARB 0x2093
@@ -1297,7 +1299,6 @@ static type_glDrawElementsInstanced* glDrawElementsInstanced;
 #define WGL_BLUE_BITS_ARB 0x2019
 #define WGL_ALPHA_BITS_ARB 0x201B
 #define WGL_DEPTH_BITS_ARB 0x2022
-
 
 typedef HGLRC WINAPI wgl_create_context_attribs_arb(HDC hDC, HGLRC hShareContext, const int *attribList);
 static wgl_create_context_attribs_arb* wglCreateContextAttribsARB;
@@ -1496,10 +1497,7 @@ void opengl_init_gl()
     glGetShaderiv = (type_glGetShaderiv *) wglGetProcAddress("glGetShaderiv");
     glDrawArraysInstanced = (type_glDrawArraysInstanced *) wglGetProcAddress("glDrawArraysInstanced");
     glDrawElementsInstanced = (type_glDrawElementsInstanced *) wglGetProcAddress("glDrawElementsInstanced");
-
-    if (wglSwapIntervalEXT) {
-        wglSwapIntervalEXT(0);
-    }
+    glProgramParameteri = (type_glProgramParameteri *) wglGetProcAddress("glProgramParameteri");
 }
 
 void opengl_init(Window* window)
@@ -1524,6 +1522,10 @@ void opengl_init(Window* window)
     }
 
     opengl_init_gl();
+
+    if (wglSwapIntervalEXT) {
+        wglSwapIntervalEXT(0);
+    }
 }
 
 #endif

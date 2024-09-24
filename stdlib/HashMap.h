@@ -31,6 +31,13 @@ struct HashEntryInt64 {
     int64 value;
 };
 
+struct HashEntryUIntPtr {
+    int64 element_id;
+    char key[MAX_KEY_LENGTH];
+    HashEntryUIntPtr* next;
+    uintptr_t value;
+};
+
 struct HashEntryVoidP {
     int64 element_id;
     char key[MAX_KEY_LENGTH];
@@ -141,6 +148,21 @@ void hashmap_insert(HashMap* hm, const char* key, int64 value) {
     hm->table[index] = entry;
 }
 
+void hashmap_insert(HashMap* hm, const char* key, uintptr_t value) {
+    uint64 index = hash_djb2(key) % hm->buf.count;
+
+    int64 element = chunk_reserve(&hm->buf, 1);
+    HashEntryUIntPtr* entry = (HashEntryUIntPtr *) chunk_get_element(&hm->buf, element, true);
+    entry->element_id = element;
+
+    strncpy(entry->key, key, MAX_KEY_LENGTH);
+    entry->key[MAX_KEY_LENGTH - 1] = '\0';
+
+    entry->value = value;
+    entry->next = (HashEntryUIntPtr *) hm->table[index];
+    hm->table[index] = entry;
+}
+
 void hashmap_insert(HashMap* hm, const char* key, void* value) {
     uint64 index = hash_djb2(key) % hm->buf.count;
 
@@ -206,7 +228,7 @@ void hashmap_insert(HashMap* hm, const char* key, byte* value) {
     hm->table[index] = entry;
 }
 
-void* hashmap_get_entry(HashMap* hm, const char* key) {
+HashEntry* hashmap_get_entry(HashMap* hm, const char* key) {
     uint64 index = hash_djb2(key) % hm->buf.count;
     HashEntry* entry = (HashEntry *) hm->table[index];
 

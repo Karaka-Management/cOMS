@@ -25,20 +25,29 @@ struct Vertex2D {
 };
 
 struct VertexRef {
-    uint32 position;
-    uint32 normal;
-    uint32 tex_coord;
-    uint32 color;
-    uint32 index;
+    uint32 data_id;
+
+    uint32 position_id;
+    uint32 normal_id;
+
+    uint32 tex_coord_id;
+    uint32 sampler_id; // e.g. GL_TEXTURE0
+
+    uint32 color_id;
+
+    uint32 index_id;
 };
 
 // Data for the text shader
 struct TextShader {
     uint32 program_id;
+
     uint32 matrix_id;
-    uint32 uv_id;
-    uint32 color_id;
-    uint32 sampler_id;
+    uint32 matrix_addr;
+
+    uint32 uv_addr;
+    uint32 color_addr;
+    uint32 sampler_addr;
 };
 
 enum VertexType {

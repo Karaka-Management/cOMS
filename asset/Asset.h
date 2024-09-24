@@ -46,6 +46,15 @@ struct Asset {
     bool is_ram;
     bool is_vram;
 
+    // Describes if the asset can be removed/garbage collected IF necessary
+    // This however only happens if space is needed
+    bool can_garbage_collect_ram;
+    bool can_garbage_collect_vram;
+
+    // Describes if the asset should be removed/garbage collected during CPU/GPU down time
+    bool should_garbage_collect_ram;
+    bool should_garbage_collect_vram;
+
     Asset* next;
     Asset* prev;
 
