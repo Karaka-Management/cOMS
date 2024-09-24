@@ -32,6 +32,15 @@ struct VertexRef {
     uint32 index;
 };
 
+// Data for the text shader
+struct TextShader {
+    uint32 program_id;
+    uint32 matrix_id;
+    uint32 uv_id;
+    uint32 color_id;
+    uint32 sampler_id;
+};
+
 enum VertexType {
     VERTEX_TYPE_POSITION = 1,
     VERTEX_TYPE_NORMAL = 2,

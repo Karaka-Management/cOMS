@@ -109,17 +109,17 @@ uint32 get_texture_data_type(uint32 texture_data_type)
 // 4. load_texture_to_gpu
 
 inline
-void prepare_texture(OpenGL* gl, Texture* texture, uint32 texture_unit)
+void prepare_texture(Texture* texture, uint32 texture_unit)
 {
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
 
     glGenTextures(1, (GLuint *) &texture->id);
-    gl->glActiveTexture(GL_TEXTURE0 + texture_unit);
+    glActiveTexture(GL_TEXTURE0 + texture_unit);
     glBindTexture(texture_data_type, (GLuint) texture->id);
 }
 
 inline
-void load_texture_to_gpu(OpenGL* gl, const Texture* texture, int mipmap_level = 0)
+void load_texture_to_gpu(const Texture* texture, int mipmap_level = 0)
 {
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
     glTexImage2D(
@@ -130,33 +130,33 @@ void load_texture_to_gpu(OpenGL* gl, const Texture* texture, int mipmap_level = 
     );
 
     if (mipmap_level > -1) {
-        gl->glGenerateMipmap(GL_TEXTURE_2D);
+        glGenerateMipmap(GL_TEXTURE_2D);
     }
 }
 
 inline
-void texture_use(OpenGL* gl, const Texture* texture, uint32 texture_unit)
+void texture_use(const Texture* texture, uint32 texture_unit)
 {
-    gl->glActiveTexture(GL_TEXTURE0 + texture_unit);
+    glActiveTexture(GL_TEXTURE0 + texture_unit);
     glBindTexture(GL_TEXTURE_2D, (GLuint) texture->id);
 }
 
-GLuint shader_make(OpenGL* gl, GLenum type, const char *source, RingMemory* ring)
+GLuint shader_make(GLenum type, const char *source, RingMemory* ring)
 {
-    GLuint shader = gl->glCreateShader(type);
-    gl->glShaderSource(shader, 1, (GLchar **) &source, NULL);
-    gl->glCompileShader(shader);
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, (GLchar **) &source, NULL);
+    glCompileShader(shader);
 
     GLint status;
-    gl->glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 
     if (status == GL_FALSE) {
         GLint length;
-        gl->glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
 
         GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
 
-        gl->glGetShaderInfoLog(shader, length, NULL, info);
+        glGetShaderInfoLog(shader, length, NULL, info);
 
         ASSERT_SIMPLE(false);
 
@@ -166,14 +166,14 @@ GLuint shader_make(OpenGL* gl, GLenum type, const char *source, RingMemory* ring
     return shader;
 }
 
-GLuint shader_load(OpenGL* gl, GLenum type, const char* path, RingMemory* ring) {
+GLuint shader_load(GLenum type, const char* path, RingMemory* ring) {
     uint64 temp = ring->pos;
 
     FileBody file;
 
     // @todo consider to accept file as parameter and load file before
     file_read(path, &file, ring);
-    GLuint result = shader_make(gl, type, (const char *) file.content, ring);
+    GLuint result = shader_make(type, (const char *) file.content, ring);
 
     // We can immediately dispose of it we can also reset our ring memory position
     ring->pos = temp;
@@ -182,34 +182,33 @@ GLuint shader_load(OpenGL* gl, GLenum type, const char* path, RingMemory* ring) 
 }
 
 GLuint program_make(
-    OpenGL* gl,
     GLuint vertex_shader,
     GLuint fragment_shader,
     GLint geometry_shader,
     RingMemory* ring
 ) {
-    GLuint program = gl->glCreateProgram();
+    GLuint program = glCreateProgram();
 
     if (geometry_shader > -1) {
-        gl->glAttachShader(program, geometry_shader);
+        glAttachShader(program, geometry_shader);
     }
 
-    gl->glAttachShader(program, vertex_shader);
-    gl->glAttachShader(program, fragment_shader);
-    gl->glLinkProgram(program);
+    glAttachShader(program, vertex_shader);
+    glAttachShader(program, fragment_shader);
+    glLinkProgram(program);
 
     GLint status;
-    gl->glGetProgramiv(program, GL_LINK_STATUS, &status);
+    glGetProgramiv(program, GL_LINK_STATUS, &status);
 
     if (status == GL_FALSE) {
         ASSERT_SIMPLE(false);
 
         GLint length;
-        gl->glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
 
         GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
 
-        gl->glGetProgramInfoLog(program, length, NULL, info);
+        glGetProgramInfoLog(program, length, NULL, info);
 
         // @todo use global logger
         fprintf(stderr, "glLinkProgram failed: %s\n", info);
@@ -217,234 +216,207 @@ GLuint program_make(
 
     // @question really?
     if (geometry_shader > -1) {
-        gl->glDetachShader(program, geometry_shader);
+        glDetachShader(program, geometry_shader);
     }
 
-    gl->glDetachShader(program, vertex_shader);
-    gl->glDetachShader(program, fragment_shader);
+    glDetachShader(program, vertex_shader);
+    glDetachShader(program, fragment_shader);
 
     // @question really?
     if (geometry_shader > -1) {
-        gl->glDeleteShader(geometry_shader);
+        glDeleteShader(geometry_shader);
     }
 
-    gl->glDeleteShader(vertex_shader);
-    gl->glDeleteShader(fragment_shader);
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
 
     return program;
 }
 
 GLuint program_load(
-    OpenGL* gl,
     const char* path1,
     const char* path2,
     const char* path3,
     RingMemory* ring
 ) {
-    GLuint vertex_shader = shader_load(gl, GL_VERTEX_SHADER, path1, ring);
-    GLuint fragment_shader = shader_load(gl, GL_FRAGMENT_SHADER, path2, ring);
+    GLuint vertex_shader = shader_load(GL_VERTEX_SHADER, path1, ring);
+    GLuint fragment_shader = shader_load(GL_FRAGMENT_SHADER, path2, ring);
 
     GLint geometry_shader = -1;
     if (path3) {
-        geometry_shader = shader_load(gl, GL_GEOMETRY_SHADER, path3, ring);
+        geometry_shader = shader_load(GL_GEOMETRY_SHADER, path3, ring);
     }
 
-    GLuint program = program_make(gl, vertex_shader, fragment_shader, geometry_shader, ring);
+    GLuint program = program_make(vertex_shader, fragment_shader, geometry_shader, ring);
 
     return program;
 }
 
 inline
-void shader_use(OpenGL* gl, uint32 id)
+void shader_use(uint32 id)
 {
-    gl->glUseProgram(id);
+    glUseProgram(id);
 }
 
 inline
-void draw_triangles_3d(OpenGL* gl, VertexRef* vertices, GLuint buffer, int count) {
-    gl->glBindBuffer(GL_ARRAY_BUFFER, buffer);
+void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int count) {
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    gl->glVertexAttribPointer(vertices->position, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
-    gl->glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->position, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
+    glEnableVertexAttribArray(vertices->position);
 
     // normal attribute
-    gl->glVertexAttribPointer(vertices->normal, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
-    gl->glEnableVertexAttribArray(vertices->normal);
+    glVertexAttribPointer(vertices->normal, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
+    glEnableVertexAttribArray(vertices->normal);
 
     // texture coord attribute
-    gl->glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(float) * 6));
-    gl->glEnableVertexAttribArray(vertices->tex_coord);
+    glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(float) * 6));
+    glEnableVertexAttribArray(vertices->tex_coord);
 
     // color attribute
-    gl->glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 8));
-    gl->glEnableVertexAttribArray(vertices->color);
+    glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 8));
+    glEnableVertexAttribArray(vertices->color);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    gl->glDisableVertexAttribArray(vertices->position);
-    gl->glDisableVertexAttribArray(vertices->normal);
-    gl->glDisableVertexAttribArray(vertices->tex_coord);
-    gl->glDisableVertexAttribArray(vertices->color);
+    glDisableVertexAttribArray(vertices->position);
+    glDisableVertexAttribArray(vertices->normal);
+    glDisableVertexAttribArray(vertices->tex_coord);
+    glDisableVertexAttribArray(vertices->color);
 
-    gl->glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 inline
-void draw_triangles_3d_textureless(OpenGL* gl, VertexRef* vertices, GLuint buffer, int count) {
-    gl->glBindBuffer(GL_ARRAY_BUFFER, buffer);
+void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int count) {
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    gl->glVertexAttribPointer(vertices->position, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
-    gl->glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->position, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
+    glEnableVertexAttribArray(vertices->position);
 
     // normal attribute
-    gl->glVertexAttribPointer(vertices->normal, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
-    gl->glEnableVertexAttribArray(vertices->normal);
+    glVertexAttribPointer(vertices->normal, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
+    glEnableVertexAttribArray(vertices->normal);
 
     // color attribute
-    gl->glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 8));
-    gl->glEnableVertexAttribArray(vertices->color);
+    glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 8));
+    glEnableVertexAttribArray(vertices->color);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    gl->glDisableVertexAttribArray(vertices->position);
-    gl->glDisableVertexAttribArray(vertices->normal);
-    gl->glDisableVertexAttribArray(vertices->color);
+    glDisableVertexAttribArray(vertices->position);
+    glDisableVertexAttribArray(vertices->normal);
+    glDisableVertexAttribArray(vertices->color);
 
-    gl->glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 inline
-void draw_triangles_3d_colorless(OpenGL* gl, VertexRef* vertices, GLuint buffer, int count) {
-    gl->glBindBuffer(GL_ARRAY_BUFFER, buffer);
+void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int count) {
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    gl->glVertexAttribPointer(vertices->position, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
-    gl->glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->position, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) 0);
+    glEnableVertexAttribArray(vertices->position);
 
     // normal attribute
-    gl->glVertexAttribPointer(vertices->normal, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
-    gl->glEnableVertexAttribArray(vertices->normal);
+    glVertexAttribPointer(vertices->normal, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
+    glEnableVertexAttribArray(vertices->normal);
 
     // texture coord attribute
-    gl->glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(float) * 6));
-    gl->glEnableVertexAttribArray(vertices->tex_coord);
+    glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(float) * 6));
+    glEnableVertexAttribArray(vertices->tex_coord);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    gl->glDisableVertexAttribArray(vertices->position);
-    gl->glDisableVertexAttribArray(vertices->normal);
-    gl->glDisableVertexAttribArray(vertices->tex_coord);
+    glDisableVertexAttribArray(vertices->position);
+    glDisableVertexAttribArray(vertices->normal);
+    glDisableVertexAttribArray(vertices->tex_coord);
 
-    gl->glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 inline
-void draw_triangles_2d(OpenGL* gl, VertexRef* vertices, GLuint buffer, int count) {
-    gl->glBindBuffer(GL_ARRAY_BUFFER, buffer);
+void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int count) {
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    gl->glVertexAttribPointer(vertices->position, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
-    gl->glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->position, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
+    glEnableVertexAttribArray(vertices->position);
 
     // texture coord attribute
-    gl->glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(float) * 2));
-    gl->glEnableVertexAttribArray(vertices->tex_coord);
+    glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(float) * 2));
+    glEnableVertexAttribArray(vertices->tex_coord);
 
     // color attribute
-    gl->glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(float) * 4));
-    gl->glEnableVertexAttribArray(vertices->color);
+    glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(float) * 4));
+    glEnableVertexAttribArray(vertices->color);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    gl->glDisableVertexAttribArray(vertices->position);
-    gl->glDisableVertexAttribArray(vertices->tex_coord);
-    gl->glDisableVertexAttribArray(vertices->color);
+    glDisableVertexAttribArray(vertices->position);
+    glDisableVertexAttribArray(vertices->tex_coord);
+    glDisableVertexAttribArray(vertices->color);
 
-    gl->glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 inline
-void draw_triangles_2d_textureless(OpenGL* gl, VertexRef* vertices, GLuint buffer, int count) {
-    gl->glBindBuffer(GL_ARRAY_BUFFER, buffer);
+void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int count) {
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    gl->glVertexAttribPointer(vertices->position, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
-    gl->glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->position, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
+    glEnableVertexAttribArray(vertices->position);
 
     // color attribute
-    gl->glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(float) * 4));
-    gl->glEnableVertexAttribArray(vertices->color);
+    glVertexAttribPointer(vertices->color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(float) * 4));
+    glEnableVertexAttribArray(vertices->color);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    gl->glDisableVertexAttribArray(vertices->position);
-    gl->glDisableVertexAttribArray(vertices->color);
+    glDisableVertexAttribArray(vertices->position);
+    glDisableVertexAttribArray(vertices->color);
 
-    gl->glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 inline
-void draw_triangles_2d_colorless(OpenGL* gl, VertexRef* vertices, GLuint buffer, int count) {
-    gl->glBindBuffer(GL_ARRAY_BUFFER, buffer);
+void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int count) {
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
-    gl->glVertexAttribPointer(vertices->position, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
-    gl->glEnableVertexAttribArray(vertices->position);
+    glVertexAttribPointer(vertices->position, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) 0);
+    glEnableVertexAttribArray(vertices->position);
 
     // texture coord attribute
-    gl->glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(float) * 2));
-    gl->glEnableVertexAttribArray(vertices->tex_coord);
+    glVertexAttribIPointer(vertices->tex_coord, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(float) * 2));
+    glEnableVertexAttribArray(vertices->tex_coord);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
-    gl->glDisableVertexAttribArray(vertices->position);
-    gl->glDisableVertexAttribArray(vertices->tex_coord);
+    glDisableVertexAttribArray(vertices->position);
+    glDisableVertexAttribArray(vertices->tex_coord);
 
-    gl->glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-inline
-void draw_text(OpenGL* gl, VertexRef* vertices, GLuint buffer, int length)
-{
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    draw_triangles_2d(gl, vertices, buffer, length * 6);
-    glDisable(GL_BLEND);
-}
+struct TextRender {
+    uint32 align;
+    uint32 x;
+    uint32 y;
+    float scale; // @is it really scale or is it position in texture map?
+    VertexRef vertices;
+    char* text;
 
-GLuint gen_text_buffer(float x, float y, float n, const char *text) {
-    size_t length = strlen(text);
-    GLfloat *data = NULL; //malloc_faces(4, length); // sizeof(GLfloat) * 6 * 4 * length
+    TextShader shader_data;
+};
 
-    for (int i = 0; i < length; i++) {
-        make_character(data + i * 24, x, y, n / 2, n, text[i]);
-        x += n;
-    }
-
-    return 0; //gen_faces(4, length, data);
-}
-
-inline
-void render_text(OpenGL* gl, Attrib* attrib, int justify, float x, float y, float n, const char *text)
-{
-    float matrix[16];
-    //set_matrix_2d(matrix, g->width, g->height);
-
-    gl->glUseProgram(attrib->program);
-    gl->glUniformMatrix4fv(attrib->matrix, 1, GL_FALSE, matrix);
-    gl->glUniform1i(attrib->sampler, 1);
-    gl->glUniform1i(attrib->extra1, 0);
-
-    size_t length = strlen(text);
-    x -= n * justify * (length - 1) / 2;
-
-    GLuint buffer = gen_text_buffer(x, y, n, text);
-    draw_text(gl, &attrib->vertices, buffer, (int) length);
-
-    gl->glDeleteBuffers(1, &buffer);
-}
+#define TEXT_ALIGN_LEFT 0
+#define TEXT_ALIGN_CENTER 1
+#define TEXT_ALIGN_RIGHT 2
 
 inline
 int calculate_face_size(int components, int faces)
@@ -455,74 +427,74 @@ int calculate_face_size(int components, int faces)
 // generates faces
 // data is no longer needed after this
 inline
-uint32 gpuapi_buffer_generate(OpenGL* gl, int size, void* data)
+uint32 gpuapi_buffer_generate(int size, void* data)
 {
     uint32 vbo;
 
-    gl->glGenBuffers(1, &vbo);
-    gl->glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    gl->glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 
     return vbo;
 }
 
 inline
-uint32 gpuapi_shaderbuffer_generate(OpenGL* gl, int size, void* data)
+uint32 gpuapi_shaderbuffer_generate(int size, void* data)
 {
     uint32 sbo;
 
-    gl->glGenBuffers(1, &sbo);
-    gl->glBindBuffer(GL_SHADER_STORAGE_BUFFER, sbo);
-    gl->glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &sbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, sbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_DRAW);
 
     return sbo;
 }
 
 inline
-uint32 gpuapi_uniformbuffer_generate(OpenGL* gl, int size, void* data)
+uint32 gpuapi_uniformbuffer_generate(int size, void* data)
 {
     uint32 ubo;
 
-    gl->glGenBuffers(1, &ubo);
-    gl->glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-    gl->glBufferData(GL_UNIFORM_BUFFER, size, data, GL_STATIC_DRAW);
+    glGenBuffers(1, &ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    glBufferData(GL_UNIFORM_BUFFER, size, data, GL_STATIC_DRAW);
 
     return ubo;
 }
 
 inline
-uint32 gpuapi_buffer_element_generate(OpenGL* gl, int size, uint32 *data)
+uint32 gpuapi_buffer_element_generate(int size, uint32 *data)
 {
     uint32 ebo;
 
-    gl->glGenBuffers(1, &ebo);
-    gl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    gl->glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+    glGenBuffers(1, &ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 
     return ebo;
 }
 
 inline
-uint32 gpuapi_vertex_array_generate(OpenGL* gl)
+uint32 gpuapi_vertex_array_generate()
 {
     uint32 vao;
-    gl->glGenVertexArrays(1, &vao);
-    gl->glBindVertexArray(vao);
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
 
     return vao;
 }
 
 inline
-void gpuapi_unbind_all(OpenGL* gl)
+void gpuapi_unbind_all()
 {
-    gl->glBindBuffer(GL_ARRAY_BUFFER, 0);
-    gl->glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 }
 
 inline
-void gpuapi_buffer_delete(OpenGL* gl, GLuint buffer)
+void gpuapi_buffer_delete(GLuint buffer)
 {
-    gl->glDeleteBuffers(1, &buffer);
+    glDeleteBuffers(1, &buffer);
 }
 
 int get_gpu_free_memory()
@@ -537,6 +509,44 @@ int get_gpu_free_memory()
     glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &available);
 
     return available;
+}
+
+inline
+void render_text(
+    int width, int height,
+    TextRender* text_data
+) {
+    glUseProgram(text_data->shader_data.program_id);
+    glUniform1i(text_data->shader_data.sampler_id, 1);
+
+    // @performance Instead of re-creating the matrix every render call just use the id to activate it
+    // 2d projection
+    if (text_data->shader_data.matrix_id == 0) {
+        float matrix[16] = {};
+        mat4_ortho_sparse_rh(matrix, 0.0f, (float) width, 0.0f, (float) height, -1.0f, 1.0f);
+        glUniformMatrix4fv(text_data->shader_data.matrix_id, 1, GL_FALSE, matrix);
+    } else {
+
+    }
+
+    int length = (int) strlen(text_data->text);
+    float x = text_data->x - text_data->scale * text_data->align * (length - 1) / 2;
+
+    // @todo fix
+    GLfloat *data = NULL; //malloc_faces(4, length); // sizeof(GLfloat) * 6 * 4 * length
+
+    for (int i = 0; i < length; i++) {
+        make_character(data + i * 24, x, (float) text_data->y, text_data->scale / 2, text_data->scale, text_data->text[i]);
+        x += text_data->scale;
+    }
+
+    GLuint buffer = gpuapi_buffer_generate(sizeof(GLfloat) * 6 * 4 * length, data);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    draw_triangles_2d(&text_data->vertices, buffer, length * 6);
+    glDisable(GL_BLEND);
+    glDeleteBuffers(1, &buffer);
 }
 
 /*

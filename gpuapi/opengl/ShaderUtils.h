@@ -11,78 +11,97 @@
 
 #include "../../stdlib/Types.h"
 #include "../../math/matrix/MatrixFloat32.h"
+#include "Opengl.h"
 
 inline
-void shader_set_value(const OpenGL* gl, uint32 id, const char* name, bool value)
+void shader_set_value(uint32 id, const char* name, bool value)
 {
-    gl->glUniform1i(gl->glGetUniformLocation(id, name), (int) value);
+    glUniform1i(glGetUniformLocation(id, name), (int) value);
 }
 
 inline
-void shader_set_value(const OpenGL* gl, uint32 id, const char* name, int value)
+void shader_set_value(uint32 id, const char* name, int value)
 {
-    gl->glUniform1i(gl->glGetUniformLocation(id, name), value);
+    glUniform1i(glGetUniformLocation(id, name), value);
 }
 
 inline
-void shader_set_value(const OpenGL* gl, uint32 id, const char* name, float value)
+void shader_set_value(uint32 id, const char* name, float value)
 {
-    gl->glUniform1f(gl->glGetUniformLocation(id, name), value);
+    glUniform1f(glGetUniformLocation(id, name), value);
 }
 
 inline
-void shader_set_v2(const OpenGL* gl, uint32 id, const char* name, const float* value)
+void shader_set_v2(uint32 id, const char* name, const float* value)
 {
-    gl->glUniform2fv(gl->glGetUniformLocation(id, name), 1, value);
+    glUniform2fv(glGetUniformLocation(id, name), 1, value);
 }
 
 inline
-void shader_set_v3(const OpenGL* gl, uint32 id, const char* name, const float* value)
+void shader_set_v3(uint32 id, const char* name, const float* value)
 {
-    gl->glUniform3fv(gl->glGetUniformLocation(id, name), 1, value);
+    glUniform3fv(glGetUniformLocation(id, name), 1, value);
 }
 
 inline
-void shader_set_v4(const OpenGL* gl, uint32 id, const char* name, const float* value)
+void shader_set_v4(uint32 id, const char* name, const float* value)
 {
-    gl->glUniform4fv(gl->glGetUniformLocation(id, name), 1, value);
+    glUniform4fv(glGetUniformLocation(id, name), 1, value);
 }
 
 inline
-void shader_set_m2(const OpenGL* gl, uint32 id, const char* name, const float* value)
+void shader_set_m2(uint32 id, const char* name, const float* value)
 {
-    gl->glUniformMatrix2fv(gl->glGetUniformLocation(id, name), 1, GL_FALSE, value);
+    glUniformMatrix2fv(glGetUniformLocation(id, name), 1, GL_FALSE, value);
 }
 
 inline
-void shader_set_m3(const OpenGL* gl, uint32 id, const char* name, const float* value)
+void shader_set_m3(uint32 id, const char* name, const float* value)
 {
-    gl->glUniformMatrix3fv(gl->glGetUniformLocation(id, name), 1, GL_FALSE, value);
+    glUniformMatrix3fv(glGetUniformLocation(id, name), 1, GL_FALSE, value);
 }
 
 inline
-void shader_set_m4(const OpenGL* gl, uint32 id, const char* name, const float* value)
+void shader_set_m4(uint32 id, const char* name, const float* value)
 {
-    gl->glUniformMatrix4fv(gl->glGetUniformLocation(id, name), 1, GL_FALSE, value);
+    glUniformMatrix4fv(glGetUniformLocation(id, name), 1, GL_FALSE, value);
 }
 
 inline
-void shader_check_link_errors(const OpenGL* gl, uint32 id, char* log)
+uint32 shader_get_attrib_location(uint32 id, const char* name)
+{
+    // By using this you can retreive the shader variable name at a point where and when you know it
+    // BUT set values later on in generalized functions without knowing the shader variable name
+    // Basically like pointers
+    return glGetAttribLocation(id, name);
+}
+
+inline
+uint32 shader_get_uniform_location(uint32 id, const char* name)
+{
+    // By using this you can retreive the shader variable name at a point where and when you know it
+    // BUT set values later on in generalized functions without knowing the shader variable name
+    // Basically like pointers
+    return glGetUniformLocation(id, name);
+}
+
+inline
+void shader_check_link_errors(uint32 id, char* log)
 {
     GLint success;
-    gl->glGetProgramiv(id, GL_LINK_STATUS, &success);
+    glGetProgramiv(id, GL_LINK_STATUS, &success);
     if (!success) {
-        gl->glGetProgramInfoLog(id, 1024, NULL, log);
+        glGetProgramInfoLog(id, 1024, NULL, log);
     }
 }
 
 inline
-void shader_check_compile_errors(const OpenGL* gl, uint32 id, char* log)
+void shader_check_compile_errors(uint32 id, char* log)
 {
     GLint success;
-    gl->glGetShaderiv(id, GL_COMPILE_STATUS, &success);
+    glGetShaderiv(id, GL_COMPILE_STATUS, &success);
     if (!success) {
-        gl->glGetShaderInfoLog(id, 1024, NULL, log);
+        glGetShaderInfoLog(id, 1024, NULL, log);
     }
 }
 
