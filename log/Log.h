@@ -12,11 +12,13 @@
 #include <stdio.h>
 #include <string.h>
 
-// @todo Make this file not rely on any other header except Types.
-
 #include "../stdlib/Types.h"
-#include "../platform/win32/UtilsWin32.h"
-#include "../memory/RingMemory.h"
+#include "../utils/TestUtils.h"
+#include "../utils/MathUtils.h"
+
+#ifdef _WIN32
+    #include <windows.h>
+#endif
 
 #ifndef LOG_LEVEL
     #define LOG_LEVEL 0
@@ -38,82 +40,133 @@ enum LogDataType {
     LOG_DATA_FLOAT64
 };
 
-void log_to_file(RingMemory* logs, HANDLE fp)
+struct LogMemory {
+    byte* memory;
+
+    uint32 id;
+    uint64 size;
+    uint64 pos;
+    int alignment;
+
+    uint64 start;
+    uint64 end;
+};
+
+byte* log_get_memory(LogMemory* ring, uint64 size, byte aligned = 1, bool zeroed = false)
 {
-    // we don't log an empty log pool
-    if (logs->pos == 0 || !fp) {
-        return;
+    ASSERT_SIMPLE(size <= ring->size);
+
+    if (aligned > 1) {
+        uintptr_t address = (uintptr_t) ring->memory;
+        int64 adjustment = (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
+
+        ring->pos += adjustment;
     }
 
-    file_append(fp, (char *) logs->memory, logs->pos - 1);
-    memset(logs->memory, 0, logs->size);
+    size = ROUND_TO_NEAREST(size, aligned);
+    if (ring->pos + size > ring->size) {
+        ring->pos = 0;
 
-    // reset log position to start of memory pool
-    logs->pos = 0;
-    logs->start = 0;
+        if (aligned > 1) {
+            uintptr_t address = (uintptr_t) ring->memory;
+            int64 adjustment = (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
+
+            ring->pos += adjustment;
+        }
+    }
+
+    byte* offset = (byte *) (ring->memory + ring->pos);
+    if (zeroed) {
+        memset((void *) offset, 0, size);
+    }
+
+    ring->pos += size;
+
+    return offset;
 }
 
-void log(RingMemory* logs, const char* str, HANDLE fp = NULL, bool should_log = true, bool save = false)
-{
-    if (!should_log) {
-        return;
+#ifdef _WIN32
+    void log_to_file(LogMemory* logs, HANDLE fp)
+    {
+        // we don't log an empty log pool
+        if (logs->pos == 0 || !fp || fp == INVALID_HANDLE_VALUE) {
+            return;
+        }
+
+        DWORD written;
+        if (!WriteFile(fp, (char *) logs->memory, (uint32) logs->pos - 1, &written, NULL)) {
+            CloseHandle(fp);
+        }
+
+        memset(logs->memory, 0, logs->size);
+
+        // reset log position to start of memory pool
+        logs->pos = 0;
+        logs->start = 0;
     }
 
-    size_t length = strlen(str);
-    ASSERT_SIMPLE(length < MAX_LOG_LENGTH);
+    void log(LogMemory* logs, const char* str, HANDLE fp = NULL, bool should_log = true, bool save = false)
+    {
+        if (!should_log) {
+            return;
+        }
 
-    char* temp = (char *) ring_get_memory(logs, length + 1);
-    strcpy(temp, str);
-    temp[length] = '\0';
+        size_t length = strlen(str);
+        ASSERT_SIMPLE(length < MAX_LOG_LENGTH);
 
-    if (fp != NULL && (save || logs->size - logs->pos < MAX_LOG_LENGTH)) {
-        log_to_file(logs, fp);
-    }
-}
+        char* temp = (char *) log_get_memory(logs, length + 1);
+        strcpy(temp, str);
+        temp[length] = '\0';
 
-void log(RingMemory* logs, const char* format, LogDataType data_type, void* data, HANDLE fp = NULL, bool should_log = true, bool save = false)
-{
-    if (!should_log) {
-        return;
-    }
-
-    if (data_type == LOG_DATA_VOID) {
-        log(logs, format, fp, true);
+        if (fp != NULL && (save || logs->size - logs->pos < MAX_LOG_LENGTH)) {
+            log_to_file(logs, fp);
+        }
     }
 
-    char* temp = (char *) ring_get_memory(logs, MAX_LOG_LENGTH);
+    void log(LogMemory* logs, const char* format, LogDataType data_type, void* data, HANDLE fp = NULL, bool should_log = true, bool save = false)
+    {
+        if (!should_log) {
+            return;
+        }
 
-    switch (data_type) {
-        case LOG_DATA_INT32: {
-            sprintf(temp, format, *((int32 *) data));
-        } break;
-        case LOG_DATA_UINT32: {
-            sprintf(temp, format, *((uint32 *) data));
-        } break;
-        case LOG_DATA_INT64: {
-            sprintf(temp, format, *((int64 *) data));
-        } break;
-        case LOG_DATA_UINT64: {
-            sprintf(temp, format, *((uint64 *) data));
-        } break;
-        case LOG_DATA_CHAR: {
-            sprintf(temp, format, *((char *) data));
-        } break;
-        case LOG_DATA_CHAR_STR: {
-            sprintf(temp, format, *((char *) data));
-        } break;
-        case LOG_DATA_FLOAT32: {
-            sprintf(temp, format, *((f32 *) data));
-        } break;
-        case LOG_DATA_FLOAT64: {
-            sprintf(temp, format, *((f64 *) data));
-        } break;
-    }
+        if (data_type == LOG_DATA_VOID) {
+            log(logs, format, fp, true);
+        }
 
-    if (fp != NULL && (save || logs->size - logs->pos < MAX_LOG_LENGTH)) {
-        log_to_file(logs, fp);
+        char* temp = (char *) log_get_memory(logs, MAX_LOG_LENGTH);
+
+        switch (data_type) {
+            case LOG_DATA_INT32: {
+                sprintf(temp, format, *((int32 *) data));
+            } break;
+            case LOG_DATA_UINT32: {
+                sprintf(temp, format, *((uint32 *) data));
+            } break;
+            case LOG_DATA_INT64: {
+                sprintf(temp, format, *((int64 *) data));
+            } break;
+            case LOG_DATA_UINT64: {
+                sprintf(temp, format, *((uint64 *) data));
+            } break;
+            case LOG_DATA_CHAR: {
+                sprintf(temp, format, *((char *) data));
+            } break;
+            case LOG_DATA_CHAR_STR: {
+                sprintf(temp, format, *((char *) data));
+            } break;
+            case LOG_DATA_FLOAT32: {
+                sprintf(temp, format, *((f32 *) data));
+            } break;
+            case LOG_DATA_FLOAT64: {
+                sprintf(temp, format, *((f64 *) data));
+            } break;
+        }
+
+        if (fp != NULL && (save || logs->size - logs->pos < MAX_LOG_LENGTH)) {
+            log_to_file(logs, fp);
+        }
     }
-}
+#endif
 
 #if (LOG_LEVEL == 0)
     // Don't perform any logging at log level 0

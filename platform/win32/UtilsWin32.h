@@ -339,8 +339,7 @@ HANDLE get_append_handle(const char* path)
     return fp;
 }
 
-inline bool
-file_append(const char* path, const char* file)
+bool file_append(const char* path, const char* file)
 {
     HANDLE fp;
     if (*path == '.') {
