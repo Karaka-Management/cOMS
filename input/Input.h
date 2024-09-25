@@ -9,19 +9,17 @@
 #ifndef TOS_INPUT_H
 #define TOS_INPUT_H
 
-// @question Consider to change mouse to secondary input device and keyboard to primary input device and also rename the functions etc.
-
 // How many concurrent mouse/secondary input device presses to we recognize
 #define MAX_MOUSE_PRESSES 3
 
 // How many concurrent primary key/button presses can be handled?
 #define MAX_KEY_PRESSES 5
+#define MAX_KEY_STATES (2 * MAX_KEY_PRESSES)
 
-// How many keys/buttons do we support for the primary input device
+// How many keys/buttons do we support for the devices
 #define MAX_KEYBOARD_KEYS 255
-
-// How many mouse/secondary input device keys/buttons do we support
-#define MAX_MOUSE_KEYS 5
+#define MAX_MOUSE_KEYS 10
+#define MAX_CONTROLLER_KEYS 24
 
 #define MIN_INPUT_DEVICES 2
 
@@ -33,10 +31,12 @@
 
 // These values are used as bit flags to hint if a "key" is a keyboard/primary or mouse/secondary input
 // When adding a keybind the "key" can only be uint8 but we expand it to an int and set the first bit accordingly
-#define INPUT_KEYBOARD_PREFIX 80000000
 #define INPUT_MOUSE_PREFIX 0
+#define INPUT_KEYBOARD_PREFIX 16384
+#define INPUT_CONTROLLER_PREFIX 32768
 
 #define INPUT_TYPE_MOUSE_KEYBOARD 0x01
+#define INPUT_TYPE_CONTROLLER 0x02
 #define INPUT_TYPE_OTHER 0x03
 
 #define MIN_CONTROLLER_DEVICES 4
@@ -54,150 +54,179 @@
 struct InputMapping {
     // A key/button can be bound to up to 5 different hotkeys
     // This is used to check if a key/button has a hotkey association
-    uint8 keys[MAX_KEYBOARD_KEYS + MAX_MOUSE_KEYS][MAX_KEY_TO_HOTKEY];
+    uint8 keys[MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS + MAX_CONTROLLER_KEYS][MAX_KEY_TO_HOTKEY];
 
     // A hotkey can be bound to a combination of up to 3 key/button presses
     uint8 hotkey_count;
-    uint8* hotkeys;
+    uint16* hotkeys;
+};
+
+enum KeyState {
+    KEY_STATE_PRESSED,
+    KEY_STATE_HELD,
+    KEY_STATE_RELEASED,
+};
+
+struct InputKey {
+    // Includes flag for mouse, keyboard, controller
+    uint16 key_id;
+    uint16 key_state;
+    uint16 value; // e.g. stick/trigger keys
+    uint64 time; // when was this action performed (useful to decide if key state is held vs pressed)
 };
 
 // @question Maybe we should also add a third key_down array for controllers and some special controller functions here to just handle everything in one struct
 //      Or think about completely splitting all states (mouse, keyboard, other)
 struct InputState {
     // State of the hotkeys, resulting from the device input
-    // @question maybe create a separate define and make it a little bit larger?
     uint8 state_hotkeys[MAX_KEY_PRESSES];
 
-    uint8 keys_down[MAX_KEY_PRESSES];
-
-    // @question Why do we even need this? shouldn't we only care about the current keys down?
-    uint8 keys_up[MAX_KEY_PRESSES];
-
-    uint32 mouse_down;
+    InputKey state_keys[MAX_KEY_STATES];
 
     int32 dx;
     int32 dy;
 
     uint32 x;
     uint32 y;
-
-    int16 wheel_delta = 0;
-    int16 hwheel_delta = 0;
-
-    uint64 keys_down_time[MAX_MOUSE_PRESSES + MAX_KEY_PRESSES];
 };
 
 struct Input {
     // Device
     bool is_connected = false;
-    byte type = INPUT_TYPE_OTHER;
 
     #ifdef _WIN32
         // @todo maybe replace with id?!
         //      -> remove _WIN32 section
         HANDLE handle_keyboard;
         HANDLE handle_mouse;
+        HANDLE handle_controller;
     #endif
 
     bool state_change_button = false;
     bool state_change_mouse = false;
-    bool state_change_mouse_button = true;
 
     bool mouse_movement;
 
     InputState state;
     InputMapping input_mapping;
-
-    // @todo we probably don't need this
-    InputState state_old;
-};
-
-struct ControllerInput {
-    uint32 id = 0;
-    bool is_connected = false;
-
-    // After handling the state change the game loop should set this to false
-    bool state_change = false;
-
-    // @question maybe make part of button
-    bool up = false;
-    bool down = false;
-    bool left = false;
-    bool right = false;
-
-    byte trigger_old[4];
-    byte trigger[4];
-
-    // these are bitfields
-    uint16 button_old;
-    uint16 button;
-
-    int16 stickl_x = 0;
-    int16 stickl_y = 0;
-    bool stickl_press = false;
-
-    int16 stickr_x = 0;
-    int16 stickr_y = 0;
-    bool stickr_press = false;
 };
 
 inline
-void mouse_backup_state(Input* input)
+void input_clean_state(InputState* state)
 {
-    input->state_old.mouse_down = input->state.mouse_down;
-
-    input->state_old.x = input->state.x;
-    input->state_old.y = input->state.y;
-
-    input->state_old.wheel_delta = input->state.wheel_delta;
-    input->state_old.hwheel_delta = input->state.wheel_delta;
+    for (int i = 0; i < MAX_KEY_STATES; ++i) {
+        if (state->state_keys[i].key_state == KEY_STATE_RELEASED) {
+            state->state_keys[i].key_id = 0;
+        }
+    }
 }
 
 inline
-void keyboard_clean_state(InputState* state)
+bool input_action_exists(const InputState* state, uint16 key)
 {
-    memset(state->keys_down, 0, MAX_KEY_PRESSES * sizeof(uint8));
-    memset(state->keys_up, 0, MAX_KEY_PRESSES * sizeof(uint8));
-    memset(state->keys_down_time, 0, (MAX_MOUSE_PRESSES + MAX_KEY_PRESSES) * sizeof(uint64));
+    return state->state_keys[0].key_id == key
+        || state->state_keys[1].key_id == key
+        || state->state_keys[2].key_id == key
+        || state->state_keys[3].key_id == key
+        || state->state_keys[4].key_id == key
+        || state->state_keys[4].key_id == key
+        || state->state_keys[5].key_id == key
+        || state->state_keys[6].key_id == key
+        || state->state_keys[7].key_id == key
+        || state->state_keys[8].key_id == key
+        || state->state_keys[9].key_id == key;
 }
 
 inline
-void keyboard_backup_state(Input* input)
+bool input_is_down(const InputState* state, uint16 key)
 {
-    memcpy(input->state_old.keys_down, input->state.keys_down, MAX_KEY_PRESSES * sizeof(uint8));
-    memcpy(input->state_old.keys_up, input->state.keys_up, MAX_KEY_PRESSES * sizeof(uint8));
+    return (state->state_keys[0].key_id == key && state->state_keys[0].key_state < KEY_STATE_RELEASED)
+        || (state->state_keys[1].key_id == key && state->state_keys[1].key_state < KEY_STATE_RELEASED)
+        || (state->state_keys[2].key_id == key && state->state_keys[2].key_state < KEY_STATE_RELEASED)
+        || (state->state_keys[3].key_id == key && state->state_keys[3].key_state < KEY_STATE_RELEASED)
+        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state < KEY_STATE_RELEASED)
+        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state < KEY_STATE_RELEASED)
+        || (state->state_keys[5].key_id == key && state->state_keys[5].key_state < KEY_STATE_RELEASED)
+        || (state->state_keys[6].key_id == key && state->state_keys[6].key_state < KEY_STATE_RELEASED)
+        || (state->state_keys[7].key_id == key && state->state_keys[7].key_state < KEY_STATE_RELEASED)
+        || (state->state_keys[8].key_id == key && state->state_keys[8].key_state < KEY_STATE_RELEASED)
+        || (state->state_keys[9].key_id == key && state->state_keys[9].key_state < KEY_STATE_RELEASED);
 }
 
 inline
-bool keyboard_is_pressed(const InputState* state, byte key)
+bool input_is_pressed(const InputState* state, uint16 key)
 {
-    return state->keys_down[0] == key
-        || state->keys_down[1] == key
-        || state->keys_down[2] == key
-        || state->keys_down[3] == key
-        || state->keys_down[4] == key;
+    return (state->state_keys[0].key_id == key && state->state_keys[0].key_state == KEY_STATE_PRESSED)
+        || (state->state_keys[1].key_id == key && state->state_keys[1].key_state == KEY_STATE_PRESSED)
+        || (state->state_keys[2].key_id == key && state->state_keys[2].key_state == KEY_STATE_PRESSED)
+        || (state->state_keys[3].key_id == key && state->state_keys[3].key_state == KEY_STATE_PRESSED)
+        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_PRESSED)
+        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_PRESSED)
+        || (state->state_keys[5].key_id == key && state->state_keys[5].key_state == KEY_STATE_PRESSED)
+        || (state->state_keys[6].key_id == key && state->state_keys[6].key_state == KEY_STATE_PRESSED)
+        || (state->state_keys[7].key_id == key && state->state_keys[7].key_state == KEY_STATE_PRESSED)
+        || (state->state_keys[8].key_id == key && state->state_keys[8].key_state == KEY_STATE_PRESSED)
+        || (state->state_keys[9].key_id == key && state->state_keys[9].key_state == KEY_STATE_PRESSED);
 }
 
 inline
-bool keyboard_is_released(const InputState* state, byte key)
+bool input_is_held(const InputState* state, uint16 key)
 {
-    return state->keys_up[0] == key
-        || state->keys_up[1] == key
-        || state->keys_up[2] == key
-        || state->keys_up[3] == key
-        || state->keys_up[4] == key;
+    return (state->state_keys[0].key_id == key && state->state_keys[0].key_state == KEY_STATE_HELD)
+        || (state->state_keys[1].key_id == key && state->state_keys[1].key_state == KEY_STATE_HELD)
+        || (state->state_keys[2].key_id == key && state->state_keys[2].key_state == KEY_STATE_HELD)
+        || (state->state_keys[3].key_id == key && state->state_keys[3].key_state == KEY_STATE_HELD)
+        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_HELD)
+        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_HELD)
+        || (state->state_keys[5].key_id == key && state->state_keys[5].key_state == KEY_STATE_HELD)
+        || (state->state_keys[6].key_id == key && state->state_keys[6].key_state == KEY_STATE_HELD)
+        || (state->state_keys[7].key_id == key && state->state_keys[7].key_state == KEY_STATE_HELD)
+        || (state->state_keys[8].key_id == key && state->state_keys[8].key_state == KEY_STATE_HELD)
+        || (state->state_keys[9].key_id == key && state->state_keys[9].key_state == KEY_STATE_HELD);
 }
 
 inline
-bool keyboard_are_pressed(
+bool input_is_released(const InputState* state, uint16 key)
+{
+    return (state->state_keys[0].key_id == key && state->state_keys[0].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[1].key_id == key && state->state_keys[1].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[2].key_id == key && state->state_keys[2].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[3].key_id == key && state->state_keys[3].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[5].key_id == key && state->state_keys[5].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[6].key_id == key && state->state_keys[6].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[7].key_id == key && state->state_keys[7].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[8].key_id == key && state->state_keys[8].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[9].key_id == key && state->state_keys[9].key_state == KEY_STATE_RELEASED);
+}
+
+inline
+bool input_was_down(const InputState* state, uint16 key)
+{
+    return (state->state_keys[0].key_id == key && state->state_keys[0].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[1].key_id == key && state->state_keys[1].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[2].key_id == key && state->state_keys[2].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[3].key_id == key && state->state_keys[3].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[5].key_id == key && state->state_keys[5].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[6].key_id == key && state->state_keys[6].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[7].key_id == key && state->state_keys[7].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[8].key_id == key && state->state_keys[8].key_state == KEY_STATE_RELEASED)
+        || (state->state_keys[9].key_id == key && state->state_keys[9].key_state == KEY_STATE_RELEASED);
+}
+
+inline
+bool inputs_are_down(
     const InputState* state,
-    byte key0, byte key1 = 0, byte key2 = 0, byte key3 = 0, byte key4 = 0
+    uint16 key0, uint16 key1 = 0, uint16 key2 = 0, uint16 key3 = 0, uint16 key4 = 0
 ) {
-    return (key0 != 0 && keyboard_is_pressed(state, key0))
-        && (key1 == 0 || keyboard_is_pressed(state, key1))
-        && (key2 == 0 || keyboard_is_pressed(state, key2))
-        && (key3 == 0 || keyboard_is_pressed(state, key3))
-        && (key4 == 0 || keyboard_is_pressed(state, key4));
+    return (key0 != 0 && input_is_down(state, key0))
+        && (key1 == 0 || input_is_down(state, key1))
+        && (key2 == 0 || input_is_down(state, key2))
+        && (key3 == 0 || input_is_down(state, key3))
+        && (key4 == 0 || input_is_down(state, key4));
 }
 
 // We are binding hotkeys bi-directional
@@ -209,31 +238,36 @@ input_add_hotkey(
 {
     int count = 0;
 
-    int key0_offset = ((bool) (key0 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS;
-    int key1_offset = ((bool) (key1 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS;
-    int key2_offset = ((bool) (key2 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS;
-
-    key0 = key0 & ~INPUT_KEYBOARD_PREFIX;
-    key1 = key1 & ~INPUT_KEYBOARD_PREFIX;
-    key2 = key2 & ~INPUT_KEYBOARD_PREFIX;
-
     // Define required keys for hotkey
     if (key0 != 0) {
         // Note: -1 since the hotkeys MUST start at 1 (0 is a special value for empty)
-        mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION] = (uint8) (key0 + key0_offset);
+        mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION] = (uint16) key0;
         ++count;
     }
 
     if (key1 != 0) {
         // Note: -1 since the hotkeys MUST start at 1 (0 is a special value for empty)
-        mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION + count] = (uint8) (key1 + key1_offset);
+        mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION + count] = (uint16) key1;
         ++count;
     }
 
     if (key2 != 0) {
         // Note: -1 since the hotkeys MUST start at 1 (0 is a special value for empty)
-        mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION + count] = (uint8) (key2 + key2_offset);
+        mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION + count] = (uint16) key2;
     }
+
+    int key0_offset = ((bool) (key0 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
+        + ((bool) (key0 & INPUT_CONTROLLER_PREFIX)) * (MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS);
+
+    int key1_offset = ((bool) (key1 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
+        + ((bool) (key1 & INPUT_CONTROLLER_PREFIX)) * (MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS);
+
+    int key2_offset = ((bool) (key2 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
+        + ((bool) (key2 & INPUT_CONTROLLER_PREFIX)) * (MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS);
+
+    key0 = (key0 & ~(INPUT_KEYBOARD_PREFIX | INPUT_CONTROLLER_PREFIX));
+    key1 = (key1 & ~(INPUT_KEYBOARD_PREFIX | INPUT_CONTROLLER_PREFIX));
+    key2 = (key2 & ~(INPUT_KEYBOARD_PREFIX | INPUT_CONTROLLER_PREFIX));
 
     // Bind key to hotkey
     for (int i = 0; i < MAX_KEY_TO_HOTKEY; ++i) {
@@ -270,64 +304,67 @@ bool hotkey_is_active(const InputState* state, uint8 hotkey)
 
 // similar to hotkey_is_active but instead of just performing a lookup in the input_hotkey_state created results
 // this is actively checking the current input state (not the hotkey state)
-// @performance This seems like a much better simpler solution no?
-//      However, it is probably a slower solution after calling this function many times?
-//      Remember, we would call this function for almost every possible hotkey (depending on context) per frame
 inline
-bool hotkey_is_pressed(const InputState* __restrict state, const InputMapping* __restrict mapping, uint8 hotkey)
+bool hotkey_keys_are_active(const InputState* __restrict state, const InputMapping* __restrict mapping, uint8 hotkey)
 {
-    uint8 key0 = mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION];
-    uint8 key1 = mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION + 1];
-    uint8 key2 = mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION + 2];
+    uint16 key0 = mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION];
+    uint16 key1 = mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION + 1];
+    uint16 key2 = mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION + 2];
 
-    bool is_pressed = false;
-    if (key0 > MAX_MOUSE_KEYS) {
-        key0 -= MAX_MOUSE_KEYS;
-        is_pressed = keyboard_is_pressed(state, key0);
-    } else if (key0 > 0) {
-        is_pressed = IS_BIT_SET_R2L(state->mouse_down, key0 - 1);
+    // This may seem a little bit confusing but we don't care if a input key is down or up
+    // Any state means it was used recently BUT NOT YET HANDLED
+    // If it was handled it would've been removed (at least in case of RELEASED)
+    // Therefore, if a key has a state -> treat it as if active
+    bool is_active = input_action_exists(state, key0);
+    if (!is_active || key1 == 0) {
+        return is_active;
     }
 
-    if (!is_pressed || key1 == 0) {
-        return is_pressed;
+    is_active &= input_action_exists(state, key1);
+    if (!is_active || key2 == 0) {
+        return is_active;
     }
 
-    if (key1 > MAX_MOUSE_KEYS) {
-        key1 -= MAX_MOUSE_KEYS;
-        is_pressed &= keyboard_is_pressed(state, key1);
-    } else if (key1 > 0) {
-        is_pressed &= IS_BIT_SET_R2L(state->mouse_down, key1 - 1);
+    return (is_active &= input_action_exists(state, key2));
+}
+
+inline
+void input_set_state(InputState* state, uint16 key_id, uint16 new_state)
+{
+    InputKey* free_state = NULL;
+    bool action_required = true;
+
+    for (int j = 0; j < MAX_KEY_STATES; ++j) {
+        if (!free_state && state->state_keys[j].key_id == 0) {
+            free_state = &state->state_keys[j];
+        } else if (state->state_keys[j].key_id == key_id) {
+            state->state_keys[j].key_state = new_state;
+            action_required = false;
+        }
     }
 
-    if (!is_pressed || key2 == 0) {
-        return is_pressed;
+    if (!action_required || !free_state) {
+        return;
     }
 
-    if (key2 > MAX_MOUSE_KEYS) {
-        key2 -= MAX_MOUSE_KEYS;
-        is_pressed &= keyboard_is_pressed(state, key2);
-    } else if (key2 > 0) {
-        is_pressed &= IS_BIT_SET_R2L(state->mouse_down, key2 - 1);
-    }
-
-    return is_pressed;
+    free_state->key_id = key_id;
+    free_state->key_state = new_state;
+    // @todo implement
+    // free_state->time = 0;
 }
 
 void
 input_hotkey_state(InputState* __restrict state, const InputMapping* mapping)
 {
-    // @bug isn't there a bug, MAX_KEY_PRESSES is the keyboard limit, what about additional mouse inputs?
-
     memset(state->state_hotkeys, 0, sizeof(uint8) * MAX_KEY_PRESSES);
 
     int i = 0;
 
-    // @performance It would be nice if we could skip this loop by checking keyboard_changed similar to the mouse loop further down
-    //      The problem is that this loop checks both mouse and keyboard
-
     // Check every key down state
-    for (int down_state = 0; down_state < MAX_KEY_PRESSES; ++down_state) {
-        if (state->keys_down[down_state] == 0) {
+    for (int key_state = 0; key_state < MAX_KEY_STATES; ++key_state) {
+        if (state->state_keys[key_state].key_id == 0
+            || state->state_keys[key_state].key_state == KEY_STATE_RELEASED
+        ) {
             // no key defined for this down state
             continue;
         }
@@ -335,7 +372,12 @@ input_hotkey_state(InputState* __restrict state, const InputMapping* mapping)
         // Is a key defined for this state AND is at least one hotkey defined for this key
         //      If no hotkey is defined we don't care
         //      Careful, remember MAX_MOUSE_KEYS offset
-        const uint8* hotkeys_for_key = mapping->keys[state->keys_down[down_state] + MAX_MOUSE_KEYS - 1];
+        InputKey* input = &state->state_keys[key_state];
+        int32 internal_key_id = (input->key_id & ~(INPUT_KEYBOARD_PREFIX | INPUT_CONTROLLER_PREFIX))
+            + ((bool) (input->key_id & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
+            + ((bool) (input->key_id & INPUT_CONTROLLER_PREFIX)) * (MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS);
+
+        const uint8* hotkeys_for_key = mapping->keys[internal_key_id - 1];
         if (hotkeys_for_key[0] == 0) {
             // no possible hotkey associated with this key
             continue;
@@ -349,42 +391,7 @@ input_hotkey_state(InputState* __restrict state, const InputMapping* mapping)
                 return;
             }
 
-            bool is_pressed = hotkey_is_pressed(state, mapping, hotkeys_for_key[possible_hotkey_idx]);
-
-            // store active hotkey, if it is not already active
-            if (is_pressed && !hotkey_is_active(state, hotkeys_for_key[possible_hotkey_idx])) {
-                state->state_hotkeys[i] = hotkeys_for_key[possible_hotkey_idx];
-                ++i;
-            }
-        }
-    }
-
-    // @performance we could also check if the mouse state even changed
-    if (state->mouse_down == 0 || i >= MAX_KEY_PRESSES) {
-        return;
-    }
-
-    // We now also need to check if there are hotkeys for the mouse buttons
-    // Some are already handled in the previous section, but some might not be handled, since they are mouse only
-    // But this also means, that we ONLY have to search for mouse only hotkeys. It's impossible to find NEW matches with keyboard keys.
-    for (int down_state = 0; down_state < MAX_MOUSE_KEYS; ++down_state) {
-        if (!IS_BIT_SET_R2L(state->mouse_down, down_state)) {
-            continue;
-        }
-
-        const uint8* hotkeys_for_key = mapping->keys[down_state];
-        if (hotkeys_for_key[0] == 0) {
-            // no possible hotkey associated with this key
-            continue;
-        }
-
-        for (int possible_hotkey_idx = 0; possible_hotkey_idx < MAX_KEY_TO_HOTKEY; ++possible_hotkey_idx) {
-            // We only support a slimited amount of active hotkeys
-            if (i >= MAX_KEY_PRESSES) {
-                return;
-            }
-
-            bool is_pressed = hotkey_is_pressed(state, mapping, hotkeys_for_key[possible_hotkey_idx]);
+            bool is_pressed = hotkey_keys_are_active(state, mapping, hotkeys_for_key[possible_hotkey_idx]);
 
             // store active hotkey, if it is not already active
             if (is_pressed && !hotkey_is_active(state, hotkeys_for_key[possible_hotkey_idx])) {

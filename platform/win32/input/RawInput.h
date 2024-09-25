@@ -17,6 +17,7 @@
 #include "../../../utils/MathUtils.h"
 #include "../../../memory/RingMemory.h"
 #include "../../../memory/BufferMemory.h"
+#include "../../../stdlib/simd/SIMD_I8.h"
 #include <winDNS.h>
 
 #define INPUT_MOUSE_BUTTON_1 1
@@ -46,6 +47,7 @@ int input_init(HWND hwnd, Input* __restrict states, RingMemory* ring)
 
     int32 mouse_found = 0;
     int32 keyboard_found = 0;
+    int32 controller_found = 0;
 
     int32 i;
     for (i = 0; i < device_count; ++i) {
@@ -53,65 +55,90 @@ int input_init(HWND hwnd, Input* __restrict states, RingMemory* ring)
         RID_DEVICE_INFO rdi;
         GetRawInputDeviceInfoA(pRawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cb_size);
 
+        RAWINPUTDEVICE rid[1];
+
         switch (rdi.dwType) {
             case RIM_TYPEMOUSE: {
-                    // @bug Would need fixing once we support controllers here
                     if (states[mouse_found].handle_mouse != NULL) {
                         ++mouse_found;
                     }
 
                     states[mouse_found].handle_mouse = pRawInputDeviceList[i].hDevice;
                     states[mouse_found].is_connected = true;
-                    states[mouse_found].type = INPUT_TYPE_MOUSE_KEYBOARD;
+
+                    // Mouse
+                    rid[0].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
+                    rid[0].usUsage     = 0x02;
+                    rid[0].dwFlags     = RIDEV_DEVNOTIFY;
+                    rid[0].hwndTarget  = hwnd;
+
+                    if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
+                        // @todo Log
+                        ASSERT_SIMPLE(false);
+                    }
                 } break;
             case RIM_TYPEKEYBOARD: {
-                // @bug Would need fixing once we support controllers here (keyboard + controller in one input bug)
                 if (states[keyboard_found].handle_keyboard != NULL) {
                         ++keyboard_found;
                     }
 
                     states[keyboard_found].handle_keyboard = pRawInputDeviceList[i].hDevice;
                     states[keyboard_found].is_connected = true;
-                    states[keyboard_found].type = INPUT_TYPE_MOUSE_KEYBOARD;
+
+                    // Keyboard
+                    rid[0].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
+                    rid[0].usUsage	   = 0x06;
+                    rid[0].dwFlags     = RIDEV_DEVNOTIFY;
+                    rid[0].hwndTarget = hwnd;
+
+                    if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
+                        // @todo Log
+                        ASSERT_SIMPLE(false);
+                    }
                 } break;
             case RIM_TYPEHID: {
-                    states[i].type = INPUT_TYPE_OTHER;
+                    if (rdi.hid.usUsage == 0x05) {
+                        if (states[controller_found].handle_controller != NULL) {
+                            ++controller_found;
+                        }
+
+                        states[controller_found].handle_controller = pRawInputDeviceList[i].hDevice;
+                        states[controller_found].is_connected = true;
+
+                        // Gamepad
+                        rid[0].usUsagePage = 0x01;
+                        rid[0].usUsage	   = 0x05;
+                        rid[0].dwFlags     = RIDEV_DEVNOTIFY;
+                        rid[0].hwndTarget = hwnd;
+
+                        if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
+                            // @todo Log
+                            ASSERT_SIMPLE(false);
+                        }
+                    } else if (rdi.hid.usUsage == 0x04) {
+                        if (states[controller_found].handle_controller != NULL) {
+                            ++controller_found;
+                        }
+
+                        states[controller_found].handle_controller = pRawInputDeviceList[i].hDevice;
+                        states[controller_found].is_connected = true;
+
+                        // Joystick
+                        rid[0].usUsagePage = 0x01;
+                        rid[0].usUsage	   = 0x04;
+                        rid[0].dwFlags     = RIDEV_DEVNOTIFY;
+                        rid[0].hwndTarget = hwnd;
+
+                        if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 1, sizeof(RAWINPUTDEVICE))) {
+                            // @todo Log
+                            ASSERT_SIMPLE(false);
+                        }
+                    }
                 } break;
             default: {
 
             }
         }
-    }
-
-    RAWINPUTDEVICE rid[4];
-
-    // Mouse
-    rid[0].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
-    rid[0].usUsage     = 0x02;
-    rid[0].dwFlags     = RIDEV_DEVNOTIFY;
-    rid[0].hwndTarget  = hwnd;
-
-    // Joystick
-    rid[1].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
-    rid[1].usUsage	   = 0x04;
-    rid[1].dwFlags     = RIDEV_DEVNOTIFY;
-    rid[1].hwndTarget = hwnd;
-
-    // Gamepad
-    rid[2].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
-    rid[2].usUsage	   = 0x05;
-    rid[2].dwFlags     = RIDEV_DEVNOTIFY;
-    rid[2].hwndTarget = hwnd;
-
-    // Keyboard
-    rid[3].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
-    rid[3].usUsage	   = 0x06;
-    rid[3].dwFlags     = RIDEV_DEVNOTIFY;
-    rid[3].hwndTarget = hwnd;
-
-    if (!RegisterRawInputDevices((PCRAWINPUTDEVICE) rid, 4, sizeof(RAWINPUTDEVICE))) {
-        // @todo Log
-        ASSERT_SIMPLE(false);
     }
 
     return i;
@@ -130,7 +157,7 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
 {
     uint32 i = 0;
     if (raw->header.dwType == RIM_TYPEMOUSE) {
-        // @todo Change so we can directly access the correct state (maybe map handle address to index?)
+        // @performance Change so we can directly access the correct state (maybe map handle address to index?)
         while (i < state_count
             && states[i].handle_mouse != raw->header.hDevice
         ) {
@@ -142,42 +169,44 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
         }
 
         if (raw->data.mouse.usButtonFlags) {
-            // @question should all of these be else ifs?
+            uint16 new_state;
+            uint16 button;
+
             if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) {
-                states[i].state.mouse_down |= INPUT_MOUSE_BUTTON_1;
-                states[i].state.keys_down_time[0] = time;
+                new_state = KEY_STATE_PRESSED;
+                button = 1;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) {
-                states[i].state.mouse_down &= ~INPUT_MOUSE_BUTTON_1;
-            }
-
-            if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) {
-                states[i].state.mouse_down |= INPUT_MOUSE_BUTTON_2;
-                states[i].state.keys_down_time[1] = time;
+                new_state = KEY_STATE_RELEASED;
+                button = 1;
+            } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) {
+                new_state = KEY_STATE_PRESSED;
+                button = 2;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) {
-                states[i].state.mouse_down &= ~INPUT_MOUSE_BUTTON_2;
-            }
-
-            if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) {
-                states[i].state.mouse_down |= INPUT_MOUSE_BUTTON_3;
-                states[i].state.keys_down_time[2] = time;
+                new_state = KEY_STATE_RELEASED;
+                button = 2;
+            } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) {
+                new_state = KEY_STATE_PRESSED;
+                button = 3;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) {
-                states[i].state.mouse_down &= ~INPUT_MOUSE_BUTTON_3;
-            }
-
-            if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN) {
-                states[i].state.mouse_down |= INPUT_MOUSE_BUTTON_4;
-                states[i].state.keys_down_time[3] = time;
+                new_state = KEY_STATE_RELEASED;
+                button = 3;
+            } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN) {
+                new_state = KEY_STATE_PRESSED;
+                button = 4;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP) {
-                states[i].state.mouse_down &= ~INPUT_MOUSE_BUTTON_4;
-            }
-
-            if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN) {
-                states[i].state.mouse_down |= INPUT_MOUSE_BUTTON_5;
-                states[i].state.keys_down_time[4] = time;
+                new_state = KEY_STATE_RELEASED;
+                button = 4;
+            } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN) {
+                new_state = KEY_STATE_PRESSED;
+                button = 5;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP) {
-                states[i].state.mouse_down &= ~INPUT_MOUSE_BUTTON_5;
+                new_state = KEY_STATE_RELEASED;
+                button = 5;
+            } else {
+                return;
             }
 
+            /* @todo implement
             if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) {
                 states[i].state.wheel_delta += raw->data.mouse.usButtonData;
             }
@@ -185,15 +214,15 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
             if (raw->data.mouse.usButtonFlags & RI_MOUSE_HWHEEL) {
                 states[i].state.hwheel_delta += raw->data.mouse.usButtonData;
             }
-
-            states[i].state_change_mouse = true;
-            states[i].state_change_mouse_button = true;
+            */
 
             // @question is mouse wheel really considered a button change?
-            states[i].state_change_button = true;
-        }
 
-        if (states[i].mouse_movement) {
+            button |= INPUT_MOUSE_PREFIX;
+
+            input_set_state(&states[i].state, button, new_state);
+            states[i].state_change_button = true;
+        } else if (states[i].mouse_movement) {
             // do we want to handle mouse movement for every individual movement, or do we want to pull it
             if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) {
                 RECT rect;
@@ -241,65 +270,67 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
             return;
         }
 
-        // @todo change to MakeCode instead of VKey
-        // @performance Some of the things down here seem unneccessary. We shouldn't have to loop all elements!
+        int16 new_state = -1;
         if (raw->data.keyboard.Flags == RI_KEY_BREAK) {
-            // Key is already released
-            if (keyboard_is_released(&states[i].state, (uint8) raw->data.keyboard.VKey)) {
-                for (int j = 0; j < MAX_KEY_PRESSES; ++j) {
-                    if (states[i].state.keys_down[j] == (uint8) raw->data.keyboard.VKey) {
-                        states[i].state.keys_down[j] = 0;
-
-                        break;
-                    }
-                }
-
-                return;
-            }
-
-            bool empty = true;
-            for (int j = 0; j < MAX_KEY_PRESSES; ++j) {
-                if (empty && states[i].state.keys_up[j] == 0) {
-                    states[i].state.keys_up[j] = (uint8) raw->data.keyboard.VKey;
-
-                    empty = false;
-                }
-
-                // remove pressed key
-                if (states[i].state.keys_down[j] == (uint8) raw->data.keyboard.VKey) {
-                    states[i].state.keys_down[j] = 0;
-                }
-            }
+            new_state = KEY_STATE_RELEASED;
         } else if (raw->data.keyboard.Flags == RI_KEY_MAKE) {
-            // Key is already released
-            if (keyboard_is_pressed(&states[i].state, (uint8) raw->data.keyboard.VKey)) {
-                for (int j = 0; j < MAX_KEY_PRESSES; ++j) {
-                    if (states[i].state.keys_up[j] == (uint8) raw->data.keyboard.VKey) {
-                        states[i].state.keys_up[j] = 0;
-
-                        break;
-                    }
-                }
-
-                return;
-            }
-
-            bool empty = true;
-            for (int j = 0; j < MAX_KEY_PRESSES; ++j) {
-                if (empty && states[i].state.keys_down[j] == 0) {
-                    states[i].state.keys_down[j] = (uint8) raw->data.keyboard.VKey;
-                    states[i].state.keys_down_time[MAX_MOUSE_PRESSES + j] = time;
-                    empty = false;
-                }
-
-                // remove released key
-                if (states[i].state.keys_up[j] == (uint8) raw->data.keyboard.VKey) {
-                    states[i].state.keys_up[j] = 0;
-                }
-            }
+            new_state = KEY_STATE_PRESSED;
         }
 
+        if (new_state < 0) {
+            return;
+        }
+
+        // @todo change to MakeCode instead of VKey
+        uint16 key = raw->data.keyboard.VKey | INPUT_KEYBOARD_PREFIX;
+
+        input_set_state(&states[i].state, key, new_state);
         states[i].state_change_button = true;
+    } else if (raw->header.dwType == RIM_TYPEHID) {
+        if (raw->header.dwSize > sizeof(RAWINPUT)) {
+            // @todo Find a way to handle most common controllers
+            //      DualShock 3
+            //      Dualshock 4
+            //      DualSense
+            //      Xbox
+            return;
+
+            /*
+            while (i < state_count
+                && states[i].handle_controller != raw->header.hDevice
+            ) {
+                ++i;
+            }
+
+            if (i >= state_count || !states[i].is_connected) {
+                return;
+            }
+
+            // @performance The code below is horrible, we need to probably make it controller dependant
+            //      Sometimes a controller may have a time component or a gyro which results in the controller
+            //      constantly sending input data
+
+            // @todo implement actual step usage
+            bool is_same = simd_compare(
+                raw->data.hid.bRawData,
+                states[i].state.controller_state,
+                raw->header.dwSize - sizeof(RAWINPUT),
+                8
+            );
+
+            if (!is_same) {
+                memcpy(states[i].state.controller_state, raw->data.hid.bRawData, raw->header.dwSize - sizeof(RAWINPUT));
+
+                char buffer[100];
+                int j = 0;
+                for (j = 0; j < raw->header.dwSize - sizeof(RAWINPUT); ++j) {
+                    buffer[j] = raw->data.hid.bRawData[j];
+                }
+
+                DEBUG_OUTPUT(buffer);
+            }
+            */
+        }
     }
 }
 

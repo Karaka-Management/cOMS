@@ -33,6 +33,35 @@ DWORD WINAPI XInputSetStateStub(DWORD, XINPUT_VIBRATION*) {
 global_persist x_input_set_state* XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
+struct ControllerInput {
+    uint32 id = 0;
+    bool is_connected = false;
+
+    // After handling the state change the game loop should set this to false
+    bool state_change = false;
+
+    // @question maybe make part of button
+    bool up = false;
+    bool down = false;
+    bool left = false;
+    bool right = false;
+
+    byte trigger_old[4];
+    byte trigger[4];
+
+    // these are bitfields
+    uint16 button_old;
+    uint16 button;
+
+    int16 stickl_x = 0;
+    int16 stickl_y = 0;
+    bool stickl_press = false;
+
+    int16 stickr_x = 0;
+    int16 stickr_y = 0;
+    bool stickr_press = false;
+};
+
 void xinput_load() {
     HMODULE lib = LoadLibraryExA((LPCSTR) "xinput1_4.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if(!lib) {

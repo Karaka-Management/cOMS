@@ -459,7 +459,7 @@ inline int8_32 operator<=(int8_32 a, int8_32 b)
 inline int8_64 operator<=(int8_64 a, int8_64 b)
 {
     int8_64 simd;
-    simd.s = _mm512_mask_blend_epi8(_mm512_knot(_mm512_cmpgt_epi8_mask(b.s, a.s)), b.s, a.s);
+    simd.s = _mm512_mask_blend_epi8(_mm512_cmple_epi8_mask(a.s, b.s), b.s, a.s);
 
     return simd;
 }
@@ -737,23 +737,23 @@ inline int8_64 clamp(int8_64 min_value, int8_64 a, int8_64 max_value)
     return simd_min(simd_max(a, min_value), max_value);
 }
 
-inline int8 which_true(int8_16 a)
+inline int32 which_true(int8_16 a)
 {
-    int8 which_true = _mm_movemask_epi8(a.s);
+    int32 which_true = _mm_movemask_epi8(a.s);
 
     return which_true;
 }
 
-inline int8 which_true(int8_32 a)
+inline int32 which_true(int8_32 a)
 {
-    int8 which_true = _mm256_movemask_epi8(a.s);
+    int32 which_true = _mm256_movemask_epi8(a.s);
 
     return which_true;
 }
 
-inline int8 which_true(int8_64 a)
+inline int64 which_true(int8_64 a)
 {
-    int8 which_true = _mm512_movepi8_mask(a.s);
+    int64 which_true = _mm512_movepi8_mask(a.s);
 
     return which_true;
 }
@@ -852,5 +852,105 @@ f32 simd_mult(const int8* a, f32 b, int size, int steps)
     }
 }
 */
+
+bool simd_compare_64(const byte* a, const byte* b)
+{
+    __m256i chunk1_a = _mm256_loadu_si256((__m256i*) a);
+    __m256i chunk1_b = _mm256_loadu_si256((__m256i*) b);
+
+    __m256i chunk2_a = _mm256_loadu_si256((__m256i*) (a + 32));
+    __m256i chunk2_b = _mm256_loadu_si256((__m256i*) (b + 32));
+
+    __m256i result1 = _mm256_cmpeq_epi8(chunk1_a, chunk1_b);
+    __m256i result2 = _mm256_cmpeq_epi8(chunk2_a, chunk2_b);
+
+    __m256i combined = _mm256_and_si256(result1, result2);
+
+    return _mm256_testc_si256(combined, _mm256_set1_epi8(-1)) != 1;
+}
+
+int simd_compare(const byte* a, const byte* b, uint32 size, uint32 steps = 8) {
+    int i = 0;
+
+    if (steps == 16) {
+        if (size >= 128) {
+            __m512i a_16;
+            __m512i b_16;
+            __mmask64 result_mask;
+
+            for (; i <= size - 64; i += 64) {  // 64 bytes per iteration
+                a_16 = _mm512_loadu_si512((__m512i*) a);
+                b_16 = _mm512_loadu_si512((__m512i*) b);
+
+                result_mask = _mm512_cmpeq_epi8_mask(a_16, b_16);
+
+                if (result_mask != 0xFFFFFFFFFFFFFFFF) {
+                    return false;
+                }
+
+                a += 64;
+                b += 64;
+            }
+        }
+
+        if (size - i >= 64) {
+            return simd_compare(a, b, size - i, 8);
+        } else if (size - i >= 32) {
+            return simd_compare(a, b, size - i, 4);
+        }
+    } else if (steps == 8) {
+        if (size >= 64) {
+            __m256i a_8;
+            __m256i b_8;
+            __m256i result_8;
+
+            for (; i <= size - steps; i += steps) {
+                a_8 = _mm256_loadu_si256((__m256i*) a);
+                b_8 = _mm256_loadu_si256((__m256i*) b);
+
+                result_8 = _mm256_cmpeq_epi8(a_8, b_8);
+
+                if (_mm256_testc_si256(result_8, _mm256_set1_epi8(-1)) != 1) {
+                    return false;
+                }
+
+                a += steps;
+                b += steps;
+            }
+        }
+
+        if (size - i >= 32) {
+            return simd_compare(a, b, size - i, 4);
+        }
+    } else if (steps == 4) {
+        if (size >= 16) {
+            __m128i a_4;
+            __m128i b_4;
+            __m128i result_4;
+
+            for (; i <= size - steps; i += steps) {
+                a_4 = _mm_loadu_si128((__m128i*) a);
+                b_4 = _mm_loadu_si128((__m128i*) b);
+
+                result_4 = _mm_cmpeq_epi8(a_4, b_4);
+
+                if (_mm_movemask_epi8(result_4) != 0xFFFF) {
+                    return false;
+                }
+
+                a += steps;
+                b += steps;
+            }
+        }
+    }
+
+    for (; i < size; ++i) {
+        if (*a++ != *b++) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 #endif
