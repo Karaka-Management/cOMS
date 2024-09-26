@@ -6,13 +6,14 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_INPUT_XINPUT_H
-#define TOS_INPUT_XINPUT_H
+#ifndef TOS_PLATFORM_WIN32_INPUT_XINPUT_H
+#define TOS_PLATFORM_WIN32_INPUT_XINPUT_H
 
 #include <XInput.h>
 #include <windows.h>
 
 #include "../../../input/Input.h"
+#include "../../../input/ControllerInput.h"
 #include "../../../stdlib/Types.h"
 #include "../../../utils/MathUtils.h"
 
@@ -32,35 +33,6 @@ DWORD WINAPI XInputSetStateStub(DWORD, XINPUT_VIBRATION*) {
 }
 global_persist x_input_set_state* XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
-
-struct ControllerInput {
-    uint32 id = 0;
-    bool is_connected = false;
-
-    // After handling the state change the game loop should set this to false
-    bool state_change = false;
-
-    // @question maybe make part of button
-    bool up = false;
-    bool down = false;
-    bool left = false;
-    bool right = false;
-
-    byte trigger_old[4];
-    byte trigger[4];
-
-    // these are bitfields
-    uint16 button_old;
-    uint16 button;
-
-    int16 stickl_x = 0;
-    int16 stickl_y = 0;
-    bool stickl_press = false;
-
-    int16 stickr_x = 0;
-    int16 stickr_y = 0;
-    bool stickr_press = false;
-};
 
 void xinput_load() {
     HMODULE lib = LoadLibraryExA((LPCSTR) "xinput1_4.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -107,9 +79,6 @@ ControllerInput* init_controllers()
         XINPUT_STATE controller_state;
         if (XInputGetState(controller_index, &controller_state) == ERROR_SUCCESS) {
             ++c;
-
-            controllers[c].id = controller_index;
-            controllers[c].is_connected = true;
         }
     }
 
@@ -118,6 +87,7 @@ ControllerInput* init_controllers()
 
 void handle_controller_input(ControllerInput* states)
 {
+    /*
     uint32 controller_index = 0;
     while(states[controller_index].is_connected) {
         XINPUT_STATE controller_state;
@@ -127,7 +97,7 @@ void handle_controller_input(ControllerInput* states)
             continue;
         }
 
-        /*
+
         states[controller_index].up = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
         states[controller_index].down = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
         states[controller_index].left = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
@@ -153,10 +123,11 @@ void handle_controller_input(ControllerInput* states)
         states[controller_index].stickr_x = controller_state.Gamepad.sThumbRX;
         states[controller_index].stickr_y = controller_state.Gamepad.sThumbRY;
         states[controller_index].stickr_press = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
-        */
+
 
         ++controller_index;
     }
+    */
 }
 
 #endif

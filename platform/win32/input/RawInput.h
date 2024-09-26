@@ -6,13 +6,15 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_INPUT_RAW_H
-#define TOS_INPUT_RAW_H
+#ifndef TOS_PLATFORM_WIN32_INPUT_RAW_H
+#define TOS_PLATFORM_WIN32_INPUT_RAW_H
 
 #include <windows.h>
 
 #include "../../../stdlib/Types.h"
 #include "../../../input/Input.h"
+#include "../../../input/ControllerInput.h"
+#include "controller/DualShock4.h"
 #include "../../../utils/TestUtils.h"
 #include "../../../utils/MathUtils.h"
 #include "../../../memory/RingMemory.h"
@@ -169,39 +171,38 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
         }
 
         if (raw->data.mouse.usButtonFlags) {
-            uint16 new_state;
-            uint16 button;
+            InputKey key;
 
             if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) {
-                new_state = KEY_STATE_PRESSED;
-                button = 1;
+                key.key_state = KEY_STATE_PRESSED;
+                key.key_id = 1;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) {
-                new_state = KEY_STATE_RELEASED;
-                button = 1;
+                key.key_state = KEY_STATE_RELEASED;
+                key.key_id = 1;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) {
-                new_state = KEY_STATE_PRESSED;
-                button = 2;
+                key.key_state = KEY_STATE_PRESSED;
+                key.key_id = 2;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) {
-                new_state = KEY_STATE_RELEASED;
-                button = 2;
+                key.key_state = KEY_STATE_RELEASED;
+                key.key_id = 2;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) {
-                new_state = KEY_STATE_PRESSED;
-                button = 3;
+                key.key_state = KEY_STATE_PRESSED;
+                key.key_id = 3;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) {
-                new_state = KEY_STATE_RELEASED;
-                button = 3;
+                key.key_state = KEY_STATE_RELEASED;
+                key.key_id = 3;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN) {
-                new_state = KEY_STATE_PRESSED;
-                button = 4;
+                key.key_state = KEY_STATE_PRESSED;
+                key.key_id = 4;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP) {
-                new_state = KEY_STATE_RELEASED;
-                button = 4;
+                key.key_state = KEY_STATE_RELEASED;
+                key.key_id = 4;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN) {
-                new_state = KEY_STATE_PRESSED;
-                button = 5;
+                key.key_state = KEY_STATE_PRESSED;
+                key.key_id = 5;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP) {
-                new_state = KEY_STATE_RELEASED;
-                button = 5;
+                key.key_state = KEY_STATE_RELEASED;
+                key.key_id = 5;
             } else {
                 return;
             }
@@ -218,9 +219,11 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
 
             // @question is mouse wheel really considered a button change?
 
-            button |= INPUT_MOUSE_PREFIX;
+            key.key_id |= INPUT_MOUSE_PREFIX;
+            key.value = 0;
+            key.time = time;
 
-            input_set_state(&states[i].state, button, new_state);
+            input_set_state(&states[i].state, &key);
             states[i].state_change_button = true;
         } else if (states[i].mouse_movement) {
             // do we want to handle mouse movement for every individual movement, or do we want to pull it
@@ -270,66 +273,45 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
             return;
         }
 
-        int16 new_state = -1;
+        uint16 new_state;
         if (raw->data.keyboard.Flags == RI_KEY_BREAK) {
             new_state = KEY_STATE_RELEASED;
         } else if (raw->data.keyboard.Flags == RI_KEY_MAKE) {
             new_state = KEY_STATE_PRESSED;
-        }
-
-        if (new_state < 0) {
+        } else {
             return;
         }
 
         // @todo change to MakeCode instead of VKey
-        uint16 key = raw->data.keyboard.VKey | INPUT_KEYBOARD_PREFIX;
-
-        input_set_state(&states[i].state, key, new_state);
+        InputKey key = {(uint16) (raw->data.keyboard.VKey | INPUT_KEYBOARD_PREFIX), new_state, 0, time};
+        input_set_state(&states[i].state, &key);
         states[i].state_change_button = true;
     } else if (raw->header.dwType == RIM_TYPEHID) {
         if (raw->header.dwSize > sizeof(RAWINPUT)) {
             // @todo Find a way to handle most common controllers
-            //      DualShock 3
-            //      Dualshock 4
             //      DualSense
             //      Xbox
-            return;
 
-            /*
+            // @performance This shouldn't be done every time, it should be polling based
+            // Controllers often CONSTANTLY send data -> really bad
+            // Maybe we can add timer usage
             while (i < state_count
                 && states[i].handle_controller != raw->header.hDevice
             ) {
                 ++i;
             }
 
-            if (i >= state_count || !states[i].is_connected) {
+            if (i >= state_count || !states[i].is_connected
+                || time - states[i].time_last_input_check < 5
+            ) {
                 return;
             }
 
-            // @performance The code below is horrible, we need to probably make it controller dependant
-            //      Sometimes a controller may have a time component or a gyro which results in the controller
-            //      constantly sending input data
+            ControllerInput controller = {};
+            input_map_dualshock4(&controller, raw->data.hid.bRawData);
+            input_set_controller_state(&states[i], &controller, time);
 
-            // @todo implement actual step usage
-            bool is_same = simd_compare(
-                raw->data.hid.bRawData,
-                states[i].state.controller_state,
-                raw->header.dwSize - sizeof(RAWINPUT),
-                8
-            );
-
-            if (!is_same) {
-                memcpy(states[i].state.controller_state, raw->data.hid.bRawData, raw->header.dwSize - sizeof(RAWINPUT));
-
-                char buffer[100];
-                int j = 0;
-                for (j = 0; j < raw->header.dwSize - sizeof(RAWINPUT); ++j) {
-                    buffer[j] = raw->data.hid.bRawData[j];
-                }
-
-                DEBUG_OUTPUT(buffer);
-            }
-            */
+            states[i].time_last_input_check = time;
         }
     }
 }
@@ -351,7 +333,6 @@ void input_handle(LPARAM lParam, Input* __restrict states, int state_count, Ring
     input_raw_handle((RAWINPUT *) lpb, states, state_count, time);
 }
 
-// @bug Somehow this function skips some inputs (input_handle works)!!!!!
 void input_handle_buffered(int buffer_size, Input* __restrict states, int state_count, RingMemory* ring, uint64 time)
 {
     uint32 cb_size;
