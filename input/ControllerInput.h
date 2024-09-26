@@ -12,15 +12,13 @@
 #include "../stdlib/Types.h"
 
 enum ControllerButton {
-    CONTROLLER_BUTTON_NONE, // Needs to be skipped for input system (see -1)
-
     CONTROLLER_BUTTON_STICK_LEFT_BUTTON,
     CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL,
-    CONTROLLER_BUTTON_STICK_LEFT_VERTOCAL,
+    CONTROLLER_BUTTON_STICK_LEFT_VERTICAL,
 
     CONTROLLER_BUTTON_STICK_RIGHT_BUTTON,
     CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL,
-    CONTROLLER_BUTTON_STICK_RIGHT_VERTOCAL,
+    CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL,
 
     CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER,
     CONTROLLER_BUTTON_SHOULDER_LEFT_BUTTON,
@@ -46,38 +44,17 @@ enum ControllerButton {
     CONTROLLER_BUTTON_OTHER_5,
     CONTROLLER_BUTTON_OTHER_6,
     CONTROLLER_BUTTON_OTHER_7,
+
+    CONTROLLER_BUTTON_SIZE,
 };
 
 struct ControllerInput {
-    uint8 stick_left_button;
-    int8 stick_left_x;
-    int8 stick_left_y;
-
-    uint8 stick_right_button;
-    int8 stick_right_x;
-    int8 stick_right_y;
-
-    int8 shoulder_trigger_left;
-    int8 shoulder_trigger_right;
-
-    uint8 shoulder_button_left;
-    uint8 shoulder_button_right;
-
-    uint8 button_X;
-    uint8 button_C;
-    uint8 button_T;
-    uint8 button_S;
-
-    uint8 dpad_left;
-    uint8 dpad_right;
-    uint8 dpad_up;
-    uint8 dpad_down;
+    int8 button[32];
+    bool is_analog[32]; // = uses deadzone
 
     int16 gyro_x;
     int16 gyro_y;
     int16 gyro_z;
-
-    uint8 button_other[8];
 };
 
 #endif

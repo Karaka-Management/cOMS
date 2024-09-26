@@ -41,6 +41,8 @@
 
 #define MIN_CONTROLLER_DEVICES 4
 
+#define INPUT_LONG_PRESS_DURATION 250
+
 #include "../stdlib/Types.h"
 #include "../utils/BitUtils.h"
 #include "ControllerInput.h"
@@ -55,6 +57,7 @@
 struct InputMapping {
     // A key/button can be bound to up to 5 different hotkeys
     // This is used to check if a key/button has a hotkey association
+    // @todo why is this using 2d array while hotkeys uses 1d array? make both 1d arrays
     uint8 keys[MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS + MAX_CONTROLLER_KEYS][MAX_KEY_TO_HOTKEY];
 
     // A hotkey can be bound to a combination of up to 3 key/button presses
@@ -350,13 +353,15 @@ bool hotkey_keys_are_active(const InputState* state, const InputMapping* mapping
     // Any state means it was used recently BUT NOT YET HANDLED
     // If it was handled it would've been removed (at least in case of RELEASED)
     // Therefore, if a key has a state -> treat it as if active
+
+    // The code below also allows optional keys which have a negative sign (at least one of the optional keys must be valid)
     bool is_active = input_action_exists(state, (int16) OMS_ABS(key0));
-    if ((!is_active && key1 >= 0) || (is_active && key0 < 0)) {
+    if ((!is_active && (key0 > 0 || key1 >= 0)) || (is_active && key0 < 0)) {
         return is_active;
     }
 
     is_active = input_action_exists(state, (int16) OMS_ABS(key1));
-    if ((!is_active && key2 >= 0) || (is_active && key1 < 0)) {
+    if ((!is_active && (key1 > 0 || key2 >= 0)) || (is_active && key1 < 0)) {
         return is_active;
     }
 
@@ -369,13 +374,13 @@ void input_set_state(InputState* state, InputKey* __restrict new_key)
     InputKey* free_state = NULL;
     bool action_required = true;
 
-    for (int j = 0; j < MAX_KEY_STATES; ++j) {
-        if (!free_state && state->state_keys[j].key_id == 0) {
-            free_state = &state->state_keys[j];
-        } else if (state->state_keys[j].key_id == new_key->key_id) {
-            state->state_keys[j].key_state = new_key->key_state;
-            state->state_keys[j].value = new_key->value;
-            state->state_keys[j].time = new_key->time;
+    for (int i = 0; i < MAX_KEY_STATES; ++i) {
+        if (!free_state && state->state_keys[i].key_id == 0) {
+            free_state = &state->state_keys[i];
+        } else if (state->state_keys[i].key_id == new_key->key_id) {
+            state->state_keys[i].key_state = new_key->key_state;
+            state->state_keys[i].value = new_key->value;
+            state->state_keys[i].time = new_key->time;
             action_required = false;
         }
     }
@@ -405,32 +410,8 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
         ) {
             uint32 key_id = input->state.state_keys[i].key_id & ~INPUT_CONTROLLER_PREFIX;
 
-            if ((key_id == CONTROLLER_BUTTON_STICK_LEFT_BUTTON && controller->stick_left_button == 0)
-                || (key_id == CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL && OMS_ABS(controller->stick_left_x) < input->deadzone)
-                || (key_id == CONTROLLER_BUTTON_STICK_LEFT_VERTOCAL && OMS_ABS(controller->stick_left_y) < input->deadzone)
-                || (key_id == CONTROLLER_BUTTON_STICK_RIGHT_BUTTON && controller->stick_right_button == 0)
-                || (key_id == CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL && OMS_ABS(controller->stick_right_x) < input->deadzone)
-                || (key_id == CONTROLLER_BUTTON_STICK_RIGHT_VERTOCAL && OMS_ABS(controller->stick_right_y) < input->deadzone)
-                || (key_id == CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER && OMS_ABS(controller->shoulder_trigger_left) < input->deadzone)
-                || (key_id == CONTROLLER_BUTTON_SHOULDER_LEFT_BUTTON && controller->shoulder_button_left == 0)
-                || (key_id == CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER && OMS_ABS(controller->shoulder_trigger_right) < input->deadzone)
-                || (key_id == CONTROLLER_BUTTON_SHOULDER_RIGHT_BUTTON && controller->shoulder_button_right == 0)
-                || (key_id == CONTROLLER_BUTTON_X && controller->button_X == 0)
-                || (key_id == CONTROLLER_BUTTON_C && controller->button_C == 0)
-                || (key_id == CONTROLLER_BUTTON_T && controller->button_T == 0)
-                || (key_id == CONTROLLER_BUTTON_S && controller->button_S == 0)
-                || (key_id == CONTROLLER_BUTTON_DPAD_LEFT && controller->dpad_left == 0)
-                || (key_id == CONTROLLER_BUTTON_DPAD_RIGHT && controller->dpad_right == 0)
-                || (key_id == CONTROLLER_BUTTON_DPAD_UP && controller->dpad_up == 0)
-                || (key_id == CONTROLLER_BUTTON_DPAD_DOWN && controller->dpad_down == 0)
-                || (key_id == CONTROLLER_BUTTON_OTHER_0 && controller->button_other[0] == 0)
-                || (key_id == CONTROLLER_BUTTON_OTHER_1 && controller->button_other[1] == 0)
-                || (key_id == CONTROLLER_BUTTON_OTHER_2 && controller->button_other[2] == 0)
-                || (key_id == CONTROLLER_BUTTON_OTHER_3 && controller->button_other[3] == 0)
-                || (key_id == CONTROLLER_BUTTON_OTHER_4 && controller->button_other[4] == 0)
-                || (key_id == CONTROLLER_BUTTON_OTHER_5 && controller->button_other[5] == 0)
-                || (key_id == CONTROLLER_BUTTON_OTHER_6 && controller->button_other[6] == 0)
-                || (key_id == CONTROLLER_BUTTON_OTHER_7 && controller->button_other[7] == 0)
+            if ((controller->is_analog[key_id] && OMS_ABS(controller->button[key_id]) < input->deadzone)
+                || (!controller->is_analog[key_id] && controller->button[key_id] == 0)
             ) {
                 input->state.state_keys[i].key_state = KEY_STATE_RELEASED;
             }
@@ -439,30 +420,30 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
 
     // Special keys
     // @todo this code means we cannot change this behavior (e.g. swap mouse view to dpad, swap sticks, ...)
-    if (OMS_ABS(controller->stick_right_x) > input->deadzone) {
-        input->state.dx += controller->stick_right_x / 8;
+    // @todo This is also not very general, maybe we can fix it like we did with analog vs digital key (instead of bool flag maybe bit flag)
+    if (OMS_ABS(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL]) > input->deadzone) {
+        input->state.dx += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] / 8;
         input->state_change_mouse = true;
     } else {
         input->state.dx = 0;
     }
 
-    if (OMS_ABS(controller->stick_right_y) > input->deadzone) {
-        input->state.dy += controller->stick_right_y / 8;
+    if (OMS_ABS(controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL]) > input->deadzone) {
+        input->state.dy += controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] / 8;
         input->state_change_mouse = true;
     } else {
         input->state.dy = 0;
     }
 
-    if (OMS_ABS(controller->stick_left_x) > input->deadzone) {
-        input->state.dx2 += controller->stick_left_x / 8;
+    if (OMS_ABS(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
+        input->state.dx2 += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
         // @todo needs state change flag like mouse?!
     } else {
         input->state.dx2 = 0;
     }
 
-    if (OMS_ABS(controller->stick_left_y) > input->deadzone) {
-        input->state.dy2 += controller->stick_left_y / 8;
-        input->state.y2 += controller->stick_left_y / 8;
+    if (OMS_ABS(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL]) > input->deadzone) {
+        input->state.dy2 += controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] / 8;
         // @todo needs state change flag like mouse?!
     } else {
         input->state.dy2 = 0;
@@ -472,243 +453,23 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     int count = 0;
     InputKey keys[5];
 
-    // @todo this logic below is painful, fix
-    if (count < 5 && controller->stick_left_button != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_STICK_LEFT_BUTTON | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->stick_left_button;
-        keys[count].time = time;
+    for (uint16 i = 0; i < 32; ++i) {
+        if ((controller->is_analog[i] && OMS_ABS(controller->button[i]) > input->deadzone)
+            || (!controller->is_analog[i] && controller->button[i] != 0)
+        ) {
+            keys[count].key_id = i | INPUT_CONTROLLER_PREFIX;
+            keys[count].key_state = KEY_STATE_PRESSED;
+            keys[count].value = controller->button[i];
+            keys[count].time = time;
 
-        ++count;
+            ++count;
+        }
     }
 
-    if (count < 5 && OMS_ABS(controller->stick_left_x) > input->deadzone) {
-        keys[count].key_id = CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->stick_left_x;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && OMS_ABS(controller->stick_left_y) > input->deadzone) {
-        keys[count].key_id = CONTROLLER_BUTTON_STICK_LEFT_VERTOCAL | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->stick_left_y;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->stick_right_button != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_STICK_RIGHT_BUTTON | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->stick_right_button;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && OMS_ABS(controller->stick_right_x) > input->deadzone) {
-        keys[count].key_id = CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->stick_right_x;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && OMS_ABS(controller->stick_right_y) > input->deadzone) {
-        keys[count].key_id = CONTROLLER_BUTTON_STICK_RIGHT_VERTOCAL | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->stick_right_y;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && OMS_ABS(controller->shoulder_trigger_left) > input->deadzone) {
-        keys[count].key_id = CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->shoulder_trigger_left;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->shoulder_button_left != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_SHOULDER_LEFT_BUTTON | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->shoulder_button_left;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && OMS_ABS(controller->shoulder_trigger_right) > input->deadzone) {
-        keys[count].key_id = CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->shoulder_trigger_right;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->shoulder_button_right != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_SHOULDER_RIGHT_BUTTON | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->shoulder_button_right;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_X != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_X | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_X;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_C != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_C | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_C;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_T != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_T | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_T;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_S != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_S | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_S;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->dpad_left != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_DPAD_LEFT | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->dpad_left;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->dpad_right != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_DPAD_RIGHT | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->dpad_right;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->dpad_up != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_DPAD_UP | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->dpad_up;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->dpad_down != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_DPAD_DOWN | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->dpad_down;
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_other[0] != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_OTHER_0 | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_other[0];
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_other[1] != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_OTHER_1 | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_other[1];
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_other[2] != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_OTHER_2 | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_other[2];
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_other[3] != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_OTHER_3 | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_other[3];
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_other[4] != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_OTHER_4 | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_other[4];
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_other[5] != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_OTHER_5 | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_other[5];
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_other[6] != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_OTHER_6 | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_other[6];
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    if (count < 5 && controller->button_other[7] != 0) {
-        keys[count].key_id = CONTROLLER_BUTTON_OTHER_7 | INPUT_CONTROLLER_PREFIX;
-        keys[count].key_state = KEY_STATE_PRESSED;
-        keys[count].value = controller->button_other[7];
-        keys[count].time = time;
-
-        ++count;
-    }
-
-    for (int i = 0; i < count; ++i) {
-        input_set_state(&input->state, &keys[i]);
+    if (count > 0) {
+        for (int i = 0; i < count; ++i) {
+            input_set_state(&input->state, &keys[i]);
+        }
     }
 
     input->state_change_button = true;
@@ -739,24 +500,25 @@ input_hotkey_state(Input* input)
             + ((bool) (key->key_id & INPUT_CONTROLLER_PREFIX)) * (MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS);
 
         // Handle 2 input devices (1 = keyboard + mouse, 2 = controller)
+        // @performance Could it make sense to only loop over one mapping (create a pointer that references the correct mapping)
+        //      We then swap this pointer whenever we detect a input from keyboard+mouse vs controller
+        //      This would allow us even to add context specific mappings
         for (int i = 0; i < 2; ++i) {
             InputMapping* mapping;
             if (i == 0) {
                 mapping = &input->input_mapping1;
-            } else {
-                // @todo Maybe we want to ignore < INPUT_CONTROLLER_PREFIX since we could use this to handle alt keybinds
-                if (!input->handle_controller || key->key_id < INPUT_CONTROLLER_PREFIX) {
-                    continue;
-                }
-
+            } else if (input->handle_controller && key->key_id > INPUT_CONTROLLER_PREFIX) {
                 mapping = &input->input_mapping2;
+            } else {
+                continue;
             }
 
-            const uint8* hotkeys_for_key = mapping->keys[internal_key_id - 1];
-            if (hotkeys_for_key[0] == 0) {
+            if (mapping->keys[internal_key_id - 1][0] == 0) {
                 // no possible hotkey associated with this key
                 continue;
             }
+
+            const uint8* hotkeys_for_key = mapping->keys[internal_key_id - 1];
 
             // Check every possible hotkey
             // Since multiple input devices have their own button/key indices whe have to do this weird range handling
@@ -777,16 +539,72 @@ input_hotkey_state(Input* input)
         }
     }
 
-    // @bug how to handle long press vs click
     // @bug how to handle priority? e.g. there might be a hotkey for 1 and one for alt+1
     //      in this case only the hotkey for alt+1 should be triggered
     // @bug how to handle other conditions besides buttons pressed together? some hotkeys are only available in certain situations
-    // @bug how to handle alternative hotkeys (e.g. keyboard and controller at the same time)
     // @bug how to handle values (e.g. stick may or may not set the x/y or dx/dy in some situations)
-    // @bug how to allow rebinding/swapping of left and right stick?
+    // @bug how to allow rebinding/swapping of left and right stick? (maybe create handful of events e.g. set dx/dy that fire based on the input?)
     // @bug There is a bug ONLY with the controller, when doing camera look around and holding the stick at and angle
     //          The hotkey seemingly loses activity after 1-2 sec if you then move the stick a little bit it works again
     //          It doesn't always happen but you can test it rather consistently within a couple of seconds
+}
+
+bool input_key_is_longpress(InputState* state, uint16 key, uint64 time, float dt = 0.0f) {
+    for (int i = 0; i < MAX_KEY_STATES; ++i) {
+        if (state->state_keys[i].key_id == key) {
+            return (float) (time - state->state_keys[i].time) / 1000.0f >= (dt == 0.0f ? INPUT_LONG_PRESS_DURATION : dt);
+        }
+    }
+
+    return false;
+}
+
+// @todo I wrote this code at 9am after staying awake for the whole night and that is how that code looks like... fix it!
+bool input_hotkey_is_longpress(Input* input, uint8 hotkey, uint64 time, float dt = 0.0f) {
+    bool is_longpress = false;
+    for (int i = 0; i < MAX_KEY_PRESSES; ++i) {
+        if (input->state.state_hotkeys[i] != hotkey) {
+            continue;
+        }
+
+        is_longpress = true;
+
+        for (int j = 0; j < MAX_HOTKEY_COMBINATION; ++j) {
+            bool potential_miss = true;
+            bool both_empty = false;
+            if (input->input_mapping1.hotkeys[hotkey * MAX_HOTKEY_COMBINATION + j] > 0) {
+                if(!input_key_is_longpress(&input->state, input->input_mapping1.hotkeys[hotkey + j], time, dt)) {
+                    potential_miss = true;
+                } else {
+                    potential_miss = false;
+                }
+            } else {
+                both_empty = true;
+            }
+
+            if (!potential_miss) {
+                continue;
+            }
+
+            if (input->input_mapping2.hotkeys[hotkey * MAX_HOTKEY_COMBINATION + j] > 0) {
+                if(!input_key_is_longpress(&input->state, input->input_mapping2.hotkeys[hotkey + j], time, dt)) {
+                    potential_miss = true;
+                } else {
+                    potential_miss = false;
+                }
+            } else {
+                both_empty &= true;
+            }
+
+            if (both_empty) {
+                continue;
+            } else if (potential_miss) {
+                return false;
+            }
+        }
+    }
+
+    return is_longpress;
 }
 
 #endif
