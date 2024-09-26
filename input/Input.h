@@ -279,6 +279,18 @@ input_add_hotkey(
         mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION + count] = (int16) key2;
     }
 
+    if (key0 < 0) {
+        key0 *= -1;
+    }
+
+    if (key1 < 0) {
+        key1 *= -1;
+    }
+
+    if (key2 < 0) {
+        key2 *= -1;
+    }
+
     int key0_offset = ((bool) (key0 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
         + ((bool) (key0 & INPUT_CONTROLLER_PREFIX)) * (MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS);
 
@@ -328,7 +340,7 @@ bool hotkey_is_active(const InputState* state, uint8 hotkey)
 // similar to hotkey_is_active but instead of just performing a lookup in the input_hotkey_state created results
 // this is actively checking the current input state (not the hotkey state)
 inline
-bool hotkey_keys_are_active(const InputState* __restrict state, const InputMapping* __restrict mapping, uint8 hotkey)
+bool hotkey_keys_are_active(const InputState* state, const InputMapping* mapping, uint8 hotkey)
 {
     int16 key0 = mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION];
     int16 key1 = mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION + 1];
@@ -338,17 +350,17 @@ bool hotkey_keys_are_active(const InputState* __restrict state, const InputMappi
     // Any state means it was used recently BUT NOT YET HANDLED
     // If it was handled it would've been removed (at least in case of RELEASED)
     // Therefore, if a key has a state -> treat it as if active
-    bool is_active = input_action_exists(state, key0);
-    if (!is_active || key1 == 0) {
-        return is_active || input_action_exists(state, -key0);
+    bool is_active = input_action_exists(state, (int16) OMS_ABS(key0));
+    if ((!is_active && key1 >= 0) || (is_active && key0 < 0)) {
+        return is_active;
     }
 
-    is_active &= input_action_exists(state, key1);
-    if (!is_active || key2 == 0) {
-        return is_active || input_action_exists(state, -key1);
+    is_active = input_action_exists(state, (int16) OMS_ABS(key1));
+    if ((!is_active && key2 >= 0) || (is_active && key1 < 0)) {
+        return is_active;
     }
 
-    return (is_active &= input_action_exists(state, key2)) || input_action_exists(state, -key2);
+    return input_action_exists(state, (int16) OMS_ABS(key2));
 }
 
 inline
@@ -771,6 +783,10 @@ input_hotkey_state(Input* input)
     // @bug how to handle other conditions besides buttons pressed together? some hotkeys are only available in certain situations
     // @bug how to handle alternative hotkeys (e.g. keyboard and controller at the same time)
     // @bug how to handle values (e.g. stick may or may not set the x/y or dx/dy in some situations)
+    // @bug how to allow rebinding/swapping of left and right stick?
+    // @bug There is a bug ONLY with the controller, when doing camera look around and holding the stick at and angle
+    //          The hotkey seemingly loses activity after 1-2 sec if you then move the stick a little bit it works again
+    //          It doesn't always happen but you can test it rather consistently within a couple of seconds
 }
 
 #endif
