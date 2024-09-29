@@ -26,6 +26,7 @@ struct RingMemory {
     uint64 size;
     uint64 pos;
     int alignment;
+    int element_alignment;
 
     // The following two indices are only used in special cases such as iterating through a portion
     // of the ring memory. In such cases it may be necessary to know where the start and end are.
@@ -40,7 +41,7 @@ struct RingMemory {
 };
 
 inline
-void ring_alloc(RingMemory* ring, uint64 size, int alignment = 1)
+void ring_alloc(RingMemory* ring, uint64 size, int alignment = 64)
 {
     ring->memory = alignment < 2
         ? (byte *) playform_alloc(size)
@@ -54,7 +55,7 @@ void ring_alloc(RingMemory* ring, uint64 size, int alignment = 1)
 }
 
 inline
-void ring_create(RingMemory* ring, BufferMemory* buf, uint64 size, int alignment = 1)
+void ring_create(RingMemory* ring, BufferMemory* buf, uint64 size, int alignment = 64)
 {
     ring->memory = buffer_get_memory(buf, size, alignment);
 
@@ -76,8 +77,12 @@ void ring_free(RingMemory* buf)
 }
 
 inline
-uint64 ring_calculate_position(const RingMemory* ring, uint64 pos, uint64 size, byte aligned = 1)
+uint64 ring_calculate_position(const RingMemory* ring, uint64 pos, uint64 size, byte aligned = 0)
 {
+    if (aligned == 0) {
+        aligned = (byte) OMS_MAX(ring->element_alignment, 1);
+    }
+
     if (aligned) {
         uintptr_t address = (uintptr_t) ring->memory;
         int64 adjustment = (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
@@ -100,9 +105,13 @@ uint64 ring_calculate_position(const RingMemory* ring, uint64 pos, uint64 size, 
     return pos;
 }
 
-byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 1, bool zeroed = false)
+byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zeroed = false)
 {
     ASSERT_SIMPLE(size <= ring->size);
+
+    if (aligned == 0) {
+        aligned = (byte) OMS_MAX(ring->element_alignment, 1);
+    }
 
     if (aligned > 1) {
         uintptr_t address = (uintptr_t) ring->memory;
@@ -155,7 +164,7 @@ void ring_reset(RingMemory* ring)
  * Checks if one additional element can be inserted without overwriting the start index
  */
 inline
-bool ring_commit_safe(const RingMemory* ring, uint64 size, byte aligned = 1)
+bool ring_commit_safe(const RingMemory* ring, uint64 size, byte aligned = 0)
 {
     uint64 pos = ring_calculate_position(ring, ring->pos, size, aligned);
 

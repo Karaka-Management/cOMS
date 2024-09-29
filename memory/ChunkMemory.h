@@ -30,7 +30,7 @@ struct ChunkMemory {
 };
 
 inline
-void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int alignment = 1)
+void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int alignment = 64)
 {
     buf->memory = alignment < 2
         ? (byte *) playform_alloc(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64))

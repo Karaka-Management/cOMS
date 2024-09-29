@@ -12,16 +12,38 @@
 #include "../stdlib/Types.h"
 
 struct Vertex3D {
-    float position[3];
-    float normal[3];
-    uint32 tex_coord[2];
-    float color[4];
+    v3_f32 position;
+    v3_f32 normal;
+    v2_int32 tex_coord;
+    v4_f32 color;
+};
+
+struct Vertex3DColorIndex {
+    v3_f32 position;
+    uint32 color;
 };
 
 struct Vertex2D {
-    float position[2];
-    uint32 tex_coord[2];
-    float color[4];
+    v2_f32 position;
+    v2_int32 tex_coord;
+    v4_f32 color;
+};
+
+struct Vertex2DTexture {
+    v2_f32 position;
+    v2_int32 tex_coord;
+};
+
+struct Vertex2DColor {
+    v2_f32 position;
+    v4_f32 color;
+};
+
+struct Vertex2DColorIndex {
+    v2_f32 position;
+    // opengl shaders don't support individual bytes,
+    // otherwise we would use byte here for 256 color palettes
+    uint32 color;
 };
 
 struct VertexRef {

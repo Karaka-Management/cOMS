@@ -11,6 +11,8 @@
 
 #include "../stdlib/Types.h"
 
+#define MAX_CONTROLLER_KEYS 32
+
 enum ControllerButton {
     CONTROLLER_BUTTON_STICK_LEFT_BUTTON,
     CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL,
@@ -49,8 +51,8 @@ enum ControllerButton {
 };
 
 struct ControllerInput {
-    int8 button[32];
-    bool is_analog[32]; // = uses deadzone
+    int8 button[MAX_CONTROLLER_KEYS];
+    bool is_analog[MAX_CONTROLLER_KEYS]; // = uses deadzone
 
     int16 gyro_x;
     int16 gyro_y;

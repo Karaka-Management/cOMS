@@ -63,6 +63,12 @@ void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int chunk_size, i
 }
 
 inline
+int32 ams_calculate_chunks(AssetManagementSystem* ams, int32 byte_size)
+{
+    return (int32) CEIL_DIV(byte_size, ams->asset_data_memory.chunk_size);
+}
+
+inline
 int64 ams_get_buffer_size(int count, int chunk_size)
 {
     return hashmap_get_buffer_size(count, sizeof(HashEntryInt64)) // hash map

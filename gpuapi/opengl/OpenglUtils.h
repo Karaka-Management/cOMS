@@ -137,8 +137,15 @@ void load_texture_to_gpu(const Texture* texture, int mipmap_level = 0)
 inline
 void texture_use(const Texture* texture, uint32 texture_unit)
 {
-    glActiveTexture(GL_TEXTURE0 + texture_unit);
+    glActiveTexture(GL_TEXTURE0 + texture->sample_id);
     glBindTexture(GL_TEXTURE_2D, (GLuint) texture->id);
+}
+
+inline
+void texture_use_1D(const Texture* texture, uint32 texture_unit)
+{
+    glActiveTexture(GL_TEXTURE0 + texture->sample_id);
+    glBindTexture(GL_TEXTURE_1D, (GLuint) texture->id);
 }
 
 GLuint shader_make(GLenum type, const char *source, RingMemory* ring)
@@ -425,7 +432,7 @@ int calculate_face_size(int components, int faces)
 // generates faces
 // data is no longer needed after this
 inline
-uint32 gpuapi_buffer_generate(int size, void* data)
+uint32 gpuapi_buffer_generate(int size, const void* data)
 {
     uint32 vbo;
 
@@ -437,7 +444,7 @@ uint32 gpuapi_buffer_generate(int size, void* data)
 }
 
 inline
-uint32 gpuapi_shaderbuffer_generate(int size, void* data)
+uint32 gpuapi_shaderbuffer_generate(int size, const void* data)
 {
     uint32 sbo;
 
@@ -448,8 +455,25 @@ uint32 gpuapi_shaderbuffer_generate(int size, void* data)
     return sbo;
 }
 
+uint32 gpuapi_upload_color_palette(const byte* palette, int count, int sampler_id)
+{
+    uint32 texture_id;
+
+    glGenTextures(1, &texture_id);
+    glActiveTexture(GL_TEXTURE0 + sampler_id);
+    glBindTexture(GL_TEXTURE_1D, texture_id);
+
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA8, count, 0, GL_RGBA,  GL_UNSIGNED_BYTE, palette);
+
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    return texture_id;
+}
+
 inline
-uint32 gpuapi_uniformbuffer_generate(int size, void* data)
+uint32 gpuapi_uniformbuffer_generate(int size, const void* data)
 {
     uint32 ubo;
 
@@ -493,6 +517,12 @@ inline
 void gpuapi_buffer_delete(GLuint buffer)
 {
     glDeleteBuffers(1, &buffer);
+}
+
+inline
+void gpuapi_vertex_array_delete(GLuint buffer)
+{
+    glDeleteVertexArrays(1, &buffer);
 }
 
 int get_gpu_free_memory()

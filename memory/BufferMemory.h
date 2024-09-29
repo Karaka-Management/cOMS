@@ -16,6 +16,8 @@
 #include "Allocation.h"
 #include "DebugMemory.h"
 
+// @question Consider to use element_alignment to automatically align/pad elmeents
+
 struct BufferMemory {
     byte* memory;
 
@@ -23,10 +25,11 @@ struct BufferMemory {
     uint64 size;
     uint64 pos;
     int alignment;
+    int element_alignment;
 };
 
 inline
-void buffer_alloc(BufferMemory* buf, uint64 size, int alignment = 1)
+void buffer_alloc(BufferMemory* buf, uint64 size, int alignment = 64)
 {
     buf->memory = alignment < 2
         ? (byte *) playform_alloc(size)
@@ -55,9 +58,13 @@ void buffer_reset(BufferMemory* buf)
 }
 
 inline
-byte* buffer_get_memory(BufferMemory* buf, uint64 size, int aligned = 1, bool zeroed = false)
+byte* buffer_get_memory(BufferMemory* buf, uint64 size, int aligned = 0, bool zeroed = false)
 {
     ASSERT_SIMPLE(size <= buf->size);
+
+    if (aligned == 0) {
+        aligned = (byte) OMS_MAX(buf->element_alignment, 1);
+    }
 
     if (aligned > 1) {
         uintptr_t address = (uintptr_t) buf->memory;

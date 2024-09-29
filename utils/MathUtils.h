@@ -26,6 +26,7 @@
 #define OMS_RAD2DEG(angle) ((angle) * 180.0f / OMS_PI)
 #define ROUND_TO_NEAREST(a, b) (((a) + ((b) - 1)) & ~((b) - 1))
 #define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
+#define OMS_CEIL(x) ((x) == (int)(x) ? (int)(x) : ((x) > 0 ? (int)(x) + 1 : (int)(x)))
 
 #define SQRT_2 1.4142135623730950488016887242097f
 

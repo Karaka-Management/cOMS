@@ -47,7 +47,7 @@ struct CpuCacheInfo {
     int line_size;
 };
 
-void get_cache_info(int level, CpuCacheInfo* cache) {
+void cache_info_get(int level, CpuCacheInfo* cache) {
     unsigned int eax, ebx, ecx, edx;
     int type;
 
@@ -90,7 +90,7 @@ struct MainboardInfo {
     char serial_number[64];
 };
 
-void get_mainboard_info(MainboardInfo* info) {
+void mainboard_info_get(MainboardInfo* info) {
     info->name[63] = '\0';
     info->serial_number[63] = '\0';
 
@@ -225,7 +225,7 @@ struct NetworkInfo {
     byte mac[8];
 };
 
-int get_network_info(NetworkInfo* info) {
+int network_info_get(NetworkInfo* info) {
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         return 0;
@@ -295,16 +295,16 @@ struct CpuInfo {
     SIMDInfo simd;
 };
 
-void get_cpu_info(CpuInfo* info) {
+void cpu_info_get(CpuInfo* info) {
     int temp;
     info->simd.sse = (temp = max_sse_supported()) > 9 ? temp / 10.0f : temp;
     info->simd.avx256 = max_avx256_supported();
     info->simd.avx512 = max_avx512_supported();
 
-    get_cache_info(1, &info->cache[0]);
-    get_cache_info(2, &info->cache[1]);
-    get_cache_info(3, &info->cache[2]);
-    get_cache_info(4, &info->cache[3]);
+    cache_info_get(1, &info->cache[0]);
+    cache_info_get(2, &info->cache[1]);
+    cache_info_get(3, &info->cache[2]);
+    cache_info_get(4, &info->cache[3]);
 
     SYSTEM_INFO sys_info;
     GetSystemInfo(&sys_info);
@@ -353,7 +353,7 @@ struct OSInfo {
     int minor;
 };
 
-void get_os_info(OSInfo* info) {
+void os_info_get(OSInfo* info) {
     info->vendor[15] = '\0';
     info->name[63] = '\0';
 
@@ -382,7 +382,7 @@ struct RamInfo {
     int memory;
 };
 
-void get_ram_info(RamInfo* info) {
+void ram_info_get(RamInfo* info) {
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
@@ -394,7 +394,7 @@ struct GpuInfo {
     int vram;
 };
 
-unsigned int get_gpu_info(GpuInfo* info) {
+unsigned int gpu_info_get(GpuInfo* info) {
     IDXGIFactory *pFactory = NULL;
     IDXGIAdapter *pAdapter = NULL;
     DXGI_ADAPTER_DESC adapterDesc;
@@ -432,18 +432,18 @@ struct DisplayInfo {
     int hz;
 };
 
-unsigned int get_display_info(DisplayInfo* info) {
-    DISPLAY_DEVICE device;
-    DEVMODE mode;
+unsigned int display_info_get(DisplayInfo* info) {
+    DISPLAY_DEVICEA device;
+    DEVMODEA mode;
 
-    device.cb = sizeof(DISPLAY_DEVICE);
+    device.cb = sizeof(DISPLAY_DEVICEA);
 
     int i = 0;
 
-    while (EnumDisplayDevices(NULL, i, &device, 0)) {
+    while (EnumDisplayDevicesA(NULL, i, &device, 0)) {
         mode.dmSize = sizeof(mode);
 
-        if (EnumDisplaySettings(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
+        if (EnumDisplaySettingsA(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
             strcpy(info[i].name, device.DeviceName);
             info[i].width = mode.dmPelsWidth;
             info[i].height = mode.dmPelsHeight;
@@ -473,7 +473,7 @@ struct SystemInfo {
     int display_count;
 };
 
-void render_system_info(char* buf, const SystemInfo* info) {
+void system_info_render(char* buf, const SystemInfo* info) {
     const char avx512[8][12] = {
         "AVX-512F",
         "AVX-512DQ",
@@ -559,15 +559,15 @@ void render_system_info(char* buf, const SystemInfo* info) {
     );
 }
 
-void get_system_info(SystemInfo* info)
+void system_info_get(SystemInfo* info)
 {
-    get_os_info(&info->os);
-    get_mainboard_info(&info->mainboard);
-    info->network_count = get_network_info(info->network);
-    get_cpu_info(&info->cpu);
-    get_ram_info(&info->ram);
-    info->gpu_count = get_gpu_info(info->gpu);
-    info->display_count = get_display_info(info->display);
+    os_info_get(&info->os);
+    mainboard_info_get(&info->mainboard);
+    info->network_count = network_info_get(info->network);
+    cpu_info_get(&info->cpu);
+    ram_info_get(&info->ram);
+    info->gpu_count = gpu_info_get(info->gpu);
+    info->display_count = display_info_get(info->display);
 }
 
 #endif

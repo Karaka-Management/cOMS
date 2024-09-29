@@ -553,13 +553,13 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
         chunk.length = SWAP_ENDIAN_BIG(*((uint32 *) stream.pos));
         stream.pos += sizeof(chunk.length);
 
-        chunk.type = *((uint32 *) stream.pos);
+        chunk.type = SWAP_ENDIAN_BIG(*((uint32 *) stream.pos));
         stream.pos += sizeof(chunk.type);
 
-        if (chunk.type == SWAP_ENDIAN_BIG('IEND')) {
+        if (chunk.type == 'IEND') {
             // we arrived at the end of the file
             break;
-        } else if (chunk.type == SWAP_ENDIAN_BIG('PLTE')) {
+        } else if (chunk.type == 'PLTE') {
             // @todo change so that the tRANS directly sets the alpha for the respective color
             //      This means we increase the palette by 1 byte per index (chunk.length/3*4)
             palette = ring_get_memory(ring, chunk.length);
@@ -568,7 +568,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
             stream.pos += chunk.length + sizeof(chunk.crc);
 
             continue;
-        } else if (chunk.type == SWAP_ENDIAN_BIG('tRNS')) {
+        } else if (chunk.type == 'tRNS') {
             // @todo remove, we can store this information directly in the palette
             transparency.values = ring_get_memory(ring, chunk.length);
             memcpy(transparency.values, stream.pos, chunk.length);
@@ -584,7 +584,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
             stream.pos += chunk.length + sizeof(chunk.crc);
 
             continue;
-        } else if (chunk.type != SWAP_ENDIAN_BIG('IDAT')) {
+        } else if (chunk.type != 'IDAT') {
             // some other data
 
             // Jump to next chunk
@@ -602,6 +602,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
         //
         //  This means we cannot jump here (or better we need to check if the bit position is != 0)
         // BUT WE MIGHT NOT CARE ABOUT MULTIPLE IDAT CHUNKS?
+
         idat_header.zlib_method_flag = *stream.pos;
         ++stream.pos;
 
@@ -616,6 +617,11 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
             // Not supported
             return false;
         }
+
+        // @todo Potential solution
+        // We could check how many bytes remain from the old chunk move them forward
+        // essentially overwriting the **current** chunk header data, which doesn't matter since we already parsed it
+        // then we reset the pos pointer backwards to where we want to start... gg
 
         // https://www.ietf.org/rfc/rfc1951.txt - defalte
         // This data might be stored in the prvious IDAT chunk?!
@@ -733,7 +739,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
                 }
 
                 if (literal_length <= 255) {
-                    *dest++ = (literal_length & 0xFF);
+                    *dest++ = (uint8) (literal_length & 0xFF);
                 } else {
                     uint32 length_tab_index = literal_length - 257;
                     PngHuffmanEntry length_tab = PNG_LENGTH_EXTRA[length_tab_index];
@@ -749,13 +755,13 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
 
                     uint32 dist_tab_index = huffman_png_decode(distance_huffman, &stream);
 
-                    PngHuffmanEntry dist_tab = PNG_DIST_EXTRA[dist_tab_index];
-                    uint32 dist = dist_tab.symbol;
+                    const PngHuffmanEntry* dist_tab = &PNG_DIST_EXTRA[dist_tab_index];
+                    uint32 dist = dist_tab->symbol;
 
-                    if (dist_tab.bits_used) {
+                    if (dist_tab->bits_used) {
                         // @performance If we knew that bits_used is always <= 15 we could use more efficient MERGE/GET
-                        uint32 extra_bits = BITS_GET_32_R2L(BYTES_MERGE_4_R2L(stream.pos), stream.bit_pos, dist_tab.bits_used);
-                        bits_walk(&stream, dist_tab.bits_used);
+                        uint32 extra_bits = BITS_GET_32_R2L(BYTES_MERGE_4_R2L(stream.pos), stream.bit_pos, dist_tab->bits_used);
+                        bits_walk(&stream, dist_tab->bits_used);
 
                         dist += extra_bits;
                     }

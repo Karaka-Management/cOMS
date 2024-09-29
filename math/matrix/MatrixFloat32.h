@@ -683,30 +683,29 @@ void mat4_frustum_sparse_rh(
     float left, float right, float bottom, float top,
     float znear, float zfar
  ) {
-    float temp, temp2, temp3, temp4;
-    temp = 2.0f * znear;
-    temp2 = right - left;
-    temp3 = top - bottom;
-    temp4 = zfar - znear;
+    float temp = 2.0f * znear;
+    float rl_delta = right - left;
+    float tb_delta = top - bottom;
+    float fn_delta = zfar - znear;
 
-    matrix[0] = temp / temp2;
+    matrix[0] = temp / rl_delta;
     //matrix[1] = 0.0f;
     //matrix[2] = 0.0f;
     //matrix[3] = 0.0f;
 
     //matrix[4] = 0.0f;
-    matrix[5] = temp / temp3;
+    matrix[5] = temp / tb_delta;
     //matrix[6] = 0.0f;
     //matrix[7] = 0.0f;
 
-    matrix[8] = (right + left) / temp2;
-    matrix[9] = (top + bottom) / temp3;
-    matrix[10] = -(zfar + znear) / temp4;
+    matrix[8] = (right + left) / rl_delta;
+    matrix[9] = (top + bottom) / tb_delta;
+    matrix[10] = -(zfar + znear) / fn_delta;
     matrix[11] = -1.0f;
 
     //matrix[12] = 0.0f;
     //matrix[13] = 0.0f;
-    matrix[14] = (-temp * zfar) / temp4;
+    matrix[14] = (-temp * zfar) / fn_delta;
     //matrix[15] = 0.0f;
 }
 
@@ -715,34 +714,34 @@ void mat4_frustum_sparse_lh(
     float left, float right, float bottom, float top,
     float znear, float zfar
  ) {
-    float temp, temp2, temp3, temp4;
-    temp = 2.0f * znear;
-    temp2 = right - left;
-    temp3 = top - bottom;
-    temp4 = zfar - znear;
+    float temp = 2.0f * znear;
+    float rl_delta = right - left;
+    float tb_delta = top - bottom;
+    float fn_delta = zfar - znear;
 
-    matrix[0] = temp / temp2;
+    matrix[0] = temp / rl_delta;
     //matrix[1] = 0.0f;
     //matrix[2] = 0.0f;
     //matrix[3] = 0.0f;
 
     //matrix[4] = 0.0f;
-    matrix[5] = temp / temp3;
+    matrix[5] = temp / tb_delta;
     //matrix[6] = 0.0f;
     //matrix[7] = 0.0f;
 
-    matrix[8] = (right + left) / temp2;
-    matrix[9] = (top + bottom) / temp3;
-    matrix[10] = (zfar + znear) / temp4;
+    matrix[8] = (right + left) / rl_delta;
+    matrix[9] = (top + bottom) / tb_delta;
+    matrix[10] = (zfar + znear) / fn_delta;
     matrix[11] = 1.0f;
 
     //matrix[12] = 0.0f;
     //matrix[13] = 0.0f;
-    matrix[14] = (temp * zfar) / temp4;
+    matrix[14] = (temp * zfar) / fn_delta;
     //matrix[15] = 0.0f;
 }
 
 // fov needs to be in rad
+inline
 void mat4_perspective_sparse_lh(
     float *matrix, float fov, float aspect,
     float znear, float zfar)
@@ -756,6 +755,7 @@ void mat4_perspective_sparse_lh(
     mat4_frustum_sparse_lh(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
 }
 
+inline
 void mat4_perspective_sparse_rh(
     float *matrix, float fov, float aspect,
     float znear, float zfar)
@@ -769,14 +769,14 @@ void mat4_perspective_sparse_rh(
     mat4_frustum_sparse_rh(matrix, -xmax, xmax, -ymax, ymax, znear, zfar);
 }
 
-void mat4_ortho_sparse_rh(
+void mat4_ortho_sparse_lh(
     float *matrix,
     float left, float right, float bottom, float top,
-    float near_dist, float far_dist
+    float znear, float zfar
 ) {
     float rl_delta = right - left;
     float tb_delta = top - bottom;
-    float fn_delta = far_dist - near_dist;
+    float fn_delta = zfar - znear;
 
     matrix[0] = 2.0f / rl_delta;
     //matrix[1] = 0.0f;
@@ -795,37 +795,37 @@ void mat4_ortho_sparse_rh(
 
     matrix[12] = -(right + left) / rl_delta;
     matrix[13] = -(top + bottom) / tb_delta;
-    matrix[14] = -(far_dist + near_dist) / fn_delta;
+    matrix[14] = -(zfar + znear) / fn_delta;
     matrix[15] = 1.0f;
 }
 
-void mat4_ortho_sparse_lh(
+void mat4_ortho_sparse_rh(
     float *matrix,
     float left, float right, float bottom, float top,
-    float near_dist, float far_dist
+    float znear, float zfar
 ) {
     float rl_delta = right - left;
     float tb_delta = top - bottom;
-    float fn_delta = far_dist - near_dist;
+    float fn_delta = zfar - znear;
 
     matrix[0] = 2.0f / rl_delta;
     //matrix[1] = 0.0f;
     //matrix[2] = 0.0f;
-    //matrix[3] = 0.0f;
+    matrix[3] = -(right + left) / rl_delta;
 
     //matrix[4] = 0.0f;
     matrix[5] = 2.0f / tb_delta;
     //matrix[6] = 0.0f;
-    //matrix[7] = 0.0f;
+    matrix[7] = -(top + bottom) / tb_delta;
 
     //matrix[8] = 0.0f;
     //matrix[9] = 0.0f;
     matrix[10] = 2.0f / fn_delta;
-    //matrix[11] = 0.0f;
+    matrix[11] = -(zfar + znear) / fn_delta;
 
-    matrix[12] = -(right + left) / rl_delta;
-    matrix[13] = -(top + bottom) / tb_delta;
-    matrix[14] = -(far_dist + near_dist) / fn_delta;
+    //matrix[12] = 0.0f;
+    //matrix[13] = = 0.0f;
+    //matrix[14] = 0.0f;
     matrix[15] = 1.0f;
 }
 

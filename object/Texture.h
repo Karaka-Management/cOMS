@@ -34,7 +34,6 @@
 
 #include "../stdlib/Types.h"
 #include "../image/Image.h"
-#include "../models/Attrib.h"
 
 struct Texture {
     uint64 id;

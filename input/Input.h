@@ -19,7 +19,6 @@
 // How many keys/buttons do we support for the devices
 #define MAX_KEYBOARD_KEYS 255
 #define MAX_MOUSE_KEYS 10
-#define MAX_CONTROLLER_KEYS 24
 
 #define MIN_INPUT_DEVICES 2
 

@@ -1172,6 +1172,9 @@ static type_glActiveTexture* glActiveTexture;
 typedef void WINAPI type_glDeleteProgram(GLuint program);
 static type_glDeleteProgram* glDeleteProgram;
 
+typedef void WINAPI type_glDeleteVertexArrays(GLsizei n, const GLuint* arrays);
+static type_glDeleteVertexArrays* glDeleteVertexArrays;
+
 typedef void WINAPI type_glDeleteShader(GLuint shader);
 static type_glDeleteShader* glDeleteShader;
 
@@ -1482,6 +1485,7 @@ void opengl_init_gl()
     glBufferData = (type_glBufferData *) wglGetProcAddress("glBufferData");
     glActiveTexture = (type_glActiveTexture *) wglGetProcAddress("glActiveTexture");
     glDeleteProgram = (type_glDeleteProgram *) wglGetProcAddress("glDeleteProgram");
+    glDeleteVertexArrays = (type_glDeleteVertexArrays *) wglGetProcAddress("glDeleteVertexArrays");
     glDeleteShader = (type_glDeleteShader *) wglGetProcAddress("glDeleteShader");
     glDeleteFramebuffers = (type_glDeleteFramebuffers *) wglGetProcAddress("glDeleteFramebuffers");
     glDrawBuffers = (type_glDrawBuffers *) wglGetProcAddress("glDrawBuffers");

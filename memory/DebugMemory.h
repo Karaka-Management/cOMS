@@ -23,7 +23,7 @@
 
 struct DebugMemoryRange {
     uint64 start;
-    uint64 end;
+    uint64 size;
     uint64 time;
 };
 
@@ -38,7 +38,7 @@ struct DebugMemory {
 #if DEBUG
     #define DEBUG_MEMORY(mem, start, end) debug_memory_add_range((mem), (start), (end))
     #define DEBUG_MEMORY_RESET(mem) debug_memory_reset((mem))
-    #define DEBUG_MEMORY_FREE(mem, start, end) debug_memory_add_range((mem), (start), (end))
+    #define DEBUG_MEMORY_FREE(mem) debug_memory_free((mem))
 #else
     #define DEBUG_MEMORY(mem, start, end) ((void) 0)
     #define DEBUG_MEMORY_RESET(mem) ((void) 0)
@@ -58,20 +58,20 @@ void debug_memory_resize(DebugMemory* mem)
     }
 }
 
-void debug_memory_add_range(DebugMemory* mem, uint64 start, uint64 end)
+void debug_memory_add_range(DebugMemory* mem, uint64 start, uint64 size)
 {
     if (mem->debug_range_idx >= mem->debug_range_size) {
         debug_memory_resize(mem);
     }
 
     mem->debug_ranges[mem->debug_range_idx].start = start;
-    mem->debug_ranges[mem->debug_range_idx].end = end;
+    mem->debug_ranges[mem->debug_range_idx].size = size;
 
     // @question consider to use other time_ms() since __rdtsc is variable (boost, power saving)
     mem->debug_ranges[mem->debug_range_idx].time = __rdtsc();
 
     ++mem->debug_range_idx;
-    mem->usage += end - start;
+    mem->usage += size;
 }
 
 inline
