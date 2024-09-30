@@ -28,19 +28,19 @@ void quaternion_unit(v4_f32* quat)
 }
 
 inline
-void quaternion_from_euler(v4_f32* quat, float pitch, float yaw, float roll)
+void quaternion_from_euler(v4_f32* quat, f32 pitch, f32 yaw, f32 roll)
 {
-    float y = OMS_DEG2RAD(yaw);
-    float cy = cosf(y / 2);
-    float sy = sinf(y / 2);
+    f32 y = OMS_DEG2RAD(yaw);
+    f32 cy = cosf(y / 2);
+    f32 sy = sinf(y / 2);
 
-    float p = OMS_DEG2RAD(pitch);
-    float cp = cosf(p / 2);
-    float sp = sinf(p / 2);
+    f32 p = OMS_DEG2RAD(pitch);
+    f32 cp = cosf(p / 2);
+    f32 sp = sinf(p / 2);
 
-    float r = OMS_DEG2RAD(roll);
-    float cr = cosf(r / 2);
-    float sr = sinf(r / 2);
+    f32 r = OMS_DEG2RAD(roll);
+    f32 cr = cosf(r / 2);
+    f32 sr = sinf(r / 2);
 
     quat->w = cr * cp * cy + sr * sp * sy;
     quat->x = sr * cp * cy - cr * sp * sy;
@@ -53,17 +53,17 @@ void quaternion_from_euler(v4_f32* quat, float pitch, float yaw, float roll)
 inline
 void quaternion_from_euler(v4_f32* __restrict quat, const v3_f32* __restrict v)
 {
-    float y = OMS_RAD2DEG(v->v / 2);
-    float cy = cosf(y);
-    float sy = sinf(y);
+    f32 y = OMS_RAD2DEG(v->v / 2);
+    f32 cy = cosf(y);
+    f32 sy = sinf(y);
 
-    float p = OMS_RAD2DEG(v->u * 0.5f);
-    float cp = cosf(p);
-    float sp = sinf(p);
+    f32 p = OMS_RAD2DEG(v->u * 0.5f);
+    f32 cp = cosf(p);
+    f32 sp = sinf(p);
 
-    float r = OMS_RAD2DEG(v->w * 0.5f);
-    float cr = cosf(r);
-    float sr = sinf(r);
+    f32 r = OMS_RAD2DEG(v->w * 0.5f);
+    f32 cr = cosf(r);
+    f32 sr = sinf(r);
 
     quat->w = cr * cp * cy + sr * sp * sy;
     quat->x = sr * cp * cy - cr * sp * sy;
@@ -72,9 +72,9 @@ void quaternion_from_euler(v4_f32* __restrict quat, const v3_f32* __restrict v)
 }
 
 inline
-void quaternion_from_axis_angle(v4_f32* quat, const v3_f32* __restrict axis, float rad) {
-    float half_angle = rad / 2.0f;
-    float s = sinf(half_angle);
+void quaternion_from_axis_angle(v4_f32* quat, const v3_f32* __restrict axis, f32 rad) {
+    f32 half_angle = rad / 2.0f;
+    f32 s = sinf(half_angle);
 
     quat->x = axis->x * s;
     quat->y = axis->y * s;
@@ -86,8 +86,8 @@ void quaternion_from_axis_angle(v4_f32* quat, const v3_f32* __restrict axis, flo
 
 void quaternion_to_euler(const v4_f32* __restrict quat, v3_f32* __restrict v) {
     // Pitch
-    float sinp = 2.0f * (quat->w * quat->x + quat->y * quat->z);
-    float cosp = 1.0f - 2.0f * (quat->x * quat->x + quat->y * quat->y);
+    f32 sinp = 2.0f * (quat->w * quat->x + quat->y * quat->z);
+    f32 cosp = 1.0f - 2.0f * (quat->x * quat->x + quat->y * quat->y);
     v->pitch = atan2f(sinp, cosp);
 
     // Check for gimbal lock
@@ -96,12 +96,12 @@ void quaternion_to_euler(const v4_f32* __restrict quat, v3_f32* __restrict v) {
         v->roll = 0.0f;
     } else {
         // Yaw
-        float siny = 2.0f * (quat->w * quat->y - quat->z * quat->x);
+        f32 siny = 2.0f * (quat->w * quat->y - quat->z * quat->x);
         v->yaw = asinf(siny);
 
         // Roll
-        float sinr = 2.0f * (quat->w * quat->z + quat->x * quat->y);
-        float cosr = 1.0f - 2.0f * (quat->y * quat->y + quat->z * quat->z);
+        f32 sinr = 2.0f * (quat->w * quat->z + quat->x * quat->y);
+        f32 cosr = 1.0f - 2.0f * (quat->y * quat->y + quat->z * quat->z);
         v->roll = atan2f(sinr, cosr);
     }
 }
@@ -115,7 +115,7 @@ void quaternion_multiply(v4_f32* __restrict quat, const v4_f32* __restrict quat1
 }
 
 void quaternion_inverse(v4_f32* __restrict quat, const v4_f32* __restrict quat_origin) {
-    float norm = quat_origin->w * quat_origin->w
+    f32 norm = quat_origin->w * quat_origin->w
         + quat_origin->x * quat_origin->x
         + quat_origin->y * quat_origin->y
         + quat_origin->z * quat_origin->z;
@@ -245,7 +245,7 @@ void quaternion_rotate_passive(v4_f32* __restrict p, const v4_f32* __restrict qu
 // 5. call quat_rotate_*
 // 6. convert quat to vec
 // @todo Since this is usually done on multiple vecs, we should probably accept an array of vecs and then use simd
-void quaternion_rotate_active(v3_f32* vec, float pitch, float yaw, float roll)
+void quaternion_rotate_active(v3_f32* vec, f32 pitch, f32 yaw, f32 roll)
 {
     v4_f32 q;
     quaternion_from_euler(&q, pitch, yaw, roll); // q is already in unit length
@@ -262,7 +262,7 @@ void quaternion_rotate_active(v3_f32* vec, float pitch, float yaw, float roll)
     vec->z = p.z;
 }
 
-void quaternion_rotate_active(v4_f32* quat, float pitch, float yaw, float roll)
+void quaternion_rotate_active(v4_f32* quat, f32 pitch, f32 yaw, f32 roll)
 {
     v4_f32 q;
     quaternion_from_euler(&q, pitch, yaw, roll); // q is already in unit length
@@ -273,7 +273,7 @@ void quaternion_rotate_active(v4_f32* quat, float pitch, float yaw, float roll)
     quaternion_rotate_active(quat, &q, &q_inv);
 }
 
-void quaternion_rotate_passive(v3_f32* vec, float pitch, float yaw, float roll)
+void quaternion_rotate_passive(v3_f32* vec, f32 pitch, f32 yaw, f32 roll)
 {
     v4_f32 q;
     quaternion_from_euler(&q, pitch, yaw, roll); // q is already in unit length
@@ -290,7 +290,7 @@ void quaternion_rotate_passive(v3_f32* vec, float pitch, float yaw, float roll)
     vec->z = p.z;
 }
 
-void quaternion_rotate_passive(v4_f32* quat, float pitch, float yaw, float roll)
+void quaternion_rotate_passive(v4_f32* quat, f32 pitch, f32 yaw, f32 roll)
 {
     v4_f32 q;
     quaternion_from_euler(&q, pitch, yaw, roll); // q is already in unit length

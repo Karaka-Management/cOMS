@@ -35,11 +35,11 @@ static const int grad3_3[12][3] = {
     {0,1,1}, {0,-1,1}, {0,1,-1}, {0,-1,-1}
 };
 
-static inline double simplex_noise_dot2(const int* g, double x, double y) {
+static inline double simplex_noise_dot2(const int32* g, double x, double y) {
     return g[0] * x + g[1] * y;
 }
 
-static inline double simplex_noise_dot3(const int* g, double x, double y, double z) {
+static inline double simplex_noise_dot3(const int32* g, double x, double y, double z) {
     return g[0] * x + g[1] * y + g[2] * z;
 }
 
@@ -48,8 +48,8 @@ double simplex_noise_2d(double x, double y) {
 
     // Skew the input space to determine which simplex cell we're in
     double s = (x + y) * SIMPLEX_NOISE_F2; // Hairy factor for 2D
-    int i = floor(x + s);
-    int j = floor(y + s);
+    int32 i = floor(x + s);
+    int32 j = floor(y + s);
 
     double t = (i + j) * SIMPLEX_NOISE_G2;
     double X0 = i - t; // Unskew the cell origin back to (x, y) space
@@ -59,7 +59,7 @@ double simplex_noise_2d(double x, double y) {
 
     // For the 2D case, the simplex shape is an equilateral triangle.
     // Determine which simplex we are in.
-    int i1, j1; // Offsets for the second (middle) corner of simplex in (i, j)
+    int32 i1, j1; // Offsets for the second (middle) corner of simplex in (i, j)
     if (x0 > y0) {
         i1 = 1; j1 = 0; // Lower triangle, XY order
     } else {
@@ -76,11 +76,11 @@ double simplex_noise_2d(double x, double y) {
     double y2 = y0 - 1.0 + 2.0 * SIMPLEX_NOISE_G2;
 
     // Work out the hashed gradient indices of the three simplex corners
-    int ii = i & 255;
-    int jj = j & 255;
-    int gi0 = perm[ii + perm[jj]] % 12;
-    int gi1 = perm[ii + i1 + perm[jj + j1]] % 12;
-    int gi2 = perm[ii + 1 + perm[jj + 1]] % 12;
+    int32 ii = i & 255;
+    int32 jj = j & 255;
+    int32 gi0 = perm[ii + perm[jj]] % 12;
+    int32 gi1 = perm[ii + i1 + perm[jj + j1]] % 12;
+    int32 gi2 = perm[ii + 1 + perm[jj + 1]] % 12;
 
     // Calculate the contribution from the three corners
     double t0 = 0.5 - x0 * x0 - y0 * y0;

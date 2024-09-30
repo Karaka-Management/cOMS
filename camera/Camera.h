@@ -29,17 +29,17 @@ struct Camera {
     v3_f32 up;
     v3_f32 world_up;
 
-    float speed;
-    float sensitivity;
-    float zoom;
+    f32 speed;
+    f32 sensitivity;
+    f32 zoom;
 
     uint16 viewport_width;
     uint16 viewport_height;
 
-    float fov;
-    float znear;
-    float zfar;
-    float aspect;
+    f32 fov;
+    f32 znear;
+    f32 zfar;
+    f32 aspect;
 };
 
 void
@@ -57,7 +57,7 @@ camera_update_vectors(Camera* camera)
     vec3_normalize_f32(&camera->up);
 }
 
-void camera_rotate(Camera* camera, int32 dx, int32 dy, float dt)
+void camera_rotate(Camera* camera, int32 dx, int32 dy, f32 dt)
 {
     camera->orientation.x += dy * camera->sensitivity;
     camera->orientation.y -= dx * camera->sensitivity;
@@ -80,12 +80,12 @@ void camera_rotate(Camera* camera, int32 dx, int32 dy, float dt)
 }
 
 // you can have up to 4 camera movement inputs at the same time
-void camera_movement(Camera* camera, CameraMovement* movement, float dt, bool relative_to_world = true)
+void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool relative_to_world = true)
 {
     f32 velocity = camera->speed * dt;
 
     if (relative_to_world) {
-        for (int i = 0; i < CAMERA_MAX_INPUTS; i++) {
+        for (int32 i = 0; i < CAMERA_MAX_INPUTS; i++) {
             switch(movement[i]) {
                 case CAMERA_MOVEMENT_FORWARD: {
                         camera->location.z += velocity;
@@ -143,7 +143,7 @@ void camera_movement(Camera* camera, CameraMovement* movement, float dt, bool re
         vec3_cross(&up, &right, &forward);
         vec3_normalize_f32(&up);
 
-        for (int i = 0; i < CAMERA_MAX_INPUTS; i++) {
+        for (int32 i = 0; i < CAMERA_MAX_INPUTS; i++) {
             switch(movement[i]) {
                 case CAMERA_MOVEMENT_FORWARD: {
                         camera->location.x += forward.x * velocity;
@@ -206,7 +206,7 @@ void camera_movement(Camera* camera, CameraMovement* movement, float dt, bool re
 }
 
 inline
-void camera_orth_matrix_lh(const Camera* __restrict camera, float* __restrict orth)
+void camera_orth_matrix_lh(const Camera* __restrict camera, f32* __restrict orth)
 {
     mat4_identity_sparse(orth);
     mat4_ortho_sparse_lh(
@@ -219,7 +219,7 @@ void camera_orth_matrix_lh(const Camera* __restrict camera, float* __restrict or
 }
 
 inline
-void camera_orth_matrix_rh(const Camera* __restrict camera, float* __restrict orth)
+void camera_orth_matrix_rh(const Camera* __restrict camera, f32* __restrict orth)
 {
     mat4_identity_sparse(orth);
     mat4_ortho_sparse_rh(
@@ -232,7 +232,7 @@ void camera_orth_matrix_rh(const Camera* __restrict camera, float* __restrict or
 }
 
 inline
-void camera_projection_matrix_lh(const Camera* __restrict camera, float* __restrict projection)
+void camera_projection_matrix_lh(const Camera* __restrict camera, f32* __restrict projection)
 {
     mat4_identity_sparse(projection);
     mat4_perspective_sparse_lh(
@@ -245,7 +245,7 @@ void camera_projection_matrix_lh(const Camera* __restrict camera, float* __restr
 }
 
 inline
-void camera_projection_matrix_rh(const Camera* __restrict camera, float* __restrict projection)
+void camera_projection_matrix_rh(const Camera* __restrict camera, f32* __restrict projection)
 {
     mat4_identity_sparse(projection);
     mat4_perspective_sparse_rh(
@@ -260,7 +260,7 @@ void camera_projection_matrix_rh(const Camera* __restrict camera, float* __restr
 // This is usually not used, since it is included in the view matrix
 // expects the identity matrix
 inline
-void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, float* translation)
+void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, f32* translation)
 {
     translation[12] = camera->location.x;
     translation[13] = camera->location.y;
@@ -268,7 +268,7 @@ void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, float*
 }
 
 inline
-void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, float* translation)
+void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* translation)
 {
     translation[3] = camera->location.x;
     translation[7] = camera->location.y;
@@ -276,7 +276,7 @@ void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, float*
 }
 
 void
-camera_view_matrix_lh(const Camera* __restrict camera, float* __restrict view)
+camera_view_matrix_lh(const Camera* __restrict camera, f32* __restrict view)
 {
     v3_f32 zaxis = { camera->front.x, camera->front.y, camera->front.z };
 
@@ -306,7 +306,7 @@ camera_view_matrix_lh(const Camera* __restrict camera, float* __restrict view)
 }
 
 void
-camera_view_matrix_rh(const Camera* __restrict camera, float* __restrict view)
+camera_view_matrix_rh(const Camera* __restrict camera, f32* __restrict view)
 {
     v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 

@@ -13,7 +13,7 @@
 
 struct ObjFile {
     // Amount of references to this object
-    int references;
+    int32 references;
 
     bool facing; // front or back
 

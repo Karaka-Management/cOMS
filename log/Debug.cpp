@@ -23,7 +23,7 @@ void update_timing_stat(uint32 stat, const char* function)
 inline
 DebugMemory* debug_memory_find(uint64 start, uint64 size)
 {
-    for (int i = 0; i < debug_container->dmc.memory_size; ++i) {
+    for (int32 i = 0; i < debug_container->dmc.memory_size; ++i) {
         if (debug_container->dmc.memory_stats[i].start <= start
             && debug_container->dmc.memory_stats[i].start + debug_container->dmc.memory_stats[i].size >= start
         ) {
@@ -142,8 +142,8 @@ void debug_memory_reset()
 {
     uint64 time = __rdtsc() - 1000000000;
 
-    for (int i = 0; i < debug_container->dmc.memory_element_idx; ++i) {
-        for (int j = 0; j < DEBUG_MEMORY_RANGE_MAX; ++j) {
+    for (int32 i = 0; i < debug_container->dmc.memory_element_idx; ++i) {
+        for (int32 j = 0; j < DEBUG_MEMORY_RANGE_MAX; ++j) {
             if (debug_container->dmc.memory_stats[i].last_action[j].time < time) {
                 memset(&debug_container->dmc.memory_stats[i].last_action[j], 0, sizeof(DebugMemoryRange));
             }

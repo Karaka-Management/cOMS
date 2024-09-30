@@ -55,7 +55,7 @@
     }
 
     inline __m128 _mm_sin_ps(__m128 a) {
-        alignas(16) float a_array[4], result[4];
+        alignas(16) f32 a_array[4], result[4];
         _mm_storeu_ps(a_array, a);
         for (int i = 0; i < 4; ++i) {
             result[i] = sinf(a_array[i]);
@@ -64,7 +64,7 @@
     }
 
     inline __m128 _mm_cos_ps(__m128 a) {
-        alignas(16) float a_array[4], result[4];
+        alignas(16) f32 a_array[4], result[4];
         _mm_storeu_ps(a_array, a);
         for (int i = 0; i < 4; ++i) {
             result[i] = cosf(a_array[i]);
@@ -73,7 +73,7 @@
     }
 
     inline __m128 _mm_asin_ps(__m128 a) {
-        alignas(16) float a_array[4], result[4];
+        alignas(16) f32 a_array[4], result[4];
         _mm_storeu_ps(a_array, a);
         for (int i = 0; i < 4; ++i) {
             result[i] = asinf(a_array[i]);
@@ -82,7 +82,7 @@
     }
 
     inline __m128 _mm_acos_ps(__m128 a) {
-        alignas(16) float a_array[4], result[4];
+        alignas(16) f32 a_array[4], result[4];
         _mm_storeu_ps(a_array, a);
         for (int i = 0; i < 4; ++i) {
             result[i] = acosf(a_array[i]);
@@ -91,7 +91,7 @@
     }
 
     inline __m256 _mm256_sin_ps(__m256 a) {
-        alignas(32) float a_array[8], result[8];
+        alignas(32) f32 a_array[8], result[8];
         _mm256_storeu_ps(a_array, a);
         for (int i = 0; i < 8; ++i) {
             result[i] = sinf(a_array[i]);
@@ -100,7 +100,7 @@
     }
 
     inline __m256 _mm256_cos_ps(__m256 a) {
-        alignas(32) float a_array[8], result[8];
+        alignas(32) f32 a_array[8], result[8];
         _mm256_storeu_ps(a_array, a);
         for (int i = 0; i < 8; ++i) {
             result[i] = cosf(a_array[i]);
@@ -109,7 +109,7 @@
     }
 
     inline __m256 _mm256_asin_ps(__m256 a) {
-        alignas(32) float a_array[8], result[8];
+        alignas(32) f32 a_array[8], result[8];
         _mm256_storeu_ps(a_array, a);
         for (int i = 0; i < 8; ++i) {
             result[i] = asinf(a_array[i]);
@@ -118,7 +118,7 @@
     }
 
     inline __m256 _mm256_acos_ps(__m256 a) {
-        alignas(32) float a_array[8], result[8];
+        alignas(32) f32 a_array[8], result[8];
         _mm256_storeu_ps(a_array, a);
         for (int i = 0; i < 16; ++i) {
             result[i] = acosf(a_array[i]);
@@ -127,7 +127,7 @@
     }
 
     inline __m512 _mm512_sin_ps(__m512 a) {
-        alignas(64) float a_array[8], result[8];
+        alignas(64) f32 a_array[8], result[8];
         _mm512_storeu_ps(a_array, a);
         for (int i = 0; i < 16; ++i) {
             result[i] = sinf(a_array[i]);
@@ -136,7 +136,7 @@
     }
 
     inline __m512 _mm512_cos_ps(__m512 a) {
-        alignas(64) float a_array[8], result[8];
+        alignas(64) f32 a_array[8], result[8];
         _mm512_storeu_ps(a_array, a);
         for (int i = 0; i < 16; ++i) {
             result[i] = cosf(a_array[i]);
@@ -145,7 +145,7 @@
     }
 
     inline __m512 _mm512_asin_ps(__m512 a) {
-        alignas(64) float a_array[8], result[8];
+        alignas(64) f32 a_array[8], result[8];
         _mm512_storeu_ps(a_array, a);
         for (int i = 0; i < 16; ++i) {
             result[i] = asinf(a_array[i]);
@@ -154,7 +154,7 @@
     }
 
     inline __m512 _mm512_acos_ps(__m512 a) {
-        alignas(64) float a_array[16], result[16];
+        alignas(64) f32 a_array[16], result[16];
         _mm512_storeu_ps(a_array, a);
         for (int i = 0; i < 16; ++i) {
             result[i] = acosf(a_array[i]);

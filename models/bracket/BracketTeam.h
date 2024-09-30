@@ -12,7 +12,7 @@
 #include "../../stdlib/Types.h"
 
 struct BracketTeam {
-    int size;
+    int32 size;
     uint64* player_ids;
     uint32 rating;
 };

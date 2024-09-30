@@ -22,12 +22,12 @@ struct UIButton {
     UILayout* layout_default;
 
     UILayout* layout_hover;
-    float layout_hover_anim_duration;
+    f32 layout_hover_anim_duration;
     AnimationEaseType layout_hover_anim_style;
     int hover_sound;
 
     UILayout* layout_click;
-    float layout_click_anim_duration;
+    f32 layout_click_anim_duration;
     AnimationEaseType layout_click_anim_style;
     int click_sound;
 };

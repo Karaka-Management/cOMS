@@ -9,7 +9,7 @@ double fade(double t) {
 
 double grad(int hash, double x, double y, double z)
 {
-    int h = hash & 15;
+    int32 h = hash & 15;
 
     double u = h < 8 ? x : y;
     double v = h < 4 ? y : h == 12 || h == 14 ? x : z;
@@ -18,11 +18,11 @@ double grad(int hash, double x, double y, double z)
 }
 
 // permutation = 512 elements
-double noise(int* permutation, double x, double y, double z)
+double noise(int32* permutation, double x, double y, double z)
 {
-    int X = (int) floor(x) & 255;
-    int Y = (int) floor(y) & 255;
-    int Z = (int) floor(z) & 255;
+    int32 X = (int32) floor(x) & 255;
+    int32 Y = (int32) floor(y) & 255;
+    int32 Z = (int32) floor(z) & 255;
 
     x -= floor(x);
     y -= floor(y);
@@ -30,13 +30,13 @@ double noise(int* permutation, double x, double y, double z)
 
     double u = fade(x), v = fade(y), w = fade(z);
 
-    int A = permutation[X] + Y;
-    int AA = permutation[A] + Z;
-    int AB = permutation[A + 1] + Z;
+    int32 A = permutation[X] + Y;
+    int32 AA = permutation[A] + Z;
+    int32 AB = permutation[A + 1] + Z;
 
-    int B = permutation[X + 1] + Y;
-    int BA = permutation[B] + Z;
-    int BB = permutation[B + 1] + Z;
+    int32 B = permutation[X + 1] + Y;
+    int32 BA = permutation[B] + Z;
+    int32 BB = permutation[B + 1] + Z;
 
     return lerp_approx(
         w,

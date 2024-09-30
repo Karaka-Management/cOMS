@@ -827,7 +827,7 @@ inline bool all_false(int8_64 a)
 
 /*
 inline
-f32 simd_mult(const int8* a, f32 b, int size, int steps)
+f32 simd_mult(const int8* a, f32 b, int32 size, int32 steps)
 {
     if (steps == 16) {
         __m512i a_16 = _mm512_loadu_epi8(a);
@@ -870,7 +870,7 @@ bool simd_compare_64(const byte* a, const byte* b)
 }
 
 int simd_compare(const byte* a, const byte* b, uint32 size, uint32 steps = 8) {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         if (size >= 128) {

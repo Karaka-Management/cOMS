@@ -28,12 +28,12 @@ struct UIWindow {
     bool is_resizable;
 
     // window is only movable when holding this area
-    int movable_area[4];
+    int32 movable_area[4];
 
     UILayout* layout_default;
-    float layout_open_anim_duration;
-    float layout_close_anim_duration;
-    float layout_min_anim_duration;
+    f32 layout_open_anim_duration;
+    f32 layout_close_anim_duration;
+    f32 layout_min_anim_duration;
 };
 
 #endif

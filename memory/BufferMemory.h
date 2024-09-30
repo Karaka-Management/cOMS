@@ -23,12 +23,12 @@ struct BufferMemory {
 
     uint64 size;
     uint64 pos;
-    int alignment;
-    int element_alignment;
+    int32 alignment;
+    int32 element_alignment;
 };
 
 inline
-void buffer_alloc(BufferMemory* buf, uint64 size, int alignment = 64)
+void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
     buf->memory = alignment < 2
         ? (byte *) playform_alloc(size)
@@ -60,7 +60,7 @@ void buffer_reset(BufferMemory* buf)
 }
 
 inline
-byte* buffer_get_memory(BufferMemory* buf, uint64 size, int aligned = 0, bool zeroed = false)
+byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 0, bool zeroed = false)
 {
     ASSERT_SIMPLE(size <= buf->size);
 

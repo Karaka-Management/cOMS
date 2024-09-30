@@ -215,7 +215,7 @@ uint8 png_filter_4(const uint8* x, const uint8* a_full, const uint8* b_full, con
     return x[channel] + (uint8) paeth;
 }
 
-void png_filter_reconstruct(uint32 width, uint32 height, uint32 color_type, const uint8* decompressed, uint8* finalized, int steps = 8)
+void png_filter_reconstruct(uint32 width, uint32 height, uint32 color_type, const uint8* decompressed, uint8* finalized, int32 steps = 8)
 {
     uint64 zero = 0;
     uint8* prev_row = (uint8 *) &zero;

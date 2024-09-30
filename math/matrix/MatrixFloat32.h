@@ -16,9 +16,9 @@
 
 // @todo Implement intrinsic versions!
 
-void vec2_normalize_f32(float* __restrict x, float* __restrict y)
+void vec2_normalize_f32(f32* __restrict x, f32* __restrict y)
 {
-    float d = sqrtf((*x) * (*x) + (*y) * (*y));
+    f32 d = sqrtf((*x) * (*x) + (*y) * (*y));
 
     *x /= d;
     *y /= d;
@@ -49,19 +49,19 @@ void vec2_sub(v2_f32* __restrict vec, const v2_f32* b) {
 }
 
 inline
-void vec2_mul(v2_f32* vec, const v2_f32* a, float s) {
+void vec2_mul(v2_f32* vec, const v2_f32* a, f32 s) {
     vec->x = a->x * s;
     vec->y = a->y * s;
 }
 
 inline
-void vec2_mul(v2_f32* vec, float s) {
+void vec2_mul(v2_f32* vec, f32 s) {
     vec->x *= s;
     vec->y *= s;
 }
 
 inline
-float vec2_mul(const v2_f32* a, const v2_f32* b) {
+f32 vec2_mul(const v2_f32* a, const v2_f32* b) {
     return a->x * b->x + a->y * b->y;
 }
 
@@ -78,18 +78,18 @@ void vec2_mul(v2_f32* __restrict vec, const v2_f32* b) {
 }
 
 inline
-float vec2_cross(const v2_f32* a, const v2_f32* b) {
+f32 vec2_cross(const v2_f32* a, const v2_f32* b) {
     return a->x * b->y - a->y * b->x;
 }
 
 inline
-float vec2_dot(const v2_f32* a, const v2_f32* b) {
+f32 vec2_dot(const v2_f32* a, const v2_f32* b) {
     return a->x * b->x + a->y * b->y;
 }
 
-void vec3_normalize_f32(float* __restrict x, float* __restrict y, float* __restrict z)
+void vec3_normalize_f32(f32* __restrict x, f32* __restrict y, f32* __restrict z)
 {
-    float d = sqrtf((*x) * (*x) + (*y) * (*y) + (*z) * (*z));
+    f32 d = sqrtf((*x) * (*x) + (*y) * (*y) + (*z) * (*z));
 
     *x /= d;
     *y /= d;
@@ -98,7 +98,7 @@ void vec3_normalize_f32(float* __restrict x, float* __restrict y, float* __restr
 
 void vec3_normalize_f32(v3_f32* vec)
 {
-    float d = sqrtf(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
+    f32 d = sqrtf(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
 
     vec->x /= d;
     vec->y /= d;
@@ -134,21 +134,21 @@ void vec3_sub(v3_f32* __restrict vec, const v3_f32* b) {
 }
 
 inline
-void vec3_mul(v3_f32* vec, const v3_f32* a, float s) {
+void vec3_mul(v3_f32* vec, const v3_f32* a, f32 s) {
     vec->x = a->x * s;
     vec->y = a->y * s;
     vec->z = a->z * s;
 }
 
 inline
-void vec3_mul(v3_f32* vec, float s) {
+void vec3_mul(v3_f32* vec, f32 s) {
     vec->x *= s;
     vec->y *= s;
     vec->z *= s;
 }
 
 inline
-float vec3_mul(const v3_f32* a, const v3_f32* b) {
+f32 vec3_mul(const v3_f32* a, const v3_f32* b) {
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
@@ -172,13 +172,13 @@ void vec3_cross(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) {
     vec->z = a->x * b->y - a->y * b->x;
 }
 
-float vec3_dot(const v3_f32* a, const v3_f32* b) {
+f32 vec3_dot(const v3_f32* a, const v3_f32* b) {
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
-void vec4_normalize_f32(float* __restrict x, float* __restrict y, float* __restrict z, float* __restrict w)
+void vec4_normalize_f32(f32* __restrict x, f32* __restrict y, f32* __restrict z, f32* __restrict w)
 {
-    float d = sqrtf((*x) * (*x) + (*y) * (*y) + (*z) * (*z) + (*w) * (*w));
+    f32 d = sqrtf((*x) * (*x) + (*y) * (*y) + (*z) * (*z) + (*w) * (*w));
 
     *x /= d;
     *y /= d;
@@ -219,7 +219,7 @@ void vec4_sub(v4_f32* __restrict vec, const v4_f32* b) {
 }
 
 inline
-void vec4_mul(v4_f32* vec, const v4_f32* a, float s) {
+void vec4_mul(v4_f32* vec, const v4_f32* a, f32 s) {
     vec->x = a->x * s;
     vec->y = a->y * s;
     vec->z = a->z * s;
@@ -227,7 +227,7 @@ void vec4_mul(v4_f32* vec, const v4_f32* a, float s) {
 }
 
 inline
-void vec4_mul(v4_f32* vec, float s) {
+void vec4_mul(v4_f32* vec, f32 s) {
     vec->x *= s;
     vec->y *= s;
     vec->z *= s;
@@ -235,7 +235,7 @@ void vec4_mul(v4_f32* vec, float s) {
 }
 
 inline
-float vec4_mul(const v4_f32* a, const v4_f32* b) {
+f32 vec4_mul(const v4_f32* a, const v4_f32* b) {
     return a->x * b->x + a->y * b->y + a->z * b->z + a->w * b->w;
 }
 
@@ -256,7 +256,7 @@ void vec4_mul(v4_f32* __restrict vec, const v4_f32* b) {
 }
 
 inline
-float vec4_dot(const v4_f32* a, const v4_f32* b) {
+f32 vec4_dot(const v4_f32* a, const v4_f32* b) {
     return a->x * b->x + a->y * b->y + a->z * b->z + a->w * b->w;
 }
 
@@ -269,7 +269,7 @@ void vec4_cross(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b, const 
 }
 
 inline
-void mat3_identity(float* matrix)
+void mat3_identity(f32* matrix)
 {
     matrix[0] = 1.0f; matrix[1] = 0.0f; matrix[2] = 0.0f;
     matrix[3] = 0.0f; matrix[4] = 1.0f; matrix[5] = 0.0f;
@@ -277,7 +277,7 @@ void mat3_identity(float* matrix)
 }
 
 inline
-void mat3_identity_sparse(float* matrix)
+void mat3_identity_sparse(f32* matrix)
 {
     matrix[0] = 1.0f; matrix[4] = 1.0f; matrix[8] = 1.0f;
 }
@@ -291,7 +291,7 @@ void mat3_identity(__m128* matrix)
 }
 
 inline
-void mat4_identity(float* matrix)
+void mat4_identity(f32* matrix)
 {
     matrix[0] = 1.0f;  matrix[1] = 0.0f;  matrix[2] = 0.0f;  matrix[3] = 0.0f;
     matrix[4] = 0.0f;  matrix[5] = 1.0f;  matrix[6] = 0.0f;  matrix[7] = 0.0f;
@@ -300,7 +300,7 @@ void mat4_identity(float* matrix)
 }
 
 inline
-void mat4_identity_sparse(float* matrix)
+void mat4_identity_sparse(f32* matrix)
 {
     matrix[0] = 1.0f; matrix[5] = 1.0f; matrix[10] = 1.0f; matrix[15] = 1.0f;
 }
@@ -316,26 +316,26 @@ void mat4_identity(__m128* matrix)
 
 // x, y, z need to be normalized
 // https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
-void mat4_rotation(float* matrix, float x, float y, float z, float angle)
+void mat4_rotation(f32* matrix, f32 x, f32 y, f32 z, f32 angle)
 {
     ASSERT_SIMPLE(OMS_ABS(x * x + y * y + z * z - 1.0f) < 0.01);
 
     // @todo replace with quaternions
-    float s = sinf(angle);
-    float c = cosf(angle);
-    float m = 1 - c;
+    f32 s = sinf(angle);
+    f32 c = cosf(angle);
+    f32 m = 1 - c;
 
-    float mx = m * x;
-    float my = m * y;
-    float mz = m * z;
+    f32 mx = m * x;
+    f32 my = m * y;
+    f32 mz = m * z;
 
-    float xs = x * s;
-    float ys = y * s;
-    float zs = z * s;
+    f32 xs = x * s;
+    f32 ys = y * s;
+    f32 zs = z * s;
 
-    float mxy = mx * y;
-    float mzx = mz * x;
-    float myz = my * z;
+    f32 mxy = mx * y;
+    f32 mzx = mz * x;
+    f32 myz = my * z;
 
     matrix[0] = mx * x + c;
     matrix[1] = mxy - zs;
@@ -358,14 +358,14 @@ void mat4_rotation(float* matrix, float x, float y, float z, float angle)
     matrix[15] = 1.0f;
 }
 
-void mat4_rotation(float* matrix, float pitch, float yaw, float roll)
+void mat4_rotation(f32* matrix, f32 pitch, f32 yaw, f32 roll)
 {
-    float cos_pitch = cosf(pitch);
-    float sin_pitch = sinf(pitch);
-    float cos_yaw = cosf(yaw);
-    float sin_yaw = sinf(yaw);
-    float cos_roll = cosf(roll);
-    float sin_roll = sinf(roll);
+    f32 cos_pitch = cosf(pitch);
+    f32 sin_pitch = sinf(pitch);
+    f32 cos_yaw = cosf(yaw);
+    f32 sin_yaw = sinf(yaw);
+    f32 cos_roll = cosf(roll);
+    f32 sin_roll = sinf(roll);
 
     matrix[0] = cos_yaw * cos_roll;
     matrix[1] = cos_yaw * sin_roll;
@@ -389,7 +389,7 @@ void mat4_rotation(float* matrix, float pitch, float yaw, float roll)
 }
 
 inline
-void mat3vec3_mult(const float* __restrict matrix, const float* __restrict vector, float* __restrict result)
+void mat3vec3_mult(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result)
 {
     result[0] = matrix[0] * vector[0] + matrix[1] * vector[1] + matrix[2] * vector[2];
     result[1] = matrix[3] * vector[0] + matrix[4] * vector[1] + matrix[5] * vector[2];
@@ -397,12 +397,12 @@ void mat3vec3_mult(const float* __restrict matrix, const float* __restrict vecto
 }
 
 // @question could simple mul add sse be faster?
-void mat3vec3_mult_sse(const float* __restrict matrix, const float* __restrict vector, float* __restrict result)
+void mat3vec3_mult_sse(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result)
 {
     __m128 vec = _mm_loadu_ps(vector);
     vec = _mm_insert_ps(vec, _mm_setzero_ps(), 0x30); // vec[3] = 0
 
-    for (int i = 0; i < 3; ++i) {
+    for (int32 i = 0; i < 3; ++i) {
         __m128 row = _mm_loadu_ps(&matrix[i * 3]);
         row = _mm_insert_ps(row, _mm_setzero_ps(), 0x30);  // row[3] = 0
 
@@ -413,9 +413,9 @@ void mat3vec3_mult_sse(const float* __restrict matrix, const float* __restrict v
 }
 
 // @question could simple mul add sse be faster?
-void mat3vec3_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, float* __restrict result)
+void mat3vec3_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, f32* __restrict result)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int32 i = 0; i < 3; ++i) {
         __m128 dot = _mm_dp_ps(matrix[i], *vector, 0xF1);
 
         result[i] = _mm_cvtss_f32(dot);
@@ -425,13 +425,13 @@ void mat3vec3_mult_sse(const __m128* __restrict matrix, const __m128* __restrict
 // @question could simple mul add sse be faster?
 void mat3vec3_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, __m128* __restrict result)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int32 i = 0; i < 4; ++i) {
         result[i] = _mm_dp_ps(matrix[i], *vector, 0xF1);
     }
 }
 
 inline
-void mat4vec4_mult(const float* __restrict matrix, const float* __restrict vector, float* __restrict result)
+void mat4vec4_mult(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result)
 {
     result[0] = matrix[0] * vector[0] + matrix[1] * vector[1] + matrix[2] * vector[2] + matrix[3] * vector[3];
     result[1] = matrix[4] * vector[0] + matrix[5] * vector[1] + matrix[6] * vector[2] + matrix[7] * vector[3];
@@ -440,11 +440,11 @@ void mat4vec4_mult(const float* __restrict matrix, const float* __restrict vecto
 }
 
 // @question could simple mul add sse be faster?
-void mat4vec4_mult_sse(const float* __restrict matrix, const float* __restrict vector, float* __restrict result)
+void mat4vec4_mult_sse(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result)
 {
     __m128 vec = _mm_loadu_ps(vector);
 
-    for (int i = 0; i < 4; ++i) {
+    for (int32 i = 0; i < 4; ++i) {
         __m128 row = _mm_loadu_ps(&matrix[i * 4]);
         __m128 dot = _mm_dp_ps(row, vec, 0xF1);
 
@@ -453,9 +453,9 @@ void mat4vec4_mult_sse(const float* __restrict matrix, const float* __restrict v
 }
 
 // @question could simple mul add sse be faster?
-void mat4vec4_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, float* __restrict result)
+void mat4vec4_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, f32* __restrict result)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int32 i = 0; i < 4; ++i) {
         __m128 dot = _mm_dp_ps(matrix[i], *vector, 0xF1);
 
         result[i] = _mm_cvtss_f32(dot);
@@ -465,13 +465,13 @@ void mat4vec4_mult_sse(const __m128* __restrict matrix, const __m128* __restrict
 // @question could simple mul add sse be faster?
 void mat4vec4_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, __m128* __restrict result)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int32 i = 0; i < 4; ++i) {
         result[i] = _mm_dp_ps(matrix[i], *vector, 0xF1);
     }
 }
 
 inline
-void mat4mat4_mult(const float* __restrict a, const float* __restrict b, float* __restrict result)
+void mat4mat4_mult(const f32* __restrict a, const f32* __restrict b, f32* __restrict result)
 {
     result[0] = a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12];
     result[1] = a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13];
@@ -494,10 +494,10 @@ void mat4mat4_mult(const float* __restrict a, const float* __restrict b, float* 
     result[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15];
 }
 
-void mat4mat4_mult(const float* __restrict a, const float* __restrict b, float* __restrict result, int steps)
+void mat4mat4_mult(const f32* __restrict a, const f32* __restrict b, f32* __restrict result, int32 steps)
 {
     if (steps > 1) {
-        // @todo check http://fhtr.blogspot.com/2010/02/4x4-float-matrix-multiplication-using.html
+        // @todo check http://fhtr.blogspot.com/2010/02/4x4-f32-matrix-multiplication-using.html
         // @question could simple mul add sse be faster?
         // Load rows of matrix a
         __m128 a_1 = _mm_loadu_ps(a);
@@ -567,7 +567,7 @@ void mat4mat4_mult(const float* __restrict a, const float* __restrict b, float* 
     }
 }
 
-void mat4mat4_mult_sse(const __m128* __restrict a, const __m128* __restrict b_transposed, float* __restrict result)
+void mat4mat4_mult_sse(const __m128* __restrict a, const __m128* __restrict b_transposed, f32* __restrict result)
 {
     __m128 dot;
 
@@ -628,24 +628,24 @@ void mat4mat4_mult_sse(const __m128* __restrict a, const __m128* __restrict b_tr
 inline
 void mat4mat4_mult_sse(const __m128* __restrict a, const __m128* __restrict b_transpose, __m128* __restrict result)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int32 i = 0; i < 4; ++i) {
         result[i] = _mm_mul_ps(a[0], b_transpose[i]);
 
-        for (int j = 1; j < 4; ++j) {
+        for (int32 j = 1; j < 4; ++j) {
             result[i] = _mm_add_ps(_mm_mul_ps(a[j], b_transpose[4 * j + i]), result[i]);
         }
     }
 }
 
 // @performance Consider to replace with 1d array
-void mat4_frustum_planes(float planes[6][4], float radius, float *matrix) {
+void mat4_frustum_planes(f32 planes[6][4], f32 radius, f32 *matrix) {
     // @todo make this a setting
     // @bug fix to row-major system
     // @todo don't use 2d arrays
-    float znear = 0.125;
-    float zfar = radius * 32 + 64;
+    f32 znear = 0.125;
+    f32 zfar = radius * 32 + 64;
 
-    float *m = matrix;
+    f32 *m = matrix;
 
     planes[0][0] = m[3] + m[0];
     planes[0][1] = m[7] + m[4];
@@ -679,14 +679,14 @@ void mat4_frustum_planes(float planes[6][4], float radius, float *matrix) {
 }
 
 void mat4_frustum_sparse_rh(
-    float *matrix,
-    float left, float right, float bottom, float top,
-    float znear, float zfar
+    f32 *matrix,
+    f32 left, f32 right, f32 bottom, f32 top,
+    f32 znear, f32 zfar
  ) {
-    float temp = 2.0f * znear;
-    float rl_delta = right - left;
-    float tb_delta = top - bottom;
-    float fn_delta = zfar - znear;
+    f32 temp = 2.0f * znear;
+    f32 rl_delta = right - left;
+    f32 tb_delta = top - bottom;
+    f32 fn_delta = zfar - znear;
 
     matrix[0] = temp / rl_delta;
     //matrix[1] = 0.0f;
@@ -710,14 +710,14 @@ void mat4_frustum_sparse_rh(
 }
 
 void mat4_frustum_sparse_lh(
-    float *matrix,
-    float left, float right, float bottom, float top,
-    float znear, float zfar
+    f32 *matrix,
+    f32 left, f32 right, f32 bottom, f32 top,
+    f32 znear, f32 zfar
  ) {
-    float temp = 2.0f * znear;
-    float rl_delta = right - left;
-    float tb_delta = top - bottom;
-    float fn_delta = zfar - znear;
+    f32 temp = 2.0f * znear;
+    f32 rl_delta = right - left;
+    f32 tb_delta = top - bottom;
+    f32 fn_delta = zfar - znear;
 
     matrix[0] = temp / rl_delta;
     //matrix[1] = 0.0f;
@@ -743,12 +743,12 @@ void mat4_frustum_sparse_lh(
 // fov needs to be in rad
 inline
 void mat4_perspective_sparse_lh(
-    float *matrix, float fov, float aspect,
-    float znear, float zfar)
+    f32 *matrix, f32 fov, f32 aspect,
+    f32 znear, f32 zfar)
 {
     ASSERT_SIMPLE(znear > 0.0f);
 
-    float ymax, xmax;
+    f32 ymax, xmax;
     ymax = znear * tanf(fov * 0.5f);
     xmax = ymax * aspect;
 
@@ -757,12 +757,12 @@ void mat4_perspective_sparse_lh(
 
 inline
 void mat4_perspective_sparse_rh(
-    float *matrix, float fov, float aspect,
-    float znear, float zfar)
+    f32 *matrix, f32 fov, f32 aspect,
+    f32 znear, f32 zfar)
 {
     ASSERT_SIMPLE(znear > 0.0f);
 
-    float ymax, xmax;
+    f32 ymax, xmax;
     ymax = znear * tanf(fov * 0.5f);
     xmax = ymax * aspect;
 
@@ -770,13 +770,13 @@ void mat4_perspective_sparse_rh(
 }
 
 void mat4_ortho_sparse_lh(
-    float *matrix,
-    float left, float right, float bottom, float top,
-    float znear, float zfar
+    f32 *matrix,
+    f32 left, f32 right, f32 bottom, f32 top,
+    f32 znear, f32 zfar
 ) {
-    float rl_delta = right - left;
-    float tb_delta = top - bottom;
-    float fn_delta = zfar - znear;
+    f32 rl_delta = right - left;
+    f32 tb_delta = top - bottom;
+    f32 fn_delta = zfar - znear;
 
     matrix[0] = 2.0f / rl_delta;
     //matrix[1] = 0.0f;
@@ -800,13 +800,13 @@ void mat4_ortho_sparse_lh(
 }
 
 void mat4_ortho_sparse_rh(
-    float *matrix,
-    float left, float right, float bottom, float top,
-    float znear, float zfar
+    f32 *matrix,
+    f32 left, f32 right, f32 bottom, f32 top,
+    f32 znear, f32 zfar
 ) {
-    float rl_delta = right - left;
-    float tb_delta = top - bottom;
-    float fn_delta = zfar - znear;
+    f32 rl_delta = right - left;
+    f32 tb_delta = top - bottom;
+    f32 fn_delta = zfar - znear;
 
     matrix[0] = 2.0f / rl_delta;
     //matrix[1] = 0.0f;
@@ -829,12 +829,12 @@ void mat4_ortho_sparse_rh(
     matrix[15] = 1.0f;
 }
 
-void mat4_translate(float* matrix, float dx, float dy, float dz)
+void mat4_translate(f32* matrix, f32 dx, f32 dy, f32 dz)
 {
-    float temp[16];
-    memcpy(temp, matrix, sizeof(float) * 16);
+    f32 temp[16];
+    memcpy(temp, matrix, sizeof(f32) * 16);
 
-    float translation_matrix[16];
+    f32 translation_matrix[16];
     translation_matrix[0] = 1.0f;   translation_matrix[1] = 0.0f;   translation_matrix[2] = 0.0f;   translation_matrix[3] = dx;
     translation_matrix[4] = 0.0f;   translation_matrix[5] = 1.0f;   translation_matrix[6] = 0.0f;   translation_matrix[7] = dy;
     translation_matrix[8] = 0.0f;   translation_matrix[9] = 0.0f;   translation_matrix[10] = 1.0f;  translation_matrix[11] = dz;
@@ -843,12 +843,12 @@ void mat4_translate(float* matrix, float dx, float dy, float dz)
     mat4mat4_mult(temp, translation_matrix, matrix);
 }
 
-void mat4_translate(float* matrix, float dx, float dy, float dz, int steps)
+void mat4_translate(f32* matrix, f32 dx, f32 dy, f32 dz, int32 steps)
 {
-    alignas(64) float temp[16];
-    memcpy(temp, matrix, sizeof(float) * 16);
+    alignas(64) f32 temp[16];
+    memcpy(temp, matrix, sizeof(f32) * 16);
 
-    alignas(64) float translation_matrix[16];
+    alignas(64) f32 translation_matrix[16];
     translation_matrix[0] = 1.0f;   translation_matrix[1] = 0.0f;   translation_matrix[2] = 0.0f;   translation_matrix[3] = dx;
     translation_matrix[4] = 0.0f;   translation_matrix[5] = 1.0f;   translation_matrix[6] = 0.0f;   translation_matrix[7] = dy;
     translation_matrix[8] = 0.0f;   translation_matrix[9] = 0.0f;   translation_matrix[10] = 1.0f;  translation_matrix[11] = dz;
@@ -858,7 +858,7 @@ void mat4_translate(float* matrix, float dx, float dy, float dz, int steps)
 }
 
 inline
-void mat4_translation(float* matrix, float dx, float dy, float dz)
+void mat4_translation(f32* matrix, f32 dx, f32 dy, f32 dz)
 {
     matrix[0] = 1.0f;   matrix[1] = 0.0f;   matrix[2] = 0.0f;   matrix[3] = dx;
     matrix[4] = 0.0f;   matrix[5] = 1.0f;   matrix[6] = 0.0f;   matrix[7] = dy;
@@ -867,7 +867,7 @@ void mat4_translation(float* matrix, float dx, float dy, float dz)
 }
 
 inline
-void mat4_translation_sparse(float* matrix, float dx, float dy, float dz)
+void mat4_translation_sparse(f32* matrix, f32 dx, f32 dy, f32 dz)
 {
     matrix[3] = dx;
     matrix[7] = dy;
@@ -875,7 +875,7 @@ void mat4_translation_sparse(float* matrix, float dx, float dy, float dz)
 }
 
 inline
-void mat4_scale(float* matrix, float dx, float dy, float dz)
+void mat4_scale(f32* matrix, f32 dx, f32 dy, f32 dz)
 {
     matrix[0] = dx;   matrix[1] = 0.0f;   matrix[2] = 0.0f;   matrix[3] = 0.0f;
     matrix[4] = 0.0f;   matrix[5] = dy;   matrix[6] = 0.0f;   matrix[7] = 0.0f;
@@ -884,7 +884,7 @@ void mat4_scale(float* matrix, float dx, float dy, float dz)
 }
 
 inline
-void mat4_scale_sparse(float* matrix, float dx, float dy, float dz)
+void mat4_scale_sparse(f32* matrix, f32 dx, f32 dy, f32 dz)
 {
     matrix[0] = dx;
     matrix[5] = dy;
@@ -892,7 +892,7 @@ void mat4_scale_sparse(float* matrix, float dx, float dy, float dz)
 }
 
 inline
-void mat4_transpose(const float* __restrict matrix, float* __restrict transposed)
+void mat4_transpose(const f32* __restrict matrix, f32* __restrict transposed)
 {
     transposed[1] = matrix[4];
     transposed[2] = matrix[8];
@@ -909,9 +909,9 @@ void mat4_transpose(const float* __restrict matrix, float* __restrict transposed
 }
 
 inline
-void mat4_transpose(float* matrix)
+void mat4_transpose(f32* matrix)
 {
-    float temp;
+    f32 temp;
 
     temp = matrix[1];
     matrix[1] = matrix[4];
@@ -939,7 +939,7 @@ void mat4_transpose(float* matrix)
 }
 
 inline
-void mat3_transpose(const float* __restrict matrix, float* __restrict transposed)
+void mat3_transpose(const f32* __restrict matrix, f32* __restrict transposed)
 {
     transposed[1] = matrix[3];
     transposed[2] = matrix[6];
@@ -950,9 +950,9 @@ void mat3_transpose(const float* __restrict matrix, float* __restrict transposed
 }
 
 inline
-void mat3_transpose(float* matrix)
+void mat3_transpose(f32* matrix)
 {
-    float temp;
+    f32 temp;
 
     temp = matrix[1];
     matrix[1] = matrix[3];
@@ -968,16 +968,16 @@ void mat3_transpose(float* matrix)
 }
 
 inline
-void mat2_transpose(const float* __restrict matrix, float* __restrict transposed)
+void mat2_transpose(const f32* __restrict matrix, f32* __restrict transposed)
 {
     transposed[1] = matrix[2];
     transposed[2] = matrix[1];
 }
 
 inline
-void mat2_transpose(float* matrix)
+void mat2_transpose(f32* matrix)
 {
-    float temp = matrix[1];
+    f32 temp = matrix[1];
     matrix[1] = matrix[2];
     matrix[2] = temp;
 }

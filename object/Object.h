@@ -36,10 +36,10 @@ void object_from_file_txt(
 
     char* pos = (char *) file.content;
 
-    int object_index = 0;
-    int group_index = 0;
+    int32 object_index = 0;
+    int32 group_index = 0;
 
-    mesh->vertices = (float *) mesh->data;
+    mesh->vertices = (f32 *) mesh->data;
 
     mesh->vertex_count = 0;
     mesh->normal_count = 0;
@@ -66,7 +66,7 @@ void object_from_file_txt(
         // Parse type
         // WARNING: The code below could fail if [1] is outside of range
         //          However that should never happen for well formed files
-        int state = 0;
+        int32 state = 0;
         if (*pos == 'v' && pos[1] == ' ') {
             state = 1;
         } else if (*pos == 'v' && pos[1] == 'n') {
@@ -199,7 +199,7 @@ void object_from_file_txt(
             case 5: {
                     // 'o'
                     char text[100];
-                    int i = 0;
+                    int32 i = 0;
                     while (*pos != '\0' && *pos != ' ') {
                         text[i++] = *pos++;
                     }
@@ -217,7 +217,7 @@ void object_from_file_txt(
                         mesh->faces = (uint32 *) (mesh->vertices + mesh->vertex_count * 3 + mesh->normal_count * 3 + mesh->tex_coord_count * 2 + mesh->color_count * 4);
                     }
 
-                    int ftype = 0;
+                    int32 ftype = 0;
                     char* tmp = pos;
                     while (*tmp != ' ') {
                         if (*tmp++ == '/') {
@@ -230,8 +230,8 @@ void object_from_file_txt(
                         }
                     }
 
-                    const int max_blocks = 3; // @todo this could actually be N. Might have to change in the future
-                    int block = 0;
+                    const int32 max_blocks = 3; // @todo this could actually be N. Might have to change in the future
+                    int32 block = 0;
 
                     while (*pos != '\0' && *pos != '\n') {
                         if (ftype == 0) {
@@ -277,7 +277,7 @@ void object_from_file_txt(
             case 8: {
                     // 'g'
                     char text[100];
-                    int i = 0;
+                    int32 i = 0;
                     while (*pos != '\0' && *pos != ' ') {
                         text[i++] = *pos++;
                     }
@@ -294,7 +294,7 @@ void object_from_file_txt(
             case 10: {
                     // 'mtllib'
                     char text[100];
-                    int i = 0;
+                    int32 i = 0;
                     while (*pos != '\0' && *pos != ' ') {
                         text[i++] = *pos++;
                     }
@@ -303,7 +303,7 @@ void object_from_file_txt(
             case 11: {
                     // 'hitlib'
                     char text[100];
-                    int i = 0;
+                    int32 i = 0;
                     while (*pos != '\0' && *pos != ' ') {
                         text[i++] = *pos++;
                     }
@@ -312,7 +312,7 @@ void object_from_file_txt(
             case 12: {
                     // 'anilib'
                     char text[100];
-                    int i = 0;
+                    int32 i = 0;
                     while (*pos != '\0' && *pos != ' ') {
                         text[i++] = *pos++;
                     }
@@ -321,7 +321,7 @@ void object_from_file_txt(
             case 13: {
                     // 'usemtl'
                     char text[100];
-                    int i = 0;
+                    int32 i = 0;
                     while (*pos != '\0' && *pos != ' ') {
                         text[i++] = *pos++;
                     }
@@ -330,7 +330,7 @@ void object_from_file_txt(
             case 14: {
                     // 'usehit'
                     char text[100];
-                    int i = 0;
+                    int32 i = 0;
                     while (*pos != '\0' && *pos != ' ') {
                         text[i++] = *pos++;
                     }
@@ -357,8 +357,8 @@ int32 object_from_file(
     const char* path,
     Mesh* mesh,
     const char* group = NULL,
-    int load_format = OBJECT_LOADING_RESTRICTION_EVERYTHING,
-    int size = 8
+    int32 load_format = OBJECT_LOADING_RESTRICTION_EVERYTHING,
+    int32 size = 8
 )
 {
     FileBody file;
@@ -367,19 +367,19 @@ int32 object_from_file(
     byte* pos = file.content;
 
     // Read base data
-    mesh->vertex_type = *((int *) pos);
+    mesh->vertex_type = *((int32 *) pos);
     pos += sizeof(mesh->vertex_type);
 
-    mesh->vertex_count = *((int *) pos);
+    mesh->vertex_count = *((int32 *) pos);
     pos += sizeof(mesh->vertex_count);
 
-    mesh->normal_count = *((int *) pos);
+    mesh->normal_count = *((int32 *) pos);
     pos += sizeof(mesh->normal_count);
 
-    mesh->tex_coord_count = *((int *) pos);
+    mesh->tex_coord_count = *((int32 *) pos);
     pos += sizeof(mesh->tex_coord_count);
 
-    mesh->color_count = *((int *) pos);
+    mesh->color_count = *((int32 *) pos);
     pos += sizeof(mesh->color_count);
 
     #if !_WIN32 && !__LITTLE_ENDIAN
@@ -407,53 +407,53 @@ int32 object_from_file(
         vertex_size += 4;
     }
 
-    int offset = 0;
+    int32 offset = 0;
     if (mesh->vertex_count > 0) {
-        memcpy(mesh->data, pos, sizeof(float) * vertex_size * mesh->vertex_count);
-        mesh->vertices = (float *) mesh->data;
+        memcpy(mesh->data, pos, sizeof(f32) * vertex_size * mesh->vertex_count);
+        mesh->vertices = (f32 *) mesh->data;
 
-        pos += sizeof(float) * vertex_size * mesh->vertex_count;
-        offset += sizeof(float) * vertex_size * mesh->vertex_count;
+        pos += sizeof(f32) * vertex_size * mesh->vertex_count;
+        offset += sizeof(f32) * vertex_size * mesh->vertex_count;
     }
 
     if (mesh->normal_count > 0) {
-        memcpy(mesh->data + offset, pos, sizeof(float) * 3 * mesh->normal_count);
-        mesh->normals = (float *) (mesh->data + offset);
+        memcpy(mesh->data + offset, pos, sizeof(f32) * 3 * mesh->normal_count);
+        mesh->normals = (f32 *) (mesh->data + offset);
 
-        pos += sizeof(float) * 3 * mesh->normal_count;
-        offset += sizeof(float) * 3 * mesh->normal_count;
+        pos += sizeof(f32) * 3 * mesh->normal_count;
+        offset += sizeof(f32) * 3 * mesh->normal_count;
     }
 
     if (mesh->tex_coord_count > 0) {
-        memcpy(mesh->data + offset, pos, sizeof(float) * 3 * mesh->tex_coord_count);
-        mesh->tex_coords = (float *) (mesh->data + offset);
+        memcpy(mesh->data + offset, pos, sizeof(f32) * 3 * mesh->tex_coord_count);
+        mesh->tex_coords = (f32 *) (mesh->data + offset);
 
-        pos += sizeof(float) * 2 * mesh->tex_coord_count;
-        offset += sizeof(float) * 2 * mesh->tex_coord_count;
+        pos += sizeof(f32) * 2 * mesh->tex_coord_count;
+        offset += sizeof(f32) * 2 * mesh->tex_coord_count;
     }
 
     if (mesh->color_count > 0) {
-        memcpy(mesh->data + offset, pos, sizeof(float) * 4 * mesh->color_count);
-        mesh->colors = (float *) (mesh->data + offset);
+        memcpy(mesh->data + offset, pos, sizeof(f32) * 4 * mesh->color_count);
+        mesh->colors = (f32 *) (mesh->data + offset);
 
-        pos += sizeof(float) * 4 * mesh->color_count;
-        offset += sizeof(float) * 4 * mesh->color_count;
+        pos += sizeof(f32) * 4 * mesh->color_count;
+        offset += sizeof(f32) * 4 * mesh->color_count;
     }
 
     // Read face data
-    mesh->face_type = *((int *) pos);
+    mesh->face_type = *((int32 *) pos);
     pos += sizeof(mesh->face_type);
 
-    mesh->face_count = *((int *) pos);
+    mesh->face_count = *((int32 *) pos);
     pos += sizeof(mesh->face_count);
 
-    mesh->face_normal_count = *((int *) pos);
+    mesh->face_normal_count = *((int32 *) pos);
     pos += sizeof(mesh->face_normal_count);
 
-    mesh->face_tex_coord_count = *((int *) pos);
+    mesh->face_tex_coord_count = *((int32 *) pos);
     pos += sizeof(mesh->face_tex_coord_count);
 
-    mesh->face_color_count = *((int *) pos);
+    mesh->face_color_count = *((int32 *) pos);
     pos += sizeof(mesh->face_color_count);
 
     #if !_WIN32 && !__LITTLE_ENDIAN
@@ -464,7 +464,7 @@ int32 object_from_file(
         mesh->face_color_count = endian_swap(mesh->face_color_count);
     #endif
 
-    int face_size = 0;
+    int32 face_size = 0;
     if (mesh->face_type & FACE_TYPE_VERTICES) {
         face_size += 3;
     }
@@ -520,8 +520,8 @@ int32 object_from_file(
     }
 
     SWAP_ENDIAN_LITTLE_SIMD(
-        (int *) mesh->data,
-        (int *) mesh->data,
+        (int32 *) mesh->data,
+        (int32 *) mesh->data,
         offset / 4, // everything is 4 bytes -> super easy to swap
         steps
     );
@@ -533,15 +533,15 @@ void object_to_file(
     RingMemory* ring,
     const char* path,
     const Mesh* mesh,
-    int vertex_save_format = VERTEX_TYPE_POSITION,
-    int face_save_format = FACE_TYPE_VERTICES,
-    int size = 8
+    int32 vertex_save_format = VERTEX_TYPE_POSITION,
+    int32 face_save_format = FACE_TYPE_VERTICES,
+    int32 size = 8
 )
 {
     FileBody file;
 
     // Temporary file size for buffer
-    file.size = sizeof(mesh) + sizeof(Vertex3D) * mesh->vertex_count + sizeof(float) * 12 * mesh->vertex_count + 4096;
+    file.size = sizeof(mesh) + sizeof(Vertex3D) * mesh->vertex_count + sizeof(f32) * 12 * mesh->vertex_count + 4096;
 
     file.content = ring_get_memory(ring, file.size, 64);
     byte* pos = file.content;
@@ -577,7 +577,7 @@ void object_to_file(
 
     // verticies
     if (mesh->vertex_count > 0) {
-        int vertex_size = 0;
+        int32 vertex_size = 0;
         if (mesh->vertex_type & VERTEX_TYPE_POSITION) {
             vertex_size += 3;
         }
@@ -594,7 +594,7 @@ void object_to_file(
             vertex_size += 4;
         }
 
-        int out_vertex_size = 0;
+        int32 out_vertex_size = 0;
         if (vertex_save_format & VERTEX_TYPE_POSITION) {
             out_vertex_size += 3;
         }
@@ -615,19 +615,19 @@ void object_to_file(
             || (mesh->vertex_type == VERTEX_TYPE_POSITION && vertex_save_format == VERTEX_TYPE_POSITION)
         ) {
             // data is the same as in the array
-            memcpy(pos, mesh->vertices, vertex_size * sizeof(float) * mesh->vertex_count);
-            pos += vertex_size * sizeof(float) * mesh->vertex_count;
+            memcpy(pos, mesh->vertices, vertex_size * sizeof(f32) * mesh->vertex_count);
+            pos += vertex_size * sizeof(f32) * mesh->vertex_count;
         } else {
-            float* temp = mesh->vertices;
-            float* end = mesh->vertices + mesh->vertex_count * vertex_size;
+            f32* temp = mesh->vertices;
+            f32* end = mesh->vertices + mesh->vertex_count * vertex_size;
 
-            int offset;
+            int32 offset;
 
             byte* vertice_start = pos;
 
             // @bug index gets increased every iteration BUT different groups and objects in the source may have different data
             //      This comes again down to how to handle hierarchal data with multiple groups and objects
-            int index = 0;
+            int32 index = 0;
 
             // iterate over all vertices to create new output format
             while (temp < end) {
@@ -637,13 +637,13 @@ void object_to_file(
                 // First we save everything in one large array if that is the setting
                 if (vertex_save_format & VERTEX_TYPE_POSITION) {
                     if (mesh->vertex_type & VERTEX_TYPE_POSITION) {
-                        memcpy(pos, temp, sizeof(float) * 3);
-                        pos += sizeof(float) * 3;
+                        memcpy(pos, temp, sizeof(f32) * 3);
+                        pos += sizeof(f32) * 3;
 
                         offset += 3;
                     } else {
-                        memset(pos, 0, sizeof(float) * 3);
-                        pos += sizeof(float) * 3;
+                        memset(pos, 0, sizeof(f32) * 3);
+                        pos += sizeof(f32) * 3;
                     }
                 }
 
@@ -651,19 +651,19 @@ void object_to_file(
                 if ((mesh->vertex_type & VERTEX_TYPE_NORMAL) && !(vertex_save_format & VERTEX_TYPE_NORMAL)) {
                     // go to end of vertices * shift by previous array sizes + shift by current vertex -> creates one continous array with this data
                     memcpy(vertice_start
-                        + sizeof(float) * out_vertex_size * mesh->vertex_count
-                        + index * sizeof(float) * 3, temp + offset, sizeof(float) * 3);
+                        + sizeof(f32) * out_vertex_size * mesh->vertex_count
+                        + index * sizeof(f32) * 3, temp + offset, sizeof(f32) * 3);
 
                     offset += 3;
                 } else if (vertex_save_format & VERTEX_TYPE_NORMAL) {
                     if (mesh->vertex_type & VERTEX_TYPE_NORMAL) {
-                        memcpy(pos, temp + offset, sizeof(float) * 3);
-                        pos += sizeof(float) * 3;
+                        memcpy(pos, temp + offset, sizeof(f32) * 3);
+                        pos += sizeof(f32) * 3;
 
                         offset += 3;
                     } else {
-                        memset(pos, 0, sizeof(float) * 3);
-                        pos += sizeof(float) * 3;
+                        memset(pos, 0, sizeof(f32) * 3);
+                        pos += sizeof(f32) * 3;
                     }
                 }
 
@@ -671,20 +671,20 @@ void object_to_file(
                 if ((mesh->vertex_type & VERTEX_TYPE_TEXTURE_COORD) && !(vertex_save_format & VERTEX_TYPE_TEXTURE_COORD)) {
                     // go to end of vertices * shift by previous array sizes + shift by current vertex -> creates one continous array with this data
                     memcpy(vertice_start
-                        + sizeof(float) * out_vertex_size * mesh->vertex_count
-                        + sizeof(float) * normal_count * 3
-                        + index * sizeof(float) * 3, temp + offset, sizeof(float) * 3);
+                        + sizeof(f32) * out_vertex_size * mesh->vertex_count
+                        + sizeof(f32) * normal_count * 3
+                        + index * sizeof(f32) * 3, temp + offset, sizeof(f32) * 3);
 
                     offset += 2;
                 } else if (vertex_save_format & VERTEX_TYPE_TEXTURE_COORD) {
                     if (mesh->vertex_type & VERTEX_TYPE_TEXTURE_COORD) {
-                        memcpy(pos, temp + offset, sizeof(float) * 2);
-                        pos += sizeof(float) * 2;
+                        memcpy(pos, temp + offset, sizeof(f32) * 2);
+                        pos += sizeof(f32) * 2;
 
                         offset += 2;
                     } else {
-                        memset(pos, 0, sizeof(float) * 2);
-                        pos += sizeof(float) * 2;
+                        memset(pos, 0, sizeof(f32) * 2);
+                        pos += sizeof(f32) * 2;
                     }
                 }
 
@@ -692,21 +692,21 @@ void object_to_file(
                 if ((mesh->vertex_type & VERTEX_TYPE_COLOR) && !(vertex_save_format & VERTEX_TYPE_COLOR)) {
                     // go to end of vertices * shift by previous array sizes + shift by current vertex -> creates one continous array with this data
                     memcpy(vertice_start
-                        + sizeof(float) * out_vertex_size * mesh->vertex_count
-                        + sizeof(float) * normal_count * 3
-                        + sizeof(float) * tex_coord_count * 2
-                        + index * sizeof(float) * 4, temp + offset, sizeof(float) * 4);
+                        + sizeof(f32) * out_vertex_size * mesh->vertex_count
+                        + sizeof(f32) * normal_count * 3
+                        + sizeof(f32) * tex_coord_count * 2
+                        + index * sizeof(f32) * 4, temp + offset, sizeof(f32) * 4);
 
                     offset += 4;
                 } else if (vertex_save_format & VERTEX_TYPE_COLOR) {
                     if (mesh->vertex_type & VERTEX_TYPE_COLOR) {
-                        memcpy(pos, temp + offset, sizeof(float) * 4);
-                        pos += sizeof(float) * 4;
+                        memcpy(pos, temp + offset, sizeof(f32) * 4);
+                        pos += sizeof(f32) * 4;
 
                         offset += 4;
                     } else {
-                        memset(pos, 0, sizeof(float) * 4);
-                        pos += sizeof(float) * 4;
+                        memset(pos, 0, sizeof(f32) * 4);
+                        pos += sizeof(f32) * 4;
                     }
                 }
 
@@ -717,18 +717,18 @@ void object_to_file(
 
         // check if we have clean array data already -> output this array data directly
         if (mesh->normals && mesh->normal_count > 0) {
-            memcpy(pos, mesh->normals, mesh->normal_count * sizeof(float) * 3);
-            pos += mesh->normal_count * sizeof(float) * 3;
+            memcpy(pos, mesh->normals, mesh->normal_count * sizeof(f32) * 3);
+            pos += mesh->normal_count * sizeof(f32) * 3;
         }
 
         if (mesh->tex_coords && mesh->tex_coord_count > 0) {
-            memcpy(pos, mesh->tex_coords, mesh->tex_coord_count * sizeof(float) * 2);
-            pos += mesh->tex_coord_count * sizeof(float) * 2;
+            memcpy(pos, mesh->tex_coords, mesh->tex_coord_count * sizeof(f32) * 2);
+            pos += mesh->tex_coord_count * sizeof(f32) * 2;
         }
 
         if (mesh->colors && mesh->color_count > 0) {
-            memcpy(pos, mesh->colors, mesh->color_count * sizeof(float) * 4);
-            pos += mesh->color_count * sizeof(float) * 4;
+            memcpy(pos, mesh->colors, mesh->color_count * sizeof(f32) * 4);
+            pos += mesh->color_count * sizeof(f32) * 4;
         }
     }
 
@@ -764,7 +764,7 @@ void object_to_file(
     if (mesh->face_count > 0) {
         // WARNING: Carefull, we again assume only 3 elements per face
 
-        int face_size = 0;
+        int32 face_size = 0;
         if (mesh->face_type & FACE_TYPE_VERTICES) {
             face_size += 3;
         }
@@ -781,7 +781,7 @@ void object_to_file(
             face_size += 3;
         }
 
-        int out_face_size = 0;
+        int32 out_face_size = 0;
         if (face_save_format & FACE_TYPE_VERTICES) {
             out_face_size += 3;
         }
@@ -808,13 +808,13 @@ void object_to_file(
             uint32* temp = mesh->faces;
             uint32* end = mesh->faces + mesh->face_count * face_size;
 
-            int offset;
+            int32 offset;
 
             byte* face_start = pos;
 
             // @bug index gets increased every iteration BUT different groups and objects in the source may have different data
             //      This comes again down to how to handle hierarchal data with multiple groups and objects
-            int index = 0;
+            int32 index = 0;
 
             // iterate over all faces to create new output format
             // one iteration represents 1 block (a block could be v/vt/vn or, v, or v//vn, ...)
@@ -830,8 +830,8 @@ void object_to_file(
 
                         offset += 1;
                     } else {
-                        memset(pos, 0, sizeof(float));
-                        pos += sizeof(float);
+                        memset(pos, 0, sizeof(f32));
+                        pos += sizeof(f32);
                     }
                 }
 
@@ -923,8 +923,8 @@ void object_to_file(
     file.size = pos - file.content;
 
     SWAP_ENDIAN_LITTLE_SIMD(
-        (int *) file.content,
-        (int *) file.content,
+        (int32 *) file.content,
+        (int32 *) file.content,
         (pos - file.content) / 4, // everything in here is 4 bytes -> super easy to swap
         steps
     );

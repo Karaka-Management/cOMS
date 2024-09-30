@@ -26,7 +26,7 @@
 #endif
 
 inline
-void change_viewport(Window* w, int offset_x = 0, int offset_y = 0)
+void change_viewport(Window* w, int32 offset_x = 0, int32 offset_y = 0)
 {
     glViewport(offset_x, offset_y, w->width, w->height);
 }
@@ -34,7 +34,7 @@ void change_viewport(Window* w, int offset_x = 0, int offset_y = 0)
 inline
 void vsync_set(bool on)
 {
-    wglSwapIntervalEXT((int) on);
+    wglSwapIntervalEXT((int32) on);
 }
 
 inline
@@ -49,8 +49,8 @@ void wireframe_mode(bool on)
 
 struct OpenglInfo {
     char* renderer;
-    int major;
-    int minor;
+    int32 major;
+    int32 minor;
 };
 
 void opengl_info(OpenglInfo* info)
@@ -119,7 +119,7 @@ void prepare_texture(Texture* texture)
 }
 
 inline
-void load_texture_to_gpu(const Texture* texture, int mipmap_level = 0)
+void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
 {
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
     glTexImage2D(
@@ -277,7 +277,7 @@ void shader_use(uint32 id)
 }
 
 inline
-void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int count) {
+void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int32 count) {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -285,16 +285,16 @@ void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int count) {
     glEnableVertexAttribArray(vertices->data_id);
 
     // normal attribute
-    glVertexAttribPointer(vertices->normal_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
+    glVertexAttribPointer(vertices->normal_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(f32) * 3));
     glEnableVertexAttribArray(vertices->normal_id);
 
     // texture coord attribute
     // vs glVertexAttribPointer
-    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(float) * 6));
+    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(f32) * 6));
     glEnableVertexAttribArray(vertices->tex_coord_id);
 
     // color attribute
-    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 8));
+    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(f32) * 8));
     glEnableVertexAttribArray(vertices->color_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
@@ -308,7 +308,7 @@ void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int count) {
 }
 
 inline
-void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int count) {
+void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int32 count) {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -316,11 +316,11 @@ void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int count
     glEnableVertexAttribArray(vertices->data_id);
 
     // normal attribute
-    glVertexAttribPointer(vertices->normal_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
+    glVertexAttribPointer(vertices->normal_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(f32) * 3));
     glEnableVertexAttribArray(vertices->normal_id);
 
     // color attribute
-    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 8));
+    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(f32) * 8));
     glEnableVertexAttribArray(vertices->color_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
@@ -333,7 +333,7 @@ void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int count
 }
 
 inline
-void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int count) {
+void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int32 count) {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -341,11 +341,11 @@ void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int count) 
     glEnableVertexAttribArray(vertices->data_id);
 
     // normal attribute
-    glVertexAttribPointer(vertices->normal_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(float) * 3));
+    glVertexAttribPointer(vertices->normal_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(f32) * 3));
     glEnableVertexAttribArray(vertices->normal_id);
 
     // texture coord attribute
-    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(float) * 6));
+    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex3D), (void *) (sizeof(f32) * 6));
     glEnableVertexAttribArray(vertices->tex_coord_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
@@ -358,7 +358,7 @@ void draw_triangles_3d_colorless(VertexRef* vertices, GLuint buffer, int count) 
 }
 
 inline
-void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int count) {
+void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int32 count) {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -367,11 +367,11 @@ void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int count) {
 
     // texture coord attribute
     // vs glVertexAttribPointer
-    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(float) * 2));
+    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(f32) * 2));
     glEnableVertexAttribArray(vertices->tex_coord_id);
 
     // color attribute
-    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(float) * 4));
+    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(f32) * 4));
     glEnableVertexAttribArray(vertices->color_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
@@ -384,7 +384,7 @@ void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int count) {
 }
 
 inline
-void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int count) {
+void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int32 count) {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -392,7 +392,7 @@ void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int count
     glEnableVertexAttribArray(vertices->data_id);
 
     // color attribute
-    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(float) * 4));
+    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(f32) * 4));
     glEnableVertexAttribArray(vertices->color_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
@@ -404,7 +404,7 @@ void draw_triangles_2d_textureless(VertexRef* vertices, GLuint buffer, int count
 }
 
 inline
-void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int count) {
+void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int32 count) {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
     // position attribute
@@ -412,7 +412,7 @@ void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int count) 
     glEnableVertexAttribArray(vertices->data_id);
 
     // texture coord attribute
-    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(float) * 2));
+    glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(f32) * 2));
     glEnableVertexAttribArray(vertices->tex_coord_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
@@ -424,7 +424,7 @@ void draw_triangles_2d_colorless(VertexRef* vertices, GLuint buffer, int count) 
 }
 
 inline
-int calculate_face_size(int components, int faces)
+int calculate_face_size(int components, int32 faces)
 {
     return sizeof(GLfloat) * 6 * components * faces;
 }
@@ -432,7 +432,7 @@ int calculate_face_size(int components, int faces)
 // generates faces
 // data is no longer needed after this
 inline
-uint32 gpuapi_buffer_generate(int size, const void* data)
+uint32 gpuapi_buffer_generate(int32 size, const void* data)
 {
     uint32 vbo;
 
@@ -444,7 +444,7 @@ uint32 gpuapi_buffer_generate(int size, const void* data)
 }
 
 inline
-uint32 gpuapi_buffer_generate_dynamic(int size, const void* data)
+uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data)
 {
     uint32 vbo;
 
@@ -456,14 +456,14 @@ uint32 gpuapi_buffer_generate_dynamic(int size, const void* data)
 }
 
 inline
-void gpuapi_buffer_update_dynamic(uint32 vbo, int size, const void* data)
+void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 }
 
 inline
-uint32 gpuapi_shaderbuffer_generate(int size, const void* data)
+uint32 gpuapi_shaderbuffer_generate(int32 size, const void* data)
 {
     uint32 sbo;
 
@@ -474,7 +474,7 @@ uint32 gpuapi_shaderbuffer_generate(int size, const void* data)
     return sbo;
 }
 
-uint32 gpuapi_upload_color_palette(const byte* palette, int count, int sampler_id)
+uint32 gpuapi_upload_color_palette(const byte* palette, int32 count, int32 sampler_id)
 {
     uint32 texture_id;
 
@@ -492,7 +492,7 @@ uint32 gpuapi_upload_color_palette(const byte* palette, int count, int sampler_i
 }
 
 inline
-uint32 gpuapi_uniformbuffer_generate(int size, const void* data)
+uint32 gpuapi_uniformbuffer_generate(int32 size, const void* data)
 {
     uint32 ubo;
 
@@ -504,7 +504,7 @@ uint32 gpuapi_uniformbuffer_generate(int size, const void* data)
 }
 
 inline
-uint32 gpuapi_buffer_element_generate(int size, uint32 *data)
+uint32 gpuapi_buffer_element_generate(int32 size, uint32 *data)
 {
     uint32 ebo;
 
@@ -562,7 +562,7 @@ struct TextRender {
     uint32 align;
     uint32 x;
     uint32 y;
-    float scale;
+    f32 scale;
     VertexRef vertices;
     char* text;
 
@@ -579,7 +579,7 @@ struct TextRender {
 inline
 void render_text_batched(
     RingMemory* ring,
-    int width, int height,
+    int32 width, int32 height,
     TextRender* text_data
 ) {
     glUseProgram(text_data->shader_data.program_id);
@@ -588,8 +588,8 @@ void render_text_batched(
     // @performance Instead of re-creating the matrix every render call just use the id to activate it
     // 2d projection
     if (text_data->shader_data.matrix_id == 0) {
-        float matrix[16] = {};
-        mat4_ortho_sparse_rh(matrix, 0.0f, (float) width, 0.0f, (float) height, -1.0f, 1.0f);
+        f32 matrix[16] = {};
+        mat4_ortho_sparse_rh(matrix, 0.0f, (f32) width, 0.0f, (f32) height, -1.0f, 1.0f);
         glUniformMatrix4fv(text_data->shader_data.matrix_addr, 1, GL_FALSE, matrix);
         text_data->shader_data.matrix_id = 1;
         // @bug this is wrong, we need to make buffer instead. We don't want to upload the matrix every time
@@ -601,15 +601,15 @@ void render_text_batched(
         //glBindVertexArray(text_data->shader_data.matrix_id);
     }
 
-    int length = (int) strlen(text_data->text);
-    float x = text_data->x - text_data->scale * text_data->align * (length - 1) / 2;
+    int32 length = (int32) strlen(text_data->text);
+    f32 x = text_data->x - text_data->scale * text_data->align * (length - 1) / 2;
 
     // @performance Only create when the text got removed from memory
     if (text_data->vertices.data_id == 0) {
         GLfloat *data = (GLfloat *) ring_get_memory(ring, sizeof(GLfloat) * 6 * 4 * length);
 
-        for (int i = 0; i < length; i++) {
-            make_character(data + i * 24, x, (float) text_data->y, text_data->scale / 2, text_data->scale, text_data->text[i]);
+        for (int32 i = 0; i < length; i++) {
+            make_character(data + i * 24, x, (f32) text_data->y, text_data->scale / 2, text_data->scale, text_data->text[i]);
             x += text_data->scale;
         }
 
@@ -631,11 +631,11 @@ void render_text_batched(
 
 /*
 void render_9_patch(GLuint texture,
-    int imgWidth, int imgHeight,
-    int img_x1, int img_x2,
-    int img_y1, int img_y2,
-    int renderWidth, int renderHeight,
-    int repeat
+    int32 imgWidth, int32 imgHeight,
+    int32 img_x1, int32 img_x2,
+    int32 img_y1, int32 img_y2,
+    int32 renderWidth, int32 renderHeight,
+    int32 repeat
 )
 {
 

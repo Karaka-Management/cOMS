@@ -64,7 +64,7 @@ uint32 decode_lzp(const byte* in, size_t length, byte* out)
     byte table[1 << 16] = {0};
 
     uint16 hash = 0;
-    int i, j;
+    int32 i, j;
     byte mask, c;
     uint32 in_pos = 0, out_pos = 0;
 
@@ -102,12 +102,12 @@ uint32 decode_lzp(const byte* in, size_t length, byte* out)
     return out_pos;
 }
 
-int find_longest_match(char *window, int window_start, char *buffer, int buffer_size, int *match_position) {
-    int best_length = 0;
-    int best_offset = 0;
+int32 find_longest_match(char *window, int32 window_start, char *buffer, int32 buffer_size, int32 *match_position) {
+    int32 best_length = 0;
+    int32 best_offset = 0;
 
-    for (int i = window_start; i < 4096   && i < buffer_size; ++i) {
-        int length = 0;
+    for (int32 i = window_start; i < 4096   && i < buffer_size; ++i) {
+        int32 length = 0;
 
         while (length < 18 &&
                i + length < 4096   &&
@@ -128,14 +128,14 @@ int find_longest_match(char *window, int window_start, char *buffer, int buffer_
 
 uint32 encode_lzp3(const byte* in, size_t length, byte* out) {
     char window[4096] = {0};
-    int window_start = 0;
+    int32 window_start = 0;
 
-    int out_size = 0;
+    int32 out_size = 0;
 
-    int i = 0;
+    int32 i = 0;
     while (i < length) {
-        int match_position = 0;
-        int match_length = find_longest_match(window, window_start, (char *)&in[i], (int) (length - i), &match_position);
+        int32 match_position = 0;
+        int32 match_length = find_longest_match(window, window_start, (char *)&in[i], (int32) (length - i), &match_position);
 
         if (match_length > 2) {
             out[out_size++] = 0xFF;
@@ -148,7 +148,7 @@ uint32 encode_lzp3(const byte* in, size_t length, byte* out) {
             ++i;
         }
 
-        int shift_length = match_length > 0 ? match_length : 1;
+        int32 shift_length = match_length > 0 ? match_length : 1;
         memmove(window, window + shift_length, 4096 - shift_length);
         memcpy(window + (4096 - shift_length), &in[i - shift_length], shift_length);
         window_start = (window_start + shift_length) >= 4096 ? 0 : window_start + shift_length;
@@ -159,17 +159,17 @@ uint32 encode_lzp3(const byte* in, size_t length, byte* out) {
 
 uint32 decode_lzp3(const byte* in, size_t length, byte* out) {
     char window[4096] = {0};
-    int window_start = 0;
+    int32 window_start = 0;
 
-    int out_size = 0;
+    int32 out_size = 0;
 
-    int i = 0;
+    int32 i = 0;
     while (i < length) {
         if (in[i] == 0xFF) {
-            int match_position = in[i + 1];
-            int match_length = in[i + 2];
+            int32 match_position = in[i + 1];
+            int32 match_length = in[i + 2];
 
-            for (int j = 0; j < match_length; j++) {
+            for (int32 j = 0; j < match_length; j++) {
                 out[out_size++] = window[(match_position + j) % 4096];
             }
 

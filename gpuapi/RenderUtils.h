@@ -14,21 +14,21 @@
 #include "../math/matrix/MatrixFloat32.h"
 
 void make_character(
-    float *data,
-    float x, float y, float n, float m, char c)
+    f32 *data,
+    f32 x, f32 y, f32 n, f32 m, char c)
 {
-    float *d = data;
+    f32 *d = data;
 
     // Texture atlas is 16 characters
     // 1 / 16 = 0.0625
-    float a = 0.0625;
-    float b = 0.0625 * 2;
+    f32 a = 0.0625;
+    f32 b = 0.0625 * 2;
 
     // ascii offset
-    int w = c - 32;
+    int32 w = c - 32;
 
-    float du = (w % 16) * a;
-    float dv = 1 - (w / 16) * b - b;
+    f32 du = (w % 16) * a;
+    f32 dv = 1 - (w / 16) * b - b;
 
     // Quad data (2 triangles)
     *(d++) = x - n; *(d++) = y - m;
@@ -48,9 +48,9 @@ void make_character(
 void font_string_dimension(const char *str, v2_int32* dim, const int* width_lookup)
 {
     size_t length = strlen(str);
-    int width  = 0;
+    int32 width  = 0;
 
-    for (int i = 0; i < length; ++i) {
+    for (int32 i = 0; i < length; ++i) {
         if (str[i] == '\n') {
             if (width > dim->x) {
                 dim->x = width;
@@ -73,27 +73,27 @@ void font_string_dimension(const char *str, v2_int32* dim, const int* width_look
 }
 
 inline
-void entity_world_space(float* world_space, const float* local_space, const float* model_mat)
+void entity_world_space(f32* world_space, const f32* local_space, const f32* model_mat)
 {
     mat4vec4_mult(model_mat, local_space, world_space);
 }
 
 inline
-void entity_view_space(float* view_space, const float* world_space, const float* view_mat)
+void entity_view_space(f32* view_space, const f32* world_space, const f32* view_mat)
 {
     mat4vec4_mult(view_mat, world_space, view_space);
 }
 
 inline
-void entity_clip_space(float* clip_space, const float* view_space, const float* projection_mat)
+void entity_clip_space(f32* clip_space, const f32* view_space, const f32* projection_mat)
 {
     mat4vec4_mult(projection_mat, view_space, clip_space);
 }
 
 inline
-void entity_clip_space_mat(float* result_mat, const float* model_mat, const float* view_mat, const float* projection_mat)
+void entity_clip_space_mat(f32* result_mat, const f32* model_mat, const f32* view_mat, const f32* projection_mat)
 {
-    float temp[16];
+    f32 temp[16];
     mat4mat4_mult(projection_mat, view_mat, temp);
     mat4mat4_mult(temp, model_mat, result_mat);
 }
@@ -105,7 +105,7 @@ void entity_clip_space_mat(float* result_mat, const float* model_mat, const floa
  *
  * Vclip = Mprojection * Mview * Mmodel * Vlocal
  */
-void entity_clip_space_mat_sse(float* result_mat, const float* model_mat, const float* view_mat, const float* projection_mat)
+void entity_clip_space_mat_sse(f32* result_mat, const f32* model_mat, const f32* view_mat, const f32* projection_mat)
 {
     __m128 temp[4];
 
@@ -144,46 +144,46 @@ void entity_clip_space_mat_sse(float* result_mat, const float* model_mat, const 
 }
 
 inline
-void entity_clip_space_from_local(float* clip_space, const float* local_space, const float* mat)
+void entity_clip_space_from_local(f32* clip_space, const f32* local_space, const f32* mat)
 {
     mat4vec4_mult(mat, local_space, clip_space);
 }
 
 inline
-void entity_clip_space_from_local_sse(float* clip_space, const float* local_space, const float* mat)
+void entity_clip_space_from_local_sse(f32* clip_space, const f32* local_space, const f32* mat)
 {
     mat4vec4_mult_sse(mat, local_space, clip_space);
 }
 
 /*
 inline
-void entity_screen_space(float* screen_space, const float* clip_space, const float* viewport_mat)
+void entity_screen_space(f32* screen_space, const f32* clip_space, const f32* viewport_mat)
 {
     // @todo implement
 }
 */
 
 inline
-void entity_world_space_sse(float* world_space, const float* local_space, const float* model_mat)
+void entity_world_space_sse(f32* world_space, const f32* local_space, const f32* model_mat)
 {
     mat4vec4_mult_sse(model_mat, local_space, world_space);
 }
 
 inline
-void entity_view_space_sse(float* view_space, const float* world_space, const float* view_mat)
+void entity_view_space_sse(f32* view_space, const f32* world_space, const f32* view_mat)
 {
     mat4vec4_mult_sse(view_mat, world_space, view_space);
 }
 
 inline
-void entity_clip_space_sse(float* clip_space, const float* view_space, const float* projection_mat)
+void entity_clip_space_sse(f32* clip_space, const f32* view_space, const f32* projection_mat)
 {
     mat4vec4_mult_sse(projection_mat, view_space, clip_space);
 }
 
 /*
 inline
-void entity_screen_space_sse(float* screen_space, const float* clip_space, const float* viewport_mat)
+void entity_screen_space_sse(f32* screen_space, const f32* clip_space, const f32* viewport_mat)
 {
     // @todo implement
 }

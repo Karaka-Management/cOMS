@@ -21,7 +21,7 @@ struct HashEntryInt32 {
     int64 element_id;
     char key[MAX_KEY_LENGTH];
     HashEntryInt32* next;
-    int value;
+    int32 value;
 };
 
 struct HashEntryInt64 {
@@ -49,7 +49,7 @@ struct HashEntryFloat {
     int64 element_id;
     char key[MAX_KEY_LENGTH];
     HashEntryFloat* next;
-    float value;
+    f32 value;
 };
 
 struct HashEntryStr {
@@ -72,7 +72,7 @@ struct HashMap {
 };
 
 // WARNING: element_size = element size + remaining HashEntry data size
-void hashmap_create(HashMap* hm, int count, int element_size, RingMemory* ring)
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring)
 {
     hm->table = (void **) ring_get_memory(ring, count * sizeof(void *));
 
@@ -85,7 +85,7 @@ void hashmap_create(HashMap* hm, int count, int element_size, RingMemory* ring)
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
-void hashmap_create(HashMap* hm, int count, int element_size, BufferMemory* buf)
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* buf)
 {
     hm->table = (void **) buffer_get_memory(buf, count * sizeof(void *));
 
@@ -98,7 +98,7 @@ void hashmap_create(HashMap* hm, int count, int element_size, BufferMemory* buf)
 }
 
 inline
-int64 hashmap_get_buffer_size(int count, int element_size)
+int64 hashmap_get_buffer_size(int count, int32 element_size)
 {
     return sizeof(void *) * count // table
         + count * element_size // elements
@@ -106,7 +106,7 @@ int64 hashmap_get_buffer_size(int count, int element_size)
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
-void hashmap_create(HashMap* hm, int count, int element_size, byte* buf)
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf)
 {
     hm->table = (void **) buf;
 
@@ -178,7 +178,7 @@ void hashmap_insert(HashMap* hm, const char* key, void* value) {
     hm->table[index] = entry;
 }
 
-void hashmap_insert(HashMap* hm, const char* key, float value) {
+void hashmap_insert(HashMap* hm, const char* key, f32 value) {
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);

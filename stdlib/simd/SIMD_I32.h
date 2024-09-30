@@ -1029,9 +1029,9 @@ inline bool all_false(int32_16 a)
 //      the code is self contained and we could use te intrinsic functions directly
 
 inline
-void simd_mult(const int32* a, const int32* b, int32* result, int size, int steps)
+void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         __m512i a_16;
@@ -1090,9 +1090,9 @@ void simd_mult(const int32* a, const int32* b, int32* result, int size, int step
 }
 
 inline
-void simd_mult(const int32* a, const f32* b, f32* result, int size, int steps)
+void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         __m512i a_16;
@@ -1157,9 +1157,9 @@ void simd_mult(const int32* a, const f32* b, f32* result, int size, int steps)
 }
 
 inline
-void simd_mult(const int32* a, const f32* b, int32* result, int size, int steps)
+void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         __m512i a_16;
@@ -1221,7 +1221,7 @@ void simd_mult(const int32* a, const f32* b, int32* result, int size, int steps)
     }
 
     for (; i < size; ++i) {
-        *result = (int) (*a * *b);
+        *result = (int32) (*a * *b);
 
         ++a;
         ++b;
@@ -1230,9 +1230,9 @@ void simd_mult(const int32* a, const f32* b, int32* result, int size, int steps)
 }
 
 inline
-void simd_mult(const int32* a, f32 b, int32* result, int size, int steps)
+void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         __m512i a_16;
@@ -1296,9 +1296,9 @@ void simd_mult(const int32* a, f32 b, int32* result, int size, int steps)
 }
 
 inline
-void simd_div(const int32* a, f32 b, f32* result, int size, int steps)
+void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         __m512i a_16;
@@ -1357,9 +1357,9 @@ void simd_div(const int32* a, f32 b, f32* result, int size, int steps)
 }
 
 inline
-void simd_add(const int32* a, const int32* b, int32* result, int size, int steps)
+void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         __m512i a_16;
@@ -1418,9 +1418,9 @@ void simd_add(const int32* a, const int32* b, int32* result, int size, int steps
 }
 
 inline
-void simd_add(const int32* a, const f32* b, f32* result, int size, int steps)
+void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         __m512i a_16;
@@ -1485,9 +1485,9 @@ void simd_add(const int32* a, const f32* b, f32* result, int size, int steps)
 }
 
 inline
-void simd_add(const int32* a, const f32* b, int32* result, int size, int steps)
+void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         __m512i a_16;
@@ -1567,9 +1567,9 @@ bool str_compare_avx512(const char* str1, const char* str2) {
 }
 
 void
-endian_swap(const int* val, int* result, int size, int steps)
+endian_swap(const int* val, int* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         const __m512i mask_512 = _mm512_setr_epi8(

@@ -1323,11 +1323,11 @@ static wgl_get_extensions_string_ext* wglGetExtensionsStringEXT;
 
 void set_pixel_format(HDC hdc)
 {
-    int suggested_pixel_format_idx = 0;
-    unsigned int extended_pick = 0;
+    int32 suggested_pixel_format_idx = 0;
+    uint32 extended_pick = 0;
 
     if (wglChoosePixelFormatARB) {
-        int attr_list[] = {
+        int32 attr_list[] = {
             WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
             WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
             WGL_SUPPORT_OPENGL_ARB, GL_TRUE,

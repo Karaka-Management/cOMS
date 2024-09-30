@@ -16,53 +16,53 @@
 inline
 void shader_set_value(uint32 id, const char* name, bool value)
 {
-    glUniform1i(glGetUniformLocation(id, name), (int) value);
+    glUniform1i(glGetUniformLocation(id, name), (int32) value);
 }
 
 inline
-void shader_set_value(uint32 id, const char* name, int value)
+void shader_set_value(uint32 id, const char* name, int32 value)
 {
     glUniform1i(glGetUniformLocation(id, name), value);
 }
 
 inline
-void shader_set_value(uint32 id, const char* name, float value)
+void shader_set_value(uint32 id, const char* name, f32 value)
 {
     glUniform1f(glGetUniformLocation(id, name), value);
 }
 
 inline
-void shader_set_v2(uint32 id, const char* name, const float* value)
+void shader_set_v2(uint32 id, const char* name, const f32* value)
 {
     glUniform2fv(glGetUniformLocation(id, name), 1, value);
 }
 
 inline
-void shader_set_v3(uint32 id, const char* name, const float* value)
+void shader_set_v3(uint32 id, const char* name, const f32* value)
 {
     glUniform3fv(glGetUniformLocation(id, name), 1, value);
 }
 
 inline
-void shader_set_v4(uint32 id, const char* name, const float* value)
+void shader_set_v4(uint32 id, const char* name, const f32* value)
 {
     glUniform4fv(glGetUniformLocation(id, name), 1, value);
 }
 
 inline
-void shader_set_m2(uint32 id, const char* name, const float* value)
+void shader_set_m2(uint32 id, const char* name, const f32* value)
 {
     glUniformMatrix2fv(glGetUniformLocation(id, name), 1, GL_FALSE, value);
 }
 
 inline
-void shader_set_m3(uint32 id, const char* name, const float* value)
+void shader_set_m3(uint32 id, const char* name, const f32* value)
 {
     glUniformMatrix3fv(glGetUniformLocation(id, name), 1, GL_FALSE, value);
 }
 
 inline
-void shader_set_m4(uint32 id, const char* name, const float* value)
+void shader_set_m4(uint32 id, const char* name, const f32* value)
 {
     glUniformMatrix4fv(glGetUniformLocation(id, name), 1, GL_FALSE, value);
 }

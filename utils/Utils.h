@@ -51,11 +51,11 @@ f32 fast_rand_percentage(void) {
  * Picks n random elements from end and stores them in begin.
  */
 inline
-void random_unique(int* array, int size) {
-    for (int i = size - 1; i > 0; --i) {
-        int j = rand() % (i + 1);
+void random_unique(int32* array, int32 size) {
+    for (int32 i = size - 1; i > 0; --i) {
+        int32 j = rand() % (i + 1);
 
-        int temp = array[i];
+        int32 temp = array[i];
         array[i] = array[j];
         array[j] = temp;
     }
@@ -64,17 +64,17 @@ void random_unique(int* array, int size) {
 /**
  * Gets random index based value probability
  */
-int random_weighted_index(int* arr, int array_count)
+int random_weighted_index(int32* arr, int32 array_count)
 {
     uint32 prob_sum = 0;
-    for (int i = 0; i < array_count; ++i) {
+    for (int32 i = 0; i < array_count; ++i) {
         prob_sum += arr[i];
     }
 
     uint32 random_prob = rand() % (prob_sum + 1);
     uint32 current_rarity = 0;
-    int item_rarity = array_count - 1;
-    for (int i = 0; i < array_count - 1; ++i) {
+    int32 item_rarity = array_count - 1;
+    for (int32 i = 0; i < array_count - 1; ++i) {
         current_rarity += arr[i];
 
         if (current_rarity < random_prob) {

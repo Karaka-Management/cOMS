@@ -46,7 +46,7 @@ struct LogMemory {
     uint32 id;
     uint64 size;
     uint64 pos;
-    int alignment;
+    int32 alignment;
     uint64 start;
     uint64 end;
 };

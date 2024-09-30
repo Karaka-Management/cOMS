@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <immintrin.h>
 #include <xmmintrin.h>
+#include "../Types.h"
 
 #ifdef _MSC_VER
     #include <intrin.h>
@@ -19,10 +20,10 @@
 
 // @todo implement for arm?
 
-inline int max_sse_supported()
+inline int32 max_sse_supported()
 {
     #ifdef _MSC_VER
-        int cpuInfo[4] = {-1};
+        int32 cpuInfo[4] = {-1};
         __cpuid(cpuInfo, 1); // CPUID function 1
 
         uint32_t ecx = cpuInfo[2];
@@ -62,10 +63,10 @@ inline int max_sse_supported()
 inline
 int max_avx256_supported()
 {
-    int max_version = 0;
+    int32 max_version = 0;
 
     #ifdef _MSC_VER
-        int cpuInfo[4];
+        int32 cpuInfo[4];
         __cpuid(cpuInfo, 1);
 
         if ((cpuInfo[2] >> 28) & 1) {
@@ -76,7 +77,7 @@ int max_avx256_supported()
             }
         }
     #else
-        unsigned int eax, ebx, ecx, edx;
+        unsigned int32 eax, ebx, ecx, edx;
 
         __asm__ __volatile__("cpuid"
                              : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
@@ -101,9 +102,9 @@ inline
 int max_avx512_supported()
 {
     #ifdef _MSC_VER
-        int cpuInfo[4];
+        int32 cpuInfo[4];
         __cpuid(cpuInfo, 1);
-        int ebx = 0;
+        int32 ebx = 0;
 
         if ((cpuInfo[2] >> 28) & 1) {
             __cpuid(cpuInfo, 7);
@@ -111,7 +112,7 @@ int max_avx512_supported()
             ebx = cpuInfo[1];
         }
     #else
-        unsigned int eax, ebx, ecx, edx;
+        unsigned int32 eax, ebx, ecx, edx;
 
         __asm__ __volatile__("cpuid"
                              : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)

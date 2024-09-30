@@ -32,7 +32,7 @@
     }
 
     inline
-    void* playform_alloc_aligned(size_t size, int alignment)
+    void* playform_alloc_aligned(size_t size, int32 alignment)
     {
         void* ptr = VirtualAlloc(NULL, size + alignment + sizeof(void*), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
@@ -77,7 +77,7 @@
     }
 
     inline
-    void* playform_alloc_aligned(size_t size, int alignment)
+    void* playform_alloc_aligned(size_t size, int32 alignment)
     {
         // Get the system page size
         size_t page_size = sysconf(_SC_PAGESIZE);

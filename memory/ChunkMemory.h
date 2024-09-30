@@ -22,7 +22,7 @@ struct ChunkMemory {
     uint64 size;
     uint64 chunk_size;
     int64 last_pos;
-    int alignment;
+    int32 alignment;
 
     // length = count
     // free describes which locations are used and which are free
@@ -30,7 +30,7 @@ struct ChunkMemory {
 };
 
 inline
-void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int alignment = 64)
+void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignment = 64)
 {
     buf->memory = alignment < 2
         ? (byte *) playform_alloc(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64))
@@ -77,12 +77,12 @@ byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false)
 void chunk_reserve_index(ChunkMemory* buf, int64 index, int64 elements = 1, bool zeroed = false)
 {
     int64 byte_index = index / 64;
-    int bit_index = index % 64;
+    int32 bit_index = index % 64;
 
     // Mark the bits as reserved
-    for (int j = 0; j < elements; ++j) {
+    for (int32 j = 0; j < elements; ++j) {
         int64 current_byte_index = byte_index + (bit_index + j) / 64;
-        int current_bit_index = (bit_index + j) % 64;
+        int32 current_bit_index = (bit_index + j) % 64;
         buf->free[current_byte_index] |= (1LL << current_bit_index);
     }
 
@@ -98,12 +98,12 @@ void chunk_reserve_index(ChunkMemory* buf, int64 index, int64 elements = 1, bool
 int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
 {
     int64 byte_index = (buf->last_pos + 1) / 64;
-    int bit_index;
+    int32 bit_index;
 
     int64 free_element = -1;
     byte mask;
 
-    int i = 0;
+    int32 i = 0;
     int64 max_bytes = (buf->count + 7) / 64;
 
     while (free_element < 0 && i < buf->count) {
@@ -121,12 +121,12 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
 
         // @performance There is some redundancy happening down below, we should ++byte_index in certain conditions?
         for (bit_index = 0; bit_index < 64; ++bit_index) {
-            int consecutive_free_bits = 0;
+            int32 consecutive_free_bits = 0;
 
             // Check if there are 'elements' consecutive free bits
-            for (int j = 0; j < elements; ++j) {
+            for (int32 j = 0; j < elements; ++j) {
                 uint64 current_byte_index = byte_index + (bit_index + j) / 64;
-                int current_bit_index = (bit_index + j) % 64;
+                int32 current_bit_index = (bit_index + j) % 64;
 
                 if (current_byte_index >= (buf->count + 7) / 64) {
                     break;
@@ -144,9 +144,9 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
                 free_element = byte_index * 64 + bit_index;
 
                 // Mark the bits as reserved
-                for (int j = 0; j < elements; ++j) {
+                for (int32 j = 0; j < elements; ++j) {
                     int64 current_byte_index = byte_index + (bit_index + j) / 64;
-                    int current_bit_index = (bit_index + j) % 64;
+                    int32 current_bit_index = (bit_index + j) % 64;
                     buf->free[current_byte_index] |= (1LL << current_bit_index);
                 }
 
@@ -176,12 +176,12 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
 byte* chunk_find_free(ChunkMemory* buf)
 {
     int64 byte_index = (buf->last_pos + 1) / 64;
-    int bit_index;
+    int32 bit_index;
 
     int64 free_element = -1;
     byte mask;
 
-    int i = 0;
+    int32 i = 0;
     int64 max_bytes = (buf->count + 7) / 64;
 
     while (free_element < 0 && i < buf->count) {
@@ -223,7 +223,7 @@ void chunk_free_element(ChunkMemory* buf, uint64 element)
     DEBUG_MEMORY_DELETE((uint64) (buf->memory + element * buf->chunk_size), buf->chunk_size);
 
     int64 byte_index = element / 64;
-    int bit_index = element % 64;
+    int32 bit_index = element % 64;
 
     buf->free[byte_index] &= ~(1 << bit_index);
 }

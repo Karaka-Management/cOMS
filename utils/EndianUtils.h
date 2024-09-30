@@ -89,15 +89,15 @@ int64 endian_swap(int64 val)
 }
 
 inline
-float endian_swap(float val)
+f32 endian_swap(f32 val)
 {
-    return (float) endian_swap(val);
+    return (f32) endian_swap(val);
 }
 
 inline
-double endian_swap(double val)
+f64 endian_swap(f64 val)
 {
-    return (double) endian_swap(val);
+    return (f64) endian_swap(val);
 }
 
 #endif

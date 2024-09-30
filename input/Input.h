@@ -28,7 +28,7 @@
 // How many buttons together are allowed to form a hotkey
 #define MAX_HOTKEY_COMBINATION 3
 
-// These values are used as bit flags to hint if a "key" is a keyboard/primary or mouse/secondary input
+// These values are used as bit flags to hint32 if a "key" is a keyboard/primary or mouse/secondary input
 // When adding a keybind the "key" can only be uint8 but we expand it to an int and set the first bit accordingly
 #define INPUT_MOUSE_PREFIX 0
 #define INPUT_KEYBOARD_PREFIX 8192
@@ -139,7 +139,7 @@ struct Input {
 inline
 void input_clean_state(InputState* state)
 {
-    for (int i = 0; i < MAX_KEY_STATES; ++i) {
+    for (int32 i = 0; i < MAX_KEY_STATES; ++i) {
         if (state->state_keys[i].key_state == KEY_STATE_RELEASED) {
             state->state_keys[i].key_id = 0;
         }
@@ -261,7 +261,7 @@ input_add_hotkey(
     int32 key0, int32 key1 = 0, int32 key2 = 0
 )
 {
-    int count = 0;
+    int32 count = 0;
 
     // Define required keys for hotkey
     if (key0 != 0) {
@@ -293,13 +293,13 @@ input_add_hotkey(
         key2 *= -1;
     }
 
-    int key0_offset = ((bool) (key0 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
+    int32 key0_offset = ((bool) (key0 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
         + ((bool) (key0 & INPUT_CONTROLLER_PREFIX)) * (MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS);
 
-    int key1_offset = ((bool) (key1 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
+    int32 key1_offset = ((bool) (key1 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
         + ((bool) (key1 & INPUT_CONTROLLER_PREFIX)) * (MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS);
 
-    int key2_offset = ((bool) (key2 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
+    int32 key2_offset = ((bool) (key2 & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
         + ((bool) (key2 & INPUT_CONTROLLER_PREFIX)) * (MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS);
 
     key0 = (key0 & ~(INPUT_KEYBOARD_PREFIX | INPUT_CONTROLLER_PREFIX));
@@ -307,7 +307,7 @@ input_add_hotkey(
     key2 = (key2 & ~(INPUT_KEYBOARD_PREFIX | INPUT_CONTROLLER_PREFIX));
 
     // Bind key to hotkey
-    for (int i = 0; i < MAX_KEY_TO_HOTKEY; ++i) {
+    for (int32 i = 0; i < MAX_KEY_TO_HOTKEY; ++i) {
         if (key0 == 0 && key1 == 0 && key2 == 0) {
             break;
         }
@@ -373,7 +373,7 @@ void input_set_state(InputState* state, InputKey* __restrict new_key)
     InputKey* free_state = NULL;
     bool action_required = true;
 
-    for (int i = 0; i < MAX_KEY_STATES; ++i) {
+    for (int32 i = 0; i < MAX_KEY_STATES; ++i) {
         if (!free_state && state->state_keys[i].key_id == 0) {
             free_state = &state->state_keys[i];
         } else if (state->state_keys[i].key_id == new_key->key_id) {
@@ -403,7 +403,7 @@ inline
 void input_set_controller_state(Input* input, ControllerInput* controller, uint64 time)
 {
     // Check active keys that might need to be set to inactive
-    for (int i = 0; i < MAX_KEY_PRESSES; ++i) {
+    for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
         if ((input->state.state_keys[i].key_id & INPUT_CONTROLLER_PREFIX)
             && input->state.state_keys[i].key_state != KEY_STATE_RELEASED
         ) {
@@ -449,7 +449,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     }
 
     // General Keys
-    int count = 0;
+    int32 count = 0;
     InputKey keys[5];
 
     for (uint16 i = 0; i < 32; ++i) {
@@ -466,7 +466,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     }
 
     if (count > 0) {
-        for (int i = 0; i < count; ++i) {
+        for (int32 i = 0; i < count; ++i) {
             input_set_state(&input->state, &keys[i]);
         }
     }
@@ -479,7 +479,7 @@ input_hotkey_state(Input* input)
 {
     memset(input->state.state_hotkeys, 0, sizeof(uint8) * MAX_KEY_PRESSES);
 
-    int active_hotkeys = 0;
+    int32 active_hotkeys = 0;
 
     // Check every key down state
     for (int key_state = 0; key_state < MAX_KEY_STATES; ++key_state) {
@@ -502,7 +502,7 @@ input_hotkey_state(Input* input)
         // @performance Could it make sense to only loop over one mapping (create a pointer that references the correct mapping)
         //      We then swap this pointer whenever we detect a input from keyboard+mouse vs controller
         //      This would allow us even to add context specific mappings
-        for (int i = 0; i < 2; ++i) {
+        for (int32 i = 0; i < 2; ++i) {
             InputMapping* mapping;
             if (i == 0) {
                 mapping = &input->input_mapping1;
@@ -548,10 +548,10 @@ input_hotkey_state(Input* input)
     //          It doesn't always happen but you can test it rather consistently within a couple of seconds
 }
 
-bool input_key_is_longpress(InputState* state, uint16 key, uint64 time, float dt = 0.0f) {
-    for (int i = 0; i < MAX_KEY_STATES; ++i) {
+bool input_key_is_longpress(InputState* state, uint16 key, uint64 time, f32 dt = 0.0f) {
+    for (int32 i = 0; i < MAX_KEY_STATES; ++i) {
         if (state->state_keys[i].key_id == key) {
-            return (float) (time - state->state_keys[i].time) / 1000.0f >= (dt == 0.0f ? INPUT_LONG_PRESS_DURATION : dt);
+            return (f32) (time - state->state_keys[i].time) / 1000.0f >= (dt == 0.0f ? INPUT_LONG_PRESS_DURATION : dt);
         }
     }
 
@@ -559,16 +559,16 @@ bool input_key_is_longpress(InputState* state, uint16 key, uint64 time, float dt
 }
 
 // @todo I wrote this code at 9am after staying awake for the whole night and that is how that code looks like... fix it!
-bool input_hotkey_is_longpress(Input* input, uint8 hotkey, uint64 time, float dt = 0.0f) {
+bool input_hotkey_is_longpress(Input* input, uint8 hotkey, uint64 time, f32 dt = 0.0f) {
     bool is_longpress = false;
-    for (int i = 0; i < MAX_KEY_PRESSES; ++i) {
+    for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
         if (input->state.state_hotkeys[i] != hotkey) {
             continue;
         }
 
         is_longpress = true;
 
-        for (int j = 0; j < MAX_HOTKEY_COMBINATION; ++j) {
+        for (int32 j = 0; j < MAX_HOTKEY_COMBINATION; ++j) {
             bool potential_miss = true;
             bool both_empty = false;
             if (input->input_mapping1.hotkeys[hotkey * MAX_HOTKEY_COMBINATION + j] > 0) {

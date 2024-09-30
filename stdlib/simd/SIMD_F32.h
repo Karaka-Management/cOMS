@@ -639,7 +639,7 @@ inline f32_16 &operator|=(f32_16 &a, f32_16 b)
 inline f32_4 abs(f32_4 a)
 {
     unsigned int unsigned_mask = (unsigned int) (1 << 31);
-    __m128 mask                = _mm_set1_ps(*(float *) &unsigned_mask);
+    __m128 mask                = _mm_set1_ps(*(f32 *) &unsigned_mask);
 
     f32_4 simd;
     simd.s = _mm_and_ps(a.s, mask);
@@ -650,7 +650,7 @@ inline f32_4 abs(f32_4 a)
 inline f32_8 abs(f32_8 a)
 {
     unsigned int unsigned_mask = (unsigned int) (1 << 31);
-    __m256 mask                = _mm256_set1_ps(*(float *) &unsigned_mask);
+    __m256 mask                = _mm256_set1_ps(*(f32 *) &unsigned_mask);
 
     f32_8 simd;
     simd.s = _mm256_and_ps(a.s, mask);
@@ -717,7 +717,7 @@ inline f32_16 simd_max(f32_16 a, f32_16 b)
 inline f32_4 sign(f32_4 a)
 {
     unsigned int umask = (unsigned int) (1 << 31);
-    __m128 mask        = _mm_set1_ps(*(float *) &umask);
+    __m128 mask        = _mm_set1_ps(*(f32 *) &umask);
 
     f32_4 signBit;
     signBit.s = _mm_and_ps(a.s, mask);
@@ -733,7 +733,7 @@ inline f32_4 sign(f32_4 a)
 inline f32_8 sign(f32_8 a)
 {
     unsigned int umask = (unsigned int) (1 << 31);
-    __m256 mask        = _mm256_set1_ps(*(float *) &umask);
+    __m256 mask        = _mm256_set1_ps(*(f32 *) &umask);
 
     f32_8 signBit;
     signBit.s = _mm256_and_ps(a.s, mask);
@@ -749,7 +749,7 @@ inline f32_8 sign(f32_8 a)
 inline f32_16 sign(f32_16 a)
 {
     unsigned int umask = (unsigned int) (1 << 31);
-    __m512 mask        = _mm512_set1_ps(*(float *) &umask);
+    __m512 mask        = _mm512_set1_ps(*(f32 *) &umask);
 
     f32_16 signBit;
     signBit.s = _mm512_and_ps(a.s, mask);
@@ -986,9 +986,9 @@ inline bool all_false(f32_16 a)
 //      the code is self contained and we could use te intrinsic functions directly
 
 inline
-void simd_mult(const f32* a, const f32* b, f32* result, int size, int steps)
+void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         __m512 a_16;
@@ -1047,9 +1047,9 @@ void simd_mult(const f32* a, const f32* b, f32* result, int size, int steps)
 }
 
 inline
-void simd_mult(const f32* a, f32 b, f32* result, int size, int steps)
+void simd_mult(const f32* a, f32 b, f32* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         __m512 a_16;
@@ -1101,9 +1101,9 @@ void simd_mult(const f32* a, f32 b, f32* result, int size, int steps)
 }
 
 inline
-void simd_div(const f32* a, f32 b, f32* result, int size, int steps)
+void simd_div(const f32* a, f32 b, f32* result, int32 size, int32 steps)
 {
-    int i = 0;
+    int32 i = 0;
 
     if (steps == 16) {
         __m512 a_16;
@@ -1155,10 +1155,10 @@ void simd_div(const f32* a, f32 b, f32* result, int size, int steps)
 }
 
 inline
-void simd_div(const f32* a, f32 b, __m256* result, int size)
+void simd_div(const f32* a, f32 b, __m256* result, int32 size)
 {
-    int i = 0;
-    int j = 0;
+    int32 i = 0;
+    int32 j = 0;
 
     // @todo this his how all the functions should be implemented that take in baseic types and output basic types
     __m256 a_8;
@@ -1174,10 +1174,10 @@ void simd_div(const f32* a, f32 b, __m256* result, int size)
         ++j;
     }
 
-    int diff = size - i;
-    alignas(32) float temp[8];
+    int32 diff = size - i;
+    alignas(32) f32 temp[8];
 
-    for (int k = 0; k < diff; k++) {
+    for (int32 k = 0; k < diff; k++) {
         temp[k] = a[i + k] / b;
     }
 
@@ -1185,14 +1185,14 @@ void simd_div(const f32* a, f32 b, __m256* result, int size)
 }
 
 inline
-void simd_cmp_le(const __m256* a, f32 b, bool* result, int size)
+void simd_cmp_le(const __m256* a, f32 b, bool* result, int32 size)
 {
     __m256 b_8 = _mm256_set1_ps(b);
 
-    for (int i = 0; i < size; ++i) {
-        int mask = _mm256_movemask_ps(_mm256_cmp_ps(a[i], b_8, _CMP_LE_OQ));
+    for (int32 i = 0; i < size; ++i) {
+        int32 mask = _mm256_movemask_ps(_mm256_cmp_ps(a[i], b_8, _CMP_LE_OQ));
 
-        for (int j = 0; j < 8; ++j) {
+        for (int32 j = 0; j < 8; ++j) {
             result[i * 8 + j] = (mask & (1 << j)) != 0;
         }
     }

@@ -305,7 +305,7 @@ uint64 bytes_merge(
 }
 
 static
-inline int find_first_set_bit(int value) {
+inline int32 find_first_set_bit(int32 value) {
     if (value == 0) {
         return 0;
     }
@@ -315,12 +315,12 @@ inline int find_first_set_bit(int value) {
     #elif _MSC_VER
         unsigned long index; // For _BitScanForward, an unsigned long is expected
         if (_BitScanForward(&index, value)) {
-            return (int)index + 1; // Convert to 1-based index
+            return (int32) index + 1; // Convert to 1-based index
         } else {
             return 0; // No set bit found
         }
     #else
-        int index = 1; // Start at 1 for 1-based index
+        int32 index = 1; // Start at 1 for 1-based index
         while (value) {
             if (value & 1) {
                 return index;

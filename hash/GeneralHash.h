@@ -13,7 +13,7 @@
 
 uint64 hash_djb2(const char* key) {
     uint64 hash = 5381;
-    int c;
+    int32 c;
 
     while ((c = *key++)) {
         hash = ((hash << 5) + hash) + c;
@@ -25,7 +25,7 @@ uint64 hash_djb2(const char* key) {
 uint64 hash_sdbm(const byte* key)
 {
     uint64 hash = 0;
-    int c;
+    int32 c;
 
     while (c = *key++) {
         hash = c + (hash << 6) + (hash << 16) - hash;
@@ -37,7 +37,7 @@ uint64 hash_sdbm(const byte* key)
 uint64 hash_lose_lose(const byte* key)
 {
 	uint64 hash = 0;
-	int c;
+	int32 c;
 
 	while (c = *key++) {
 	    hash += c;
@@ -47,8 +47,8 @@ uint64 hash_lose_lose(const byte* key)
 }
 
 uint64 hash_polynomial_rolling(const char* str) {
-    const int p = 31;
-    const int m = 1000000009;
+    const int32 p = 31;
+    const int32 m = 1000000009;
     uint64 hash = 0;
     uint64 p_pow = 1;
 

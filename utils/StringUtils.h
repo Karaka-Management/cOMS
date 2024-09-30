@@ -16,7 +16,7 @@
 #include "../stdlib/Types.h"
 
 inline
-void wchar_to_char(const wchar_t* src, char* dest, int length = 0)
+void wchar_to_char(const wchar_t* src, char* dest, int32 length = 0)
 {
     char* temp = (char* ) src;
     size_t len = wcslen(src) * sizeof(wchar_t);
@@ -25,7 +25,7 @@ void wchar_to_char(const wchar_t* src, char* dest, int length = 0)
         len = length;
     }
 
-    for (int i = 0; i < len; ++i) {
+    for (int32 i = 0; i < len; ++i) {
         if (*temp != '\0') {
             *dest = (char) *temp;
             ++dest;
@@ -38,11 +38,11 @@ void wchar_to_char(const wchar_t* src, char* dest, int length = 0)
 }
 
 inline
-int str_to_int(const char *str)
+int32 str_to_int(const char *str)
 {
-    int result = 0;
+    int32 result = 0;
 
-    int sign = 1;
+    int32 sign = 1;
     if (*str == '-') {
         sign = -1;
         ++str;
@@ -134,12 +134,12 @@ char* strtok(char* str, const char* delim, char* *saveptr)
 }
 
 inline
-void format_number_render(int length, char* buffer, const char thousands = ',')
+void format_number_render(int32 length, char* buffer, const char thousands = ',')
 {
-    int count = (int) (length / 3) - (length % 3 == 0 ? 1 : 0);
+    int32 count = (int32) (length / 3) - (length % 3 == 0 ? 1 : 0);
 
-    int j = -1;
-    for (int i = length; i > 0; --i) {
+    int32 j = -1;
+    for (int32 i = length; i > 0; --i) {
         ++j;
 
         if (j % 3 == 0 && j != 0) {
@@ -154,15 +154,15 @@ void format_number_render(int length, char* buffer, const char thousands = ',')
 
 char* format_number(size_t number, char* buffer, const char thousands = ',')
 {
-    int length = snprintf(buffer, 32, "%zu", number);
+    int32 length = snprintf(buffer, 32, "%zu", number);
     format_number_render(length, buffer, thousands);
 
     return buffer;
 }
 
-char* format_number(int number, char* buffer, const char thousands = ',')
+char* format_number(int32 number, char* buffer, const char thousands = ',')
 {
-    int length = snprintf(buffer, 32, "%i", number);
+    int32 length = snprintf(buffer, 32, "%i", number);
     format_number_render(length, buffer, thousands);
 
     return buffer;
@@ -225,14 +225,16 @@ char* strtok_(char* str, const char* delim, char* *key) {
 }
 
 bool str_ends_with(const char* str, const char* suffix) {
-    if (!str || !suffix)
+    if (!str || !suffix) {
         return false;
+    }
 
     size_t str_len = strlen(str);
     size_t suffix_len = strlen(suffix);
 
-    if (suffix_len > str_len)
+    if (suffix_len > str_len) {
         return false;
+    }
 
     return strncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
 }

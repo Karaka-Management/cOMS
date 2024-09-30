@@ -37,7 +37,7 @@ struct AssetManagementSystem {
     Asset* last;
 };
 
-void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int chunk_size, int count)
+void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 chunk_size, int32 count)
 {
     // setup hash_map
     hashmap_create(&ams->hash_map, count, sizeof(HashEntryInt64), buf);
@@ -106,7 +106,7 @@ inline
 uint64 ams_get_vram_usage(AssetManagementSystem* ams)
 {
     uint64 size = 0;
-    for (int i = 0; i < ams->asset_memory.count; ++i) {
+    for (int32 i = 0; i < ams->asset_memory.count; ++i) {
         size += ((Asset *) (ams->asset_memory.memory))[i].vram_size;
     }
 

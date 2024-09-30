@@ -11,8 +11,8 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "StringUtils.h"
 #include "../stdlib/Types.h"
+#include "StringUtils.h"
 #include "../stdlib/simd/SIMD_Helper.h"
 
 #if _WIN32
@@ -39,17 +39,17 @@
 // @todo move to platform specifc files
 
 struct CpuCacheInfo {
-    int level;
-    int size;
-    int ways;
-    int partitions;
-    int sets;
-    int line_size;
+    int32 level;
+    int32 size;
+    int32 ways;
+    int32 partitions;
+    int32 sets;
+    int32 line_size;
 };
 
-void cache_info_get(int level, CpuCacheInfo* cache) {
-    unsigned int eax, ebx, ecx, edx;
-    int type;
+void cache_info_get(int32 level, CpuCacheInfo* cache) {
+    uint32 eax, ebx, ecx, edx;
+    int32 type;
 
     cache->level = level;
     cache->size = 0;
@@ -59,7 +59,7 @@ void cache_info_get(int level, CpuCacheInfo* cache) {
     cache->line_size = 0;
 
     #if _WIN32
-        int regs[4];
+        int32 regs[4];
         __cpuidex(regs, 4, level);
         eax = regs[0];
         ebx = regs[1];
@@ -254,7 +254,7 @@ int network_info_get(NetworkInfo* info) {
         return 0;
     }
 
-    int i = 0;
+    int32 i = 0;
 
     // Iterate over the adapters and print their MAC addresses
     pAdapter = pAdapterAddresses;
@@ -279,24 +279,24 @@ int network_info_get(NetworkInfo* info) {
 }
 
 struct SIMDInfo {
-    float sse;
-    int avx256;
-    int avx512;
+    f32 sse;
+    int32 avx256;
+    int32 avx512;
 };
 
 struct CpuInfo {
     char vendor[13];
     char brand[49];
-    int model;
-    int family;
-    int mhz;
+    int32 model;
+    int32 family;
+    int32 mhz;
     CpuCacheInfo cache[4];
-    int page_size;
+    int32 page_size;
     SIMDInfo simd;
 };
 
 void cpu_info_get(CpuInfo* info) {
-    int temp;
+    int32 temp;
     info->simd.sse = (temp = max_sse_supported()) > 9 ? temp / 10.0f : temp;
     info->simd.avx256 = max_avx256_supported();
     info->simd.avx512 = max_avx512_supported();
@@ -310,7 +310,7 @@ void cpu_info_get(CpuInfo* info) {
     GetSystemInfo(&sys_info);
     info->page_size = sys_info.dwPageSize;
 
-    int cpuInfo[4] = { 0 };
+    int32 cpuInfo[4] = { 0 };
     __cpuid(cpuInfo, 0);
 
     memset(info->vendor, 0, sizeof(info->vendor));
@@ -349,8 +349,8 @@ void cpu_info_get(CpuInfo* info) {
 struct OSInfo {
     char vendor[16];
     char name[64];
-    int major;
-    int minor;
+    int32 major;
+    int32 minor;
 };
 
 void os_info_get(OSInfo* info) {
@@ -379,7 +379,7 @@ void os_info_get(OSInfo* info) {
 }
 
 struct RamInfo {
-    int memory;
+    int32 memory;
 };
 
 void ram_info_get(RamInfo* info) {
@@ -391,10 +391,10 @@ void ram_info_get(RamInfo* info) {
 
 struct GpuInfo {
     char name[64];
-    int vram;
+    int32 vram;
 };
 
-unsigned int gpu_info_get(GpuInfo* info) {
+unsigned int32 gpu_info_get(GpuInfo* info) {
     IDXGIFactory *pFactory = NULL;
     IDXGIAdapter *pAdapter = NULL;
     DXGI_ADAPTER_DESC adapterDesc;
@@ -427,18 +427,18 @@ unsigned int gpu_info_get(GpuInfo* info) {
 
 struct DisplayInfo {
     char name[64];
-    int width;
-    int height;
-    int hz;
+    int32 width;
+    int32 height;
+    int32 hz;
 };
 
-unsigned int display_info_get(DisplayInfo* info) {
+unsigned int32 display_info_get(DisplayInfo* info) {
     DISPLAY_DEVICEA device;
     DEVMODEA mode;
 
     device.cb = sizeof(DISPLAY_DEVICEA);
 
-    int i = 0;
+    int32 i = 0;
 
     while (EnumDisplayDevicesA(NULL, i, &device, 0)) {
         mode.dmSize = sizeof(mode);
@@ -461,16 +461,16 @@ struct SystemInfo {
     MainboardInfo mainboard;
 
     NetworkInfo network[4];
-    int network_count;
+    int32 network_count;
 
     CpuInfo cpu;
     RamInfo ram;
 
     GpuInfo gpu[2];
-    int gpu_count;
+    int32 gpu_count;
 
     DisplayInfo display[6];
-    int display_count;
+    int32 display_count;
 };
 
 void system_info_render(char* buf, const SystemInfo* info) {

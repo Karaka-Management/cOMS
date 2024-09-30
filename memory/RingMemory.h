@@ -24,8 +24,8 @@ struct RingMemory {
 
     uint64 size;
     uint64 pos;
-    int alignment;
-    int element_alignment;
+    int32 alignment;
+    int32 element_alignment;
 
     // The following two indices are only used in special cases such as iterating through a portion
     // of the ring memory. In such cases it may be necessary to know where the start and end are.
@@ -40,7 +40,7 @@ struct RingMemory {
 };
 
 inline
-void ring_alloc(RingMemory* ring, uint64 size, int alignment = 64)
+void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
 {
     ring->memory = alignment < 2
         ? (byte *) playform_alloc(size)
@@ -56,7 +56,7 @@ void ring_alloc(RingMemory* ring, uint64 size, int alignment = 64)
 }
 
 inline
-void ring_create(RingMemory* ring, BufferMemory* buf, uint64 size, int alignment = 64)
+void ring_create(RingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
     ring->memory = buffer_get_memory(buf, size, alignment);
 

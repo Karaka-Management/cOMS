@@ -30,7 +30,7 @@ struct Asset {
 
     // Counts the references to this asset
     // e.g. textures
-    int reference_count;
+    int32 reference_count;
 
     // Describes how much ram/vram the asset uses
     // E.g. vram_size = 0 but ram_size > 0 means that it never uses any gpu memory
