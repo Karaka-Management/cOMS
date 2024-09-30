@@ -17,12 +17,11 @@
 
 #include "Allocation.h"
 #include "BufferMemory.h"
-#include "DebugMemory.h"
+#include "../log/DebugMemory.h"
 
 struct RingMemory {
     byte* memory;
 
-    uint32 id;
     uint64 size;
     uint64 pos;
     int alignment;
@@ -52,6 +51,8 @@ void ring_alloc(RingMemory* ring, uint64 size, int alignment = 64)
     ring->alignment = alignment;
     ring->start = 0;
     ring->end = 0;
+
+    DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
 }
 
 inline
@@ -64,6 +65,8 @@ void ring_create(RingMemory* ring, BufferMemory* buf, uint64 size, int alignment
     ring->alignment = alignment;
     ring->start = 0;
     ring->end = 0;
+
+    DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
 }
 
 inline
@@ -105,6 +108,13 @@ uint64 ring_calculate_position(const RingMemory* ring, uint64 pos, uint64 size, 
     return pos;
 }
 
+inline
+void ring_reset(RingMemory* ring)
+{
+    DEBUG_MEMORY_DELETE((uint64) ring->memory, ring->size);
+    ring->pos = 0;
+}
+
 byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zeroed = false)
 {
     ASSERT_SIMPLE(size <= ring->size);
@@ -122,7 +132,7 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zero
 
     size = ROUND_TO_NEAREST(size, aligned);
     if (ring->pos + size > ring->size) {
-        ring->pos = 0;
+        ring_reset(ring);
 
         if (aligned > 1) {
             uintptr_t address = (uintptr_t) ring->memory;
@@ -137,7 +147,7 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zero
         memset((void *) offset, 0, size);
     }
 
-    DEBUG_MEMORY(&debug_memory[ring->id], ring->pos, size);
+    DEBUG_MEMORY_WRITE((uint64) offset, size);
 
     ring->pos += size;
 
@@ -150,14 +160,10 @@ inline
 byte* ring_get_element(const RingMemory* ring, uint64 element_count, uint64 element, uint64 size)
 {
     int64 index = (element % element_count) - 1;
-    return ring->memory + index * size;
-}
 
-inline
-void ring_reset(RingMemory* ring)
-{
-    ring->pos = 0;
-    DEBUG_MEMORY_RESET(&debug_memory[ring->id]);
+    DEBUG_MEMORY_READ((uint64) (ring->memory + index * size), 1);
+
+    return ring->memory + index * size;
 }
 
 /**

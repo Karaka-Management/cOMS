@@ -14,14 +14,13 @@
 #include "../utils/MathUtils.h"
 #include "../utils/TestUtils.h"
 #include "Allocation.h"
-#include "DebugMemory.h"
+#include "../log/DebugMemory.h"
 
 // @question Consider to use element_alignment to automatically align/pad elmeents
 
 struct BufferMemory {
     byte* memory;
 
-    uint32 id;
     uint64 size;
     uint64 pos;
     int alignment;
@@ -37,11 +36,14 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int alignment = 64)
 
     buf->alignment = alignment;
     buf->size = size;
+
+    DEBUG_MEMORY_INIT((uint64) buf->memory, size);
 }
 
 inline
 void buffer_free(BufferMemory* buf)
 {
+    DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->size);
     if (buf->alignment < 2) {
         platform_free(buf->memory, buf->size);
     } else {
@@ -53,8 +55,8 @@ inline
 void buffer_reset(BufferMemory* buf)
 {
     // @bug arent we wasting element 0 (see get_memory, we are not using 0 only next element)
+    DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->pos);
     buf->pos = 0;
-    DEBUG_MEMORY_RESET(&debug_memory[buf->id]);
 }
 
 inline
@@ -79,7 +81,7 @@ byte* buffer_get_memory(BufferMemory* buf, uint64 size, int aligned = 0, bool ze
         memset((void *) offset, 0, size);
     }
 
-    DEBUG_MEMORY(&debug_memory[buf->id], buf->pos, size);
+    DEBUG_MEMORY_WRITE((uint64) offset, size);
 
     buf->pos += size;
 

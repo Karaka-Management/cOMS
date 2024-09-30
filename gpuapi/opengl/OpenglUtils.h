@@ -444,6 +444,25 @@ uint32 gpuapi_buffer_generate(int size, const void* data)
 }
 
 inline
+uint32 gpuapi_buffer_generate_dynamic(int size, const void* data)
+{
+    uint32 vbo;
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+
+    return vbo;
+}
+
+inline
+void gpuapi_buffer_update_dynamic(uint32 vbo, int size, const void* data)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+}
+
+inline
 uint32 gpuapi_shaderbuffer_generate(int size, const void* data)
 {
     uint32 sbo;

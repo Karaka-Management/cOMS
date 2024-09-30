@@ -10,46 +10,6 @@
 #define TOS_UTILS_TEST_UTILS_H
 
 #include <stdio.h>
-#include <time.h>
-#include "../stdlib/Types.h"
-
-#if _WIN32
-    #include <intrin.h>
-#else
-    #include <x86intrin.h>
-#endif
-
-global_persist uint64 performance_count_frequency;
-struct TimingStat {
-    uint64 old_tick_count;
-
-    uint64 delta_tick;
-    double delta_time;
-};
-
-// IMPORTANT: This function should only be called when you actually use this data
-//      e.g. log to display or file
-inline
-void update_timing_stat(TimingStat *stat)
-{
-    // @question consider to use other time_ms() since __rdtsc is variable (boost, power saving)
-    uint64 new_tick_count = __rdtsc();
-
-    stat->delta_tick = new_tick_count - stat->old_tick_count;
-    stat->delta_time = (double) stat->delta_tick / (double) performance_count_frequency;
-
-    stat->old_tick_count = new_tick_count;
-}
-
-// Sometimes we want to only do logging in debug mode.
-// In such cases use the following macro.
-#if DEBUG
-    #define UPDATE_TIMING_STAT(stat) update_timing_stat(stat)
-    #define DEBUG_OUTPUT(str) OutputDebugStringA(str)
-#else
-    #define UPDATE_TIMING_STAT(stat) ((void) 0)
-    #define DEBUG_OUTPUT(str) ((void) 0)
-#endif
 
 #define ASSERT_EQUALS(a, b, t1, t2)                      \
     ({                                                   \

@@ -41,9 +41,10 @@ struct Vertex2DColor {
 
 struct Vertex2DColorIndex {
     v2_f32 position;
-    // opengl shaders don't support individual bytes,
-    // otherwise we would use byte here for 256 color palettes
-    uint32 color;
+    // @bug opengl shaders don't support individual bytes,
+    // otherwise we would use byte here for 256 color palettes.
+    // Which is bad since the purpose of this was to save 3 bytes by using a color palette
+    float color;
 };
 
 struct VertexRef {

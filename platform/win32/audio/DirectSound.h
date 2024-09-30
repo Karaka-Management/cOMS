@@ -33,7 +33,7 @@ HRESULT WINAPI DirectSoundCreate8Stub(LPCGUID, LPDIRECTSOUND8*, LPUNKNOWN) {
 void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_setting) {
     HMODULE lib = LoadLibraryExA((LPCSTR) "dsound.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!lib) {
-        LOG(log_memory, "DirectSound: Couldn't load dsound.dll\n", log_fp, true, true);
+        LOG("DirectSound: Couldn't load dsound.dll\n", true, true);
 
         return;
     }
@@ -41,13 +41,13 @@ void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_settin
     audio_create* DirectSoundCreate8 = (audio_create *) GetProcAddress(lib, "DirectSoundCreate8");
 
     if (!DirectSoundCreate8 || !SUCCEEDED(DirectSoundCreate8(0, &api_setting->audio_handle, 0))) {
-        LOG(log_memory, "DirectSound: DirectSoundCreate8 failed\n", log_fp, true, true);
+        LOG("DirectSound: DirectSoundCreate8 failed\n", true, true);
 
         return;
     }
 
     if(!SUCCEEDED(api_setting->audio_handle->SetCooperativeLevel(hwnd, DSSCL_PRIORITY))) {
-        LOG(log_memory, "DirectSound: SetCooperativeLevel failed.\n", log_fp, true, true);
+        LOG("DirectSound: SetCooperativeLevel failed.\n", true, true);
 
         return;
     }
@@ -69,13 +69,13 @@ void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_settin
     buffer_desc.dwFlags = DSBCAPS_PRIMARYBUFFER;
 
     if(!SUCCEEDED(api_setting->audio_handle->CreateSoundBuffer(&buffer_desc, &api_setting->primary_buffer, 0))) {
-        LOG(log_memory, "DirectSound: CreateSoundBuffer1 failed.\n", log_fp, true, true);
+        LOG("DirectSound: CreateSoundBuffer1 failed.\n", true, true);
 
         return;
     }
 
     if (!SUCCEEDED(api_setting->primary_buffer->SetFormat(&wf))) {
-        LOG(log_memory, "DirectSound: SetFormat failed.\n", log_fp, true, true);
+        LOG("DirectSound: SetFormat failed.\n", true, true);
 
         return;
     }
@@ -91,7 +91,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_settin
     buffer_desc2.lpwfxFormat = &wf;
 
     if(!SUCCEEDED(api_setting->audio_handle->CreateSoundBuffer(&buffer_desc2, &api_setting->secondary_buffer, 0))) {
-        LOG(log_memory, "DirectSound: CreateSoundBuffer2 failed.\n", log_fp, true, true);
+        LOG("DirectSound: CreateSoundBuffer2 failed.\n", true, true);
 
         return;
     }
@@ -143,7 +143,7 @@ uint32 audio_buffer_fillable(const AudioSetting* setting, const DirectSoundSetti
     DWORD player_cursor;
     DWORD write_cursor;
     if (!SUCCEEDED(api_setting->secondary_buffer->GetCurrentPosition(&player_cursor, &write_cursor))) {
-        LOG(log_memory, "DirectSound: GetCurrentPosition failed.\n", log_fp, true, true);
+        LOG("DirectSound: GetCurrentPosition failed.\n", true, true);
 
         return 0;
     }

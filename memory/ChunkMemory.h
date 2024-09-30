@@ -13,13 +13,13 @@
 #include "../stdlib/Types.h"
 #include "../utils/MathUtils.h"
 #include "Allocation.h"
-#include "DebugMemory.h"
+#include "../log/DebugMemory.h"
 
 struct ChunkMemory {
     byte* memory;
 
-    uint32 id;
     uint64 count;
+    uint64 size;
     uint64 chunk_size;
     int64 last_pos;
     int alignment;
@@ -37,19 +37,23 @@ void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int alignmen
         : (byte *) playform_alloc_aligned(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64), alignment);
 
     buf->count = count;
+    buf->size = chunk_size * count;
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
     buf->free = (uint64 *) (buf->memory + count * chunk_size);
+
+    DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
 }
 
 inline
 void chunk_free(ChunkMemory* buf)
 {
+    DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->size);
     if (buf->alignment < 2) {
-        platform_free(buf->memory, buf->count * buf->chunk_size);
+        platform_free(buf->memory, buf->size);
     } else {
-        platform_aligned_free(buf->memory, buf->count * buf->chunk_size);
+        platform_aligned_free(buf->memory, buf->size);
     }
 }
 
@@ -61,6 +65,8 @@ byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false)
     if (zeroed) {
         memset((void *) offset, 0, buf->chunk_size);
     }
+
+    DEBUG_MEMORY_READ((uint64) offset, buf->chunk_size);
 
     return offset;
 }
@@ -84,7 +90,7 @@ void chunk_reserve_index(ChunkMemory* buf, int64 index, int64 elements = 1, bool
         memset(buf->memory + index * buf->chunk_size, 0, elements * buf->chunk_size);
     }
 
-    DEBUG_MEMORY(&debug_memory[buf->id], index * buf->chunk_size, elements * buf->chunk_size);
+    DEBUG_MEMORY_WRITE((uint64) (buf->memory + index * buf->chunk_size), elements * buf->chunk_size);
 
     buf->last_pos = index;
 }
@@ -160,7 +166,7 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
         memset(buf->memory + free_element * buf->chunk_size, 0, elements * buf->chunk_size);
     }
 
-    DEBUG_MEMORY(&debug_memory[buf->id], free_element * buf->chunk_size, elements * buf->chunk_size);
+    DEBUG_MEMORY_WRITE((uint64) (buf->memory + free_element * buf->chunk_size), elements * buf->chunk_size);
 
     buf->last_pos = free_element;
 
@@ -214,6 +220,8 @@ byte* chunk_find_free(ChunkMemory* buf)
 inline
 void chunk_free_element(ChunkMemory* buf, uint64 element)
 {
+    DEBUG_MEMORY_DELETE((uint64) (buf->memory + element * buf->chunk_size), buf->chunk_size);
+
     int64 byte_index = element / 64;
     int bit_index = element % 64;
 
