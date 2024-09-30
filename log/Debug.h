@@ -9,6 +9,7 @@
 #ifndef TOS_LOG_DEBUG_H
 #define TOS_LOG_DEBUG_H
 
+#include "../stdlib/Types.h"
 #include "DebugMemory.h"
 #include "Log.h"
 #include "TimingStat.h"
@@ -22,5 +23,6 @@ struct DebugContainer {
         HANDLE log_fp;
     #endif
 };
+global_persist DebugContainer* debug_container;
 
 #endif
