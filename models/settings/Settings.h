@@ -184,8 +184,8 @@ struct CSettings {
     byte audio_volume_music = 128;
     byte audio_volume_speech = 128;
 
-    uint32 game_window1_dim[2] = {1024, 768};
-    uint32 game_window1_pos[2];
+    uint16 game_window1_dim[2] = {1024, 768};
+    uint16 game_window1_pos[2];
     byte game_window1_mode = SETTING_TYPE_WINDOW_MODE_FULLSCREEN;
 
     byte game_zoom;

@@ -39,8 +39,8 @@ void monitor_resolution(const Window* __restrict w, v2_int32* __restrict resolut
 inline
 void monitor_resolution(Window* __restrict w)
 {
-    w->width = GetDeviceCaps(w->hdc, HORZRES);
-    w->height = GetDeviceCaps(w->hdc, VERTRES);
+    w->width = (uint16) GetDeviceCaps(w->hdc, HORZRES);
+    w->height = (uint16) GetDeviceCaps(w->hdc, VERTRES);
 }
 
 inline
@@ -114,8 +114,8 @@ void window_create(Window* __restrict window, void* proc)
     }
 
     if (window->is_fullscreen) {
-        window->width  = GetSystemMetrics(SM_CXSCREEN);
-	    window->height = GetSystemMetrics(SM_CYSCREEN);
+        window->width  = (uint16) GetSystemMetrics(SM_CXSCREEN);
+	    window->height = (uint16) GetSystemMetrics(SM_CYSCREEN);
 
         DEVMODE screen_settings;
 

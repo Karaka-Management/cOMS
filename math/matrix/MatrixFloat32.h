@@ -781,36 +781,6 @@ void mat4_ortho_sparse_lh(
     matrix[0] = 2.0f / rl_delta;
     //matrix[1] = 0.0f;
     //matrix[2] = 0.0f;
-    //matrix[3] = 0.0f;
-
-    //matrix[4] = 0.0f;
-    matrix[5] = 2.0f / tb_delta;
-    //matrix[6] = 0.0f;
-    //matrix[7] = 0.0f;
-
-    //matrix[8] = 0.0f;
-    //matrix[9] = 0.0f;
-    matrix[10] = -2.0f / fn_delta;
-    //matrix[11] = 0.0f;
-
-    matrix[12] = -(right + left) / rl_delta;
-    matrix[13] = -(top + bottom) / tb_delta;
-    matrix[14] = -(zfar + znear) / fn_delta;
-    matrix[15] = 1.0f;
-}
-
-void mat4_ortho_sparse_rh(
-    float *matrix,
-    float left, float right, float bottom, float top,
-    float znear, float zfar
-) {
-    float rl_delta = right - left;
-    float tb_delta = top - bottom;
-    float fn_delta = zfar - znear;
-
-    matrix[0] = 2.0f / rl_delta;
-    //matrix[1] = 0.0f;
-    //matrix[2] = 0.0f;
     matrix[3] = -(right + left) / rl_delta;
 
     //matrix[4] = 0.0f;
@@ -826,6 +796,36 @@ void mat4_ortho_sparse_rh(
     //matrix[12] = 0.0f;
     //matrix[13] = = 0.0f;
     //matrix[14] = 0.0f;
+    matrix[15] = 1.0f;
+}
+
+void mat4_ortho_sparse_rh(
+    float *matrix,
+    float left, float right, float bottom, float top,
+    float znear, float zfar
+) {
+    float rl_delta = right - left;
+    float tb_delta = top - bottom;
+    float fn_delta = zfar - znear;
+
+    matrix[0] = 2.0f / rl_delta;
+    //matrix[1] = 0.0f;
+    //matrix[2] = 0.0f;
+    //matrix[3] = 0.0f;
+
+    //matrix[4] = 0.0f;
+    matrix[5] = 2.0f / tb_delta;
+    //matrix[6] = 0.0f;
+    //matrix[7] = 0.0f;
+
+    //matrix[8] = 0.0f;
+    //matrix[9] = 0.0f;
+    matrix[10] = -2.0f / fn_delta;
+    //matrix[11] = 0.0f;
+
+    matrix[12] = -(right + left) / rl_delta;
+    matrix[13] = -(top + bottom) / tb_delta;
+    matrix[14] = -(zfar + znear) / fn_delta;
     matrix[15] = 1.0f;
 }
 

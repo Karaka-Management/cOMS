@@ -33,6 +33,9 @@ struct Camera {
     float sensitivity;
     float zoom;
 
+    uint16 viewport_width;
+    uint16 viewport_height;
+
     float fov;
     float znear;
     float zfar;
@@ -202,29 +205,30 @@ void camera_movement(Camera* camera, CameraMovement* movement, float dt, bool re
     }
 }
 
-// @question should we remove the fov for this or not, fov shouldn't matter for UI!?
 inline
 void camera_orth_matrix_lh(const Camera* __restrict camera, float* __restrict orth)
 {
     mat4_identity_sparse(orth);
-
-    float ymax, xmax;
-    ymax = camera->znear * tanf(camera->fov * 0.5f);
-    xmax = ymax * camera->aspect;
-
-    mat4_ortho_sparse_lh(orth, -xmax, xmax, -ymax, ymax, camera->znear, camera->zfar);
+    mat4_ortho_sparse_lh(
+        orth,
+        0, camera->viewport_width,
+        0, camera->viewport_height,
+        camera->znear,
+        camera->zfar
+    );
 }
 
 inline
 void camera_orth_matrix_rh(const Camera* __restrict camera, float* __restrict orth)
 {
     mat4_identity_sparse(orth);
-
-    float ymax, xmax;
-    ymax = camera->znear * tanf(camera->fov * 0.5f);
-    xmax = ymax * camera->aspect;
-
-    mat4_ortho_sparse_rh(orth, -xmax, xmax, -ymax, ymax, camera->znear, camera->zfar);
+    mat4_ortho_sparse_rh(
+        orth,
+        0, camera->viewport_width,
+        0, camera->viewport_height,
+        camera->znear,
+        camera->zfar
+    );
 }
 
 inline

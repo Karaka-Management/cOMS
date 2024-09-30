@@ -13,22 +13,22 @@
 #include "../../stdlib/Types.h"
 
 struct WindowState {
-    uint64 style;
-    int32 width;
-    int32 height;
+    uint16 width;
+    uint16 height;
 
     int32 x;
     int32 y;
+    uint64 style;
 };
 
 struct Window {
-    bool is_fullscreen;
-    int32 width;
-    int32 height;
+    uint16 width;
+    uint16 height;
 
     int32 x;
     int32 y;
 
+    bool is_fullscreen;
     bool mouse_captured;
 
     HWND hwnd;

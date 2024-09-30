@@ -46,4 +46,18 @@ struct DebugMemoryContainer {
     DebugMemory* memory_stats;
 };
 
+#if DEBUG
+    #define DEBUG_MEMORY_INIT(start, size) debug_memory_init((start), (size))
+    #define DEBUG_MEMORY_READ(start, size) debug_memory_read((start), (size))
+    #define DEBUG_MEMORY_WRITE(start, size) debug_memory_write((start), (size))
+    #define DEBUG_MEMORY_DELETE(start, size) debug_memory_delete((start), (size))
+    #define DEBUG_MEMORY_RESET() debug_memory_reset()
+#else
+    #define DEBUG_MEMORY_INIT(start, size) ((void) 0)
+    #define DEBUG_MEMORY_READ(start, size) ((void) 0)
+    #define DEBUG_MEMORY_WRITE(start, size) ((void) 0)
+    #define DEBUG_MEMORY_DELETE(start, size) ((void) 0)
+    #define DEBUG_MEMORY_RESET() ((void) 0)
+#endif
+
 #endif
