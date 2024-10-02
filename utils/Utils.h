@@ -64,7 +64,7 @@ void random_unique(int32* array, int32 size) {
 /**
  * Gets random index based value probability
  */
-int random_weighted_index(int32* arr, int32 array_count)
+int random_weighted_index(const int32* arr, int32 array_count)
 {
     uint32 prob_sum = 0;
     for (int32 i = 0; i < array_count; ++i) {

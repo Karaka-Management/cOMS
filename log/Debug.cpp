@@ -40,7 +40,7 @@ void debug_memory_init(uint64 start, uint64 size)
         return;
     }
 
-    DebugMemory* mem = debug_memory_find(start, size);
+    const DebugMemory* mem = debug_memory_find(start, size);
     if (mem) {
         return;
     }
@@ -64,7 +64,7 @@ void debug_memory_init(uint64 start, uint64 size)
     ++debug_container->dmc.memory_element_idx;
 }
 
-void debug_memory_write(uint64 start, uint64 size)
+void debug_memory_write(uint64 start, uint64 size, const char* function)
 {
     if (!start) {
         return;
@@ -85,12 +85,13 @@ void debug_memory_write(uint64 start, uint64 size)
 
     // @question consider to use other time_ms() since __rdtsc is variable (boost, power saving)
     mem->last_action[mem->action_idx].time = __rdtsc();
+    mem->last_action[mem->action_idx].function_name = function;
 
     ++mem->action_idx;
     mem->usage += size;
 }
 
-void debug_memory_read(uint64 start, uint64 size)
+void debug_memory_read(uint64 start, uint64 size, const char* function)
 {
     if (!start) {
         return;
@@ -111,11 +112,12 @@ void debug_memory_read(uint64 start, uint64 size)
 
     // @question consider to use other time_ms() since __rdtsc is variable (boost, power saving)
     mem->last_action[mem->action_idx].time = __rdtsc();
+    mem->last_action[mem->action_idx].function_name = function;
 
     ++mem->action_idx;
 }
 
-void debug_memory_delete(uint64 start, uint64 size)
+void debug_memory_delete(uint64 start, uint64 size, const char* function)
 {
     DebugMemory* mem = debug_memory_find(start, size);
     if (!mem) {
@@ -132,6 +134,7 @@ void debug_memory_delete(uint64 start, uint64 size)
 
     // @question consider to use other time_ms() since __rdtsc is variable (boost, power saving)
     mem->last_action[mem->action_idx].time = __rdtsc();
+    mem->last_action[mem->action_idx].function_name = function;
 
     ++mem->action_idx;
     mem->usage -= size;

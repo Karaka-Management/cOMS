@@ -107,6 +107,7 @@ uint32 get_texture_data_type(uint32 texture_data_type)
 // 2. define wrap
 // 3. define filter
 // 4. load_texture_to_gpu
+// 5. texture_use
 
 inline
 void prepare_texture(Texture* texture)
@@ -123,7 +124,7 @@ void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
 {
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
     glTexImage2D(
-        texture_data_type, mipmap_level, GL_RGBA,
+        texture_data_type, mipmap_level, GL_RGBA8,
         texture->image.width, texture->image.height,
         0, GL_RGBA, GL_UNSIGNED_BYTE,
         texture->image.pixels
@@ -141,6 +142,7 @@ void texture_use(const Texture* texture, uint32 texture_unit)
     glBindTexture(GL_TEXTURE_2D, (GLuint) texture->id);
 }
 
+// @todo should be texture_use, the Texture holds information that should make it possible to determine 1D or 2D
 inline
 void texture_use_1D(const Texture* texture, uint32 texture_unit)
 {
@@ -164,10 +166,9 @@ GLuint shader_make(GLenum type, const char *source, RingMemory* ring)
         GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
 
         glGetShaderInfoLog(shader, length, NULL, info);
+        LOG(info, true, true);
 
         ASSERT_SIMPLE(false);
-
-        // @todo log
     }
 
     return shader;
@@ -219,17 +220,15 @@ GLuint program_make(
     glGetProgramiv(program, GL_LINK_STATUS, &status);
 
     if (status == GL_FALSE) {
-        ASSERT_SIMPLE(false);
-
         GLint length;
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
 
         GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
 
         glGetProgramInfoLog(program, length, NULL, info);
+        LOG(info, true, true);
 
-        // @todo use global logger
-        fprintf(stderr, "glLinkProgram failed: %s\n", info);
+        ASSERT_SIMPLE(false);
     }
 
     // @question really?
@@ -474,6 +473,8 @@ uint32 gpuapi_shaderbuffer_generate(int32 size, const void* data)
     return sbo;
 }
 
+// @todo this is not necessary?! We have a flag to determine the BindTexture Type
+//      Only problem are the parameters
 uint32 gpuapi_upload_color_palette(const byte* palette, int32 count, int32 sampler_id)
 {
     uint32 texture_id;

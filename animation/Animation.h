@@ -15,16 +15,16 @@
 #include "AnimationEaseType.h"
 
 inline
-float lerp(float a, float b, float t)
+f32 lerp(f32 a, f32 b, f32 t)
 {
     return a + t * (b - a);
 }
 
-float smoothstep(float t) {
+f32 smoothstep(f32 t) {
     return t * t * (3 - 2 * t);
 }
 
-float anim_ease(float t, AnimationEaseType type) {
+f32 anim_ease(f32 t, AnimationEaseType type) {
     switch(type) {
         case ANIMATION_EASE_IN_SINE: {
                 return anim_ease_in_sine(t);
@@ -122,113 +122,113 @@ float anim_ease(float t, AnimationEaseType type) {
 }
 
 inline
-float anim_ease_linear(float t) {
+f32 anim_ease_linear(f32 t) {
     return t;
 }
 
 inline
-float anim_ease_in_sine(float t) {
-    return 1 - cosf_approx((t * OMS_PI) / 2);
+f32 anim_ease_in_sine(f32 t) {
+    return 1 - cosf((t * OMS_PI) / 2);
 }
 
 inline
-float anim_ease_out_sine(float t) {
-    return sinf_approx((t * OMS_PI) / 2);
+f32 anim_ease_out_sine(f32 t) {
+    return sinf((t * OMS_PI) / 2);
 }
 
 inline
-float anim_ease_in_out_sine(float t) {
-    return -(cosf_approx(OMS_PI * t) - 1) / 2;
+f32 anim_ease_in_out_sine(f32 t) {
+    return -(cosf(OMS_PI * t) - 1) / 2;
 }
 
 inline
-float anim_ease_in_quad(float t) {
+f32 anim_ease_in_quad(f32 t) {
     return t * t;
 }
 
 inline
-float anim_ease_out_quad(float t) {
+f32 anim_ease_out_quad(f32 t) {
     return 1 - (1 - t) * (1 - t);
 }
 
 inline
-float anim_ease_in_out_quad(float t) {
+f32 anim_ease_in_out_quad(f32 t) {
     return t < 0.5
         ? 2 * t * t
         : 1 - pow(-2 * t + 2, 2) / 2;
 }
 
 inline
-float anim_ease_in_cubic(float t) {
+f32 anim_ease_in_cubic(f32 t) {
     return t * t * t;
 }
 
 inline
-float anim_ease_out_cubic(float t) {
+f32 anim_ease_out_cubic(f32 t) {
     return 1 - pow(1 - t, 3);
 }
 
 inline
-float anim_ease_in_out_cubic(float t) {
+f32 anim_ease_in_out_cubic(f32 t) {
     return t < 0.5
         ? 4 * t * t * t
         : 1 - pow(-2 * t + 2, 3) / 2;
 }
 
 inline
-float anim_ease_in_quart(float t) {
+f32 anim_ease_in_quart(f32 t) {
     return t * t * t * t;
 }
 
 inline
-float anim_ease_out_quart(float t) {
+f32 anim_ease_out_quart(f32 t) {
     return 1 - pow(1 - t, 4);
 }
 
 inline
-float anim_ease_in_perlin(float t) {
+f32 anim_ease_in_perlin(f32 t) {
     return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
 inline
-float anim_ease_in_out_quart(float t) {
+f32 anim_ease_in_out_quart(f32 t) {
     return t < 0.5
         ? 8 * t * t * t * t
         : 1 - pow(-2 * t + 2, 4) / 2;
 }
 
 inline
-float anim_ease_in_quint(float t) {
+f32 anim_ease_in_quint(f32 t) {
     return t * t * t * t * t;
 }
 
 inline
-float anim_ease_out_quint(float t) {
+f32 anim_ease_out_quint(f32 t) {
     return 1 - pow(1 - t, 5);
 }
 
 inline
-float anim_ease_in_out_quint(float t) {
+f32 anim_ease_in_out_quint(f32 t) {
     return t < 0.5
         ? 16 * t * t * t * t * t
         : 1 - pow(-2 * t + 2, 5) / 2;
 }
 
 inline
-float anim_ease_in_expo(float t) {
+f32 anim_ease_in_expo(f32 t) {
     return t == 0
         ? 0 : pow(2, 10 * t - 10);
 }
 
 inline
-float anim_ease_out_expo(float t) {
+f32 anim_ease_out_expo(f32 t) {
     return t == 1
         ? 1
         : 1 - pow(2, -10 * t);
 }
 
 inline
-float anim_ease_in_out_expo(float t) {
+f32 anim_ease_in_out_expo(f32 t) {
     if (t == 0 || t == 1) {
         return t;
     }
@@ -239,42 +239,42 @@ float anim_ease_in_out_expo(float t) {
 }
 
 inline
-float anim_ease_in_circ(float t) {
+f32 anim_ease_in_circ(f32 t) {
     return 1 - sqrt(1 - pow(t, 2));
 }
 
 inline
-float anim_ease_out_circ(float t) {
+f32 anim_ease_out_circ(f32 t) {
     return sqrt(1 - pow(t - 1, 2));
 }
 
 inline
-float anim_ease_in_out_circ(float t) {
+f32 anim_ease_in_out_circ(f32 t) {
     return t < 0.5
         ? (1 - sqrt(1 - pow(2 * t, 2))) / 2
         : (sqrt(1 - pow(-2 * t + 2, 2)) + 1) / 2;
 }
 
 inline
-float anim_ease_in_back(float t) {
-    const float c1 = 1.70158;
-    const float c3 = c1 + 1;
+f32 anim_ease_in_back(f32 t) {
+    const f32 c1 = 1.70158;
+    const f32 c3 = c1 + 1;
 
     return c3 * t * t * t - c1 * t * t;
 }
 
 inline
-float anim_ease_out_back(float t) {
-    const float c1 = 1.70158;
-    const float c3 = c1 + 1;
+f32 anim_ease_out_back(f32 t) {
+    const f32 c1 = 1.70158;
+    const f32 c3 = c1 + 1;
 
     return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2);
 }
 
 inline
-float anim_ease_in_out_back(float t) {
-    const float c1 = 1.70158;
-    const float c2 = c1 * 1.525;
+f32 anim_ease_in_out_back(f32 t) {
+    const f32 c1 = 1.70158;
+    const f32 c2 = c1 * 1.525;
 
     return t < 0.5
         ? (pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2
@@ -282,49 +282,49 @@ float anim_ease_in_out_back(float t) {
 }
 
 inline
-float anim_ease_in_elastic(float t) {
-    const float c4 = (2 * OMS_PI) / 3;
+f32 anim_ease_in_elastic(f32 t) {
+    const f32 c4 = (2 * OMS_PI) / 3;
 
     if (t == 0 || t == 1) {
         return t;
     }
 
-    return -pow(2, 10 * t - 10) * sinf_approx((t * 10 - 10.75) * c4);
+    return -pow(2, 10 * t - 10) * sinf((t * 10 - 10.75) * c4);
 }
 
 inline
-float anim_ease_out_elastic(float t) {
-    const float c4 = (2 * OMS_PI) / 3;
+f32 anim_ease_out_elastic(f32 t) {
+    const f32 c4 = (2 * OMS_PI) / 3;
 
     if (t == 0.0 || t == 1.0) {
         return t;
     }
 
-    return pow(2, -10 * t) * sinf_approx((t * 10 - 0.75) * c4) + 1;
+    return pow(2, -10 * t) * sinf((t * 10 - 0.75) * c4) + 1;
 }
 
 inline
-float anim_ease_in_out_elastic(float t) {
-    const float c5 = (2 * OMS_PI) / 4.5;
+f32 anim_ease_in_out_elastic(f32 t) {
+    const f32 c5 = (2 * OMS_PI) / 4.5;
 
     if (t == 0.0 || t == 1.0) {
         return t;
     } else if (t < 0.5) {
-        return -(pow(2, 20 * t - 10) * sinf_approx((20 * t - 11.125) * c5)) / 2;
+        return -(pow(2, 20 * t - 10) * sinf((20 * t - 11.125) * c5)) / 2;
     }
 
-    return (pow(2, -20 * t + 10) * sinf_approx((20 * t - 11.125) * c5)) / 2 + 1;
+    return (pow(2, -20 * t + 10) * sinf((20 * t - 11.125) * c5)) / 2 + 1;
 }
 
 inline
-float anim_ease_in_bounce(float t) {
+f32 anim_ease_in_bounce(f32 t) {
     return 1 - anim_ease_out_bounce(1 - t);
 }
 
 inline
-float anim_ease_out_bounce(float t) {
-    const float n1 = 7.5625;
-    const float d1 = 2.75;
+f32 anim_ease_out_bounce(f32 t) {
+    const f32 n1 = 7.5625;
+    const f32 d1 = 2.75;
 
     if (t < 1 / d1) {
         return n1 * t * t;
@@ -338,7 +338,7 @@ float anim_ease_out_bounce(float t) {
 }
 
 inline
-float anim_ease_in_out_bounce(float t) {
+f32 anim_ease_in_out_bounce(f32 t) {
     return t < 0.5
         ? (1 - anim_ease_out_bounce(1 - 2 * t)) / 2
         : (1 + anim_ease_out_bounce(2 * t - 1)) / 2;

@@ -103,15 +103,12 @@ void image_tga_generate(const FileBody* src_data, Image* image)
     }
 
     uint32 pixel_rgb_bytes = pixel_bytes - alpha_offset;
-
-    uint32 row_pos1;
-    uint32 row_pos2;
-
     uint32 width_pixel_bytes = src.header.width * pixel_bytes;
 
     for (uint32 y = 0; y < src.header.height; ++y) {
-        row_pos1 = y * image->width * pixel_bytes;
+        uint32 row_pos1 = y * image->width * pixel_bytes;
 
+        uint32 row_pos2;
         if ((image->order_rows == IMAGE_ROW_ORDER_TOP_TO_BOTTOM && src.header.vertical_ordering == 1)
             || (image->order_rows == IMAGE_ROW_ORDER_BOTTOM_TO_TOP && src.header.vertical_ordering == 0)
         ) {

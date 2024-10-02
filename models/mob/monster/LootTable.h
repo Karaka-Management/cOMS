@@ -18,18 +18,18 @@
 struct LootTable {
     // Chance this table becomes effective at all
     // Useful to define multiple loot tables for a mob e.g. normal drop + 1 rare guarantueed
-    float table_chance;
+    f32 table_chance;
 
     uint64* items;
-    int table_size;
+    int32 table_size;
 
     // If drop chance = -1 -> use default rarity drop chance
-    float* item_drop_chances;
+    f32* item_drop_chances;
 
     // How many stacks of that item should be dropped
     // Usually only used for consumables
-    int* item_min_drop_count;
-    int* item_max_drop_count;
+    int32* item_min_drop_count;
+    int32* item_max_drop_count;
     bool item_unique;
 
     // How many "different" items should be dropped
@@ -58,7 +58,7 @@ void loot_table_drop(const LootTable* table, Drop* drop, uint32 counter = 0)
     }
 
     f32 range_value = 0;
-    int i = 0;
+    int32 i = 0;
     for (i = 0; i < table->table_size; ++i) {
         range_value += table->item_drop_chances[i];
 
@@ -76,7 +76,7 @@ void loot_table_drop(const LootTable* table, Drop* drop, uint32 counter = 0)
     drop->quantity = 1;
     if (table->item_max_drop_count[i] > 1) {
         rand = fast_rand_percentage();
-        drop->quantity = OMS_MAX(table->item_min_drop_count[i], (int) ((float) table->item_max_count * rand));
+        drop->quantity = OMS_MAX(table->item_min_drop_count[i], (int) ((f32) table->item_max_count * rand));
     }
 }
 

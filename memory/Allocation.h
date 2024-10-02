@@ -20,9 +20,9 @@
     }
 
     inline
-    void aligned_free(void* ptr) {
-        _aligned_free(ptr);
-        ptr = NULL;
+    void aligned_free(void** ptr) {
+        _aligned_free(*ptr);
+        *ptr = NULL;
     }
 
     inline
@@ -43,25 +43,25 @@
     }
 
     inline
-    void platform_free(void* ptr, size_t) {
-        VirtualFree(ptr, 0, MEM_RELEASE);
-        ptr = NULL;
+    void platform_free(void** ptr, size_t) {
+        VirtualFree(*ptr, 0, MEM_RELEASE);
+        *ptr = NULL;
     }
 
     inline
-    void platform_aligned_free(void* aligned_ptr, size_t) {
-        void* ptr = ((void**) aligned_ptr)[-1];
+    void platform_aligned_free(void** aligned_ptr, size_t) {
+        void* ptr = ((void**) *aligned_ptr)[-1];
         VirtualFree(ptr, 0, MEM_RELEASE);
-        aligned_ptr = NULL;
+        *aligned_ptr = NULL;
     }
 #else
     #include <unistd.h>
     #include <sys/mman.h>
 
     inline
-    void aligned_free(void* ptr) {
-        free(ptr);
-        ptr = NULL;
+    void aligned_free(void** ptr) {
+        free(*ptr);
+        *ptr = NULL;
     }
 
     inline
@@ -97,16 +97,16 @@
     }
 
     inline
-    void platform_free(void* ptr, size_t size) {
-        munmap(ptr, size);
-        ptr = NULL;
+    void platform_free(void** ptr, size_t size) {
+        munmap(*ptr, size);
+        *ptr = NULL;
     }
 
     inline
-    void platform_aligned_free(void* aligned_ptr, size_t size) {
-        void* ptr = ((void**) aligned_ptr)[-1];
-        munmap(ptr, size + ((uintptr_t)aligned_ptr - (uintptr_t)ptr));
-        aligned_ptr = NULL;
+    void platform_aligned_free(void** aligned_ptr, size_t size) {
+        void* ptr = ((void**) *aligned_ptr)[-1];
+        munmap(ptr, size + ((uintptr_t) *aligned_ptr - (uintptr_t)ptr));
+        *aligned_ptr = NULL;
     }
 #endif
 

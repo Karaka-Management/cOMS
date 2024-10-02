@@ -298,15 +298,12 @@ void image_bmp_generate(const FileBody* src_data, Image* image)
     }
 
     uint32 pixel_rgb_bytes = pixel_bytes - alpha_offset;
-
-    uint32 row_pos1;
-    uint32 row_pos2;
-
     uint32 width_pixel_bytes = width * pixel_bytes;
 
     for (uint32 y = 0; y < src.dib_header.height; ++y) {
-        row_pos1 = y * width_pixel_bytes;
+        uint32 row_pos1 = y * width_pixel_bytes;
 
+        uint32 row_pos2;
         if (image->order_rows == IMAGE_ROW_ORDER_TOP_TO_BOTTOM) {
             row_pos2 = (src.dib_header.height - y - 1) * width_pixel_bytes;
         } else {

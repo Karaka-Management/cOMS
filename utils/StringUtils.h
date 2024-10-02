@@ -16,6 +16,124 @@
 #include "../stdlib/Types.h"
 
 inline
+int32 utf8_encode(uint32 codepoint, char* out)
+{
+    if (codepoint <= 0x7F) {
+        // 1-byte sequence: 0xxxxxxx
+        out[0] = (byte) codepoint;
+
+        return 1;
+    } else if (codepoint <= 0x7FF) {
+        // 2-byte sequence: 110xxxxx 10xxxxxx
+        out[0] = 0xC0 | ((codepoint >> 6) & 0x1F);
+        out[1] = 0x80 | (codepoint & 0x3F);
+
+        return 2;
+    } else if (codepoint <= 0xFFFF) {
+        // 3-byte sequence: 1110xxxx 10xxxxxx 10xxxxxx
+        out[0] = 0xE0 | ((codepoint >> 12) & 0x0F);
+        out[1] = 0x80 | ((codepoint >> 6) & 0x3F);
+        out[2] = 0x80 | (codepoint & 0x3F);
+
+        return 3;
+    } else if (codepoint <= 0x10FFFF) {
+        // 4-byte sequence: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+        out[0] = 0xF0 | ((codepoint >> 18) & 0x07);
+        out[1] = 0x80 | ((codepoint >> 12) & 0x3F);
+        out[2] = 0x80 | ((codepoint >> 6) & 0x3F);
+        out[3] = 0x80 | (codepoint & 0x3F);
+
+        return 4;
+    }
+
+    return -1;
+}
+
+inline
+int32 utf8_decode(const char* in, uint32* codepoint) {
+    unsigned char ch = (unsigned char) in[0];
+
+    if (ch <= 0x7F) {
+        // 1-byte sequence (ASCII)
+        *codepoint = ch;
+
+        return 1;
+    } else if ((ch & 0xE0) == 0xC0) {
+        // 2-byte sequence
+        *codepoint = ((ch & 0x1F) << 6) | (in[1] & 0x3F);
+
+        return 2;
+    } else if ((ch & 0xF0) == 0xE0) {
+        // 3-byte sequence
+        *codepoint = ((ch & 0x0F) << 12) | ((in[1] & 0x3F) << 6) | (in[2] & 0x3F);
+
+        return 3;
+    } else if ((ch & 0xF8) == 0xF0) {
+        // 4-byte sequence
+        *codepoint = ((ch & 0x07) << 18) | ((in[1] & 0x3F) << 12) | ((in[2] & 0x3F) << 6) | (in[3] & 0x3F);
+
+        return 4;
+    }
+
+    return -1;
+}
+
+inline
+int32 utf8_strlen(const char* in) {
+    int32 length = 0;
+    int32 bytes;
+    uint32 codepoint;
+
+    while (*in) {
+        bytes = utf8_decode(in, &codepoint);
+        if (bytes < 0) {
+            return -1;
+        }
+
+        in += bytes;
+        ++length;
+    }
+
+    return length;
+}
+
+inline
+void string_to_utf8(const uint32* in, char* out) {
+    char buffer[5] = {0};
+    while (*in) {
+        int32 len = utf8_encode(*in, buffer);
+        if (len > 0) {
+            strncat(out, buffer, len);
+        }
+
+        ++in;
+    }
+}
+
+inline
+int32 utf8_get_char_at(const char* in, int32 index) {
+    int32 i = 0;
+    int32 bytes_consumed;
+    uint32 codepoint;
+
+    while (*in) {
+        bytes_consumed = utf8_decode(in, &codepoint);
+        if (bytes_consumed < 0) {
+            return -1;
+        }
+
+        if (i == index) {
+            return codepoint;
+        }
+
+        ++i;
+        in += bytes_consumed;
+    }
+
+    return -1;
+}
+
+inline
 void wchar_to_char(const wchar_t* src, char* dest, int32 length = 0)
 {
     char* temp = (char* ) src;

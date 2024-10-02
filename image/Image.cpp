@@ -44,7 +44,7 @@ void image_flip_vertical(RingMemory* ring, Image* image)
     memcpy(temp, image->pixels, image->pixel_count * sizeof(uint32));
 
     // Last row
-    byte* end = temp + image->pixel_count * sizeof(uint32) - image->width * sizeof(uint32);
+    const byte* end = temp + image->pixel_count * sizeof(uint32) - image->width * sizeof(uint32);
 
     for (int y = 0; y < image->height; ++y) {
         memcpy(image->pixels + y * stride, end - y * stride, stride);

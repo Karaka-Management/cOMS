@@ -14,14 +14,14 @@
 struct Vertex3D {
     v3_f32 position;
     v3_f32 normal;
-    v2_int32 tex_coord;
+    v2_f32 tex_coord;
     v4_f32 color;
 };
 
 struct Vertex3DTextureColorIndex {
     v3_f32 position;
-    v2_int32 tex_coord;
-    f32 color;
+    v2_f32 tex_coord;
+    uint32 color;
 };
 
 struct Vertex3DColorIndex {
@@ -31,13 +31,13 @@ struct Vertex3DColorIndex {
 
 struct Vertex2D {
     v2_f32 position;
-    v2_int32 tex_coord;
+    v2_f32 tex_coord;
     v4_f32 color;
 };
 
 struct Vertex2DTexture {
     v2_f32 position;
-    v2_int32 tex_coord;
+    v2_f32 tex_coord;
 };
 
 struct Vertex2DColor {

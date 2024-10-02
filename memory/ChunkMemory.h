@@ -51,9 +51,9 @@ void chunk_free(ChunkMemory* buf)
 {
     DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->size);
     if (buf->alignment < 2) {
-        platform_free(buf->memory, buf->size);
+        platform_free((void **) &buf->memory, buf->size);
     } else {
-        platform_aligned_free(buf->memory, buf->size);
+        platform_aligned_free((void **) &buf->memory, buf->size);
     }
 }
 

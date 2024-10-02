@@ -24,14 +24,14 @@
 struct MobState {
     Location location;
 
-    float t;
+    f32 t;
 
     // Action performed
     // first byte = action category
     // last 3 bytes = animation to use
     uint32 action = (MOB_ACTION_INACTIVE << 24);
 
-    int chunk_id;
+    int32 chunk_id;
 
     bool in_battle;
 

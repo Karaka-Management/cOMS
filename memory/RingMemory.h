@@ -73,9 +73,9 @@ inline
 void ring_free(RingMemory* buf)
 {
     if (buf->alignment < 2) {
-        platform_free(buf->memory, buf->size);
+        platform_free((void **) &buf->memory, buf->size);
     } else {
-        platform_aligned_free(buf->memory, buf->size);
+        platform_aligned_free((void **) &buf->memory, buf->size);
     }
 }
 
