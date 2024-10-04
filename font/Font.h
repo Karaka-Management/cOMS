@@ -4,16 +4,17 @@
 #include "../stdlib/Types.h"
 #include "../memory/BufferMemory.h"
 
-enum TextAlignH {
-    TEXT_ALIGN_H_LEFT,
-    TEXT_ALIGN_H_CENTER,
-    TEXT_ALIGN_H_RIGHT,
+// @todo Move this somewhere else, it doesn't belong here
+enum UIAlignH {
+    UI_ALIGN_H_LEFT,
+    UI_ALIGN_H_CENTER,
+    UI_ALIGN_H_RIGHT,
 };
 
-enum TextAlignV {
-    TEXT_ALIGN_V_BOTTOM,
-    TEXT_ALIGN_V_CENTER,
-    TEXT_ALIGN_V_TOP,
+enum UIAlignV {
+    UI_ALIGN_V_BOTTOM,
+    UI_ALIGN_V_CENTER,
+    UI_ALIGN_V_TOP,
 };
 
 struct GlyphMetrics {

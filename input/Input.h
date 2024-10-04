@@ -11,6 +11,7 @@
 
 #include "../stdlib/Types.h"
 #include "../utils/BitUtils.h"
+#include "../memory/BufferMemory.h"
 #include "ControllerInput.h"
 
 // How many concurrent mouse/secondary input device presses to we recognize
@@ -526,6 +527,9 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
 void
 input_hotkey_state(Input* input)
 {
+    uint8 old_hotkeys[MAX_KEY_PRESSES];
+    memcpy(old_hotkeys, input->state.state_hotkeys, sizeof(uint8) * MAX_KEY_PRESSES);
+
     memset(input->state.state_hotkeys, 0, sizeof(uint8) * MAX_KEY_PRESSES);
 
     int32 active_hotkeys = 0;
@@ -576,15 +580,27 @@ input_hotkey_state(Input* input)
                     return;
                 }
 
+                // Hotkey already active
+                // @question Do we even need this? This shouldn't happen anyway?!
+                if (hotkey_is_active(&input->state, hotkeys_for_key[possible_hotkey_idx])) {
+                    continue;
+                }
+
                 bool is_pressed = hotkey_keys_are_active(&input->state, mapping, hotkeys_for_key[possible_hotkey_idx]);
 
                 // store active hotkey, if it is not already active
-                if (is_pressed && !hotkey_is_active(&input->state, hotkeys_for_key[possible_hotkey_idx])) {
+                if (is_pressed) {
                     input->state.state_hotkeys[active_hotkeys] = hotkeys_for_key[possible_hotkey_idx];
                     ++active_hotkeys;
 
                     // Run callback if defined
-                    if (input->input_mapping1.callbacks[hotkeys_for_key[possible_hotkey_idx]] != 0) {
+                    if (input->input_mapping1.callbacks[hotkeys_for_key[possible_hotkey_idx]] != 0
+                        && old_hotkeys[0] != hotkeys_for_key[possible_hotkey_idx]
+                        && old_hotkeys[1] != hotkeys_for_key[possible_hotkey_idx]
+                        && old_hotkeys[2] != hotkeys_for_key[possible_hotkey_idx]
+                        && old_hotkeys[3] != hotkeys_for_key[possible_hotkey_idx]
+                        && old_hotkeys[4] != hotkeys_for_key[possible_hotkey_idx]
+                    ) {
                         input->input_mapping1.callbacks[hotkeys_for_key[possible_hotkey_idx]](input->callback_data);
                     }
                 }

@@ -18,6 +18,12 @@ struct Vertex3D {
     v4_f32 color;
 };
 
+struct Vertex3DTextureColor {
+    v3_f32 position;
+    v2_f32 tex_coord;
+    v4_f32 color;
+};
+
 struct Vertex3DTextureColorIndex {
     v3_f32 position;
     v2_f32 tex_coord;

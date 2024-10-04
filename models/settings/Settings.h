@@ -289,6 +289,10 @@ struct CSettings {
     byte game_chat_size = 128;
     int32 game_chat_pos[2] = { -1, -1 };
 
+    // @todo replace settings below with bit flag
+    // UI
+    uint64 ui_visibility_flags = 0;
+
     // HUD
     bool game_show_health_bar_self = false;
     bool game_show_health_bar_player = false;
