@@ -37,7 +37,7 @@ void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignm
         : (byte *) playform_alloc_aligned(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64), alignment);
 
     buf->count = count;
-    buf->size = chunk_size * count;
+    buf->size = chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64);
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;

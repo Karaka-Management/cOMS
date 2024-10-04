@@ -4,6 +4,18 @@
 #include "../stdlib/Types.h"
 #include "../memory/BufferMemory.h"
 
+enum TextAlignH {
+    TEXT_ALIGN_H_LEFT,
+    TEXT_ALIGN_H_CENTER,
+    TEXT_ALIGN_H_RIGHT,
+};
+
+enum TextAlignV {
+    TEXT_ALIGN_V_BOTTOM,
+    TEXT_ALIGN_V_CENTER,
+    TEXT_ALIGN_V_TOP,
+};
+
 struct GlyphMetrics {
     f32 width;         // Width of the glyph
     f32 height;        // Height of the glyph
@@ -29,6 +41,7 @@ struct Glyph {
 
 struct Font {
     uint32 glyph_count;
+    f32 size; // Default font size
     uint32 line_height;
     Glyph* glyphs;
 

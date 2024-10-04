@@ -9,6 +9,10 @@
 #ifndef TOS_INPUT_H
 #define TOS_INPUT_H
 
+#include "../stdlib/Types.h"
+#include "../utils/BitUtils.h"
+#include "ControllerInput.h"
+
 // How many concurrent mouse/secondary input device presses to we recognize
 #define MAX_MOUSE_PRESSES 3
 
@@ -24,6 +28,7 @@
 
 // How often can a key be asigned to a different hotkey
 #define MAX_KEY_TO_HOTKEY 5
+#define MEX_KEY_LENGTH ((MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS + MAX_CONTROLLER_KEYS) * MAX_KEY_TO_HOTKEY)
 
 // How many buttons together are allowed to form a hotkey
 #define MAX_HOTKEY_COMBINATION 3
@@ -42,13 +47,11 @@
 
 #define INPUT_LONG_PRESS_DURATION 250
 
-#include "../stdlib/Types.h"
-#include "../utils/BitUtils.h"
-#include "ControllerInput.h"
-
 #ifdef _WIN32
     #include <windows.h>
 #endif
+
+typedef void (*InputCallback)(void* data);
 
 // @todo I'm not sure if I like the general input handling
 //      Having separate keyboard_down and mouse_down etc. is a little bit weird in the functions below
@@ -56,15 +59,16 @@
 struct InputMapping {
     // A key/button can be bound to up to 5 different hotkeys
     // This is used to check if a key/button has a hotkey association
-    // @todo why is this using 2d array while hotkeys uses 1d array? make both 1d arrays
-    uint8 keys[MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS + MAX_CONTROLLER_KEYS][MAX_KEY_TO_HOTKEY];
+    uint8 keys[MEX_KEY_LENGTH];
 
     // A hotkey can be bound to a combination of up to 3 key/button presses
     uint8 hotkey_count;
 
     // negative hotkeys mean any of them needs to be matched, positive hotkeys means all of them need to be matched
     // mixing positive and negative keys for one hotkey is not possible
+    // index = hotkey, value = key id
     int16* hotkeys;
+    InputCallback* callbacks;
 };
 
 enum KeyState {
@@ -77,7 +81,7 @@ struct InputKey {
     // Includes flag for mouse, keyboard, controller
     uint16 key_id;
     uint16 key_state;
-    int16 value; // e.g. stick/trigger keys
+    int16 value; // e.g. stick/trigger keys have additional values
     uint64 time; // when was this action performed (useful to decide if key state is held vs pressed)
 };
 
@@ -125,6 +129,8 @@ struct Input {
     bool state_change_button;
     bool state_change_mouse;
 
+    // Do we want to capture mouse events = true,
+    //  or do we want to poll the position whenever needed = false
     bool mouse_movement;
 
     InputState state;
@@ -132,9 +138,47 @@ struct Input {
 
     uint32 deadzone = 10;
 
+    // This data is passed to the hotkey callback
+    void* callback_data;
+
     InputMapping input_mapping1;
     InputMapping input_mapping2;
 };
+
+inline
+void input_init(Input* input, uint8 size, void* callback_data, BufferMemory* buf)
+{
+    // Init input
+    input->callback_data = callback_data;
+
+    // Init mapping1
+    input->input_mapping1.hotkey_count = size;
+
+    input->input_mapping1.hotkeys = (int16 *) buffer_get_memory(
+        buf,
+        input->input_mapping1.hotkey_count * MAX_HOTKEY_COMBINATION * sizeof(int16)
+    );
+
+    input->input_mapping1.callbacks = (InputCallback *) buffer_get_memory(
+        buf,
+        input->input_mapping1.hotkey_count * sizeof(InputCallback),
+        0, true
+    );
+
+    // Init mapping2
+    input->input_mapping2.hotkey_count = size;
+
+    input->input_mapping2.hotkeys = (int16 *) buffer_get_memory(
+        buf,
+        input->input_mapping2.hotkey_count * MAX_HOTKEY_COMBINATION * sizeof(int16)
+    );
+
+    input->input_mapping2.callbacks = (InputCallback *) buffer_get_memory(
+        buf,
+        input->input_mapping2.hotkey_count * sizeof(InputCallback),
+        0, true
+    );
+}
 
 inline
 void input_clean_state(InputState* state)
@@ -254,6 +298,11 @@ bool inputs_are_down(
         && (key4 == 0 || input_is_down(state, key4));
 }
 
+void input_add_callback(InputMapping* mapping, uint8 hotkey, InputCallback callback)
+{
+    mapping->callbacks[hotkey] = callback;
+}
+
 // We are binding hotkeys bi-directional
 void
 input_add_hotkey(
@@ -312,18 +361,18 @@ input_add_hotkey(
             break;
         }
 
-        if (key0 != 0 && mapping->keys[key0 + key0_offset - 1][i] == 0) {
-            mapping->keys[key0 + key0_offset - 1][i] = hotkey;
+        if (key0 != 0 && mapping->keys[(key0 + key0_offset - 1) * MAX_KEY_TO_HOTKEY + i] == 0) {
+            mapping->keys[(key0 + key0_offset - 1) * MAX_KEY_TO_HOTKEY + i] = hotkey;
             key0 = 0; // prevent adding same key again
         }
 
-        if (key1 != 0 && mapping->keys[key1 + key1_offset - 1][i] == 0) {
-            mapping->keys[key1 + key1_offset - 1][i] = hotkey;
+        if (key1 != 0 && mapping->keys[(key1 + key1_offset - 1) * MAX_KEY_TO_HOTKEY + i] == 0) {
+            mapping->keys[(key1 + key1_offset - 1) * MAX_KEY_TO_HOTKEY + i] = hotkey;
             key1 = 0; // prevent adding same key again
         }
 
-        if (key2 != 0 && mapping->keys[key2 + key2_offset - 1][i] == 0) {
-            mapping->keys[key2 + key2_offset - 1][i] = hotkey;
+        if (key2 != 0 && mapping->keys[(key2 + key2_offset - 1) * MAX_KEY_TO_HOTKEY + i] == 0) {
+            mapping->keys[(key2 + key2_offset - 1) * MAX_KEY_TO_HOTKEY + i] = hotkey;
             key2 = 0; // prevent adding same key again
         }
     }
@@ -512,12 +561,12 @@ input_hotkey_state(Input* input)
                 continue;
             }
 
-            if (mapping->keys[internal_key_id - 1][0] == 0) {
+            if (mapping->keys[(internal_key_id - 1) * MAX_KEY_TO_HOTKEY] == 0) {
                 // no possible hotkey associated with this key
                 continue;
             }
 
-            const uint8* hotkeys_for_key = mapping->keys[internal_key_id - 1];
+            const uint8* hotkeys_for_key = mapping->keys + (internal_key_id - 1) * MAX_KEY_TO_HOTKEY;
 
             // Check every possible hotkey
             // Since multiple input devices have their own button/key indices whe have to do this weird range handling
@@ -533,6 +582,11 @@ input_hotkey_state(Input* input)
                 if (is_pressed && !hotkey_is_active(&input->state, hotkeys_for_key[possible_hotkey_idx])) {
                     input->state.state_hotkeys[active_hotkeys] = hotkeys_for_key[possible_hotkey_idx];
                     ++active_hotkeys;
+
+                    // Run callback if defined
+                    if (input->input_mapping1.callbacks[hotkeys_for_key[possible_hotkey_idx]] != 0) {
+                        input->input_mapping1.callbacks[hotkeys_for_key[possible_hotkey_idx]](input->callback_data);
+                    }
                 }
             }
         }

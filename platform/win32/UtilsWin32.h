@@ -98,7 +98,7 @@ uint64 time_ms()
 
     QueryPerformanceCounter(&counter);
 
-    return (counter.QuadPart * 1000) / frequency.QuadPart;
+    return (counter.QuadPart * 1000000) / frequency.QuadPart;
 }
 
 inline void

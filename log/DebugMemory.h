@@ -48,7 +48,7 @@ struct DebugMemoryContainer {
     DebugMemory* memory_stats;
 };
 
-#if DEBUG
+#if DEBUG || INTERNAL
     #define DEBUG_MEMORY_INIT(start, size) debug_memory_init((start), (size))
     #define DEBUG_MEMORY_READ(start, size) debug_memory_read((start), (size), __func__)
     #define DEBUG_MEMORY_WRITE(start, size) debug_memory_write((start), (size), __func__)

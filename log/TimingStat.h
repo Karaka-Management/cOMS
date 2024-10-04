@@ -31,7 +31,7 @@ struct TimingStat {
 
 // Sometimes we want to only do logging in debug mode.
 // In such cases use the following macro.
-#if DEBUG
+#if DEBUG || INTERNAL
     #define UPDATE_TIMING_STAT(stat) update_timing_stat(stat, __func__)
 #else
     #define UPDATE_TIMING_STAT(stat) ((void) 0)

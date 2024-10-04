@@ -1303,6 +1303,9 @@ static type_glProgramParameteri* glProgramParameteri;
 #define WGL_ALPHA_BITS_ARB 0x201B
 #define WGL_DEPTH_BITS_ARB 0x2022
 
+#define WGL_SAMPLE_BUFFERS_ARB 0x2041
+#define WGL_SAMPLES_ARB 0x2042
+
 typedef HGLRC WINAPI wgl_create_context_attribs_arb(HDC hDC, HGLRC hShareContext, const int *attribList);
 static wgl_create_context_attribs_arb* wglCreateContextAttribsARB;
 
@@ -1321,7 +1324,7 @@ static wgl_swap_interval_ext* wglSwapIntervalEXT;
 typedef const char* WINAPI wgl_get_extensions_string_ext(void);
 static wgl_get_extensions_string_ext* wglGetExtensionsStringEXT;
 
-void set_pixel_format(HDC hdc)
+void set_pixel_format(HDC hdc, int32 multisampling = 0)
 {
     int32 suggested_pixel_format_idx = 0;
     uint32 extended_pick = 0;
@@ -1334,6 +1337,8 @@ void set_pixel_format(HDC hdc)
             WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
             WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
             WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, GL_TRUE,
+            WGL_SAMPLE_BUFFERS_ARB, (int32) (multisampling > 0),
+            WGL_SAMPLES_ARB, multisampling, // 4x MSAA
             0,
         };
 
@@ -1414,7 +1419,7 @@ bool gl_extensions_load()
         pos = end;
     }
 
-    wglMakeCurrent(0, 0);
+    wglMakeCurrent(NULL, NULL);
 
     wglDeleteContext(openGLRC);
     ReleaseDC(window, hdc);
@@ -1504,24 +1509,32 @@ void opengl_init_gl()
     glProgramParameteri = (type_glProgramParameteri *) wglGetProcAddress("glProgramParameteri");
 }
 
-void opengl_init(Window* window)
+void opengl_destroy(Window* window)
+{
+    wglMakeCurrent(NULL, NULL);
+    wglDeleteContext(window->openGLRC);
+    ReleaseDC(window->hwnd, window->hdc);
+}
+
+void opengl_init(Window* window, int32 multisample = 0)
 {
     gl_extensions_load();
 
     opengl_init_wgl();
 
-    set_pixel_format(window->hdc);
+    window->hdc = GetDC(window->hwnd);
+    set_pixel_format(window->hdc, multisample);
 
-    HGLRC openGLRC = 0;
+    window->openGLRC = 0;
     if (wglCreateContextAttribsARB) {
-        openGLRC = wglCreateContextAttribsARB(window->hdc, 0, win32_opengl_attribs);
+        window->openGLRC = wglCreateContextAttribsARB(window->hdc, 0, win32_opengl_attribs);
     }
 
-    if (!openGLRC) {
-        openGLRC = wglCreateContext(window->hdc);
+    if (!window->openGLRC) {
+        window->openGLRC = wglCreateContext(window->hdc);
     }
 
-    if(!wglMakeCurrent(window->hdc, openGLRC)) {
+    if(!wglMakeCurrent(window->hdc, window->openGLRC)) {
         return;
     }
 

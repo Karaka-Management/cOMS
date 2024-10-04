@@ -124,7 +124,7 @@ void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
 {
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
     glTexImage2D(
-        texture_data_type, mipmap_level, GL_RGBA8,
+        texture_data_type, mipmap_level, GL_RGBA,
         texture->image.width, texture->image.height,
         0, GL_RGBA, GL_UNSIGNED_BYTE,
         texture->image.pixels
@@ -483,7 +483,7 @@ uint32 gpuapi_upload_color_palette(const byte* palette, int32 count, int32 sampl
     glActiveTexture(GL_TEXTURE0 + sampler_id);
     glBindTexture(GL_TEXTURE_1D, texture_id);
 
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA8, count, 0, GL_RGBA,  GL_UNSIGNED_BYTE, palette);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, count, 0, GL_RGBA,  GL_UNSIGNED_BYTE, palette);
 
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

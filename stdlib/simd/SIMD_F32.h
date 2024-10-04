@@ -638,7 +638,7 @@ inline f32_16 &operator|=(f32_16 &a, f32_16 b)
 
 inline f32_4 abs(f32_4 a)
 {
-    unsigned int unsigned_mask = (unsigned int) (1 << 31);
+    uint32 unsigned_mask = (uint32) (1U << 31);
     __m128 mask                = _mm_set1_ps(*(f32 *) &unsigned_mask);
 
     f32_4 simd;
@@ -649,7 +649,7 @@ inline f32_4 abs(f32_4 a)
 
 inline f32_8 abs(f32_8 a)
 {
-    unsigned int unsigned_mask = (unsigned int) (1 << 31);
+    uint32 unsigned_mask = (uint32) (1U << 31);
     __m256 mask                = _mm256_set1_ps(*(f32 *) &unsigned_mask);
 
     f32_8 simd;
@@ -716,7 +716,7 @@ inline f32_16 simd_max(f32_16 a, f32_16 b)
 
 inline f32_4 sign(f32_4 a)
 {
-    unsigned int umask = (unsigned int) (1 << 31);
+    uint32 umask = (uint32) (1U << 31);
     __m128 mask        = _mm_set1_ps(*(f32 *) &umask);
 
     f32_4 signBit;
@@ -732,7 +732,7 @@ inline f32_4 sign(f32_4 a)
 
 inline f32_8 sign(f32_8 a)
 {
-    unsigned int umask = (unsigned int) (1 << 31);
+    uint32 umask = (uint32) (1U << 31);
     __m256 mask        = _mm256_set1_ps(*(f32 *) &umask);
 
     f32_8 signBit;
@@ -748,7 +748,7 @@ inline f32_8 sign(f32_8 a)
 
 inline f32_16 sign(f32_16 a)
 {
-    unsigned int umask = (unsigned int) (1 << 31);
+    uint32 umask = (uint32) (1U << 31);
     __m512 mask        = _mm512_set1_ps(*(f32 *) &umask);
 
     f32_16 signBit;

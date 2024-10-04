@@ -32,7 +32,7 @@
 // Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions requried
 // aligned memory. So far we only figured out that 4 bytes works, maybe this needs to be 8 in the future?!
 
-int input_init(HWND hwnd, Input* __restrict states, RingMemory* ring)
+int input_raw_init(HWND hwnd, Input* __restrict states, RingMemory* ring)
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));

@@ -21,6 +21,11 @@ struct WindowState {
     uint64 style;
 };
 
+#define WINDOW_STATE_CHANGE_SIZE 1
+#define WINDOW_STATE_CHANGE_POS 2
+#define WINDOW_STATE_CHANGE_FOCUS 4
+#define WINDOW_STATE_CHANGE_FULLSCREEN 8
+
 struct Window {
     uint16 width;
     uint16 height;
@@ -28,11 +33,17 @@ struct Window {
     int32 x;
     int32 y;
 
+    // 1. position
+    // 2. focus
+    // 3. size
+    // 4. fullscreen
+    byte state_changes;
+    bool is_focused;
     bool is_fullscreen;
-    bool mouse_captured;
 
     HWND hwnd;
     HDC hdc;
+    HGLRC openGLRC;
 
     char name[32];
     WindowState state_old;

@@ -15,18 +15,19 @@
 #include "../../utils/TestUtils.h"
 
 inline
-void window_inactive(Window* w)
+void window_remove_style(Window* w)
+{
+    LONG_PTR style = GetWindowLongPtrA(w->hwnd, GWL_STYLE);
+    style &= ~WS_OVERLAPPEDWINDOW;
+    SetWindowLongPtr(w->hwnd, GWL_STYLE, style);
+}
+
+inline
+void window_add_style(Window* w)
 {
     LONG_PTR style = GetWindowLongPtrA(w->hwnd, GWL_STYLE);
     style |= WS_OVERLAPPEDWINDOW;
     SetWindowLongPtr(w->hwnd, GWL_STYLE, style);
-
-    ClipCursor(NULL);
-
-    // WARNING: Apparently this has an internal reference count, effecting if true/false actually take effect!
-    ShowCursor(true);
-
-    w->mouse_captured = false;
 }
 
 inline
@@ -37,51 +38,35 @@ void monitor_resolution(const Window* __restrict w, v2_int32* __restrict resolut
 }
 
 inline
-void monitor_resolution(Window* __restrict w)
+void monitor_resolution(Window* w)
 {
     w->width = (uint16) GetDeviceCaps(w->hdc, HORZRES);
     w->height = (uint16) GetDeviceCaps(w->hdc, VERTRES);
 }
 
 inline
-void window_active(Window* __restrict w)
+void window_resolution(Window* w)
 {
-    LONG_PTR style = GetWindowLongPtrA(w->hwnd, GWL_STYLE);
-    style &= ~WS_OVERLAPPEDWINDOW;
-    SetWindowLongPtr(w->hwnd, GWL_STYLE, style);
-
-    SetWindowPos(
-        w->hwnd, HWND_TOP,
-        w->x, w->y,
-        w->width, w->height,
-        SWP_NOACTIVATE | SWP_NOZORDER
-    );
-
     RECT rect;
-    GetWindowRect(w->hwnd, &rect);
-    ClipCursor(&rect);
+    GetClientRect(w->hwnd, &rect);
 
-    // WARNING: Apparently this has an internal reference count, effecting if true/false actually take effect!
-    ShowCursor(false);
-
-    w->mouse_captured = true;
+    w->width = (uint16) (rect.right - rect.left);
+    w->height = (uint16) (rect.bottom - rect.top);
 }
 
 inline
-void window_fullscreen(Window* __restrict w)
+void window_fullscreen(Window* w)
 {
     monitor_resolution(w);
     w->x = 0;
     w->y = 0;
 
-    LONG style = GetWindowLong(w->hwnd, GWL_STYLE);
-    SetWindowLongPtr(w->hwnd, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
-
-    SetWindowPos(w->hwnd, HWND_TOP, 0, 0, w->width, w->height, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE);
+    window_remove_style(w);
+    SetWindowPos(w->hwnd, HWND_TOP, 0, 0, w->width, w->height, SWP_NOACTIVATE | SWP_NOZORDER);
 }
 
 inline
-void window_restore(Window* __restrict w)
+void window_restore(Window* w)
 {
     window_restore_state(w);
 
@@ -141,20 +126,20 @@ void window_create(Window* __restrict window, void* proc)
         NULL, NULL, hinstance, window
     );
 
-    window->hdc = GetDC(window->hwnd);
-
     ASSERT_SIMPLE(window->hwnd);
 }
 
-void window_open(const Window* __restrict window)
+void window_open(Window* window)
 {
     ShowWindow(window->hwnd, SW_SHOW);
     SetForegroundWindow(window->hwnd);
 	SetFocus(window->hwnd);
     UpdateWindow(window->hwnd);
+
+    window->state_changes |= WINDOW_STATE_CHANGE_FOCUS;
 }
 
-void window_close(Window* __restrict window)
+void window_close(Window* window)
 {
     CloseWindow(window->hwnd);
 }

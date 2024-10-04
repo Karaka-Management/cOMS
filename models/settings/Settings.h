@@ -165,6 +165,7 @@ struct CSettings {
     byte gpu_motion_blur = SETTING_TYPE_DISABLED;
     byte gpu_blur = SETTING_TYPE_DISABLED;
     byte gpu_anti_aliasing = SETTING_TYPE_DISABLED;
+    byte gpu_anti_aliasing_detail = 0;
     byte gpu_sharpening = SETTING_TYPE_DISABLED;
     byte gpu_ambient_occlusion = SETTING_TYPE_DISABLED;
 
