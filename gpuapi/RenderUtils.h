@@ -15,23 +15,9 @@
 #include "../font/Font.h"
 
 inline
-void vertex_rect_create(
-    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
-    f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
-    uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
+void vertex_degenerate_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+    f32 x, f32 y
 ) {
-    if (align_h == UI_ALIGN_H_RIGHT) {
-        x -= width;
-    } else if (align_h == UI_ALIGN_H_CENTER) {
-        x -= width / 2;
-    }
-
-    if (align_v == UI_ALIGN_V_TOP) {
-        y -= height;
-    } else if (align_v == UI_ALIGN_V_CENTER) {
-        y -= height / 2;
-    }
-
     // Degenerate triangles
     // They are alternating every loop BUT since we use references they look the same in code
     // WARNING: Before using we must make sure that the 0 index is defined
@@ -51,6 +37,104 @@ void vertex_rect_create(
     vertices[*index].tex_coord.y = 0;
     vertices[*index].color = 0;
     ++(*index);
+}
+
+inline
+void vertex_line_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+    f32 x1, f32 y1, f32 x2, f32 y2, f32 thickness, int32 align_h, int32 align_v,
+    uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
+) {
+    if (align_h == UI_ALIGN_H_RIGHT) {
+        x1 -= thickness;
+        x2 -= thickness;
+    } else if (align_h == UI_ALIGN_H_CENTER) {
+        x1 -= thickness / 2;
+        x2 -= thickness / 2;
+    }
+
+    if (align_v == UI_ALIGN_V_TOP) {
+        y1 -= thickness;
+        y2 -= thickness;
+    } else if (align_v == UI_ALIGN_V_CENTER) {
+        y1 -= thickness / 2;
+        y2 -= thickness / 2;
+    }
+
+    float n1 = -(y2 - y1);
+    float n2 = x2 - x1;
+    float n_ = sqrtf(n2 * n2 + n1 * n1);
+    float norm1 = n1 / n_;
+    float norm2 = n2 / n_;
+
+    // @todo Currently we always use p1 and never p2
+    //      This is wrong and depends on the Alignment, no? Maybe not
+    // Calculate both parallel points to the start position
+    float p1_x1 = x1 + thickness * norm1;
+    float p1_y1 = y1 + thickness * norm2;
+
+    // float p2_x1 = x1 - thickness * norm1;
+    // float p2_y1 = y1 - thickness * norm2;
+
+    // Calculate both parallel points to the end position
+    float p1_x2 = x2 + thickness * norm1;
+    float p1_y2 = y2 + thickness * norm2;
+
+    // float p2_x2 = x2 - thickness * norm1;
+    // float p2_y2 = y2 - thickness * norm2;
+
+    vertex_degenerate_create(vertices, index, zindex, x1, y1);
+
+    vertices[*index].position.x = x1;
+    vertices[*index].position.y = y1;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x1;
+    vertices[*index].tex_coord.y = tex_y1;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = p1_x1;
+    vertices[*index].position.y = p1_y1;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x1;
+    vertices[*index].tex_coord.y = tex_y2;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = x2;
+    vertices[*index].position.y = y2;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x2;
+    vertices[*index].tex_coord.y = tex_y1;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = p1_x2;
+    vertices[*index].position.y = p1_y2;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x2;
+    vertices[*index].tex_coord.y = tex_y2;
+    vertices[*index].color = color_index;
+    ++(*index);
+}
+
+inline
+void vertex_rect_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+    f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
+    uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
+) {
+    if (align_h == UI_ALIGN_H_RIGHT) {
+        x -= width;
+    } else if (align_h == UI_ALIGN_H_CENTER) {
+        x -= width / 2;
+    }
+
+    if (align_v == UI_ALIGN_V_TOP) {
+        y -= height;
+    } else if (align_v == UI_ALIGN_V_CENTER) {
+        y -= height / 2;
+    }
+
+    vertex_degenerate_create(vertices, index, zindex, x, y);
 
     // Rectangle
     vertices[*index].position.x = x;
@@ -61,7 +145,6 @@ void vertex_rect_create(
     vertices[*index].color = color_index;
     ++(*index);
 
-    // Depending on the orientation we either need to add or subtract height -> we use branchless code for that
     vertices[*index].position.x = x;
     vertices[*index].position.y = y + height;
     vertices[*index].position.z = zindex;
@@ -87,8 +170,157 @@ void vertex_rect_create(
     ++(*index);
 }
 
-void text_calculate_dimensions(
-    f32* __restrict width, f32* __restrict height,
+inline
+void vertex_rect_border_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+    f32 x, f32 y, f32 width, f32 height, f32 thickness, int32 align_h, int32 align_v,
+    uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
+) {
+    if (align_h == UI_ALIGN_H_RIGHT) {
+        x -= width;
+    } else if (align_h == UI_ALIGN_H_CENTER) {
+        x -= width / 2;
+    }
+
+    if (align_v == UI_ALIGN_V_TOP) {
+        y -= height;
+    } else if (align_v == UI_ALIGN_V_CENTER) {
+        y -= height / 2;
+    }
+
+    vertex_degenerate_create(vertices, index, zindex, x, y);
+
+    // @bug While this works for the whole rectangle it doesn't work for individual borders
+    // @todo We need a version where you can define individual borders
+
+    // Rectangle
+    // Top border
+    vertices[*index].position.x = x;
+    vertices[*index].position.y = y;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x1;
+    vertices[*index].tex_coord.y = tex_y1;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = x;
+    vertices[*index].position.y = y + thickness;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x1;
+    vertices[*index].tex_coord.y = tex_y2;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = x + width;
+    vertices[*index].position.y = y;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x2;
+    vertices[*index].tex_coord.y = tex_y1;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = x + width;
+    vertices[*index].position.y = y + thickness;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x2;
+    vertices[*index].tex_coord.y = tex_y2;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    // Right border
+    vertices[*index].position.x = x + width - thickness;
+    vertices[*index].position.y = y + thickness;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x2;
+    vertices[*index].tex_coord.y = tex_y2;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = x + width;
+    vertices[*index].position.y = y + height;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x1;
+    vertices[*index].tex_coord.y = tex_y2;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = x + width - thickness;
+    vertices[*index].position.y = y + height;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x2;
+    vertices[*index].tex_coord.y = tex_y1;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    // Bottom border
+    vertices[*index].position.x = x + width - thickness;
+    vertices[*index].position.y = y + height - thickness;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x2;
+    vertices[*index].tex_coord.y = tex_y2;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = x;
+    vertices[*index].position.y = y + height;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x1;
+    vertices[*index].tex_coord.y = tex_y2;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = x;
+    vertices[*index].position.y = y + height - thickness;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x2;
+    vertices[*index].tex_coord.y = tex_y1;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    // Left border
+    vertices[*index].position.x = x + thickness;
+    vertices[*index].position.y = y + height - thickness;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x2;
+    vertices[*index].tex_coord.y = tex_y2;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = x;
+    vertices[*index].position.y = y + thickness;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x1;
+    vertices[*index].tex_coord.y = tex_y2;
+    vertices[*index].color = color_index;
+    ++(*index);
+
+    vertices[*index].position.x = x + thickness;
+    vertices[*index].position.y = y + thickness;
+    vertices[*index].position.z = zindex;
+    vertices[*index].tex_coord.x = tex_x2;
+    vertices[*index].tex_coord.y = tex_y1;
+    vertices[*index].color = color_index;
+    ++(*index);
+}
+
+void vertex_input(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+    f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
+    uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
+)
+{
+    vertex_rect_border_create(
+        vertices, index, zindex,
+        x, y, width, height, 1, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
+        12, 0.0f, 0.0f
+    );
+
+    vertex_rect_create(
+        vertices, index, zindex,
+        x + 1, y + 1, width - 2, height - 2, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
+        14, 0.0f, 0.0f
+    );
+}
+
+void text_calculate_dimensions(f32* __restrict width, f32* __restrict height,
     const Font* __restrict font, const char* text, f32 scale, int32 length
 ) {
     f32 x = 0;
@@ -130,8 +362,7 @@ void text_calculate_dimensions(
     *height = y;
 }
 
-void vertex_text_create(
-    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+void vertex_text_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
     const Font* __restrict font, const char* __restrict text, f32 size, uint32 color_index = 0
 ) {
