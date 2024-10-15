@@ -179,10 +179,23 @@ struct v3_f32 {
 struct v4_f32 {
     union {
         struct {
-            f32 x;
-            f32 y;
-            f32 z;
-            f32 w;
+            union {
+                f32 x;
+                f32 r;
+            };
+            union {
+                f32 y;
+                f32 g;
+            };
+
+            union {
+                f32 z;
+                f32 b;
+            };
+            union {
+                f32 w;
+                f32 a;
+            };
         };
 
         f32 vec[4];

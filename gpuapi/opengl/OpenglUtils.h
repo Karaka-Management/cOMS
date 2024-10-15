@@ -12,9 +12,9 @@
 #include "../../stdlib/Types.h"
 #include "../../memory/RingMemory.h"
 #include "../../utils/TestUtils.h"
-#include "../../models/Attrib.h"
 #include "../../object/Texture.h"
 #include "../../utils/StringUtils.h"
+#include "../../log/Log.h"
 
 #include "../RenderUtils.h"
 #include "Opengl.h"

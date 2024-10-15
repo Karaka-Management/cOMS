@@ -51,6 +51,10 @@ struct LogMemory {
     uint64 end;
 };
 
+void log_to_file();
+void log(const char* str, bool should_log, bool save, const char* file, const char* function, int32 line);
+void log(const char* format, LogDataType data_type, void* data, bool should_log, bool save, const char* file, const char* function, int32 line);
+
 #if (LOG_LEVEL == 0)
     // Don't perform any logging at log level 0
     #define LOG(str, should_log, save) ((void) 0)

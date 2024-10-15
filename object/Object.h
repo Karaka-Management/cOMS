@@ -9,11 +9,11 @@
 #ifndef TOS_OBJECT_H
 #define TOS_OBJECT_H
 
-#include "Vertex.h"
 #include "../stdlib/Types.h"
 #include "../memory/RingMemory.h"
 #include "../utils/EndianUtils.h"
-#include "../compression/LZP.h"
+
+#include "Vertex.h"
 
 #if _WIN32
     #include "../platform/win32/UtilsWin32.h"
@@ -24,7 +24,12 @@
 #include "Mesh.h"
 #include "../stdlib/simd/SIMD_I32.h"
 
+#define MESH_VERSION 1
+
+// @todo The name Object.h is stupid, copy content to Mesh.h
+
 // @todo also handle textures etc.
+// WARNING: mesh needs to have memory already reserved and asigned to data
 void object_from_file_txt(
     RingMemory* ring,
     const char* path,
@@ -35,6 +40,7 @@ void object_from_file_txt(
     file_read(path, &file, ring);
 
     char* pos = (char *) file.content;
+    mesh->version = strtol(pos, &pos, 10); ++pos;
 
     int32 object_index = 0;
     int32 group_index = 0;
@@ -366,6 +372,10 @@ int32 object_from_file(
 
     byte* pos = file.content;
 
+    // Read version
+    //mesh->version = *((int32 *) pos);
+    //pos += sizeof(mesh->version);
+
     // Read base data
     mesh->vertex_type = *((int32 *) pos);
     pos += sizeof(mesh->vertex_type);
@@ -383,6 +393,7 @@ int32 object_from_file(
     pos += sizeof(mesh->color_count);
 
     #if !_WIN32 && !__LITTLE_ENDIAN
+        mesh->version = endian_swap(mesh->version);
         mesh->vertex_type = endian_swap(mesh->vertex_type);
         mesh->verted_count = endian_swap(mesh->verted_count);
         mesh->normal_count = endian_swap(mesh->normal_count);
@@ -545,6 +556,10 @@ void object_to_file(
 
     file.content = ring_get_memory(ring, file.size, 64);
     byte* pos = file.content;
+
+    // version
+    memcpy(pos, &mesh->version, sizeof(mesh->version));
+    pos += sizeof(mesh->version);
 
     // vertices
     memcpy(pos, &vertex_save_format, sizeof(vertex_save_format));

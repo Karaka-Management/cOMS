@@ -6,6 +6,13 @@
 #include "UIAnchor.h"
 #include "../stdlib/Types.h"
 
+struct UIElementDimension {
+	int16 x1;
+	int16 y1;
+	int16 x2;
+	int16 y2;
+};
+
 struct UIElement {
     int id;
     UIElementType type;
@@ -13,10 +20,7 @@ struct UIElement {
     int window_id;
     int panel_id;
 
-    float x;
-    float y;
-    float width;
-    float height;
+    UIElementDimension dimension;
 
     UIAlignH align_h;
     UIAlignV align_v;
@@ -26,8 +30,10 @@ struct UIElement {
     bool is_active;
     bool is_focused;
 
-    v4_f32 color;
-    v4_f32 background_color;
+    int16 scroll_x;
+    int16 scroll_y;
+
+    // @todo animation state
 };
 
 #endif

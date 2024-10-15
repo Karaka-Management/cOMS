@@ -15,6 +15,16 @@
 
 #include "../stdlib/Types.h"
 
+constexpr
+size_t strlen_compile_time(const char* str) {
+    size_t len = 0;
+    while (str[len] != '\0') {
+        ++len;
+    }
+
+    return len;
+}
+
 inline
 int32 utf8_encode(uint32 codepoint, char* out)
 {
@@ -50,8 +60,8 @@ int32 utf8_encode(uint32 codepoint, char* out)
 }
 
 inline
-int32 utf8_decode(const char* in, uint32* codepoint) {
-    unsigned char ch = (unsigned char) in[0];
+int32 utf8_decode(const char* __restrict in, uint32* __restrict codepoint) {
+    unsigned char ch = (unsigned char) *in;
 
     if (ch <= 0x7F) {
         // 1-byte sequence (ASCII)
@@ -134,9 +144,30 @@ int32 utf8_get_char_at(const char* in, int32 index) {
 }
 
 inline
-void wchar_to_char(const wchar_t* src, char* dest, int32 length = 0)
+void wchar_to_char(wchar_t* str, int32 length = 0)
 {
-    char* temp = (char* ) src;
+    char *dest = (char *) str;
+    size_t len = wcslen(str) * sizeof(wchar_t);
+
+    if (length > 0 && length < len) {
+        len = length;
+    }
+
+    for (int32 i = 0; i < len; ++i) {
+        if (*str != '\0') {
+            *dest = (char) *str;
+            ++dest;
+        }
+
+        ++str;
+    }
+
+    *dest = '\0';
+}
+
+inline
+void wchar_to_char(const wchar_t* __restrict src, char* __restrict dest, int32 length = 0)
+{
     size_t len = wcslen(src) * sizeof(wchar_t);
 
     if (length > 0 && length < len) {
@@ -144,12 +175,12 @@ void wchar_to_char(const wchar_t* src, char* dest, int32 length = 0)
     }
 
     for (int32 i = 0; i < len; ++i) {
-        if (*temp != '\0') {
-            *dest = (char) *temp;
+        if (*src != '\0') {
+            *dest = (char) *src;
             ++dest;
         }
 
-        ++temp;
+        ++src;
     }
 
     *dest = '\0';
@@ -176,7 +207,7 @@ int32 str_to_int(const char *str)
     return result * sign;
 }
 
-inline size_t str_count(const char* str, const char* substr)
+inline size_t str_count(const char* __restrict str, const char* __restrict substr)
 {
     size_t l1 = strlen(str);
     size_t l2 = strlen(substr);
@@ -228,27 +259,27 @@ str_concat(
     *dst = '\0';
 }
 
-char* strtok(char* str, const char* delim, char* *saveptr)
-{
+char* strtok(char* str, const char* __restrict delim, char* *key) {
+    char* result;
     if (str == NULL) {
-        str = *saveptr;
+        str = *key;
     }
 
-    if (str == NULL || *str == '\0') {
+    str += strspn(str, delim);
+    if (*str == '\0') {
         return NULL;
     }
 
-    char* token_start = str;
-    char* token_end   = strpbrk(token_start, delim);
+    result = str;
+    str += strcspn(str, delim);
 
-    if (token_end == NULL) {
-        *saveptr = NULL;
-    } else {
-        *token_end = '\0';
-        *saveptr   = token_end + 1;
+    if (*str) {
+        *str++ = '\0';
     }
 
-    return token_start;
+    *key = str;
+
+    return result;
 }
 
 inline
@@ -316,32 +347,6 @@ void create_const_name(const unsigned char* name, char* modified_name)
     }
 }
 
-/**
- * Custom implementation of strtok_r/strtok_s
- */
-char* strtok_(char* str, const char* delim, char* *key) {
-    char* result;
-    if (str == NULL) {
-        str = *key;
-    }
-
-    str += strspn(str, delim);
-    if (*str == '\0') {
-        return NULL;
-    }
-
-    result = str;
-    str += strcspn(str, delim);
-
-    if (*str) {
-        *str++ = '\0';
-    }
-
-    *key = str;
-
-    return result;
-}
-
 bool str_ends_with(const char* str, const char* suffix) {
     if (!str || !suffix) {
         return false;
@@ -358,7 +363,7 @@ bool str_ends_with(const char* str, const char* suffix) {
 }
 
 // WARNING: result needs to have the correct length
-void str_replace(const char* str, const char* search, const char* replace, char* result) {
+void str_replace(const char* str, const char* __restrict search, const char* __restrict replace, char* result) {
     if (str == NULL || search == NULL || replace == NULL || result == NULL) {
         return;
     }

@@ -1,0 +1,11 @@
+#ifndef TOS_EXTENSION_TYPE_H
+#define TOS_EXTENSION_TYPE_H
+
+enum ExtensionType {
+    EXTENSION_TYPE_NONE,
+
+    EXTENSION_TYPE_HUD,
+    EXTENSION_TYPE_GENERAL,
+};
+
+#endif

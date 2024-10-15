@@ -23,6 +23,5 @@ struct DebugContainer {
         HANDLE log_fp;
     #endif
 };
-global_persist DebugContainer* debug_container;
 
 #endif

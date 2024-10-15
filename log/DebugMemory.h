@@ -13,7 +13,6 @@
 #include <malloc.h>
 
 #include "../stdlib/Types.h"
-#include "Debug.h"
 
 // required for __rdtsc
 #if _WIN32
@@ -49,6 +48,12 @@ struct DebugMemoryContainer {
 };
 
 #if DEBUG || INTERNAL
+    void debug_memory_init(uint64, uint64);
+    void debug_memory_read(uint64, uint64, const char*);
+    void debug_memory_write(uint64, uint64, const char*);
+    void debug_memory_delete(uint64, uint64, const char*);
+    void debug_memory_reset();
+
     #define DEBUG_MEMORY_INIT(start, size) debug_memory_init((start), (size))
     #define DEBUG_MEMORY_READ(start, size) debug_memory_read((start), (size), __func__)
     #define DEBUG_MEMORY_WRITE(start, size) debug_memory_write((start), (size), __func__)

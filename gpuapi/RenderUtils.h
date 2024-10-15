@@ -11,11 +11,15 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "../stdlib/Types.h"
+#include "../utils/StringUtils.h"
 #include "../math/matrix/MatrixFloat32.h"
 #include "../font/Font.h"
+#include "../object/Vertex.h"
 
 inline
-void vertex_degenerate_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+void vertex_degenerate_create(
+    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y
 ) {
     // Degenerate triangles
@@ -40,7 +44,8 @@ void vertex_degenerate_create(Vertex3DTextureColorIndex* __restrict vertices, ui
 }
 
 inline
-void vertex_line_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+void vertex_line_create(
+    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x1, f32 y1, f32 x2, f32 y2, f32 thickness, int32 align_h, int32 align_v,
     uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
 ) {
@@ -118,7 +123,8 @@ void vertex_line_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* 
 }
 
 inline
-void vertex_rect_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+void vertex_rect_create(
+    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
     uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
 ) {
@@ -171,7 +177,8 @@ void vertex_rect_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* 
 }
 
 inline
-void vertex_rect_border_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+void vertex_rect_border_create(
+    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y, f32 width, f32 height, f32 thickness, int32 align_h, int32 align_v,
     uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
 ) {
@@ -320,7 +327,8 @@ void vertex_input(Vertex3DTextureColorIndex* __restrict vertices, uint32* __rest
     );
 }
 
-void text_calculate_dimensions(f32* __restrict width, f32* __restrict height,
+void text_calculate_dimensions(
+    f32* __restrict width, f32* __restrict height,
     const Font* __restrict font, const char* text, f32 scale, int32 length
 ) {
     f32 x = 0;
@@ -362,7 +370,8 @@ void text_calculate_dimensions(f32* __restrict width, f32* __restrict height,
     *height = y;
 }
 
-void vertex_text_create(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+void vertex_text_create(
+    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
     const Font* __restrict font, const char* __restrict text, f32 size, uint32 color_index = 0
 ) {

@@ -21,6 +21,8 @@
 struct Mesh {
     byte* data; // memory owner that subdevides into the pointers below
 
+    // @todo Implement the version into the file, currently not implemented
+    int32 version;
     uint32 object;
 
     uint32 group_count;

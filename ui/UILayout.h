@@ -3,49 +3,21 @@
 
 #include "../stdlib/Types.h"
 
-#include "UIPosition.h"
+#include "UIElement.h"
 #include "UILocation.h"
 
 struct UILayout {
-    int x;
-    int y;
+    int32 ui_deadzone_count = 5;
+    UIElementDimension ui_deadzone[5];
 
-    int width;
-    int height;
+    int32 element_hoverable_count;
+	UIElementDimension* elements_hoverable;
 
-    UIPosition position;
+    int32 element_interactible_count;
+	UIElementDimension* elements_interactible;
 
-    UILocation self;
-    UILocation children;
-
-    int margin[4];
-    int padding[4];
-
-    int border_width[4];
-    v3_int32 border_color;
-
-    v3_int32 color_background;
-    v3_int32 color_foreground;
-
-    int image_background;
-    int image_width;
-    int image_height;
-
-    // Horizontal and vertical scaling can have 2 scalable areas
-    int image_horizontal_area1[4];
-    int image_horizontal_area2[4];
-
-    int image_vertical_area1[4];
-    int image_vertical_area2[4];
-    bool image_repeatable;
-
-    int shadow_outer_width[4];
-    int shadow_outer_color;
-
-    int shadow_inner_width[4];
-    int shadow_inner_color;
-
-    int curser_style;
+    int32 element_count;
+    UIElement* element;
 };
 
 #endif

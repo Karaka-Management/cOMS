@@ -9,10 +9,12 @@
 #ifndef TOS_MATH_MATRIX_FLOAT32_H
 #define TOS_MATH_MATRIX_FLOAT32_H
 
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
 #include "../../stdlib/Intrinsics.h"
 #include "../../utils/MathUtils.h"
 #include "../../utils/TestUtils.h"
-#include <math.h>
 
 // @todo Implement intrinsic versions!
 

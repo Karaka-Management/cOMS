@@ -12,6 +12,7 @@
 #include "../../stdlib/Types.h"
 #include "../chat/ChatStatus.h"
 #include "setting_types.h"
+#include "../../module/Module.h"
 
 #if _WIN32
     #include <windows.h>
@@ -47,6 +48,8 @@
 #ifndef RENDER_PAYER_CHUNK_RADIUS
     #define RENDER_PAYER_CHUNK_RADIUS 3
 #endif
+
+#define MAX_ACTIVE_EXTENSIONS 15
 
 // @todo remove default values because we will load them during startup
 struct SSettings {
@@ -355,6 +358,9 @@ struct CSettings {
     bool input_lock_cursor_to_window = true;
     bool input_click_to_move = true;
 
+    int32 active_module_count;
+    Module* active_modules;
+
     // Hotkey settings
     // @todo hotkey combination e.g. alt+1
     byte hotkeys_movement_up = 0x57; // W
@@ -428,6 +434,8 @@ struct CSettings {
     byte hotkeys_camera_3 = 0x0;
 
     // @todo implement the actual camera settings
+
+    char modules[MAX_ACTIVE_EXTENSIONS * 32];
 };
 
 #endif
