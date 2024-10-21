@@ -101,6 +101,23 @@ uint64 time_ms()
     return (counter.QuadPart * 1000000) / frequency.QuadPart;
 }
 
+inline
+bool file_exists(const char* path)
+{
+    DWORD file_attr;
+
+    if (*path == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
+
+        file_attr = GetFileAttributesA(full_path);
+    } else {
+        file_attr = GetFileAttributesA(path);
+    }
+
+    return file_attr != INVALID_FILE_ATTRIBUTES;
+}
+
 inline void
 file_read(const char* path, FileBody* file, RingMemory* ring = NULL)
 {

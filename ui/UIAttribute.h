@@ -28,6 +28,7 @@ enum UIAttributeType {
     UI_ATTRIBUTE_TYPE_CONTENT_ALIGN_H,
     UI_ATTRIBUTE_TYPE_CONTENT_ALIGN_V,
 
+    UI_ATTRIBUTE_TYPE_FONT_NAME,
     UI_ATTRIBUTE_TYPE_FONT_COLOR_INDEX,
     UI_ATTRIBUTE_TYPE_FONT_COLOR,
     UI_ATTRIBUTE_TYPE_FONT_SIZE,
@@ -109,6 +110,8 @@ constexpr const char* ui_attribute_type_to_string(int32 e)
             return "type";
         case UI_ATTRIBUTE_TYPE_STYLE:
             return "style";
+        case UI_ATTRIBUTE_TYPE_FONT_NAME:
+            return "font_name";
         case UI_ATTRIBUTE_TYPE_FONT_COLOR:
             return "font_color";
         case UI_ATTRIBUTE_TYPE_FONT_SIZE:

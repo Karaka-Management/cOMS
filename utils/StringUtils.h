@@ -246,6 +246,23 @@ inline char* strsep(const char* *sp, const char* sep)
 
 inline void
 str_concat(
+    const char* src1,
+    const char* src2,
+    char* dst
+) {
+    size_t len = strlen(src1);
+    memcpy(dst, src1, len);
+    dst += len;
+
+    len = strlen(src2);
+    memcpy(dst, src2, len);
+    dst += len;
+
+    *dst = '\0';
+}
+
+inline void
+str_concat(
     const char* src1, size_t src1_length,
     const char* src2, size_t src2_length,
     char* dst

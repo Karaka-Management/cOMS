@@ -27,13 +27,12 @@ struct HuffmanNode {
 struct Huffman {
     HuffmanNode pool[512];
     HuffmanNode priority_queue[511];
-    HuffmanNode** pq;
+    HuffmanNode** pq; // 1 indexed array (see huffman_init)
     int32 node_count;
     int32 pq_end;
 
-    // Contains the actual table data
-    char buffer[1024];
-    char* code[256];
+    char buffer[1024]; // Contains the actual table data
+    char* code[256];   // Contains a pointer per ASCII character to the huffman code sequence
 };
 
 HuffmanNode* huffman_node_create(Huffman* hf, int32 frequency, byte character, HuffmanNode* left, HuffmanNode* right)

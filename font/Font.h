@@ -4,14 +4,15 @@
 #include "../stdlib/Types.h"
 #include "../memory/BufferMemory.h"
 #include "../utils/EndianUtils.h"
+#include "../utils/Utils.h"
 #include "../stdlib/simd/SIMD_I32.h"
 
 struct GlyphMetrics {
-    f32 width;         // Width of the glyph
-    f32 height;        // Height of the glyph
-    f32 offset_x;       // Horizontal offset from baseline
-    f32 offset_y;       // Vertical offset from baseline
-    f32 advance_x;      // Horizontal advance after drawing the glyph
+    f32 width;     // Width of the glyph
+    f32 height;    // Height of the glyph
+    f32 offset_x;  // Horizontal offset from baseline
+    f32 offset_y;  // Vertical offset from baseline
+    f32 advance_x; // Horizontal advance after drawing the glyph
 };
 
 struct GlyphTextureCoords {
@@ -29,11 +30,11 @@ struct Glyph {
 
 struct Font {
     uint32 glyph_count;
-    f32 size; // Default font size
-    uint32 line_height;
+    char texture_name[32];
+    f32 size;              // Default font size at which the font renders best
+    f32 line_height;       // How tall is a single line (mostly important for multiple lines)
     Glyph* glyphs;
 
-    // @question Do we want to have a pointer to the glyph Texture
 };
 
 inline
@@ -74,25 +75,31 @@ void font_from_file_txt(
     int32 image_width = 0;
     int32 image_height = 0;
 
+    char* texture_pos = font->texture_name;
+
     while (*pos != '\0') {
         if (start) {
             // Parsing general data
             int32 i = 0;
-            while (*pos != '\0' && *pos != ' ' && *pos != '\n' && i < 31) {
+            while (*pos != '\0' && *pos != ' ' && *pos != ':' && *pos != '\n' && i < 31) {
                 block_name[i] = *pos;
                 ++pos;
                 ++i;
             }
 
             // Go to value
-            while (*pos == ' ' || *pos == '\t') {
+            while (*pos == ' ' || *pos == '\t' || *pos == ':') {
                 ++pos;
             }
 
-            if (strcmp(block_name, "font_size") == 0) {
+            if (strcmp(block_name, "texture") == 0) {
+                while (*pos != '\n') {
+                    *texture_pos++ == *pos++;
+                }
+            } else if (strcmp(block_name, "font_size") == 0) {
                 font->size = strtof(pos, &pos);
             } else if (strcmp(block_name, "line_height") == 0) {
-                font->line_height = strtoul(pos, &pos, 10);
+                font->line_height = strtof(pos, &pos);
             } else if (strcmp(block_name, "image_width") == 0) {
                 image_width = strtoul(pos, &pos, 10);
             } else if (strcmp(block_name, "image_height") == 0) {
@@ -117,6 +124,12 @@ void font_from_file_txt(
 
             font->glyphs[glyph_index].metrics.width = font->glyphs[glyph_index].coords.x2 - font->glyphs[glyph_index].coords.x1;
             font->glyphs[glyph_index].metrics.height = font->glyphs[glyph_index].coords.y2 - font->glyphs[glyph_index].coords.y1;
+
+            font->glyphs[glyph_index].coords.x1 /= image_width;
+            font->glyphs[glyph_index].coords.x2 /= image_width;
+
+            font->glyphs[glyph_index].coords.y1 /= image_height;
+            font->glyphs[glyph_index].coords.y2 /= image_height;
 
             ++glyph_index;
 
@@ -154,12 +167,16 @@ void font_from_file(
     font->glyph_count = SWAP_ENDIAN_LITTLE(*((uint32 *) pos));
     pos += sizeof(font->glyph_count);
 
+    // Read texture name
+    memcpy(font->texture_name, pos, ARRAY_COUNT(font->texture_name) * sizeof(char));
+    pos += ARRAY_COUNT(font->texture_name) * sizeof(char);
+
     // Read font size
     font->size = SWAP_ENDIAN_LITTLE(*((f32 *) pos));
     pos += sizeof(font->size);
 
     // Read line height
-    font->line_height = SWAP_ENDIAN_LITTLE(*((uint32 *) pos));
+    font->line_height = SWAP_ENDIAN_LITTLE(*((f32 *) pos));
     pos += sizeof(font->line_height);
 
     memcpy(font->glyphs, pos, font->glyph_count * sizeof(Glyph));
@@ -195,12 +212,16 @@ void font_to_file(
     *((uint32 *) pos) = font->glyph_count;
     pos += sizeof(font->glyph_count);
 
+    // Texture name
+    memcpy(pos, font->texture_name, ARRAY_COUNT(font->texture_name) * sizeof(char));
+    pos += ARRAY_COUNT(font->texture_name) * sizeof(char);
+
     // Font size
     *((f32 *) pos) = font->size;
     pos += sizeof(font->size);
 
     // Line height
-    *((uint32 *) pos) = font->line_height;
+    *((f32 *) pos) = font->line_height;
     pos += sizeof(font->line_height);
 
     // The glyphs are naturally tightly packed -> we can just store the memory

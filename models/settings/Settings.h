@@ -243,7 +243,7 @@ struct CSettings {
 
     // UI settings
     // Themes
-    uint32 game_ui_theme = 1;
+    char game_ui_theme[32];
     byte game_ui_size = 128;
 
     uint32 game_item_icon_theme = 1;

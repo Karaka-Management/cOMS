@@ -104,6 +104,10 @@ void theme_from_file_txt(
     file_read(path, &file, ring);
 
     char* pos = (char *) file.content;
+
+    // move past the version string
+    pos += 8;
+
     theme->version = strtol(pos, &pos, 10); ++pos;
 
     bool block_open = false;
@@ -196,7 +200,7 @@ void theme_from_file_txt(
         }
 
         int32 i = 0;
-        while (*pos != '\0' && *pos != ' ' && *pos != '\n' && i < 31) {
+        while (*pos != '\0' && *pos != ' ' && *pos != ':' && *pos != '\n' && i < 31) {
             attribute_name[i] = *pos;
             ++pos;
             ++i;
@@ -255,13 +259,13 @@ void theme_from_file_txt(
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
         } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_SIZE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_SIZE;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_float = strtoul(pos, &pos, 10); ++pos;
         } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_WEIGHT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_WEIGHT;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
         } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_float = strtoul(pos, &pos, 10); ++pos;
         } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_ALIGN_H), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_ALIGN_H;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;

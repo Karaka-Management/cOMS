@@ -452,15 +452,29 @@ f32 ui_text_create(
         return;
     }
 
-    HashEntryVoidP* entry = (HashEntryVoidP *) hashmap_get_entry(&theme->hash_map, element->name, element->id);
-    UIAttributeGroup* group = (UIAttributeGroup *) entry->value;
+    // @performance see comment for setup_theme()
+
+    // Load element data
+    HashEntryVoidP* element_entry = (HashEntryVoidP *) hashmap_get_entry(&theme->primary_scene->hash_map, element->name, element->id);
+    UIAttributeGroup* element_group = (UIAttributeGroup *) element_entry->value;
+
+    // Load general style
+    UIAttribute* style = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_STYLE);
+    HashEntryVoidP* style_entry = NULL;
+    UIAttributeGroup* style_group = NULL;
+
+    if (style) {
+        style_entry = (HashEntryVoidP *) hashmap_get_entry(&theme->primary_scene->hash_map, style->value_str);
+        style_group = (UIAttributeGroup *) style_entry->value;
+    }
 
     UIAttribute* x;
     UIAttribute* y;
 
-    UIAttribute* parent = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_PARENT);
+    // Load parent data (for position data)
+    UIAttribute* parent = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_PARENT);
     if (parent) {
-        HashEntryVoidP* parent_entry = (HashEntryVoidP *) hashmap_get_entry(&theme->hash_map, parent->value_str);
+        HashEntryVoidP* parent_entry = (HashEntryVoidP *) hashmap_get_entry(&theme->primary_scene->hash_map, parent->value_str);
         UIAttributeGroup* parent_group = (UIAttributeGroup *) parent_entry->value;
 
         x = ui_attribute_from_group(parent_group, UI_ATTRIBUTE_TYPE_POSITION_X);
@@ -469,17 +483,17 @@ f32 ui_text_create(
         // @question Do we have more values which can be inherited from the parent?
         //      We don't want to inherit implicit stuff like size, background etc. These things should be defined explicitly
     } else {
-        x = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_POSITION_X);
-        y = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_POSITION_Y);
+        x = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_POSITION_X);
+        y = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_POSITION_Y);
     }
 
-    UIAttribute* width = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH);
-    UIAttribute* height = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT);
-    UIAttribute* align_h = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_ALIGN_H);
-    UIAttribute* align_v = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_ALIGN_V);
-    UIAttribute* text = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_CONTENT);
-    UIAttribute* size = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_FONT_SIZE);
-    UIAttribute* color_index = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_FONT_COLOR);
+    UIAttribute* width = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH);
+    UIAttribute* height = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT);
+    UIAttribute* align_h = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_ALIGN_H);
+    UIAttribute* align_v = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_ALIGN_V);
+    UIAttribute* text = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_CONTENT);
+    UIAttribute* size = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_FONT_SIZE);
+    UIAttribute* color_index = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_FONT_COLOR);
 
     int32 length = utf8_strlen(text->value_str);
     float scale = size->value_float / theme->font.size;
@@ -560,15 +574,29 @@ void ui_button_create(
         return;
     }
 
-    HashEntryVoidP* entry = (HashEntryVoidP *) hashmap_get_entry(&theme->hash_map, element->name, element->id);
-    UIAttributeGroup* group = (UIAttributeGroup *) entry->value;
+    // @performance see comment for setup_theme()
+
+    // Load element data
+    HashEntryVoidP* element_entry = (HashEntryVoidP *) hashmap_get_entry(&theme->primary_scene->hash_map, element->name, element->id);
+    UIAttributeGroup* element_group = (UIAttributeGroup *) element_entry->value;
+
+    // Load general style
+    UIAttribute* style = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_STYLE);
+    HashEntryVoidP* style_entry = NULL;
+    UIAttributeGroup* style_group = NULL;
+
+    if (style) {
+        style_entry = (HashEntryVoidP *) hashmap_get_entry(&theme->primary_scene->hash_map, style->value_str);
+        style_group = (UIAttributeGroup *) style_entry->value;
+    }
 
     UIAttribute* x;
     UIAttribute* y;
 
-    UIAttribute* parent = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_PARENT);
+    // Load parent data (for position data)
+    UIAttribute* parent = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_PARENT);
     if (parent) {
-        HashEntryVoidP* parent_entry = (HashEntryVoidP *) hashmap_get_entry(&theme->hash_map, parent->value_str);
+        HashEntryVoidP* parent_entry = (HashEntryVoidP *) hashmap_get_entry(&theme->primary_scene->hash_map, parent->value_str);
         UIAttributeGroup* parent_group = (UIAttributeGroup *) parent_entry->value;
 
         x = ui_attribute_from_group(parent_group, UI_ATTRIBUTE_TYPE_POSITION_X);
@@ -577,17 +605,17 @@ void ui_button_create(
         // @question Do we have more values which can be inherited from the parent?
         //      We don't want to inherit implicit stuff like size, background etc. These things should be defined explicitly
     } else {
-        x = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_POSITION_X);
-        y = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_POSITION_Y);
+        x = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_POSITION_X);
+        y = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_POSITION_Y);
     }
 
-    UIAttribute* width = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH);
-    UIAttribute* height = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT);
-    UIAttribute* align_h = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_ALIGN_H);
-    UIAttribute* align_v = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_ALIGN_V);
-    UIAttribute* text = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_CONTENT);
-    UIAttribute* size = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_FONT_SIZE);
-    UIAttribute* color_index = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_FONT_COLOR);
+    UIAttribute* width = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH);
+    UIAttribute* height = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT);
+    UIAttribute* align_h = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_ALIGN_H);
+    UIAttribute* align_v = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_ALIGN_V);
+    UIAttribute* text = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_CONTENT);
+    UIAttribute* size = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_FONT_SIZE);
+    UIAttribute* color_index = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_FONT_COLOR);
 
     // @todo Above we only handle the default values, what about state dependent values like hover, active?
     //  Simply check the state here and load the child_entries based on the state
