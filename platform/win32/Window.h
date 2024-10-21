@@ -16,8 +16,8 @@ struct WindowState {
     uint16 width;
     uint16 height;
 
-    int32 x;
-    int32 y;
+    uint16 x;
+    uint16 y;
     uint64 style;
 };
 
@@ -30,8 +30,8 @@ struct Window {
     uint16 width;
     uint16 height;
 
-    int32 x;
-    int32 y;
+    uint16 x;
+    uint16 y;
 
     // 1. position
     // 2. focus

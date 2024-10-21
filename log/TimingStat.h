@@ -20,8 +20,6 @@
     #include <x86intrin.h>
 #endif
 
-global_persist uint64 performance_count_frequency;
-
 struct TimingStat {
     const char* function;
     uint64 old_tick_count;
@@ -32,6 +30,7 @@ struct TimingStat {
 // Sometimes we want to only do logging in debug mode.
 // In such cases use the following macro.
 #if DEBUG || INTERNAL
+    void update_timing_stat(uint32, const char*);
     #define UPDATE_TIMING_STAT(stat) update_timing_stat(stat, __func__)
 #else
     #define UPDATE_TIMING_STAT(stat) ((void) 0)

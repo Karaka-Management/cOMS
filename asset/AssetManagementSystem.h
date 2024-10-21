@@ -25,6 +25,11 @@ struct AssetManagementSystem {
     // @question is this even necessary or could we integrate this directly into the system here?
     HashMap hash_map;
 
+    uint64 ram_size;
+    uint64 vram_size;
+    uint64 asset_count;
+    bool has_changed;
+
     // The indices of asset_memory and asset_data_memory are always linked
 
     // General asset memory
@@ -71,7 +76,7 @@ int32 ams_calculate_chunks(AssetManagementSystem* ams, int32 byte_size)
 inline
 int64 ams_get_buffer_size(int count, int chunk_size)
 {
-    return hashmap_get_buffer_size(count, sizeof(HashEntryInt64)) // hash map
+    return hashmap_size(count, sizeof(HashEntryInt64)) // hash map
         + sizeof(Asset) * count + CEIL_DIV(count, 64) * sizeof(uint64) // asset_memory
         + chunk_size * count + CEIL_DIV(count, 64) * sizeof(uint64); // asset_data_memory
 }
@@ -103,14 +108,55 @@ void ams_create(AssetManagementSystem* ams, byte* buf, int chunk_size, int count
 }
 
 inline
-uint64 ams_get_vram_usage(AssetManagementSystem* ams)
+void ams_update_stats(AssetManagementSystem* ams)
 {
-    uint64 size = 0;
-    for (int32 i = 0; i < ams->asset_memory.count; ++i) {
-        size += ((Asset *) (ams->asset_memory.memory))[i].vram_size;
+    // @bug We should check the hash map or the memory status, we could still have old values in here
+
+    ams->vram_size = 0;
+    ams->ram_size = 0;
+    ams->asset_count = 0;
+
+    Asset* temp_asset = ams->first;
+
+    while (temp_asset) {
+        ams->vram_size += temp_asset->vram_size;
+        ams->ram_size += temp_asset->ram_size;
+        ++ams->asset_count;
+
+        temp_asset = temp_asset->next;
     }
 
-    return size;
+    ams->has_changed = false;
+}
+
+inline
+uint64 ams_get_asset_count(AssetManagementSystem* ams)
+{
+    if (ams->has_changed) {
+        ams_update_stats(ams);
+    }
+
+    return ams->asset_count;
+}
+
+inline
+uint64 ams_get_vram_usage(AssetManagementSystem* ams)
+{
+    if (ams->has_changed) {
+        ams_update_stats(ams);
+    }
+
+    return ams->vram_size;
+}
+
+inline
+uint64 ams_get_ram_usage(AssetManagementSystem* ams)
+{
+    if (ams->has_changed) {
+        ams_update_stats(ams);
+    }
+
+    return ams->ram_size;
 }
 
 void ams_free_asset(AssetManagementSystem* ams, Asset* asset)
@@ -124,6 +170,8 @@ void ams_free_asset(AssetManagementSystem* ams, Asset* asset)
         chunk_free_element(&ams->asset_memory, asset->internal_id + i);
         chunk_free_element(&ams->asset_data_memory, asset->internal_id + i);
     }
+
+    ams->has_changed = true;
 }
 
 inline
@@ -207,6 +255,8 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 el
         ams->last->next = asset;
         ams->last = asset;
     }
+
+    ams->has_changed = true;
 
     return asset;
 }

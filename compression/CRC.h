@@ -47,7 +47,7 @@ uint32 crc_table[256] =
     0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D,
 };
 
-uint32 calculate_crc32_checksum(uint8 *p, uint32 length)
+uint32 crc32_checksum_calculate(uint8 *p, uint32 length)
 {
 	uint32 crc = 0xFFFFFFFF;
 	while (length-- != 0) {
@@ -58,7 +58,7 @@ uint32 calculate_crc32_checksum(uint8 *p, uint32 length)
 	return (crc ^ 0xFFFFFFFF);
 }
 
-void fill_crc32_table(uint32 *table){
+void crc32_table_fill(uint32 *table){
     uint8 index = 0,z;
     do {
         table[index] = index;

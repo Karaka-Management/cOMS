@@ -14,7 +14,7 @@
 
 #include "../stdlib/Types.h"
 
-uint32 encode_lzp(const byte* in, size_t length, byte* out)
+uint32 lzp_encode(const byte* in, size_t length, byte* out)
 {
     byte buf[9];
     byte table[1 << 16] = {0};
@@ -58,7 +58,7 @@ uint32 encode_lzp(const byte* in, size_t length, byte* out)
     return out_pos;
 }
 
-uint32 decode_lzp(const byte* in, size_t length, byte* out)
+uint32 lzp_decode(const byte* in, size_t length, byte* out)
 {
     byte buf[8];
     byte table[1 << 16] = {0};
@@ -126,7 +126,7 @@ int32 find_longest_match(char *window, int32 window_start, char *buffer, int32 b
     return best_length;
 }
 
-uint32 encode_lzp3(const byte* in, size_t length, byte* out) {
+uint32 lzp3_encode(const byte* in, size_t length, byte* out) {
     char window[4096] = {0};
     int32 window_start = 0;
 
@@ -157,7 +157,7 @@ uint32 encode_lzp3(const byte* in, size_t length, byte* out) {
     return out_size;
 }
 
-uint32 decode_lzp3(const byte* in, size_t length, byte* out) {
+uint32 lzp3_decode(const byte* in, size_t length, byte* out) {
     char window[4096] = {0};
     int32 window_start = 0;
 

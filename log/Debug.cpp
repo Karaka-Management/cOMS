@@ -6,6 +6,15 @@
 #include "Log.h"
 #include "TimingStat.h"
 
+#if _WIN32
+    #include <windows.h>
+    void setup_performance_count() {
+        LARGE_INTEGER perf_counter;
+        QueryPerformanceFrequency(&perf_counter);
+        debug_container->performance_count_frequency = perf_counter.QuadPart;
+    }
+#endif
+
 // IMPORTANT: This function should only be called when you actually use this data
 //      e.g. log to display or file
 inline
@@ -15,8 +24,26 @@ void update_timing_stat(uint32 stat, const char* function)
 
     debug_container->perf_stats[stat].function = function;
     debug_container->perf_stats[stat].delta_tick = new_tick_count - debug_container->perf_stats[stat].old_tick_count;
-    debug_container->perf_stats[stat].delta_time = (double) debug_container->perf_stats[stat].delta_tick / (double) performance_count_frequency;
+    debug_container->perf_stats[stat].delta_time = (double) debug_container->perf_stats[stat].delta_tick / (double) debug_container->performance_count_frequency;
     debug_container->perf_stats[stat].old_tick_count = new_tick_count;
+}
+
+inline
+void reset_counter(int32 id)
+{
+    debug_container->counter[id] = 0;
+}
+
+inline
+void log_increment(int32 id)
+{
+    ++debug_container->counter[id];
+}
+
+inline
+void log_counter(int32 id, int32 value)
+{
+    debug_container->counter[id] = value;
 }
 
 // @todo don't use a pointer to this should be in a global together with other logging data (see Log.h)
@@ -160,9 +187,7 @@ byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
 
     if (aligned > 1) {
         uintptr_t address = (uintptr_t) debug_container->log_memory.memory;
-        int64 adjustment = (aligned - ((address + debug_container->log_memory.pos) & (aligned - 1))) % aligned;
-
-        debug_container->log_memory.pos += adjustment;
+        debug_container->log_memory.pos += (aligned - ((address + debug_container->log_memory.pos) & (aligned - 1))) % aligned;
     }
 
     size = ROUND_TO_NEAREST(size, aligned);
@@ -171,9 +196,7 @@ byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
 
         if (aligned > 1) {
             uintptr_t address = (uintptr_t) debug_container->log_memory.memory;
-            int64 adjustment = (aligned - ((address + debug_container->log_memory.pos) & (aligned - 1))) % aligned;
-
-            debug_container->log_memory.pos += adjustment;
+            debug_container->log_memory.pos += (aligned - ((address + debug_container->log_memory.pos) & (aligned - 1))) % aligned;
         }
     }
 

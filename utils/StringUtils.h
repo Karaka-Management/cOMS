@@ -16,7 +16,7 @@
 #include "../stdlib/Types.h"
 
 constexpr
-size_t strlen_compile_time(const char* str) {
+size_t strlen_const(const char* str) {
     size_t len = 0;
     while (str[len] != '\0') {
         ++len;
@@ -259,6 +259,7 @@ str_concat(
     *dst = '\0';
 }
 
+inline
 char* strtok(char* str, const char* __restrict delim, char* *key) {
     char* result;
     if (str == NULL) {
@@ -283,38 +284,42 @@ char* strtok(char* str, const char* __restrict delim, char* *key) {
 }
 
 inline
-void format_number_render(int32 length, char* buffer, const char thousands = ',')
-{
-    int32 count = (int32) (length / 3) - (length % 3 == 0 ? 1 : 0);
+int32 int_to_str(int64 number, char *str, const char thousands = ',') {
+    int32 i = 0;
+    int64 sign = number;
+    int32 digit_count = 0;
 
-    int32 j = -1;
-    for (int32 i = length; i > 0; --i) {
-        ++j;
-
-        if (j % 3 == 0 && j != 0) {
-            buffer[i + count] = buffer[i];
-            --count;
-            buffer[i + count] = thousands;
-        } else {
-            buffer[i + count] = buffer[i];
-        }
+    if (number == 0) {
+        str[i++] = '0';
+    } else if (number < 0) {
+        number = -number;
     }
-}
 
-char* format_number(size_t number, char* buffer, const char thousands = ',')
-{
-    int32 length = snprintf(buffer, 32, "%zu", number);
-    format_number_render(length, buffer, thousands);
+    while (number > 0) {
+        if (thousands
+            && (digit_count == 3 || digit_count == 6 || digit_count == 9 || digit_count == 12 || digit_count == 15)
+        ) {
+            str[i++] = thousands;
+        }
 
-    return buffer;
-}
+        str[i++] = number % 10 + '0';
+        number /= 10;
+        ++digit_count;
+    }
 
-char* format_number(int32 number, char* buffer, const char thousands = ',')
-{
-    int32 length = snprintf(buffer, 32, "%i", number);
-    format_number_render(length, buffer, thousands);
+    if (sign < 0) {
+        str[i++] = '-';
+    }
 
-    return buffer;
+    str[i] = '\0';
+
+    for (int32 j = 0, k = i - 1; j < k; ++j, --k) {
+        char temp = str[j];
+        str[j] = str[k];
+        str[k] = temp;
+    }
+
+    return i - 1;
 }
 
 char toupper_ascii(char c)

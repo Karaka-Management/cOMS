@@ -13,6 +13,7 @@
 
 #include "../stdlib/Types.h"
 #include "../utils/MathUtils.h"
+#include "../utils/EndianUtils.h"
 #include "../utils/TestUtils.h"
 
 #include "Allocation.h"
@@ -49,6 +50,7 @@ void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
     ring->size = size;
     ring->pos = 0;
     ring->alignment = alignment;
+    ring->element_alignment = 0;
     ring->start = 0;
     ring->end = 0;
 
@@ -56,13 +58,30 @@ void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
 }
 
 inline
-void ring_create(RingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment = 64)
+void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
     ring->memory = buffer_get_memory(buf, size, alignment);
 
     ring->size = size;
     ring->pos = 0;
     ring->alignment = alignment;
+    ring->element_alignment = 0;
+    ring->start = 0;
+    ring->end = 0;
+
+    DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
+}
+
+inline
+void ring_init(RingMemory* ring, byte* buf, uint64 size, int32 alignment = 64)
+{
+    // @bug what if an alignment is defined?
+    ring->memory = buf;
+
+    ring->size = size;
+    ring->pos = 0;
+    ring->alignment = alignment;
+    ring->element_alignment = 0;
     ring->start = 0;
     ring->end = 0;
 
@@ -88,9 +107,7 @@ uint64 ring_calculate_position(const RingMemory* ring, uint64 pos, uint64 size, 
 
     if (aligned) {
         uintptr_t address = (uintptr_t) ring->memory;
-        int64 adjustment = (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
-
-        pos += adjustment;
+        pos += (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
     }
 
     size = ROUND_TO_NEAREST(size, aligned);
@@ -99,9 +116,7 @@ uint64 ring_calculate_position(const RingMemory* ring, uint64 pos, uint64 size, 
 
         if (aligned > 1) {
             uintptr_t address = (uintptr_t) ring->memory;
-            int64 adjustment = (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
-
-            pos += adjustment;
+            pos += (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
         }
     }
 
@@ -125,9 +140,7 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zero
 
     if (aligned > 1) {
         uintptr_t address = (uintptr_t) ring->memory;
-        int64 adjustment = (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
-
-        ring->pos += adjustment;
+        ring->pos += (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
     }
 
     size = ROUND_TO_NEAREST(size, aligned);
@@ -136,9 +149,7 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zero
 
         if (aligned > 1) {
             uintptr_t address = (uintptr_t) ring->memory;
-            int64 adjustment = (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
-
-            ring->pos += adjustment;
+            ring->pos += (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
         }
     }
 
@@ -181,6 +192,40 @@ bool ring_commit_safe(const RingMemory* ring, uint64 size, byte aligned = 0)
     return ring->start < ring->pos
         ? ring->start < pos
         : pos < ring->start;
+}
+
+inline
+int64 ring_dump(const RingMemory* ring, byte* data)
+{
+    byte* start = data;
+
+    // Size
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(ring->size);
+    data += sizeof(ring->size);
+
+    // Pos
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(ring->pos);
+    data += sizeof(ring->pos);
+
+    // Alignment
+    *((int32 *) data) = SWAP_ENDIAN_LITTLE(ring->alignment);
+    data += sizeof(ring->alignment);
+
+    *((int32 *) data) = SWAP_ENDIAN_LITTLE(ring->element_alignment);
+    data += sizeof(ring->element_alignment);
+
+    // Start/End
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(ring->start);
+    data += sizeof(ring->start);
+
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(ring->end);
+    data += sizeof(ring->end);
+
+    // All memory is handled in the buffer -> simply copy the buffer
+    memcpy(data, ring->memory, ring->size);
+    data += ring->size;
+
+    return data - start;
 }
 
 #endif

@@ -12,6 +12,7 @@
 #include <string.h>
 #include "../stdlib/Types.h"
 #include "../utils/MathUtils.h"
+#include "../utils/EndianUtils.h"
 #include "Allocation.h"
 #include "../log/DebugMemory.h"
 
@@ -37,10 +38,12 @@ void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignm
         : (byte *) playform_alloc_aligned(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64), alignment);
 
     buf->count = count;
-    buf->size = chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64);
+    buf->size = count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64);
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
+
+    // @question Could it be beneficial to have this before the element data?
     buf->free = (uint64 *) (buf->memory + count * chunk_size);
 
     DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
@@ -55,6 +58,24 @@ void chunk_free(ChunkMemory* buf)
     } else {
         platform_aligned_free((void **) &buf->memory, buf->size);
     }
+}
+
+inline
+void chunk_init(ChunkMemory* buf, byte* data, uint64 count, uint64 chunk_size, int32 alignment = 64)
+{
+    // @bug what if an alignment is defined?
+    buf->memory = data;
+
+    buf->count = count;
+    buf->size = chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64);
+    buf->chunk_size = chunk_size;
+    buf->last_pos = -1;
+    buf->alignment = alignment;
+
+    // @question Could it be beneficial to have this before the element data?
+    buf->free = (uint64 *) (buf->memory + count * chunk_size);
+
+    DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
 }
 
 inline
@@ -226,6 +247,68 @@ void chunk_free_element(ChunkMemory* buf, uint64 element)
     int32 bit_index = element % 64;
 
     buf->free[byte_index] &= ~(1 << bit_index);
+}
+
+inline
+int64 chunk_dump(const ChunkMemory* buf, byte* data)
+{
+    byte* start = data;
+
+    // Count
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(buf->count);
+    data += sizeof(buf->count);
+
+    // Size
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(buf->size);
+    data += sizeof(buf->size);
+
+    // Chunk Size
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(buf->chunk_size);
+    data += sizeof(buf->chunk_size);
+
+    // Last pos
+    *((int64 *) data) = SWAP_ENDIAN_LITTLE(buf->last_pos);
+    data += sizeof(buf->last_pos);
+
+    // Alignment
+    *((int32 *) data) = SWAP_ENDIAN_LITTLE(buf->alignment);
+    data += sizeof(buf->alignment);
+
+    // All memory is handled in the buffer -> simply copy the buffer
+    // This also includes the free array
+    memcpy(data, buf->memory, buf->size);
+    data += buf->size;
+
+    return data - start;
+}
+
+inline
+int64 chunk_load(ChunkMemory* buf, const byte* data)
+{
+    // Count
+    buf->count = SWAP_ENDIAN_LITTLE(*((uint64 *) data));
+    data += sizeof(buf->count);
+
+    // Size
+    buf->size = SWAP_ENDIAN_LITTLE(*((uint64 *) data));
+    data += sizeof(buf->size);
+
+    // Chunk Size
+    buf->chunk_size = SWAP_ENDIAN_LITTLE(*((uint64 *) data));
+    data += sizeof(buf->chunk_size);
+
+    // Last pos
+    buf->last_pos = SWAP_ENDIAN_LITTLE(*((int64 *) data));
+    data += sizeof(buf->last_pos);
+
+    // Alignment
+    buf->alignment = SWAP_ENDIAN_LITTLE(*((int32 *) data));
+    data += sizeof(buf->alignment);
+
+    memcpy(buf->memory, data, buf->size);
+    data += buf->size;
+
+    buf->free = (uint64 *) (buf->memory + buf->count * buf->chunk_size);
 }
 
 #endif

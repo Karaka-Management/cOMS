@@ -60,13 +60,12 @@ void object_from_file_txt(
     uint32 temp_color_count = 0;
 
     while (*pos != '\0') {
-        while (*pos == ' ') {
+        while (*pos == ' ' || *pos == '\t' || *pos == '\n') {
             ++pos;
         }
 
-        if (*pos == '\n') {
-            ++pos;
-            continue;
+        if (*pos == '\0') {
+            break;
         }
 
         // Parse type
@@ -373,8 +372,8 @@ int32 object_from_file(
     byte* pos = file.content;
 
     // Read version
-    //mesh->version = *((int32 *) pos);
-    //pos += sizeof(mesh->version);
+    mesh->version = *((int32 *) pos);
+    pos += sizeof(mesh->version);
 
     // Read base data
     mesh->vertex_type = *((int32 *) pos);
@@ -552,7 +551,11 @@ void object_to_file(
     FileBody file;
 
     // Temporary file size for buffer
-    file.size = sizeof(mesh) + sizeof(Vertex3D) * mesh->vertex_count + sizeof(f32) * 12 * mesh->vertex_count + 4096;
+    // @todo check the actual size, we are currently more or less guessing
+    file.size = sizeof(mesh)
+        + sizeof(Vertex3D) * mesh->vertex_count
+        + sizeof(f32) * 12 * mesh->vertex_count
+        + 4096;
 
     file.content = ring_get_memory(ring, file.size, 64);
     byte* pos = file.content;
@@ -940,7 +943,7 @@ void object_to_file(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) file.content,
         (int32 *) file.content,
-        (pos - file.content) / 4, // everything in here is 4 bytes -> super easy to swap
+        file.size / 4, // everything in here is 4 bytes -> super easy to swap
         steps
     );
 

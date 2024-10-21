@@ -16,6 +16,12 @@
 #include "../math/matrix/MatrixFloat32.h"
 #include "../font/Font.h"
 #include "../object/Vertex.h"
+#include "../ui/UITheme.h"
+#include "../ui/UIElement.h"
+#include "../ui/UIAlignment.h"
+
+// @performance Create improved vertice generation for components (input + button, chat, ...) where we don't use as many
+//      degenerate triangled
 
 inline
 void vertex_degenerate_create(
@@ -370,7 +376,7 @@ void text_calculate_dimensions(
     *height = y;
 }
 
-void vertex_text_create(
+f32 vertex_text_create(
     Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
     const Font* __restrict font, const char* __restrict text, f32 size, uint32 color_index = 0
@@ -433,6 +439,189 @@ void vertex_text_create(
     // @todo If width or height (usually just width) > 0 we use those values for automatic wrapping
     //      This way we can ensure no overflow easily
     // @todo implement line alignment, currently only total alignment is considered
+
+    return offset_x;
+}
+
+f32 ui_text_create(
+    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+    UITheme* theme, UIElement* element
+) {
+    if (element->vertex_count > 0) {
+        memcpy(vertices + *index, element->vertices, sizeof(Vertex3DTextureColorIndex) * element->vertex_count);
+        return;
+    }
+
+    HashEntryVoidP* entry = (HashEntryVoidP *) hashmap_get_entry(&theme->hash_map, element->name, element->id);
+    UIAttributeGroup* group = (UIAttributeGroup *) entry->value;
+
+    UIAttribute* x;
+    UIAttribute* y;
+
+    UIAttribute* parent = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_PARENT);
+    if (parent) {
+        HashEntryVoidP* parent_entry = (HashEntryVoidP *) hashmap_get_entry(&theme->hash_map, parent->value_str);
+        UIAttributeGroup* parent_group = (UIAttributeGroup *) parent_entry->value;
+
+        x = ui_attribute_from_group(parent_group, UI_ATTRIBUTE_TYPE_POSITION_X);
+        y = ui_attribute_from_group(parent_group, UI_ATTRIBUTE_TYPE_POSITION_Y);
+
+        // @question Do we have more values which can be inherited from the parent?
+        //      We don't want to inherit implicit stuff like size, background etc. These things should be defined explicitly
+    } else {
+        x = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_POSITION_X);
+        y = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_POSITION_Y);
+    }
+
+    UIAttribute* width = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH);
+    UIAttribute* height = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT);
+    UIAttribute* align_h = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_ALIGN_H);
+    UIAttribute* align_v = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_ALIGN_V);
+    UIAttribute* text = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_CONTENT);
+    UIAttribute* size = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_FONT_SIZE);
+    UIAttribute* color_index = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_FONT_COLOR);
+
+    int32 length = utf8_strlen(text->value_str);
+    float scale = size->value_float / theme->font.size;
+
+    // If we do a different alignment we need to pre-calculate the width and height
+    if (align_h != NULL || align_v != NULL) {
+        f32 tmp_width = width->value_int;
+        f32 tmp_height = height->value_int;
+
+        text_calculate_dimensions(&tmp_width, &tmp_height, &theme->font, text->value_str, scale, length);
+
+        if (align_h->value_int == UI_ALIGN_H_RIGHT) {
+            x -= width->value_int;
+        } else if (align_h->value_int == UI_ALIGN_H_CENTER) {
+            x -= width->value_int / 2;
+        }
+
+        if (align_v->value_int == UI_ALIGN_V_TOP) {
+            y -= height->value_int;
+        } else if (align_v->value_int == UI_ALIGN_V_CENTER) {
+            y -= height->value_int / 2;
+        }
+    }
+
+    int32 start = *index;
+    f32 offset_x = x->value_int;
+    f32 offset_y = y->value_int;
+    for (int i = 0; i < length; ++i) {
+        int32 character = utf8_get_char_at(text->value_str, i);
+
+        if (character == '\n') {
+            offset_y += theme->font.line_height * scale;
+            offset_x = x->value_int;
+
+            continue;
+        }
+
+        Glyph* glyph = NULL;
+        for (int j = 0; j < theme->font.glyph_count; ++j) {
+            if (theme->font.glyphs[j].codepoint == character) {
+                glyph = &theme->font.glyphs[j];
+
+                break;
+            }
+        }
+
+        if (!glyph) {
+            continue;
+        }
+
+        vertex_rect_create(
+            vertices, index, zindex,
+            offset_x, offset_y, glyph->metrics.width * scale, glyph->metrics.height * scale, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
+            color_index->value_int, glyph->coords.x1, glyph->coords.y1, glyph->coords.x2, glyph->coords.y2
+        );
+
+        offset_x += (glyph->metrics.width + glyph->metrics.offset_x) * scale;
+    }
+
+    element->vertex_count = *index - start;
+    memcpy(element->vertices, vertices + start, sizeof(Vertex3DTextureColorIndex) * element->vertex_count);
+
+    // @todo See todo of vertex_text function
+    // @performance use elements->vertices and also cache result in there
+
+    return offset_x;
+}
+
+void ui_button_create(
+    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+    UITheme* theme, UIElement* element
+)
+{
+    // @todo handle different states and ongoing animations
+    //      We cannot return early in such cases
+    if (element->vertex_count > 0) {
+        memcpy(vertices + *index, element->vertices, sizeof(Vertex3DTextureColorIndex) * element->vertex_count);
+        return;
+    }
+
+    HashEntryVoidP* entry = (HashEntryVoidP *) hashmap_get_entry(&theme->hash_map, element->name, element->id);
+    UIAttributeGroup* group = (UIAttributeGroup *) entry->value;
+
+    UIAttribute* x;
+    UIAttribute* y;
+
+    UIAttribute* parent = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_PARENT);
+    if (parent) {
+        HashEntryVoidP* parent_entry = (HashEntryVoidP *) hashmap_get_entry(&theme->hash_map, parent->value_str);
+        UIAttributeGroup* parent_group = (UIAttributeGroup *) parent_entry->value;
+
+        x = ui_attribute_from_group(parent_group, UI_ATTRIBUTE_TYPE_POSITION_X);
+        y = ui_attribute_from_group(parent_group, UI_ATTRIBUTE_TYPE_POSITION_Y);
+
+        // @question Do we have more values which can be inherited from the parent?
+        //      We don't want to inherit implicit stuff like size, background etc. These things should be defined explicitly
+    } else {
+        x = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_POSITION_X);
+        y = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_POSITION_Y);
+    }
+
+    UIAttribute* width = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH);
+    UIAttribute* height = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT);
+    UIAttribute* align_h = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_ALIGN_H);
+    UIAttribute* align_v = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_ALIGN_V);
+    UIAttribute* text = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_CONTENT);
+    UIAttribute* size = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_FONT_SIZE);
+    UIAttribute* color_index = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_FONT_COLOR);
+
+    // @todo Above we only handle the default values, what about state dependent values like hover, active?
+    //  Simply check the state here and load the child_entries based on the state
+    //  However, for that we need the current state of the button... should this be in a separate button object,
+    //  that also holds position information for hover checks etc. Or should that state be stored in the theme data?
+    //  Right now we could make these checks right here anyway but in the future we don't want to update the rendering data
+    //  every frame if we don't have to. We don't want immediate mode! We only want to update the UI if there is a change.
+    //  If a change (or state change like hover) triggers a complete update of all elements or just a sub region update
+    //  remains TBD
+
+    int32 start = *index;
+
+    vertex_rect_border_create(
+        vertices, index, zindex,
+        x->value_int, y->value_int, width->value_int, height->value_int, 1, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
+        12, 0.0f, 0.0f
+    );
+
+    vertex_rect_create(
+        vertices, index, zindex,
+        x->value_int + 1, y->value_int + 1, width->value_int - 2, height->value_int - 2, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
+        14, 0.0f, 0.0f
+    );
+
+    zindex = nextafterf(zindex, INFINITY);
+
+    vertex_text_create(
+        vertices, index, zindex,
+        x->value_int, y->value_int, width->value_int, height->value_int, align_h->value_int, align_v->value_int,
+        &theme->font, text->value_str, size->value_int, color_index->value_int
+    );
+
+    element->vertex_count = *index - start;
+    memcpy(element->vertices, vertices + start, sizeof(Vertex3DTextureColorIndex) * element->vertex_count);
 }
 
 inline

@@ -12,6 +12,7 @@
 #include <string.h>
 #include "../stdlib/Types.h"
 #include "../utils/MathUtils.h"
+#include "../utils/EndianUtils.h"
 #include "../utils/TestUtils.h"
 #include "Allocation.h"
 #include "../log/DebugMemory.h"
@@ -35,6 +36,7 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
         : (byte *) playform_alloc_aligned(size, alignment);
 
     buf->alignment = alignment;
+    buf->element_alignment = 0;
     buf->size = size;
 
     DEBUG_MEMORY_INIT((uint64) buf->memory, size);
@@ -49,6 +51,20 @@ void buffer_free(BufferMemory* buf)
     } else {
         platform_aligned_free((void **) &buf->memory, buf->size);
     }
+}
+
+inline
+void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 64)
+{
+    // @bug what if an alignment is defined?
+    buf->memory = data;
+
+    buf->size = size;
+    buf->pos = 0;
+    buf->alignment = alignment;
+    buf->element_alignment = 0;
+
+    DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
 }
 
 inline
@@ -86,6 +102,55 @@ byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 0, bool 
     buf->pos += size;
 
     return offset;
+}
+
+inline
+int64 buffer_dump(const BufferMemory* buf, byte* data)
+{
+    byte* start = data;
+
+    // Size
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(buf->size);
+    data += sizeof(buf->size);
+
+    // Pos
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(buf->pos);
+    data += sizeof(buf->pos);
+
+    // Alignment
+    *((int32 *) data) = SWAP_ENDIAN_LITTLE(buf->alignment);
+    data += sizeof(buf->alignment);
+
+    *((int32 *) data) = SWAP_ENDIAN_LITTLE(buf->element_alignment);
+    data += sizeof(buf->element_alignment);
+
+    // All memory is handled in the buffer -> simply copy the buffer
+    memcpy(data, buf->memory, buf->size);
+    data += buf->size;
+
+    return data - start;
+}
+
+inline
+int64 buffer_load(BufferMemory* buf, const byte* data)
+{
+    // Size
+    buf->size = SWAP_ENDIAN_LITTLE(*((uint64 *) data));
+    data += sizeof(buf->size);
+
+    // Pos
+    buf->pos = SWAP_ENDIAN_LITTLE(*((uint64 *) data));
+    data += sizeof(buf->pos);
+
+    // Alignment
+    buf->alignment = SWAP_ENDIAN_LITTLE(*((int32 *) data));
+    data += sizeof(buf->alignment);
+
+    buf->element_alignment = SWAP_ENDIAN_LITTLE(*((int32 *) data));
+    data += sizeof(buf->element_alignment);
+
+    memcpy(buf->memory, data, buf->size);
+    data += buf->size;
 }
 
 #endif

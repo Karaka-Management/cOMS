@@ -1,10 +1,9 @@
 #ifndef TOS_UI_ELEMENT_H
 #define TOS_UI_ELEMENT_H
 
-#include "UIElementType.h"
-#include "UIAlignment.h"
-#include "UIAnchor.h"
 #include "../stdlib/Types.h"
+#include "UIElementType.h"
+#include "../object/Vertex.h"
 
 struct UIElementDimension {
 	int16 x1;
@@ -13,27 +12,37 @@ struct UIElementDimension {
 	int16 y2;
 };
 
+#define UI_ELEMENT_STATE_VISIBLE 1
+#define UI_ELEMENT_STATE_ACTIVE 2
+#define UI_ELEMENT_STATE_FOCUSED 4
+#define UI_ELEMENT_STATE_CLICKED 8
+#define UI_ELEMENT_STATE_ANIMATION 16
+
 struct UIElement {
-    int id;
+    const char* name;
+    int32 id;
     UIElementType type;
 
-    int window_id;
-    int panel_id;
+    int16 window_id;
+    int16 panel_id;
 
     UIElementDimension dimension;
 
-    UIAlignH align_h;
-    UIAlignV align_v;
-    UIAnchor anchor;
+    int32 state_flag;
 
-    bool is_visible;
-    bool is_active;
-    bool is_focused;
+    f32 anim_elapsed;
 
     int16 scroll_x;
     int16 scroll_y;
 
     // @todo animation state
+
+    // @todo cache vertex result for default, hover etc.
+    int32 vertex_count;
+    Vertex3DTextureColorIndex* vertices; // WARNING: This is not the official holder of the memory, its in UILayout
+
+    // @todo We could even have a pointer that points into the complete ui array making it possible to simply replace this section
+    //      This is something we wanted to do anyway when updating sub regions on the gpu memory
 };
 
 #endif

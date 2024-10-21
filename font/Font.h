@@ -3,19 +3,8 @@
 
 #include "../stdlib/Types.h"
 #include "../memory/BufferMemory.h"
-
-// @todo Move this somewhere else, it doesn't belong here
-enum UIAlignH {
-    UI_ALIGN_H_LEFT,
-    UI_ALIGN_H_CENTER,
-    UI_ALIGN_H_RIGHT,
-};
-
-enum UIAlignV {
-    UI_ALIGN_V_BOTTOM,
-    UI_ALIGN_V_CENTER,
-    UI_ALIGN_V_TOP,
-};
+#include "../utils/EndianUtils.h"
+#include "../stdlib/simd/SIMD_I32.h"
 
 struct GlyphMetrics {
     f32 width;         // Width of the glyph
@@ -25,11 +14,9 @@ struct GlyphMetrics {
     f32 advance_x;      // Horizontal advance after drawing the glyph
 };
 
-// @question Do we even need all this information? x2 and y2 follow from width and height, no?
 struct GlyphTextureCoords {
     f32 x1;
     f32 y1;
-
     f32 x2;
     f32 y2;
 };
@@ -50,9 +37,9 @@ struct Font {
 };
 
 inline
-void font_init(BufferMemory* buf, Font* font, int count)
+void font_init(Font* font, byte* data, int count)
 {
-    font->glyphs = (Glyph *) buffer_get_memory(buf, sizeof(Glyph) * count);
+    font->glyphs = (Glyph *) data;
     font->glyph_count = count;
 }
 
@@ -66,6 +53,170 @@ Glyph* font_glyph_find(Font* font, uint32 codepoint)
     }
 
     return NULL;
+}
+
+void font_from_file_txt(
+    RingMemory* ring,
+    const char* path,
+    Font* font
+)
+{
+    FileBody file;
+    file_read(path, &file, ring);
+
+    char* pos = (char *) file.content;
+
+    bool start = true;
+    char block_name[32];
+
+    int32 glyph_index = 0;
+
+    int32 image_width = 0;
+    int32 image_height = 0;
+
+    while (*pos != '\0') {
+        if (start) {
+            // Parsing general data
+            int32 i = 0;
+            while (*pos != '\0' && *pos != ' ' && *pos != '\n' && i < 31) {
+                block_name[i] = *pos;
+                ++pos;
+                ++i;
+            }
+
+            // Go to value
+            while (*pos == ' ' || *pos == '\t') {
+                ++pos;
+            }
+
+            if (strcmp(block_name, "font_size") == 0) {
+                font->size = strtof(pos, &pos);
+            } else if (strcmp(block_name, "line_height") == 0) {
+                font->line_height = strtoul(pos, &pos, 10);
+            } else if (strcmp(block_name, "image_width") == 0) {
+                image_width = strtoul(pos, &pos, 10);
+            } else if (strcmp(block_name, "image_height") == 0) {
+                image_height = strtoul(pos, &pos, 10);
+            } else if (strcmp(block_name, "glyph_count") == 0) {
+                // glyph_count has to be the last general element
+                font->glyph_count = strtoul(pos, &pos, 10);
+                start = false;
+            }
+
+            // Go to next line
+            while (*pos++ != '\n') {};
+            ++pos;
+        } else {
+            // Parsing glyphs
+            // In the text file we don't have to define width and height of the character, we calculate that here
+            font->glyphs[glyph_index] = {
+                strtoul(pos, &pos, 10),
+                {0.0f, 0.0f, strtof(++pos, &pos), strtof(++pos, &pos), strtof(++pos, &pos)},
+                {strtof(++pos, &pos), strtof(++pos, &pos), strtof(++pos, &pos), strtof(++pos, &pos)}
+            };
+
+            font->glyphs[glyph_index].metrics.width = font->glyphs[glyph_index].coords.x2 - font->glyphs[glyph_index].coords.x1;
+            font->glyphs[glyph_index].metrics.height = font->glyphs[glyph_index].coords.y2 - font->glyphs[glyph_index].coords.y1;
+
+            ++glyph_index;
+
+            // Go to next line
+            while (*pos != '\n' && *pos != '\0') { ++pos; };
+            ++pos;
+        }
+    }
+}
+
+// Calculates the required size for representing a font definition in memory
+inline
+uint64 font_size_from_file(const byte* data)
+{
+    return SWAP_ENDIAN_LITTLE(*((uint32 *) data)) * sizeof(Glyph);
+}
+
+inline
+uint64 font_size(const Font* font)
+{
+    // We have to remove the size of the pointer which will not be stored
+    return sizeof(font) - sizeof(Glyph*)
+        + font->glyph_count * sizeof(Glyph);
+}
+
+void font_from_file(
+    Font* font,
+    const byte* data,
+    int32 size = 8
+)
+{
+    const byte* pos = data;
+
+    // Read count
+    font->glyph_count = SWAP_ENDIAN_LITTLE(*((uint32 *) pos));
+    pos += sizeof(font->glyph_count);
+
+    // Read font size
+    font->size = SWAP_ENDIAN_LITTLE(*((f32 *) pos));
+    pos += sizeof(font->size);
+
+    // Read line height
+    font->line_height = SWAP_ENDIAN_LITTLE(*((uint32 *) pos));
+    pos += sizeof(font->line_height);
+
+    memcpy(font->glyphs, pos, font->glyph_count * sizeof(Glyph));
+
+    SWAP_ENDIAN_LITTLE_SIMD(
+        (int32 *) font->glyphs,
+        (int32 *) font->glyphs,
+        font->glyph_count * sizeof(Glyph) / 4, // everything in here is 4 bytes -> super easy to swap
+        steps
+    );
+}
+
+inline
+int64 font_size_from_font(Font* font)
+{
+    return font->glyph_count * sizeof(Glyph) + sizeof(Font);
+}
+
+void font_to_file(
+    RingMemory* ring,
+    const char* path,
+    const Font* font,
+    int32 steps = 8
+)
+{
+    FileBody file;
+    file.size = font->glyph_count * sizeof(Glyph) + sizeof(Font);
+    file.content = ring_get_memory(ring, file.size, 64);
+
+    byte* pos = file.content;
+
+    // Glyph count
+    *((uint32 *) pos) = font->glyph_count;
+    pos += sizeof(font->glyph_count);
+
+    // Font size
+    *((f32 *) pos) = font->size;
+    pos += sizeof(font->size);
+
+    // Line height
+    *((uint32 *) pos) = font->line_height;
+    pos += sizeof(font->line_height);
+
+    // The glyphs are naturally tightly packed -> we can just store the memory
+    memcpy(pos, font->glyphs, font->glyph_count * sizeof(Glyph));
+    pos += font->glyph_count * sizeof(Glyph);
+
+    file.size = pos - file.content;
+
+    SWAP_ENDIAN_LITTLE_SIMD(
+        (int32 *) file.content,
+        (int32 *) file.content,
+        file.size / 4, // everything in here is 4 bytes -> super easy to swap
+        steps
+    );
+
+    file_write(path, &file);
 }
 
 #endif

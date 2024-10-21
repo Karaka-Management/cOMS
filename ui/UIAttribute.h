@@ -4,7 +4,7 @@
 #include "../stdlib/Types.h"
 
 struct UIAttribute {
-    // Attributes use ids instead of strings
+    // Attributes use ids (=type name) instead of strings
     int32 attribute_id;
 
     union {
@@ -16,11 +16,19 @@ struct UIAttribute {
 };
 
 struct UIAttributeGroup {
-    int32 attribute_count;
+    int32 attribute_size;
     UIAttribute* attributes;
 };
 
 enum UIAttributeType {
+    UI_ATTRIBUTE_TYPE_TYPE,
+    UI_ATTRIBUTE_TYPE_STYLE,
+
+    UI_ATTRIBUTE_TYPE_CONTENT,
+    UI_ATTRIBUTE_TYPE_CONTENT_ALIGN_H,
+    UI_ATTRIBUTE_TYPE_CONTENT_ALIGN_V,
+
+    UI_ATTRIBUTE_TYPE_FONT_COLOR_INDEX,
     UI_ATTRIBUTE_TYPE_FONT_COLOR,
     UI_ATTRIBUTE_TYPE_FONT_SIZE,
     UI_ATTRIBUTE_TYPE_FONT_WEIGHT,
@@ -31,6 +39,14 @@ enum UIAttributeType {
 
     UI_ATTRIBUTE_TYPE_ZINDEX,
 
+    UI_ATTRIBUTE_TYPE_POSITION_X,
+    UI_ATTRIBUTE_TYPE_POSITION_Y,
+    UI_ATTRIBUTE_TYPE_PARENT,
+
+    UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH,
+    UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT,
+
+    UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR_INDEX,
     UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR,
     UI_ATTRIBUTE_TYPE_BACKGROUND_IMG,
     UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY,
@@ -38,6 +54,7 @@ enum UIAttributeType {
     UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H,
     UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE,
 
+    UI_ATTRIBUTE_TYPE_BORDER_COLOR_INDEX,
     UI_ATTRIBUTE_TYPE_BORDER_COLOR,
     UI_ATTRIBUTE_TYPE_BORDER_WIDTH,
     UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR,
@@ -55,23 +72,43 @@ enum UIAttributeType {
     UI_ATTRIBUTE_TYPE_PADDING_BOTTOM,
     UI_ATTRIBUTE_TYPE_PADDING_LEFT,
 
+    UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR_INDEX,
     UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR,
     UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE,
     UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE,
 
+    UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR_INDEX,
     UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR,
     UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE,
     UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE,
 
+    // @todo This isn't enough, we can have many animations (position, size, colors, ...)
+    //  Maybe we need to define an animation child which overwrites the defined values
+    //  Maybe it should use the same system as state dependent values like hover, active, ...
     UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION,
     UI_ATTRIBUTE_TYPE_TRANSITION_DURATION,
 
     UI_ATTRIBUTE_TYPE_SIZE,
 };
 
+UIAttribute* ui_attribute_from_group(UIAttributeGroup* group, UIAttributeType type)
+{
+    for (int i = 0; i < UI_ATTRIBUTE_TYPE_SIZE && i <= type; ++i) {
+        if (group->attributes[i].attribute_id == type) {
+            return &group->attributes[i];
+        }
+    }
+
+    return NULL;
+}
+
 constexpr const char* ui_attribute_type_to_string(int32 e)
 {
     switch (e) {
+        case UI_ATTRIBUTE_TYPE_TYPE:
+            return "type";
+        case UI_ATTRIBUTE_TYPE_STYLE:
+            return "style";
         case UI_ATTRIBUTE_TYPE_FONT_COLOR:
             return "font_color";
         case UI_ATTRIBUTE_TYPE_FONT_SIZE:
