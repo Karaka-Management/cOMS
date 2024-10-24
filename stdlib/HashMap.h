@@ -14,6 +14,7 @@
 #include "../memory/BufferMemory.h"
 #include "../memory/ChunkMemory.h"
 #include "Types.h"
+#include "../utils/StringUtils.h"
 
 #define MAX_KEY_LENGTH 32
 
@@ -77,7 +78,8 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ri
     byte* data = ring_get_memory(
         ring,
         count * (sizeof(void *) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        + CEIL_DIV(count, 64) * sizeof(hm->buf.free),
+        0, true
     );
 
     hm->table = (void **) data;
@@ -130,8 +132,18 @@ void hashmap_insert(HashMap* hm, const char* key, int32 value) {
     entry->key[MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
-    entry->next = (HashEntryInt32 *) hm->table[index];
-    hm->table[index] = entry;
+    entry->next = NULL;
+
+    if (hm->table[index]) {
+        HashEntryInt32* tmp = (HashEntryInt32 *) hm->table[index];
+        while(tmp->next) {
+            tmp = tmp->next;
+        }
+
+        tmp->next = entry;
+    } else {
+        hm->table[index] = entry;
+    }
 }
 
 void hashmap_insert(HashMap* hm, const char* key, int64 value) {
@@ -145,8 +157,18 @@ void hashmap_insert(HashMap* hm, const char* key, int64 value) {
     entry->key[MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
-    entry->next = (HashEntryInt64 *) hm->table[index];
-    hm->table[index] = entry;
+    entry->next = NULL;
+
+    if (hm->table[index]) {
+        HashEntryInt64* tmp = (HashEntryInt64 *) hm->table[index];
+        while(tmp->next) {
+            tmp = tmp->next;
+        }
+
+        tmp->next = entry;
+    } else {
+        hm->table[index] = entry;
+    }
 }
 
 void hashmap_insert(HashMap* hm, const char* key, uintptr_t value) {
@@ -160,8 +182,18 @@ void hashmap_insert(HashMap* hm, const char* key, uintptr_t value) {
     entry->key[MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
-    entry->next = (HashEntryUIntPtr *) hm->table[index];
-    hm->table[index] = entry;
+    entry->next = NULL;
+
+    if (hm->table[index]) {
+        HashEntryUIntPtr* tmp = (HashEntryUIntPtr *) hm->table[index];
+        while(tmp->next) {
+            tmp = tmp->next;
+        }
+
+        tmp->next = entry;
+    } else {
+        hm->table[index] = entry;
+    }
 }
 
 void hashmap_insert(HashMap* hm, const char* key, void* value) {
@@ -175,8 +207,18 @@ void hashmap_insert(HashMap* hm, const char* key, void* value) {
     entry->key[MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
-    entry->next = (HashEntryVoidP *) hm->table[index];
-    hm->table[index] = entry;
+    entry->next = NULL;
+
+    if (hm->table[index]) {
+        HashEntryVoidP* tmp = (HashEntryVoidP *) hm->table[index];
+        while(tmp->next) {
+            tmp = tmp->next;
+        }
+
+        tmp->next = entry;
+    } else {
+        hm->table[index] = entry;
+    }
 }
 
 void hashmap_insert(HashMap* hm, const char* key, f32 value) {
@@ -190,8 +232,18 @@ void hashmap_insert(HashMap* hm, const char* key, f32 value) {
     entry->key[MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
-    entry->next = (HashEntryFloat *) hm->table[index];
-    hm->table[index] = entry;
+    entry->next = NULL;
+
+    if (hm->table[index]) {
+        HashEntryFloat* tmp = (HashEntryFloat *) hm->table[index];
+        while(tmp->next) {
+            tmp = tmp->next;
+        }
+
+        tmp->next = entry;
+    } else {
+        hm->table[index] = entry;
+    }
 }
 
 void hashmap_insert(HashMap* hm, const char* key, const char* value) {
@@ -207,8 +259,18 @@ void hashmap_insert(HashMap* hm, const char* key, const char* value) {
     strncpy(entry->value, value, MAX_KEY_LENGTH);
     entry->value[MAX_KEY_LENGTH - 1] = '\0';
 
-    entry->next = (HashEntryStr *) hm->table[index];
-    hm->table[index] = entry;
+    entry->next = NULL;
+
+    if (hm->table[index]) {
+        HashEntryStr* tmp = (HashEntryStr *) hm->table[index];
+        while(tmp->next) {
+            tmp = tmp->next;
+        }
+
+        tmp->next = entry;
+    } else {
+        hm->table[index] = entry;
+    }
 }
 
 void hashmap_insert(HashMap* hm, const char* key, byte* value) {
@@ -225,8 +287,18 @@ void hashmap_insert(HashMap* hm, const char* key, byte* value) {
 
     memcpy(entry->value, value, hm->buf.chunk_size - sizeof(HashEntry));
 
-    entry->next = (HashEntry *) hm->table[index];
-    hm->table[index] = entry;
+    entry->next = NULL;
+
+    if (hm->table[index]) {
+        HashEntry* tmp = (HashEntry *) hm->table[index];
+        while(tmp->next) {
+            tmp = tmp->next;
+        }
+
+        tmp->next = entry;
+    } else {
+        hm->table[index] = entry;
+    }
 }
 
 HashEntry* hashmap_get_entry(HashMap* hm, const char* key) {

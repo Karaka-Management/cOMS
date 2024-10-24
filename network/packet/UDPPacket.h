@@ -69,14 +69,14 @@ void message_to_udp_packet(const UDPMessageIPv6* message, UDPPacketIPv6* packet)
 inline
 void decompress_data(UDPMessageIPv6* message, byte* decompress_buffer)
 {
-    decode_lzp(message->data, message->length, decompress_buffer);
+    lzp_decode(message->data, message->length, decompress_buffer);
     message->data = decompress_buffer;
 }
 
 inline
 void compress_data(UDPMessageIPv6* message, byte* compressed_buffer)
 {
-    encode_lzp(message->data, message->length, compressed_buffer);
+    lzp_encode(message->data, message->length, compressed_buffer);
     message->data = compressed_buffer;
 }
 

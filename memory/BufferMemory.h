@@ -39,6 +39,8 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
     buf->element_alignment = 0;
     buf->size = size;
 
+    memset(buf->memory, 0, buf->size);
+
     DEBUG_MEMORY_INIT((uint64) buf->memory, size);
 }
 

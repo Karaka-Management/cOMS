@@ -46,6 +46,8 @@ void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignm
     // @question Could it be beneficial to have this before the element data?
     buf->free = (uint64 *) (buf->memory + count * chunk_size);
 
+    memset(buf->memory, 0, buf->size);
+
     DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
 }
 
@@ -118,7 +120,7 @@ void chunk_reserve_index(ChunkMemory* buf, int64 index, int64 elements = 1, bool
 
 int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
 {
-    int64 byte_index = (buf->last_pos + 1) / 64;
+    int64 free_index = (buf->last_pos + 1) / 64;
     int32 bit_index;
 
     int64 free_element = -1;
@@ -130,31 +132,33 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
     while (free_element < 0 && i < buf->count) {
         ++i;
 
-        if (byte_index >= max_bytes) {
-            byte_index = 0;
+        if (free_index >= max_bytes) {
+            free_index = 0;
         }
 
-        if (buf->free[byte_index] == 0xFF) {
-            ++byte_index;
+        if (buf->free[free_index] == 0xFF) {
+            ++free_index;
 
             continue;
         }
 
-        // @performance There is some redundancy happening down below, we should ++byte_index in certain conditions?
+        // @performance There is some redundancy happening down below, we should ++free_index in certain conditions?
         for (bit_index = 0; bit_index < 64; ++bit_index) {
             int32 consecutive_free_bits = 0;
 
             // Check if there are 'elements' consecutive free bits
             for (int32 j = 0; j < elements; ++j) {
-                uint64 current_byte_index = byte_index + (bit_index + j) / 64;
-                int32 current_bit_index = (bit_index + j) % 64;
-
-                if (current_byte_index >= (buf->count + 7) / 64) {
+                // Check if there is enough space until the end of the buffer.
+                // Remember, the last free index may only allow only 1 bit if the size is 65
+                if (free_index * 64 + (bit_index + j) >= buf->count) {
                     break;
                 }
 
+                uint64 current_free_index = free_index + (bit_index + j) / 64;
+                int32 current_bit_index = (bit_index + j) % 64;
+
                 mask = 1 << current_bit_index;
-                if ((buf->free[current_byte_index] & mask) == 0) {
+                if ((buf->free[current_free_index] & mask) == 0) {
                     ++consecutive_free_bits;
                 } else {
                     break;
@@ -162,13 +166,13 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
             }
 
             if (consecutive_free_bits == elements) {
-                free_element = byte_index * 64 + bit_index;
+                free_element = free_index * 64 + bit_index;
 
                 // Mark the bits as reserved
                 for (int32 j = 0; j < elements; ++j) {
-                    int64 current_byte_index = byte_index + (bit_index + j) / 64;
+                    int64 current_free_index = free_index + (bit_index + j) / 64;
                     int32 current_bit_index = (bit_index + j) % 64;
-                    buf->free[current_byte_index] |= (1LL << current_bit_index);
+                    buf->free[current_free_index] |= (1LL << current_bit_index);
                 }
 
                 break;
@@ -176,10 +180,11 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
         }
 
         ++i;
-        ++byte_index;
+        ++free_index;
     }
 
     if (free_element < 0) {
+        ASSERT_SIMPLE(false);
         return -1;
     }
 
@@ -309,6 +314,8 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
     data += buf->size;
 
     buf->free = (uint64 *) (buf->memory + buf->count * buf->chunk_size);
+
+    return buf->size;
 }
 
 #endif

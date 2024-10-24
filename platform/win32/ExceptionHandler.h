@@ -14,6 +14,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _MSC_VER
+    #pragma comment(lib, "dbghelp.lib")
+#endif
+
 void create_minidump(EXCEPTION_POINTERS *exception_pointers) {
     // Open the dump file
     HANDLE hFile = CreateFileA("crash_dump.dmp", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);

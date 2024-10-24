@@ -7,6 +7,12 @@
 #include "../utils/Utils.h"
 #include "../stdlib/simd/SIMD_I32.h"
 
+#if _WIN32
+    #include "../platform/win32/UtilsWin32.h"
+#else
+    #include "../platform/linux/UtilsLinux.h"
+#endif
+
 struct GlyphMetrics {
     f32 width;     // Width of the glyph
     f32 height;    // Height of the glyph
@@ -57,15 +63,11 @@ Glyph* font_glyph_find(Font* font, uint32 codepoint)
 }
 
 void font_from_file_txt(
-    RingMemory* ring,
-    const char* path,
-    Font* font
+    Font* font,
+    byte* data
 )
 {
-    FileBody file;
-    file_read(path, &file, ring);
-
-    char* pos = (char *) file.content;
+    char* pos = (char *) data;
 
     bool start = true;
     char block_name[32];
@@ -87,6 +89,8 @@ void font_from_file_txt(
                 ++i;
             }
 
+            block_name[i] = '\0';
+
             // Go to value
             while (*pos == ' ' || *pos == '\t' || *pos == ':') {
                 ++pos;
@@ -94,7 +98,7 @@ void font_from_file_txt(
 
             if (strcmp(block_name, "texture") == 0) {
                 while (*pos != '\n') {
-                    *texture_pos++ == *pos++;
+                    *texture_pos++ = *pos++;
                 }
             } else if (strcmp(block_name, "font_size") == 0) {
                 font->size = strtof(pos, &pos);
@@ -111,8 +115,7 @@ void font_from_file_txt(
             }
 
             // Go to next line
-            while (*pos++ != '\n') {};
-            ++pos;
+            while (*pos != '\0' && *pos++ != '\n') {};
         } else {
             // Parsing glyphs
             // In the text file we don't have to define width and height of the character, we calculate that here

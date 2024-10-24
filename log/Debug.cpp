@@ -6,6 +6,8 @@
 #include "Log.h"
 #include "TimingStat.h"
 
+global_persist DebugContainer* debug_container = NULL;
+
 #if _WIN32
     #include <windows.h>
     void setup_performance_count() {
@@ -63,7 +65,7 @@ DebugMemory* debug_memory_find(uint64 start, uint64 size)
 
 void debug_memory_init(uint64 start, uint64 size)
 {
-    if (!start) {
+    if (!start || !debug_container) {
         return;
     }
 
@@ -93,7 +95,7 @@ void debug_memory_init(uint64 start, uint64 size)
 
 void debug_memory_write(uint64 start, uint64 size, const char* function)
 {
-    if (!start) {
+    if (!start || !debug_container) {
         return;
     }
 
@@ -120,7 +122,7 @@ void debug_memory_write(uint64 start, uint64 size, const char* function)
 
 void debug_memory_read(uint64 start, uint64 size, const char* function)
 {
-    if (!start) {
+    if (!start || !debug_container) {
         return;
     }
 
@@ -146,6 +148,10 @@ void debug_memory_read(uint64 start, uint64 size, const char* function)
 
 void debug_memory_delete(uint64 start, uint64 size, const char* function)
 {
+    if (!debug_container) {
+        return;
+    }
+
     DebugMemory* mem = debug_memory_find(start, size);
     if (!mem) {
         return;
@@ -170,6 +176,10 @@ void debug_memory_delete(uint64 start, uint64 size, const char* function)
 inline
 void debug_memory_reset()
 {
+    if (!debug_container) {
+        return;
+    }
+
     uint64 time = __rdtsc() - 1000000000;
 
     for (int32 i = 0; i < debug_container->dmc.memory_element_idx; ++i) {
@@ -183,6 +193,10 @@ void debug_memory_reset()
 
 byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
 {
+    if (!debug_container) {
+        return 0;
+    }
+
     ASSERT_SIMPLE(size <= debug_container->log_memory.size);
 
     if (aligned > 1) {
@@ -214,7 +228,7 @@ byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
     void log_to_file()
     {
         // we don't log an empty log pool
-        if (debug_container->log_memory.pos == 0 || !debug_container->log_fp || debug_container->log_fp == INVALID_HANDLE_VALUE) {
+        if (!debug_container || debug_container->log_memory.pos == 0 || !debug_container->log_fp || debug_container->log_fp == INVALID_HANDLE_VALUE) {
             return;
         }
 
@@ -233,7 +247,7 @@ byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
     // @todo add file name, function name and function line
     void log(const char* str, bool should_log, bool save, const char* file, const char* function, int32 line)
     {
-        if (!should_log) {
+        if (!should_log || !debug_container) {
             return;
         }
 
@@ -241,8 +255,7 @@ byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
         ASSERT_SIMPLE(length < MAX_LOG_LENGTH);
 
         char* temp = (char *) log_get_memory(length + 1);
-        strcpy(temp, str);
-        temp[length] = '\0';
+        memcpy(temp, str, length + 1);
 
         if (save || debug_container->log_memory.size - debug_container->log_memory.pos < MAX_LOG_LENGTH) {
             log_to_file();
@@ -251,7 +264,7 @@ byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
 
     void log(const char* format, LogDataType data_type, void* data, bool should_log, bool save, const char* file, const char* function, int32 line)
     {
-        if (!should_log) {
+        if (!should_log || !debug_container) {
             return;
         }
 

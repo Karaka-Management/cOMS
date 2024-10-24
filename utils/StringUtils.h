@@ -15,16 +15,6 @@
 
 #include "../stdlib/Types.h"
 
-constexpr
-size_t strlen_const(const char* str) {
-    size_t len = 0;
-    while (str[len] != '\0') {
-        ++len;
-    }
-
-    return len;
-}
-
 inline
 int32 utf8_encode(uint32 codepoint, char* out)
 {
@@ -244,13 +234,15 @@ inline char* strsep(const char* *sp, const char* sep)
     return s;
 }
 
-inline void
+inline int64
 str_concat(
     const char* src1,
     const char* src2,
     char* dst
 ) {
-    size_t len = strlen(src1);
+    int64 len = strlen(src1);
+    int64 len_total = len;
+
     memcpy(dst, src1, len);
     dst += len;
 
@@ -259,9 +251,11 @@ str_concat(
     dst += len;
 
     *dst = '\0';
+
+    return len_total + len;
 }
 
-inline void
+inline int64
 str_concat(
     const char* src1, size_t src1_length,
     const char* src2, size_t src2_length,
@@ -274,6 +268,8 @@ str_concat(
     dst += src2_length;
 
     *dst = '\0';
+
+    return src1_length + src2_length;
 }
 
 inline
@@ -414,6 +410,25 @@ void str_replace(const char* str, const char* __restrict search, const char* __r
     }
 
     strcpy(result_ptr, str);
+}
+
+void print_bytes(const void* ptr, size_t size)
+{
+    const unsigned char* bytePtr = (const unsigned char *) ptr;
+
+    int32 count = 0;
+
+    for (int32 i = 0; i < size; i++) {
+        ++count;
+        if (count == 1) {
+            printf("%03d - %03d: %02x ", i + 1, i + 8, bytePtr[i]);
+        } else if (count < 8) {
+            printf("%02x ", bytePtr[i]);
+        } else {
+            printf("%02x\n", bytePtr[i]);
+            count = 0;
+        }
+    }
 }
 
 #endif

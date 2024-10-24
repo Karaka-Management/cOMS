@@ -243,6 +243,8 @@ struct CSettings {
 
     // UI settings
     // Themes
+    char game_language[2];
+
     char game_ui_theme[32];
     byte game_ui_size = 128;
 

@@ -98,7 +98,7 @@ int64 huffman_code_build(Huffman* hf, HuffmanNode* root, char* code, int32 lengt
 {
     if (root->character) {
         code[length] = 0;
-        strcpy(&code_buffer[*buffer_position], code);
+        memcpy(&code_buffer[*buffer_position], code, length + 1);
         hf->code[root->character] = &code_buffer[*buffer_position];
         *buffer_position += length + 1;
 

@@ -449,7 +449,8 @@ f32 ui_text_create(
 ) {
     if (element->vertex_count > 0) {
         memcpy(vertices + *index, element->vertices, sizeof(Vertex3DTextureColorIndex) * element->vertex_count);
-        return;
+
+        return vertices[element->vertex_count - 1].position.x;
     }
 
     // @performance see comment for setup_theme()

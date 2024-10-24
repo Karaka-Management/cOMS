@@ -96,14 +96,10 @@ int compare_by_attribute_id(const void* a, const void* b) {
 
 // WARNING: theme needs to have memory already reserved and asigned to data
 void theme_from_file_txt(
-    RingMemory* ring,
-    const char* path,
-    UIThemeStyle* theme
+    UIThemeStyle* theme,
+    byte* data
 ) {
-    FileBody file;
-    file_read(path, &file, ring);
-
-    char* pos = (char *) file.content;
+    char* pos = (char *) data;
 
     // move past the version string
     pos += 8;
@@ -147,7 +143,9 @@ void theme_from_file_txt(
 
     UIAttributeGroup* temp_group = NULL;
 
-    pos = (char *) file.content;
+    pos = (char *) data;
+    pos += 8; // move past version
+
     while (*pos != '\0') {
         while (*pos == ' ' || *pos == '\t') {
             ++pos;
@@ -182,7 +180,9 @@ void theme_from_file_txt(
             // All blocks need to start with #. In the past this wasn't the case and may not be in the future. This is why we keep this if here.
             if (*block_name == '#' || *block_name == '.') {
                 // Named style
-                if (temp_group != NULL) {
+                block_open = true;
+
+                if (temp_group) {
                     // Before we insert a new group we have to sort the attributes
                     // since this makes searching them later on more efficient.
                     qsort(temp_group->attributes, temp_group->attribute_size, sizeof(UIAttribute), compare_by_attribute_id);
@@ -193,7 +193,8 @@ void theme_from_file_txt(
 
                 temp_group = (UIAttributeGroup *) (theme->data + data_offset);
                 temp_group->attribute_size = 0;
-                data_offset += sizeof(temp_group->attribute_size);
+                temp_group->attributes = (UIAttribute *) (theme->data + data_offset + sizeof(UIAttributeGroup));
+                data_offset += sizeof(UIAttributeGroup);
             }
 
             continue;
@@ -209,7 +210,7 @@ void theme_from_file_txt(
         attribute_name[i] = '\0';
 
         // Skip any white spaces or other delimeters
-        while (*pos == ' ' || *pos == ':') {
+        while (*pos == ' ' || *pos == '\t' || *pos == ':') {
             ++pos;
         }
 
@@ -217,7 +218,7 @@ void theme_from_file_txt(
 
         // Handle different attribute types
         UIAttribute attribute = {};
-        if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_TYPE), attribute_name) == 0) {
+        if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_TYPE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TYPE;
 
             char str[32];
@@ -227,16 +228,16 @@ void theme_from_file_txt(
             }
 
             *temp = '\0';
+            for (int32 j = 0; j < UI_ELEMENT_TYPE_SIZE; ++j) {
+                if (strcmp(str, ui_element_type_to_string((UIElementType) j)) == 0) {
 
-            for (int32 i = 0; i < UI_ELEMENT_TYPE_SIZE; ++i) {
-                if (strcmp(str, ui_attribute_type_to_string(i)) == 0) {
-                    attribute.value_int = i;
+                    attribute.value_int = j;
                     break;
                 }
             }
 
             ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_STYLE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_STYLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_STYLE;
 
             char* temp = attribute.value_str;
@@ -246,7 +247,7 @@ void theme_from_file_txt(
 
             *temp = '\0';
             ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_COLOR;
@@ -257,25 +258,25 @@ void theme_from_file_txt(
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
             attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_SIZE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_SIZE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_SIZE;
-            attribute.value_float = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_WEIGHT), attribute_name) == 0) {
+            attribute.value_float = strtof(pos, &pos); ++pos;
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_WEIGHT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_WEIGHT;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT;
-            attribute.value_float = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_ALIGN_H), attribute_name) == 0) {
+            attribute.value_float = strtof(pos, &pos); ++pos;
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_ALIGN_H), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_ALIGN_H;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_ALIGN_V), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_ALIGN_V), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_ALIGN_V;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_ZINDEX), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_ZINDEX), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_ZINDEX;
             attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos)); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR;
@@ -286,7 +287,7 @@ void theme_from_file_txt(
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
             attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG;
 
             i = 0;
@@ -295,19 +296,19 @@ void theme_from_file_txt(
             }
 
             attribute.value_str[i] = '\0';
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY;
             attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos)); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_V), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_V), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_V;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_COLOR;
@@ -318,10 +319,10 @@ void theme_from_file_txt(
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
             attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_WIDTH), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR;
@@ -332,10 +333,10 @@ void theme_from_file_txt(
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
             attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR;
@@ -346,10 +347,10 @@ void theme_from_file_txt(
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
             attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR;
@@ -360,10 +361,10 @@ void theme_from_file_txt(
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
             attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR;
@@ -374,25 +375,25 @@ void theme_from_file_txt(
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
             attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_TOP), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_TOP), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_TOP;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_RIGHT), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_RIGHT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_RIGHT;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_BOTTOM), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_BOTTOM), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_BOTTOM;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_LEFT), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_LEFT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_LEFT;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR;
@@ -403,13 +404,13 @@ void theme_from_file_txt(
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
             attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE;
             attribute.value_float = strtof(pos, &pos); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR;
@@ -420,24 +421,28 @@ void theme_from_file_txt(
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
             attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE;
             attribute.value_float = strtof(pos, &pos); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION;
             attribute.value_int = strtoul(pos, &pos, 10); ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_TRANSITION_DURATION), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_TRANSITION_DURATION), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TRANSITION_DURATION;
             attribute.value_float = strtof(pos, &pos); ++pos;
         } else {
+            while (*pos != '\n' && *pos != '\0') {
+                ++pos;
+            }
+
             continue;
         }
 
         // Again, currently this if check is redundant but it wasn't in the past and we may need it again in the future.
-        if (block_name[0] == '#') {
+        if (block_name[0] == '#' || block_name[0] == '.') {
             // Named block
             memcpy(
                 temp_group->attributes + temp_group->attribute_size,
@@ -480,7 +485,8 @@ void theme_from_file(
 
     // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
     // Of course we still need to populate the data using hashmap_load()
-    hashmap_create(&theme->hash_map, SWAP_ENDIAN_LITTLE(*((uint64 *) pos)), sizeof(HashEntryInt64), theme->data);
+    // The value is a int64 (because this is the value of the chunk buffer size but the hashmap only allows int32)
+    hashmap_create(&theme->hash_map, (int32) SWAP_ENDIAN_LITTLE(*((uint64 *) pos)), sizeof(HashEntryInt64), theme->data);
     pos += hashmap_load(&theme->hash_map, pos);
 
     // theme data

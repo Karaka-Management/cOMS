@@ -13,6 +13,10 @@
 #include "../../platform/win32/Window.h"
 #include "../../stdlib/Types.h"
 
+#ifdef _MSC_VER
+    #pragma comment(lib, "OpenGL32.Lib")
+#endif
+
 typedef unsigned int GLenum;
 typedef unsigned char GLboolean;
 typedef unsigned int GLbitfield;

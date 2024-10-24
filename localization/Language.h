@@ -19,41 +19,37 @@ struct Language {
 };
 
 void language_from_file_txt(
-    RingMemory* ring,
-    const char* path,
-    Language* language
+    Language* language,
+    byte* data
 ) {
-    FileBody file;
-    file.size = file_size(path);
-    file.content = ring_get_memory(ring, file.size);
-
-    file_read(path, &file);
-
     // count elements
     language->count = 1;
-    for (int32 i = 0; i < file.size - 1; ++i) {
-        if (file.content[i] == '\n' && file.content[i + 1] == '\n') {
+    int64 len = 0;
+
+    while (data[len] != '\0') {
+        if (data[len] == '\n' && data[len + 1] == '\n') {
             ++language->count;
-            file.content[i] = '\0';
-            ++i;
+            data[len] = '\0';
+            ++len;
         }
+
+        ++len;
     }
 
     language->lang = (char **) language->data;
-    memcpy(language->data + language->count * sizeof(char *), file.content, file.size);
+    memcpy(language->data + language->count * sizeof(char *), data, len);
 
     // First element = 0
-    *language->lang = (char *) file.content;
-    ++language->lang;
+    char** pos = language->lang;
+    *pos++ = (char *) data;
 
-    for (int32 i = 1; i < file.size - 1; ++i) {
-        if (file.content[i] == '\0') {
+    for (int32 i = 1; i < len - 1; ++i) {
+        if (data[i] == '\0') {
             // We have to move by 2 since every text element is separated by 2 \n
             // 1 \n is a valid char for a single text element
             // @performance This also means that we have one additional byte for
             // every text element even in the binary version.
-            *language->lang = (char *) &file.content[i + 2];
-            ++language->lang;
+            *pos++ = (char *) &data[i + 2];
         }
     }
 }
@@ -62,14 +58,8 @@ void language_from_file_txt(
 // offsets for start of strings
 // actual string data
 void language_from_file(
-    const char* path,
     Language* language
 ) {
-    FileBody file;
-    file.content = language->data;
-
-    file_read(path, &file);
-
     byte* pos = language->data;
 
     // Count
@@ -77,13 +67,13 @@ void language_from_file(
     pos += sizeof(language->count);
 
     language->lang = (char **) pos;
+    char** pos_lang = language->lang;
 
     byte* start = pos;
 
     // Load pointers/offsets
     for (int32 i = 0; i < language->count; ++i) {
-        *language->lang = (char *) (start + SWAP_ENDIAN_LITTLE(*((uint64 *) pos)));
-        ++language->lang;
+        *pos_lang++ = (char *) (start + SWAP_ENDIAN_LITTLE(*((uint64 *) pos)));
         pos += sizeof(uint64);
     }
 
@@ -117,10 +107,15 @@ void language_to_file(
         pos += sizeof(uint64);
     }
 
+    int64 len_total = 0;
+
     // Save actual strings
+    int64 len;
     for (int32 i = 0; i < language->count; ++i) {
-        strcpy((char *) pos, language->lang[i]);
-        pos += strlen(language->lang[i]);
+        len = strlen(language->lang[i]);
+        len_total += len;
+        memcpy((char *) pos, language->lang[i], len + 1);
+        pos += len;
     }
 
     file.size = pos - file.content;

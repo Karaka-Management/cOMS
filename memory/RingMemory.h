@@ -54,6 +54,8 @@ void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
     ring->start = 0;
     ring->end = 0;
 
+    memset(ring->memory, 0, ring->size);
+
     DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
 }
 
@@ -68,6 +70,8 @@ void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment
     ring->element_alignment = 0;
     ring->start = 0;
     ring->end = 0;
+
+    memset(ring->memory, 0, buf->size);
 
     DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
 }
@@ -84,6 +88,8 @@ void ring_init(RingMemory* ring, byte* buf, uint64 size, int32 alignment = 64)
     ring->element_alignment = 0;
     ring->start = 0;
     ring->end = 0;
+
+    memset(ring->memory, 0, ring->size);
 
     DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
 }

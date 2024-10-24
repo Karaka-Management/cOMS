@@ -155,8 +155,10 @@ void input_mouse_position(HWND hwnd, v2_int32* pos)
     }
 }
 
-void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, uint64 time)
+int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, uint64 time)
 {
+    int32 input_count = 0;
+
     uint32 i = 0;
     if (raw->header.dwType == RIM_TYPEMOUSE) {
         // @performance Change so we can directly access the correct state (maybe map handle address to index?)
@@ -167,7 +169,7 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
         }
 
         if (i >= state_count || !states[i].is_connected) {
-            return;
+            return 0;
         }
 
         if (raw->data.mouse.usButtonFlags) {
@@ -204,7 +206,7 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
                 key.key_state = KEY_STATE_RELEASED;
                 key.key_id = 5;
             } else {
-                return;
+                return 0;
             }
 
             /* @todo implement
@@ -218,6 +220,8 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
             */
 
             // @question is mouse wheel really considered a button change?
+
+            ++input_count;
 
             key.key_id |= INPUT_MOUSE_PREFIX;
             key.value = 0;
@@ -270,7 +274,7 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
         }
 
         if (i >= state_count || !states[i].is_connected) {
-            return;
+            return 0;
         }
 
         uint16 new_state;
@@ -279,8 +283,10 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
         } else if (raw->data.keyboard.Flags == RI_KEY_MAKE) {
             new_state = KEY_STATE_PRESSED;
         } else {
-            return;
+            return 0;
         }
+
+        ++input_count;
 
         // @todo change to MakeCode instead of VKey
         InputKey key = {(uint16) (raw->data.keyboard.VKey | INPUT_KEYBOARD_PREFIX), new_state, 0, time};
@@ -304,7 +310,7 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
             if (i >= state_count || !states[i].is_connected
                 || time - states[i].time_last_input_check < 5
             ) {
-                return;
+                return 0;
             }
 
             ControllerInput controller = {};
@@ -314,6 +320,8 @@ void input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, 
             states[i].time_last_input_check = time;
         }
     }
+
+    return input_count;
 }
 
 void input_handle(LPARAM lParam, Input* __restrict states, int state_count, RingMemory* ring, uint64 time)
@@ -333,13 +341,14 @@ void input_handle(LPARAM lParam, Input* __restrict states, int state_count, Ring
     input_raw_handle((RAWINPUT *) lpb, states, state_count, time);
 }
 
-void input_handle_buffered(int buffer_size, Input* __restrict states, int state_count, RingMemory* ring, uint64 time)
+int32 input_handle_buffered(int buffer_size, Input* __restrict states, int state_count, RingMemory* ring, uint64 time)
 {
+    int32 input_count = 0;
     uint32 cb_size;
 
     GetRawInputBuffer(NULL, &cb_size, sizeof(RAWINPUTHEADER));
     if (!cb_size) {
-        return;
+        return 0;
     }
 
     // Max input messages (e.g. 16)
@@ -363,13 +372,15 @@ void input_handle_buffered(int buffer_size, Input* __restrict states, int state_
                 break;
             }
 
-            input_raw_handle(pri, states, state_count, time);
+            input_count += input_raw_handle(pri, states, state_count, time);
 
             pri = NEXTRAWINPUTBLOCK(pri);
         }
     }
 
     ASSERT_SIMPLE(input != (uint32) -1);
+
+    return input_count;
 }
 
 #endif

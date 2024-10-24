@@ -11,32 +11,55 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "../stdlib/Types.h"
-#include "StringUtils.h"
-#include "../stdlib/simd/SIMD_Helper.h"
+#include "../../stdlib/Types.h"
+#include "../../stdlib/simd/SIMD_Helper.h"
+#include "../../utils/StringUtils.h"
 
-#if _WIN32
-    #include <winsock2.h>
-    #include <iphlpapi.h>
-    #include <ws2tcpip.h>
-    #include <windows.h>
-    #include <d3d11.h>
-    #include <dxgi.h>
-    #include <wbemidl.h>
-    #include <comdef.h>
-#endif
+#include <winsock2.h>
+#include <iphlpapi.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#include <d3d11.h>
+#include <dxgi.h>
+#include <wbemidl.h>
+#include <comdef.h>
+#include <winnls.h>
 
 #ifdef _MSC_VER
+    // @performance Do we really need all these libs, can't we simplify that?!
     #include <intrin.h>
-#endif
-
-#if __linux__ && (__i386__ || __x86_64__)
-    #include <cpuid.h>
+    #pragma comment(lib, "Advapi32.lib")
+    #pragma comment(lib, "wbemuuid.lib")
+    #pragma comment(lib, "iphlpapi.lib")
+    #pragma comment(lib, "d3d12.lib")
+    #pragma comment(lib, "dxgi.lib")
 #endif
 
 // @todo implement for arm?
-// @todo implement for linux?
-// @todo move to platform specifc files
+
+uint16 system_language_code()
+{
+    LANGID langID = GetUserDefaultUILanguage();
+    wchar_t localeName[LOCALE_NAME_MAX_LENGTH];
+
+    if (!LCIDToLocaleName(langID, localeName, LOCALE_NAME_MAX_LENGTH, 0)) {
+        return 0;
+    }
+
+    return (localeName[0] << 8) | localeName[1];
+}
+
+uint16 system_country_code()
+{
+    LANGID langID = GetUserDefaultUILanguage();
+    wchar_t localeName[LOCALE_NAME_MAX_LENGTH];
+
+    if (!LCIDToLocaleName(langID, localeName, LOCALE_NAME_MAX_LENGTH, 0)) {
+        return 0;
+    }
+
+    return (localeName[3] << 8) | localeName[4];
+}
 
 struct CpuCacheInfo {
     int32 level;
@@ -58,20 +81,14 @@ void cache_info_get(int32 level, CpuCacheInfo* cache) {
     cache->sets = 0;
     cache->line_size = 0;
 
-    #if _WIN32
-        int32 regs[4];
-        __cpuidex(regs, 4, level);
-        eax = regs[0];
-        ebx = regs[1];
-        ecx = regs[2];
-        edx = regs[3];
+    int32 regs[4];
+    __cpuidex(regs, 4, level);
+    eax = regs[0];
+    ebx = regs[1];
+    ecx = regs[2];
+    edx = regs[3];
 
-        type = (eax & 0x1F);
-    #else
-        __cpuid_count(4, level, eax, ebx, ecx, edx);
-
-        type = (eax & 0x1F);
-    #endif
+    type = (eax & 0x1F);
 
     if (type == 0) {
         return;
@@ -114,6 +131,7 @@ void mainboard_info_get(MainboardInfo* info) {
         EOAC_NONE,
         NULL
     );
+
     if (FAILED(hres)) {
         CoUninitialize();
         return;
@@ -128,6 +146,7 @@ void mainboard_info_get(MainboardInfo* info) {
         IID_IWbemLocator,
         (LPVOID *)&pLoc
     );
+
     if (FAILED(hres)) {
         CoUninitialize();
         return;
@@ -145,6 +164,7 @@ void mainboard_info_get(MainboardInfo* info) {
         0,
         &pSvc
     );
+
     if (FAILED(hres)) {
         pLoc->Release();
         CoUninitialize();
@@ -162,6 +182,7 @@ void mainboard_info_get(MainboardInfo* info) {
         NULL,
         EOAC_NONE
     );
+
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
@@ -178,6 +199,7 @@ void mainboard_info_get(MainboardInfo* info) {
         NULL,
         &pEnumerator
     );
+
     if (FAILED(hres)) {
         pSvc->Release();
         pLoc->Release();
@@ -366,13 +388,13 @@ void os_info_get(OSInfo* info) {
             RtlGetVersion(&version_info);
         }
 
-        strcpy(info->vendor, "Microsoft");
-        strcpy(info->name, "Windows");
+        memcpy(info->vendor, "Microsoft", sizeof("Microsoft"));
+        memcpy(info->name, "Windows", sizeof("Windows"));
         info->major = version_info.dwMajorVersion;
         info->minor = version_info.dwMinorVersion;
     #else
-        strcpy(info->vendor, "Linux");
-        strcpy(info->name, "Linux");
+        memcpy(info->vendor, "Linux", sizeof("Linux"));
+        memcpy(info->name, "Linux", sizeof("Linux"));
         info->major = 0;
         info->minor = 0;
     #endif
@@ -394,7 +416,7 @@ struct GpuInfo {
     int32 vram;
 };
 
-unsigned int32 gpu_info_get(GpuInfo* info) {
+uint32 gpu_info_get(GpuInfo* info) {
     IDXGIFactory *pFactory = NULL;
     IDXGIAdapter *pAdapter = NULL;
     DXGI_ADAPTER_DESC adapterDesc;
@@ -404,7 +426,7 @@ unsigned int32 gpu_info_get(GpuInfo* info) {
         return 0;
     }
 
-    UINT i = 0;
+    uint32 i = 0;
     while (pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND && i < 2) {
         hr = pAdapter->GetDesc(&adapterDesc);
         if (FAILED(hr)) {
@@ -432,13 +454,13 @@ struct DisplayInfo {
     int32 hz;
 };
 
-unsigned int32 display_info_get(DisplayInfo* info) {
+uint32 display_info_get(DisplayInfo* info) {
     DISPLAY_DEVICEA device;
     DEVMODEA mode;
 
     device.cb = sizeof(DISPLAY_DEVICEA);
 
-    int32 i = 0;
+    uint32 i = 0;
 
     while (EnumDisplayDevicesA(NULL, i, &device, 0)) {
         mode.dmSize = sizeof(mode);
