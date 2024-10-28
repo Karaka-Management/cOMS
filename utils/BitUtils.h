@@ -33,6 +33,7 @@
 #define BIT_UNSET_R2L(num, pos) ((num) & ~((uint32) 1 << (pos)))
 #define BIT_FLIP_R2L(num, pos) ((num) ^ ((uint32) 1 << (pos)))
 #define BIT_SET_TO_R2L(num, pos, x) ((num) & ~((uint32) 1 << (pos)) | ((uint32) (x) << (pos)))
+// @performance Try to use this version over the L2R version for performance reasons
 #define BITS_GET_8_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
 #define BITS_GET_16_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
 #define BITS_GET_32_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))

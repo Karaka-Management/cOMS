@@ -13,6 +13,7 @@
 #include "../utils/BitUtils.h"
 #include "../memory/BufferMemory.h"
 #include "ControllerInput.h"
+#include "InputConnectionType.h"
 
 // How many concurrent mouse/secondary input device presses to we recognize
 #define MAX_MOUSE_PRESSES 3
@@ -50,6 +51,7 @@
 
 #ifdef _WIN32
     #include <windows.h>
+    #include <dinput.h>
 #endif
 
 typedef void (*InputCallback)(void* data);
@@ -117,14 +119,18 @@ struct InputState {
 
 struct Input {
     // Device
-    bool is_connected;
+    InputConnectionType connection_type;
 
     #ifdef _WIN32
         // @question maybe replace with id?!
         //      -> remove _WIN32 section?
         HANDLE handle_keyboard;
         HANDLE handle_mouse;
-        HANDLE handle_controller;
+
+        // @todo support all three versions
+        int32 controller_id; // used by XInput
+        HANDLE handle_controller; // used by raw input controller
+        LPDIRECTINPUTDEVICE8* direct_controller; // used by direct input controller
     #endif
 
     bool state_change_button;

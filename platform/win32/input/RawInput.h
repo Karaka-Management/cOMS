@@ -32,7 +32,7 @@
 // Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions requried
 // aligned memory. So far we only figured out that 4 bytes works, maybe this needs to be 8 in the future?!
 
-int input_raw_init(HWND hwnd, Input* __restrict states, RingMemory* ring)
+int rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory* ring)
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
@@ -66,7 +66,7 @@ int input_raw_init(HWND hwnd, Input* __restrict states, RingMemory* ring)
                     }
 
                     states[mouse_found].handle_mouse = pRawInputDeviceList[i].hDevice;
-                    states[mouse_found].is_connected = true;
+                    states[mouse_found].connection_type = INPUT_CONNECTION_TYPE_USB;
 
                     // Mouse
                     rid[0].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
@@ -85,7 +85,7 @@ int input_raw_init(HWND hwnd, Input* __restrict states, RingMemory* ring)
                     }
 
                     states[keyboard_found].handle_keyboard = pRawInputDeviceList[i].hDevice;
-                    states[keyboard_found].is_connected = true;
+                    states[keyboard_found].connection_type = INPUT_CONNECTION_TYPE_USB;
 
                     // Keyboard
                     rid[0].usUsagePage = 0x01; // @todo doesn't work with 0x05 for games?
@@ -98,6 +98,40 @@ int input_raw_init(HWND hwnd, Input* __restrict states, RingMemory* ring)
                         ASSERT_SIMPLE(false);
                     }
                 } break;
+        }
+    }
+
+    return i;
+}
+
+int rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* ring)
+{
+    uint32 device_count;
+    GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
+    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) ring_get_memory(ring, sizeof(RAWINPUTDEVICELIST) * device_count, 4);
+    device_count = GetRawInputDeviceList(pRawInputDeviceList, &device_count, sizeof(RAWINPUTDEVICELIST));
+
+    // We always want at least one empty input device slot
+    // @todo Change so that we store the actual number of devices
+    if (device_count == 0) {
+        return 0;
+    }
+
+    uint32 cb_size = 256;
+
+    int32 mouse_found = 0;
+    int32 keyboard_found = 0;
+    int32 controller_found = 0;
+
+    int32 i;
+    for (i = 0; i < device_count; ++i) {
+        cb_size = sizeof(RID_DEVICE_INFO);
+        RID_DEVICE_INFO rdi;
+        GetRawInputDeviceInfoA(pRawInputDeviceList[i].hDevice, RIDI_DEVICEINFO, &rdi, &cb_size);
+
+        RAWINPUTDEVICE rid[1];
+
+        switch (rdi.dwType) {
             case RIM_TYPEHID: {
                     if (rdi.hid.usUsage == 0x05) {
                         if (states[controller_found].handle_controller != NULL) {
@@ -105,7 +139,8 @@ int input_raw_init(HWND hwnd, Input* __restrict states, RingMemory* ring)
                         }
 
                         states[controller_found].handle_controller = pRawInputDeviceList[i].hDevice;
-                        states[controller_found].is_connected = true;
+                        // @bug This is not always true, how to check?
+                        states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
 
                         // Gamepad
                         rid[0].usUsagePage = 0x01;
@@ -123,7 +158,8 @@ int input_raw_init(HWND hwnd, Input* __restrict states, RingMemory* ring)
                         }
 
                         states[controller_found].handle_controller = pRawInputDeviceList[i].hDevice;
-                        states[controller_found].is_connected = true;
+                        // @bug This is not always true, how to check?
+                        states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
 
                         // Joystick
                         rid[0].usUsagePage = 0x01;
@@ -155,11 +191,11 @@ void input_mouse_position(HWND hwnd, v2_int32* pos)
     }
 }
 
-int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count, uint64 time)
+int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int32 state_count, uint64 time)
 {
     int32 input_count = 0;
 
-    uint32 i = 0;
+    int32 i = 0;
     if (raw->header.dwType == RIM_TYPEMOUSE) {
         // @performance Change so we can directly access the correct state (maybe map handle address to index?)
         while (i < state_count
@@ -168,7 +204,7 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count,
             ++i;
         }
 
-        if (i >= state_count || !states[i].is_connected) {
+        if (i >= state_count || !states[i].connection_type) {
             return 0;
         }
 
@@ -273,7 +309,7 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count,
             ++i;
         }
 
-        if (i >= state_count || !states[i].is_connected) {
+        if (i >= state_count || !states[i].connection_type) {
             return 0;
         }
 
@@ -294,27 +330,28 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int state_count,
         states[i].state_change_button = true;
     } else if (raw->header.dwType == RIM_TYPEHID) {
         if (raw->header.dwSize > sizeof(RAWINPUT)) {
-            // @todo Find a way to handle most common controllers
-            //      DualSense
-            //      Xbox
-
             // @performance This shouldn't be done every time, it should be polling based
             // Controllers often CONSTANTLY send data -> really bad
-            // Maybe we can add timer usage
+            // Maybe we can add timer usage instead of polling?
             while (i < state_count
                 && states[i].handle_controller != raw->header.hDevice
             ) {
                 ++i;
             }
 
-            if (i >= state_count || !states[i].is_connected
+            if (i >= state_count || !states[i].connection_type
                 || time - states[i].time_last_input_check < 5
             ) {
                 return 0;
             }
 
+            // @todo Find a way to handle most common controllers
+            //      DualSense
+            //      Xbox
+            //      Xinput
+            // Best way would probably to define the controller type in the input
             ControllerInput controller = {};
-            input_map_dualshock4(&controller, raw->data.hid.bRawData);
+            input_map_dualshock4(&controller, states[i].connection_type, raw->data.hid.bRawData);
             input_set_controller_state(&states[i], &controller, time);
 
             states[i].time_last_input_check = time;

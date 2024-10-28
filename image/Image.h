@@ -24,7 +24,7 @@
 struct Image {
     uint32 width;
     uint32 height;
-    uint32 pixel_count;
+    uint32 pixel_count; // @question Do we even need this?
 
     // Image settings
     bool has_alpha;

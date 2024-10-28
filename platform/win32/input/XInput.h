@@ -56,7 +56,7 @@ void xinput_load() {
 }
 // END: Dynamically load XInput
 
-ControllerInput* init_controllers()
+ControllerInput* xinput_init_controllers()
 {
     uint32 c = 0;
     for (uint32 controller_index = 0; controller_index < XUSER_MAX_COUNT; ++controller_index) {
@@ -85,49 +85,45 @@ ControllerInput* init_controllers()
     return controllers;
 }
 
-void handle_controller_input(ControllerInput* states)
+inline
+void input_map_xinput(ControllerInput* controller, int32 controller_id)
 {
-    /*
-    uint32 controller_index = 0;
-    while(states[controller_index].is_connected) {
-        XINPUT_STATE controller_state;
-        if (XInputGetState(controller_index, &controller_state) != ERROR_SUCCESS) {
-            ++controller_index;
-
-            continue;
-        }
-
-
-        states[controller_index].up = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP;
-        states[controller_index].down = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
-        states[controller_index].left = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
-        states[controller_index].right = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
-        states[controller_index].button[6] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_START;
-        states[controller_index].button[7] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK;
-
-        states[controller_index].button[4] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
-        states[controller_index].button[5] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
-
-        states[controller_index].trigger[0] = controller_state.Gamepad.bLeftTrigger;
-        states[controller_index].trigger[1] = controller_state.Gamepad.bRightTrigger;
-
-        states[controller_index].button[0] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_A;
-        states[controller_index].button[1] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_B;
-        states[controller_index].button[2] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_X;
-        states[controller_index].button[3] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_Y;
-
-        states[controller_index].stickl_x = controller_state.Gamepad.sThumbLX;
-        states[controller_index].stickl_y = controller_state.Gamepad.sThumbLY;
-        states[controller_index].stickl_press = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB;
-
-        states[controller_index].stickr_x = controller_state.Gamepad.sThumbRX;
-        states[controller_index].stickr_y = controller_state.Gamepad.sThumbRY;
-        states[controller_index].stickr_press = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
-
-
-        ++controller_index;
+    XINPUT_STATE controller_state;
+    if (XInputGetState(controller_id, &controller_state) != ERROR_SUCCESS) {
+        return;
     }
-    */
+
+    controller->button[CONTROLLER_BUTTON_DPAD_LEFT] = (controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) * 127;
+    controller->button[CONTROLLER_BUTTON_DPAD_RIGHT] = (controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) * 127;
+    controller->button[CONTROLLER_BUTTON_DPAD_UP] = (controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) * 127;
+    controller->button[CONTROLLER_BUTTON_DPAD_DOWN] = (controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) * 127;
+
+    controller->button[CONTROLLER_BUTTON_OTHER_0] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_START;
+    controller->button[CONTROLLER_BUTTON_OTHER_1] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK;
+
+    controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_BUTTON] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER ? 1: 0;
+    controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_BUTTON] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER ? 1: 0;
+
+    controller->button[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = controller_state.Gamepad.bRightTrigger;
+    controller->is_analog[CONTROLLER_BUTTON_SHOULDER_RIGHT_TRIGGER] = true;
+
+    controller->button[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = controller_state.Gamepad.bLeftTrigger;
+    controller->is_analog[CONTROLLER_BUTTON_SHOULDER_LEFT_TRIGGER] = true;
+
+    controller->button[CONTROLLER_BUTTON_T] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_Y ? 1: 0;
+    controller->button[CONTROLLER_BUTTON_C] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_B ? 1: 0;
+    controller->button[CONTROLLER_BUTTON_X] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_A ? 1: 0;
+    controller->button[CONTROLLER_BUTTON_S] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_X ? 1: 0;
+
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbLX, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbLY, 127);
+    controller->is_analog[CONTROLLER_BUTTON_STICK_LEFT_VERTICAL] = true;
+    controller->button[CONTROLLER_BUTTON_STICK_LEFT_BUTTON] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB;
+
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_HORIZONTAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbRX, 127);
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = (byte) OMS_MIN(controller_state.Gamepad.sThumbRY, 127);
+    controller->is_analog[CONTROLLER_BUTTON_STICK_RIGHT_VERTICAL] = true;
+    controller->button[CONTROLLER_BUTTON_STICK_RIGHT_BUTTON] = controller_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
 }
 
 #endif

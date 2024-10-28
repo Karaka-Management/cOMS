@@ -5,20 +5,28 @@
  * @license   OMS License 2.0
  * @version   1.0.0
  * @link      https://jingga.app
+ * @see       https://dsremap.readthedocs.io/en/latest/reverse.html
  */
 #ifndef TOS_PLATFORM_WIN32_INPUT_CONTROLLER_DUALSHOCK4_H
 #define TOS_PLATFORM_WIN32_INPUT_CONTROLLER_DUALSHOCK4_H
 
 #include "../../../../stdlib/Types.h"
 #include "../../../../input/ControllerInput.h"
+#include "../../../../input/InputConnectionType.h"
 #include "../../../../utils/BitUtils.h"
+#include "../../../../utils/MathUtils.h"
 
 inline
-void input_map_dualshock4(ControllerInput* controller, byte* data)
+void input_map_dualshock4(ControllerInput* controller, InputConnectionType connection_type, byte* data)
 {
+    // 0 is not the origin -> need to shift
     ++data;
 
-    // 0 is not the origin -> need to shift
+    // @question Do we even need this? This might not be send on Windows
+    if (connection_type == INPUT_CONNECTION_TYPE_BLUETOOTH) {
+        ++data;
+    }
+
     controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = *data++;
     controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = OMS_MIN(controller->button[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] - 128, 127);
     controller->is_analog[CONTROLLER_BUTTON_STICK_LEFT_HORIZONTAL] = true;

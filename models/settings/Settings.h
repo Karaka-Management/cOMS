@@ -16,6 +16,7 @@
 
 #if _WIN32
     #include <windows.h>
+    #include "../../platform/win32/input/controller/ControllerHandler.h"
 #else __linux__
     #include <linux/limits.h>
     #define MAX_PATH PATH_MAX
@@ -352,6 +353,8 @@ struct CSettings {
     byte game_interact_radius = 1;
 
     // Game pad settings
+    byte input_device_types = SETTING_INPUT_DEVICE_TYPE_MOUSE_KEYBOARD;
+    byte input_controller_handler = CONTROLLER_HANDLER_TYPE_AUTO;
     byte stick_left_deadzone = 0;
     byte stick_right_deadzone = 0;
 

@@ -186,6 +186,14 @@ void font_from_file(
 
     memcpy(font->glyphs, pos, font->glyph_count * sizeof(Glyph));
 
+    #if OPENGL
+        for (int32 i = 0; i < font->glyph_count; ++i) {
+            float temp = font->glyphs[i].coords.y1;
+            font->glyphs[i].coords.y1 = 1.0f - font->glyphs[i].coords.y2;
+            font->glyphs[i].coords.y2 = 1.0f - temp;
+        }
+    #endif
+
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) font->glyphs,
         (int32 *) font->glyphs,
