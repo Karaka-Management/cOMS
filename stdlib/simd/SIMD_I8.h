@@ -40,7 +40,7 @@ struct int8_64 {
 inline int8_16 load_int8_16(const int8* mem)
 {
     int8_16 simd;
-    simd.s = _mm_loadu_epi8(mem);
+    simd.s = _mm_load_si128((__m128i *) mem);
 
     return simd;
 }
@@ -63,7 +63,7 @@ inline void unload_int8_16(int8_16 a, int8 *array) { _mm_store_si128((__m128i *)
 inline int8_32 load_int8_32(const int8* mem)
 {
     int8_32 simd;
-    simd.s = _mm256_loadu_epi8(mem);
+    simd.s = _mm256_load_si256((__m256i *) mem);
 
     return simd;
 }
@@ -86,7 +86,7 @@ inline void unload_int8_32(int8_32 a, int8 *array) { _mm256_store_si256((__m256i
 inline int8_64 load_int8_64(const int8* mem)
 {
     int8_64 simd;
-    simd.s = _mm512_loadu_epi8(mem);
+    simd.s = _mm512_load_si512((__m512i *) mem);
 
     return simd;
 }
@@ -830,19 +830,19 @@ inline
 f32 simd_mult(const int8* a, f32 b, int32 size, int32 steps)
 {
     if (steps == 16) {
-        __m512i a_16 = _mm512_loadu_epi8(a);
+        __m512i a_16 = _mm512_load_si512((__m512i *) a);
         __m512 af_16 = _mm512_cvtepi32_ps(a_16);
         __m512 b_16 = _mm512_set1_ps(b);
 
         __m512 result = _mm512_mul_ps(af_16, b_16);
     } else if (steps == 8) {
-        __m256i a_8 = _mm256_loadu_epi8(a);
+        __m256i a_8 = _mm256_load_si256((__m256i *) a);
         __m256 af_8 = _mm256_cvtepi32_ps(a_8);
         __m256 b_8 = _mm256_set1_ps(b);
 
         __m256 result = _mm256_mul_ps(af_8, b_8);
     } else if (steps == 4) {
-        __m128i a_4 = _mm_loadu_epi8(a);
+        __m128i a_4 = _mm_load_si128((__m128i *) a);
         __m128 af_4 = _mm_cvtepi32_ps(a_4);
         __m128 b_4 = _mm_set1_ps(b);
 
@@ -855,11 +855,11 @@ f32 simd_mult(const int8* a, f32 b, int32 size, int32 steps)
 
 bool simd_compare_64(const byte* a, const byte* b)
 {
-    __m256i chunk1_a = _mm256_loadu_si256((__m256i*) a);
-    __m256i chunk1_b = _mm256_loadu_si256((__m256i*) b);
+    __m256i chunk1_a = _mm256_load_si256((__m256i*) a);
+    __m256i chunk1_b = _mm256_load_si256((__m256i*) b);
 
-    __m256i chunk2_a = _mm256_loadu_si256((__m256i*) (a + 32));
-    __m256i chunk2_b = _mm256_loadu_si256((__m256i*) (b + 32));
+    __m256i chunk2_a = _mm256_load_si256((__m256i*) (a + 32));
+    __m256i chunk2_b = _mm256_load_si256((__m256i*) (b + 32));
 
     __m256i result1 = _mm256_cmpeq_epi8(chunk1_a, chunk1_b);
     __m256i result2 = _mm256_cmpeq_epi8(chunk2_a, chunk2_b);
@@ -879,8 +879,8 @@ int simd_compare(const byte* a, const byte* b, uint32 size, uint32 steps = 8) {
             __mmask64 result_mask;
 
             for (; i <= size - 64; i += 64) {  // 64 bytes per iteration
-                a_16 = _mm512_loadu_si512((__m512i*) a);
-                b_16 = _mm512_loadu_si512((__m512i*) b);
+                a_16 = _mm512_load_si512((__m512i*) a);
+                b_16 = _mm512_load_si512((__m512i*) b);
 
                 result_mask = _mm512_cmpeq_epi8_mask(a_16, b_16);
 
@@ -905,8 +905,8 @@ int simd_compare(const byte* a, const byte* b, uint32 size, uint32 steps = 8) {
             __m256i result_8;
 
             for (; i <= size - steps; i += steps) {
-                a_8 = _mm256_loadu_si256((__m256i*) a);
-                b_8 = _mm256_loadu_si256((__m256i*) b);
+                a_8 = _mm256_load_si256((__m256i*) a);
+                b_8 = _mm256_load_si256((__m256i*) b);
 
                 result_8 = _mm256_cmpeq_epi8(a_8, b_8);
 
@@ -929,8 +929,8 @@ int simd_compare(const byte* a, const byte* b, uint32 size, uint32 steps = 8) {
             __m128i result_4;
 
             for (; i <= size - steps; i += steps) {
-                a_4 = _mm_loadu_si128((__m128i*) a);
-                b_4 = _mm_loadu_si128((__m128i*) b);
+                a_4 = _mm_load_si128((__m128i*) a);
+                b_4 = _mm_load_si128((__m128i*) b);
 
                 result_4 = _mm_cmpeq_epi8(a_4, b_4);
 

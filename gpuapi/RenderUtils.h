@@ -693,15 +693,15 @@ void entity_clip_space_mat_sse(f32* result_mat, const f32* model_mat, const f32*
     __m128 a[4];
     __m128 b[4];
 
-    a[0] = _mm_loadu_ps(projection_mat);
-    a[1] = _mm_loadu_ps(&projection_mat[4]);
-    a[2] = _mm_loadu_ps(&projection_mat[8]);
-    a[3] = _mm_loadu_ps(&projection_mat[12]);
+    a[0] = _mm_load_ps(projection_mat);
+    a[1] = _mm_load_ps(&projection_mat[4]);
+    a[2] = _mm_load_ps(&projection_mat[8]);
+    a[3] = _mm_load_ps(&projection_mat[12]);
 
-    b[0] = _mm_loadu_ps(view_mat);
-    b[1] = _mm_loadu_ps(&view_mat[4]);
-    b[2] = _mm_loadu_ps(&view_mat[8]);
-    b[3] = _mm_loadu_ps(&view_mat[12]);
+    b[0] = _mm_load_ps(view_mat);
+    b[1] = _mm_load_ps(&view_mat[4]);
+    b[2] = _mm_load_ps(&view_mat[8]);
+    b[3] = _mm_load_ps(&view_mat[12]);
     _MM_TRANSPOSE4_PS(b[0], b[1], b[2], b[3]);
 
     mat4mat4_mult_sse(a, b, temp);
@@ -711,10 +711,10 @@ void entity_clip_space_mat_sse(f32* result_mat, const f32* model_mat, const f32*
     a[2] = temp[2];
     a[3] = temp[3];
 
-    b[0] = _mm_loadu_ps(model_mat);
-    b[1] = _mm_loadu_ps(&model_mat[4]);
-    b[2] = _mm_loadu_ps(&model_mat[8]);
-    b[3] = _mm_loadu_ps(&model_mat[12]);
+    b[0] = _mm_load_ps(model_mat);
+    b[1] = _mm_load_ps(&model_mat[4]);
+    b[2] = _mm_load_ps(&model_mat[8]);
+    b[3] = _mm_load_ps(&model_mat[12]);
     _MM_TRANSPOSE4_PS(b[0], b[1], b[2], b[3]);
 
     mat4mat4_mult_sse(a, b, temp);

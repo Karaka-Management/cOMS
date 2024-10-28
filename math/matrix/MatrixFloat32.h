@@ -401,11 +401,11 @@ void mat3vec3_mult(const f32* __restrict matrix, const f32* __restrict vector, f
 // @question could simple mul add sse be faster?
 void mat3vec3_mult_sse(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result)
 {
-    __m128 vec = _mm_loadu_ps(vector);
+    __m128 vec = _mm_load_ps(vector);
     vec = _mm_insert_ps(vec, _mm_setzero_ps(), 0x30); // vec[3] = 0
 
     for (int32 i = 0; i < 3; ++i) {
-        __m128 row = _mm_loadu_ps(&matrix[i * 3]);
+        __m128 row = _mm_load_ps(&matrix[i * 3]);
         row = _mm_insert_ps(row, _mm_setzero_ps(), 0x30);  // row[3] = 0
 
         __m128 dot = _mm_dp_ps(row, vec, 0xF1);
@@ -444,10 +444,10 @@ void mat4vec4_mult(const f32* __restrict matrix, const f32* __restrict vector, f
 // @question could simple mul add sse be faster?
 void mat4vec4_mult_sse(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result)
 {
-    __m128 vec = _mm_loadu_ps(vector);
+    __m128 vec = _mm_load_ps(vector);
 
     for (int32 i = 0; i < 4; ++i) {
-        __m128 row = _mm_loadu_ps(&matrix[i * 4]);
+        __m128 row = _mm_load_ps(&matrix[i * 4]);
         __m128 dot = _mm_dp_ps(row, vec, 0xF1);
 
         result[i] = _mm_cvtss_f32(dot);
@@ -502,16 +502,16 @@ void mat4mat4_mult(const f32* __restrict a, const f32* __restrict b, f32* __rest
         // @todo check http://fhtr.blogspot.com/2010/02/4x4-f32-matrix-multiplication-using.html
         // @question could simple mul add sse be faster?
         // Load rows of matrix a
-        __m128 a_1 = _mm_loadu_ps(a);
-        __m128 a_2 = _mm_loadu_ps(&a[4]);
-        __m128 a_3 = _mm_loadu_ps(&a[8]);
-        __m128 a_4 = _mm_loadu_ps(&a[12]);
+        __m128 a_1 = _mm_load_ps(a);
+        __m128 a_2 = _mm_load_ps(&a[4]);
+        __m128 a_3 = _mm_load_ps(&a[8]);
+        __m128 a_4 = _mm_load_ps(&a[12]);
 
         // Load columns of matrix b
-        __m128 b_1 = _mm_loadu_ps(b);
-        __m128 b_2 = _mm_loadu_ps(&b[4]);
-        __m128 b_3 = _mm_loadu_ps(&b[8]);
-        __m128 b_4 = _mm_loadu_ps(&b[12]);
+        __m128 b_1 = _mm_load_ps(b);
+        __m128 b_2 = _mm_load_ps(&b[4]);
+        __m128 b_3 = _mm_load_ps(&b[8]);
+        __m128 b_4 = _mm_load_ps(&b[12]);
 
         _mm_storeu_ps(&result[0],
             _mm_add_ps(

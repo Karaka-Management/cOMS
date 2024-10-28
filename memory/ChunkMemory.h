@@ -69,12 +69,14 @@ void chunk_init(ChunkMemory* buf, byte* data, uint64 count, uint64 chunk_size, i
     buf->memory = data;
 
     buf->count = count;
-    buf->size = chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64);
+    buf->size = chunk_size * count + sizeof(buf->free) * CEIL_DIV(count, 64);
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
+    //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
+    //  On another hand we could by accident overwrite the values in free if we are not careful
     buf->free = (uint64 *) (buf->memory + count * chunk_size);
 
     DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
@@ -124,7 +126,7 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
     int32 bit_index;
 
     int64 free_element = -1;
-    byte mask;
+    int64 mask;
 
     int32 i = 0;
     int64 max_bytes = (buf->count + 7) / 64;
@@ -157,7 +159,7 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
                 uint64 current_free_index = free_index + (bit_index + j) / 64;
                 int32 current_bit_index = (bit_index + j) % 64;
 
-                mask = 1 << current_bit_index;
+                mask = 1LL << current_bit_index;
                 if ((buf->free[current_free_index] & mask) == 0) {
                     ++consecutive_free_bits;
                 } else {
@@ -201,23 +203,23 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
 
 byte* chunk_find_free(ChunkMemory* buf)
 {
-    int64 byte_index = (buf->last_pos + 1) / 64;
+    int64 free_index = (buf->last_pos + 1) / 64;
     int32 bit_index;
 
     int64 free_element = -1;
-    byte mask;
+    int64 mask;
 
     int32 i = 0;
     int64 max_bytes = (buf->count + 7) / 64;
 
     while (free_element < 0 && i < buf->count) {
-        if (byte_index >= max_bytes) {
-            byte_index = 0;
+        if (free_index >= max_bytes) {
+            free_index = 0;
         }
 
-        if (buf->free[byte_index] == 0xFF) {
+        if (buf->free[free_index] == 0xFF) {
             ++i;
-            ++byte_index;
+            ++free_index;
 
             continue;
         }
@@ -226,10 +228,10 @@ byte* chunk_find_free(ChunkMemory* buf)
         // @performance on the first iteration through the buffer we could optimize this by starting at a different bit_index
         // because we know that the bit_index is based on last_pos
         for (bit_index = 0; bit_index < 64; ++bit_index) {
-            mask = 1 << bit_index;
-            if ((buf->free[byte_index] & mask) == 0) {
-                free_element = byte_index * 64 + bit_index;
-                buf->free[byte_index] |= (1LL << bit_index);
+            mask = 1LL << bit_index;
+            if ((buf->free[free_index] & mask) == 0) {
+                free_element = free_index * 64 + bit_index;
+                buf->free[free_index] |= (1LL << bit_index);
 
                 break;
             }
@@ -248,10 +250,10 @@ void chunk_free_element(ChunkMemory* buf, uint64 element)
 {
     DEBUG_MEMORY_DELETE((uint64) (buf->memory + element * buf->chunk_size), buf->chunk_size);
 
-    int64 byte_index = element / 64;
+    int64 free_index = element / 64;
     int32 bit_index = element % 64;
 
-    buf->free[byte_index] &= ~(1 << bit_index);
+    buf->free[free_index] &= ~(1LL << bit_index);
 }
 
 inline

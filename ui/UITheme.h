@@ -66,6 +66,11 @@ inline
 UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
 {
     HashEntryInt64* entry = (HashEntryInt64 *) hashmap_get_entry(&theme->hash_map, group_name);
+    if (!entry) {
+        ASSERT_SIMPLE(false);
+        return NULL;
+    }
+
     return (UIAttributeGroup *) (theme->data + entry->value);
 }
 
@@ -73,6 +78,11 @@ inline
 UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name, int32 group_id)
 {
     HashEntryInt64* entry = (HashEntryInt64 *) hashmap_get_entry(&theme->hash_map, group_name, group_id);
+    if (!entry) {
+        ASSERT_SIMPLE(false);
+        return NULL;
+    }
+
     return (UIAttributeGroup *) (theme->data + entry->value);
 }
 
@@ -229,7 +239,7 @@ void theme_from_file_txt(
 
             *temp = '\0';
             for (int32 j = 0; j < UI_ELEMENT_TYPE_SIZE; ++j) {
-                if (strcmp(str, ui_element_type_to_string((UIElementType) j)) == 0) {
+                if (strcmp(str, ui_element_type_to_string_const((UIElementType) j)) == 0) {
 
                     attribute.value_int = j;
                     break;
@@ -246,13 +256,11 @@ void theme_from_file_txt(
             }
 
             *temp = '\0';
-            ++pos;
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_COLOR;
             uint32 value = (uint32) strtoul(pos, &pos, 16);
-            pos += 4;
 
             attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
@@ -260,28 +268,27 @@ void theme_from_file_txt(
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_SIZE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_SIZE;
-            attribute.value_float = strtof(pos, &pos); ++pos;
+            attribute.value_float = strtof(pos, &pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_WEIGHT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_WEIGHT;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT;
-            attribute.value_float = strtof(pos, &pos); ++pos;
+            attribute.value_float = strtof(pos, &pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_ALIGN_H), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_ALIGN_H;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_ALIGN_V), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_ALIGN_V;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_ZINDEX), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_ZINDEX;
-            attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos)); ++pos;
+            attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos));
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR;
             uint32 value = (uint32) strtoul(pos, &pos, 16);
-            pos += 4;
 
             attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
@@ -298,22 +305,21 @@ void theme_from_file_txt(
             attribute.value_str[i] = '\0';
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY;
-            attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos)); ++pos;
+            attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos));
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_V), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_V;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_COLOR;
             uint32 value = (uint32) strtoul(pos, &pos, 16);
-            pos += 4;
 
             attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
@@ -321,13 +327,12 @@ void theme_from_file_txt(
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_WIDTH;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR;
             uint32 value = (uint32) strtoul(pos, &pos, 16);
-            pos += 4;
 
             attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
@@ -335,13 +340,12 @@ void theme_from_file_txt(
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR;
             uint32 value = (uint32) strtoul(pos, &pos, 16);
-            pos += 4;
 
             attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
@@ -349,13 +353,12 @@ void theme_from_file_txt(
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR;
             uint32 value = (uint32) strtoul(pos, &pos, 16);
-            pos += 4;
 
             attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
@@ -363,13 +366,12 @@ void theme_from_file_txt(
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR;
             uint32 value = (uint32) strtoul(pos, &pos, 16);
-            pos += 4;
 
             attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
@@ -377,28 +379,27 @@ void theme_from_file_txt(
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_TOP), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_TOP;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_RIGHT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_RIGHT;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_BOTTOM), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_BOTTOM;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_LEFT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_LEFT;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR;
             uint32 value = (uint32) strtoul(pos, &pos, 16);
-            pos += 4;
 
             attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
@@ -406,16 +407,15 @@ void theme_from_file_txt(
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE;
-            attribute.value_float = strtof(pos, &pos); ++pos;
+            attribute.value_float = strtof(pos, &pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR;
             uint32 value = (uint32) strtoul(pos, &pos, 16);
-            pos += 4;
 
             attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
             attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
@@ -423,16 +423,16 @@ void theme_from_file_txt(
             attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE;
-            attribute.value_float = strtof(pos, &pos); ++pos;
+            attribute.value_float = strtof(pos, &pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION;
-            attribute.value_int = strtoul(pos, &pos, 10); ++pos;
+            attribute.value_int = strtoul(pos, &pos, 10);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_TRANSITION_DURATION), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TRANSITION_DURATION;
-            attribute.value_float = strtof(pos, &pos); ++pos;
+            attribute.value_float = strtof(pos, &pos);
         } else {
             while (*pos != '\n' && *pos != '\0') {
                 ++pos;
@@ -487,12 +487,20 @@ void theme_from_file(
     // Of course we still need to populate the data using hashmap_load()
     // The value is a int64 (because this is the value of the chunk buffer size but the hashmap only allows int32)
     hashmap_create(&theme->hash_map, (int32) SWAP_ENDIAN_LITTLE(*((uint64 *) pos)), sizeof(HashEntryInt64), theme->data);
+
+    const byte* start = theme->hash_map.buf.memory;
     pos += hashmap_load(&theme->hash_map, pos);
 
     // theme data
     // Layout: first load the size of the group, then load the individual attributes
     for (int32 i = 0; i < theme->hash_map.buf.count; ++i) {
+        if (!theme->hash_map.table[i]) {
+            continue;
+        }
+
         HashEntryInt64* entry = (HashEntryInt64 *) theme->hash_map.table[i];
+
+        pos = start + entry->value;
         UIAttributeGroup* group = (UIAttributeGroup *) (theme->data + entry->value);
 
         group->attribute_size = SWAP_ENDIAN_LITTLE(*((int32 *) pos));
@@ -501,6 +509,21 @@ void theme_from_file(
         // @performance The UIAttribute contains a char array which makes this WAY larger than it needs to be in 99% of the cases
         memcpy(group->attributes, pos, group->attribute_size * sizeof(UIAttribute));
         pos += group->attribute_size * sizeof(UIAttribute);
+
+        // load all the next elements
+        while (entry->next) {
+            pos = start + entry->value;
+            group = (UIAttributeGroup *) (theme->data + entry->value);
+
+            group->attribute_size = SWAP_ENDIAN_LITTLE(*((int32 *) pos));
+            pos += sizeof(group->attribute_size);
+
+            // @performance The UIAttribute contains a char array which makes this WAY larger than it needs to be in 99% of the cases
+            memcpy(group->attributes, pos, group->attribute_size * sizeof(UIAttribute));
+            pos += group->attribute_size * sizeof(UIAttribute);
+
+            entry = entry->next;
+        }
     }
 }
 
@@ -541,7 +564,7 @@ void theme_to_file(
     //      I also don't want to add a size variable to the theme as it is useless in all other cases
     file.size = theme_size(theme);
 
-    file.content = ring_get_memory(ring, file.size, 64);
+    file.content = ring_get_memory(ring, file.size, 64, true);
     byte* pos = file.content;
 
     // version
@@ -549,12 +572,19 @@ void theme_to_file(
     pos += sizeof(theme->version);
 
     // hashmap
+    byte* start = pos;
     pos += hashmap_dump(&theme->hash_map, pos);
 
     // theme data
     // Layout: first save the size of the group, then save the individual attributes
     for (int32 i = 0; i < theme->hash_map.buf.count; ++i) {
+        if (!theme->hash_map.table[i]) {
+            continue;
+        }
+
         HashEntryInt64* entry = (HashEntryInt64 *) theme->hash_map.table[i];
+
+        pos = start + entry->value;
         UIAttributeGroup* group = (UIAttributeGroup *) (theme->data + entry->value);
 
         *((int32 *) pos) = SWAP_ENDIAN_LITTLE(group->attribute_size);
@@ -562,7 +592,22 @@ void theme_to_file(
 
         // @performance The UIAttribute contains a char array which makes this WAY larger than it needs to be in 99% of the cases
         memcpy(pos, group->attributes, group->attribute_size * sizeof(UIAttribute));
-        pos += group->attribute_size * sizeof(UIAttribute);
+        pos += sizeof(UIAttribute);
+
+        // save all the next elements
+        while (entry->next) {
+            pos = start + entry->value;
+            group = (UIAttributeGroup *) (theme->data + entry->value);
+
+            *((int32 *) pos) = SWAP_ENDIAN_LITTLE(group->attribute_size);
+            pos += sizeof(group->attribute_size);
+
+            // @performance The UIAttribute contains a char array which makes this WAY larger than it needs to be in 99% of the cases
+            memcpy(pos, group->attributes, group->attribute_size * sizeof(UIAttribute));
+            pos += sizeof(UIAttribute);
+
+            entry = entry->next;
+        }
     }
 
     file.size = pos - file.content;

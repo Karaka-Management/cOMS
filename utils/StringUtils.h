@@ -176,7 +176,7 @@ void wchar_to_char(const wchar_t* __restrict src, char* __restrict dest, int32 l
     *dest = '\0';
 }
 
-inline
+inline constexpr
 int32 str_to_int(const char *str)
 {
     int32 result = 0;
@@ -197,7 +197,47 @@ int32 str_to_int(const char *str)
     return result * sign;
 }
 
-inline size_t str_count(const char* __restrict str, const char* __restrict substr)
+inline constexpr
+int32 int_to_str(int64 number, char *str, const char thousands = ',') {
+    int32 i = 0;
+    int64 sign = number;
+    int32 digit_count = 0;
+
+    if (number == 0) {
+        str[i++] = '0';
+    } else if (number < 0) {
+        number = -number;
+    }
+
+    while (number > 0) {
+        if (thousands
+            && (digit_count == 3 || digit_count == 6 || digit_count == 9 || digit_count == 12 || digit_count == 15)
+        ) {
+            str[i++] = thousands;
+        }
+
+        str[i++] = number % 10 + '0';
+        number /= 10;
+        ++digit_count;
+    }
+
+    if (sign < 0) {
+        str[i++] = '-';
+    }
+
+    str[i] = '\0';
+
+    for (int32 j = 0, k = i - 1; j < k; ++j, --k) {
+        char temp = str[j];
+        str[j] = str[k];
+        str[k] = temp;
+    }
+
+    return i - 1;
+}
+
+inline
+size_t str_count(const char* __restrict str, const char* __restrict substr)
 {
     size_t l1 = strlen(str);
     size_t l2 = strlen(substr);
@@ -296,45 +336,7 @@ char* strtok(char* str, const char* __restrict delim, char* *key) {
     return result;
 }
 
-inline
-int32 int_to_str(int64 number, char *str, const char thousands = ',') {
-    int32 i = 0;
-    int64 sign = number;
-    int32 digit_count = 0;
-
-    if (number == 0) {
-        str[i++] = '0';
-    } else if (number < 0) {
-        number = -number;
-    }
-
-    while (number > 0) {
-        if (thousands
-            && (digit_count == 3 || digit_count == 6 || digit_count == 9 || digit_count == 12 || digit_count == 15)
-        ) {
-            str[i++] = thousands;
-        }
-
-        str[i++] = number % 10 + '0';
-        number /= 10;
-        ++digit_count;
-    }
-
-    if (sign < 0) {
-        str[i++] = '-';
-    }
-
-    str[i] = '\0';
-
-    for (int32 j = 0, k = i - 1; j < k; ++j, --k) {
-        char temp = str[j];
-        str[j] = str[k];
-        str[k] = temp;
-    }
-
-    return i - 1;
-}
-
+inline constexpr
 char toupper_ascii(char c)
 {
     return c >= 'a' && c <= 'z'
@@ -342,6 +344,7 @@ char toupper_ascii(char c)
         : c;
 }
 
+inline constexpr
 char tolower_ascii(char c)
 {
     return c >= 'A' && c <= 'Z'
@@ -349,6 +352,7 @@ char tolower_ascii(char c)
         : c;
 }
 
+inline constexpr
 void create_const_name(const unsigned char* name, char* modified_name)
 {
     // Print block
@@ -365,6 +369,7 @@ void create_const_name(const unsigned char* name, char* modified_name)
     }
 }
 
+inline constexpr
 bool str_ends_with(const char* str, const char* suffix) {
     if (!str || !suffix) {
         return false;
@@ -429,6 +434,18 @@ void print_bytes(const void* ptr, size_t size)
             count = 0;
         }
     }
+}
+
+inline constexpr
+int32 is_eol(const char* str)
+{
+    if (*str == '\n') {
+        return 1;
+    } else if (*str == '\r' && str[1] == '\n') {
+        return 2;
+    }
+
+    return 0;
 }
 
 #endif

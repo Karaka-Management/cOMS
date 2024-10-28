@@ -100,6 +100,8 @@ void font_from_file_txt(
                 while (*pos != '\n') {
                     *texture_pos++ = *pos++;
                 }
+
+                *texture_pos++ = '\0';
             } else if (strcmp(block_name, "font_size") == 0) {
                 font->size = strtof(pos, &pos);
             } else if (strcmp(block_name, "line_height") == 0) {

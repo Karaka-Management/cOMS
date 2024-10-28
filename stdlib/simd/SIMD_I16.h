@@ -39,7 +39,7 @@ struct int16_32 {
 inline int16_8 load_int16_8(const int16* mem)
 {
     int16_8 simd;
-    simd.s = _mm_loadu_epi16(mem);
+    simd.s = _mm_load_si128((__m128i *) mem);
 
     return simd;
 }
@@ -60,7 +60,7 @@ inline void unload_int16_8(int16_8 a, int16 *array) { _mm_store_si128((__m128i *
 inline int16_16 load_int16_16(const int16* mem)
 {
     int16_16 simd;
-    simd.s = _mm256_loadu_epi16(mem);
+    simd.s = _mm256_load_si256((__m256i *) mem);
 
     return simd;
 }
@@ -81,7 +81,7 @@ inline void unload_int16_16(int16_16 a, int16 *array) { _mm256_store_si256((__m2
 inline int16_32 load_int16_32(const int16* mem)
 {
     int16_32 simd;
-    simd.s = _mm512_loadu_epi16(mem);
+    simd.s = _mm512_load_si512((__m512i *) mem);
 
     return simd;
 }

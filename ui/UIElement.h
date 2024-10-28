@@ -5,6 +5,9 @@
 #include "UIElementType.h"
 #include "../object/Vertex.h"
 
+#include <immintrin.h>
+#include <xmmintrin.h>
+
 struct UIElementDimension {
 	int16 x1;
 	int16 y1;
@@ -22,6 +25,7 @@ struct UIElement {
     const char* name;
     int32 id;
     UIElementType type;
+    bool is_dynamic;
 
     int16 window_id;
     int16 panel_id;

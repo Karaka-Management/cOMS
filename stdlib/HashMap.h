@@ -122,6 +122,11 @@ int64 hashmap_size(const HashMap* hm)
 }
 
 void hashmap_insert(HashMap* hm, const char* key, int32 value) {
+    // @performance Do we really want to do this check every time?
+    if (hm->buf.count == 0) {
+        return;
+    }
+
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -147,6 +152,11 @@ void hashmap_insert(HashMap* hm, const char* key, int32 value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, int64 value) {
+    // @performance Do we really want to do this check every time?
+    if (hm->buf.count == 0) {
+        return;
+    }
+
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -172,6 +182,11 @@ void hashmap_insert(HashMap* hm, const char* key, int64 value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, uintptr_t value) {
+    // @performance Do we really want to do this check every time?
+    if (hm->buf.count == 0) {
+        return;
+    }
+
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -197,6 +212,11 @@ void hashmap_insert(HashMap* hm, const char* key, uintptr_t value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, void* value) {
+    // @performance Do we really want to do this check every time?
+    if (hm->buf.count == 0) {
+        return;
+    }
+
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -222,6 +242,11 @@ void hashmap_insert(HashMap* hm, const char* key, void* value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, f32 value) {
+    // @performance Do we really want to do this check every time?
+    if (hm->buf.count == 0) {
+        return;
+    }
+
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -247,6 +272,11 @@ void hashmap_insert(HashMap* hm, const char* key, f32 value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, const char* value) {
+    // @performance Do we really want to do this check every time?
+    if (hm->buf.count == 0) {
+        return;
+    }
+
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -274,6 +304,11 @@ void hashmap_insert(HashMap* hm, const char* key, const char* value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, byte* value) {
+    // @performance Do we really want to do this check every time?
+    if (hm->buf.count == 0) {
+        return;
+    }
+
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -302,6 +337,11 @@ void hashmap_insert(HashMap* hm, const char* key, byte* value) {
 }
 
 HashEntry* hashmap_get_entry(HashMap* hm, const char* key) {
+    // @performance Do we really want to do this check every time?
+    if (hm->buf.count == 0) {
+        return NULL;
+    }
+
     uint64 index = hash_djb2(key) % hm->buf.count;
     HashEntry* entry = (HashEntry *) hm->table[index];
 
@@ -356,90 +396,131 @@ void hashmap_delete_entry(HashMap* hm, const char* key) {
     }
 }
 
-// @bug We cannot know if the data needs endian swap (it coult be int/float, but also some other 4/8 byte value)
-//  -> if we save this to a file and load it on a different system we will have "corrupt" data
 inline
 int64 hashmap_dump(const HashMap* hm, byte* data)
 {
     *((uint64 *) data) = SWAP_ENDIAN_LITTLE(hm->buf.count);
     data += sizeof(uint64);
 
-    uint64 next_count_total = 0;
-
     // Dump the table content where the elements are relative indeces/pointers
     for (int32 i = 0; i < hm->buf.count; ++i) {
-        *((uint64 *) data) = SWAP_ENDIAN_LITTLE((uintptr_t) hm->table[i] - (uintptr_t) hm->buf.memory);
-        data += sizeof(uint64);
+        *((uint64 *) data) = hm->table[i]
+            ? SWAP_ENDIAN_LITTLE((uintptr_t) hm->table[i] - (uintptr_t) hm->buf.memory)
+            : 0ULL;
+    }
+    data += sizeof(uint64) * hm->buf.count;
 
-        // Also dump the next pointer
-        // Count how many next elements we have
-        HashEntry* entry = ((HashEntry *) hm->table[i])->next;
-        int32 next_count = 0;
-        while (entry) {
-            ++next_count;
-            entry = entry->next;
+    int64 value_size = hm->buf.chunk_size - sizeof(uint64) - sizeof(char) * MAX_KEY_LENGTH - sizeof(uint64);
+
+    // Dumb hash map content = buffer memory
+    int32 free_index = 0;
+    int32 bit_index = 0;
+    for (int32 i = 0; i < hm->buf.count; ++i) {
+        if ((hm->buf.free[free_index] & (1ULL << bit_index)) > 0) {
+            HashEntry* entry = (HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, i);
+
+            // element_id
+            *((uint64 *) data) = SWAP_ENDIAN_LITTLE(entry->element_id);
+            data += sizeof(entry->element_id);
+
+            // key
+            memcpy(data, entry->key, sizeof(entry->key));
+            data += sizeof(entry->key);
+
+            // next pointer
+            if (entry->next) {
+                *((uint64 *) data) = SWAP_ENDIAN_LITTLE((uintptr_t) entry->next - (uintptr_t) hm->buf.memory);
+            } else {
+                memset(data, 0, sizeof(uint64));
+            }
+            data += sizeof(uint64);
+
+            // We just assume that 4 or 8 bytes = int -> endian handling
+            if (value_size == 4) {
+                *((int32 *) data) = SWAP_ENDIAN_LITTLE(((HashEntryInt32 *) entry)->value);
+            } else if (value_size == 8) {
+                *((int64 *) data) = SWAP_ENDIAN_LITTLE(((HashEntryInt64 *) entry)->value);
+            } else {
+                memcpy(data, entry->value, value_size);
+            }
+            data += value_size;
+        } else {
+            // No entry defined -> NULL
+            memset(data, 0, hm->buf.chunk_size);
+            data += hm->buf.chunk_size;
         }
 
-        next_count_total += next_count;
-
-        *((int32 *) data) = SWAP_ENDIAN_LITTLE(next_count);
-        data += sizeof(next_count);
-
-        if (next_count > 0) {
-            entry = ((HashEntry *) hm->table[i])->next;
-            while (entry) {
-                *((uint64 *) data) = SWAP_ENDIAN_LITTLE((uintptr_t) entry - (uintptr_t) hm->buf.memory);
-                data += sizeof(uint64);
-
-                entry = entry->next;
-            }
+        ++bit_index;
+        if (bit_index > 63) {
+            bit_index = 0;
+            ++free_index;
         }
     }
 
-    // @performance chunk_dump() below contains some data we already output above
-    // (next pointer but it is useless, since we need relative positions)
-    // Maybe we should manually re-create the chunk_dump here and omit the already dumped data for the next pointer?
+    // dump free array
+    memcpy(data, hm->buf.free, sizeof(uint64) * CEIL_DIV(hm->buf.count, 64));
 
-    // How many bytes were written (+ dump the chunk memory)
-    return sizeof(hm->buf.count)
+    return sizeof(hm->buf.count) // hash map count = buffer count
         + hm->buf.count * sizeof(uint64) // table content
-        + hm->buf.count * sizeof(int32) // counter for the next pointer (one for every element)
-        + next_count_total * sizeof(uint64) // next pointer offset
-        + chunk_dump(&hm->buf, data);
+        + hm->buf.size; // hash map content + free array
 }
 
+// WARNING: Requires hashmap_create first
 inline
 int64 hashmap_load(HashMap* hm, const byte* data)
 {
     uint64 count = SWAP_ENDIAN_LITTLE(*((uint64 *) data));
     data += sizeof(uint64);
 
-    uint64 next_count_total = 0;
-
-    // Load the table content, we also need to convert from relative indeces to pointers
+    // Load the table content
     for (int i = 0; i < count; ++i) {
-        hm->table[i] = hm->buf.memory + SWAP_ENDIAN_LITTLE(*((uint64 *) data));
-        data += sizeof(uint64);
+        uint64 offset =  SWAP_ENDIAN_LITTLE(*((uint64 *) data));
+        data += sizeof(offset);
 
-        // Also load the next pointer
-        // Count how many next elements we have
-        int32 next_count = SWAP_ENDIAN_LITTLE(*((int32 *) data));
-        data += sizeof(next_count);
+        // the first element has no offset!
+        hm->table[i] = offset || i == 0 ? hm->buf.memory + offset : NULL;
+    }
 
-        HashEntry* entry = ((HashEntry *) hm->table[i]);
-        for (int32 j = 0; j < next_count; ++j) {
-            entry->next = (HashEntry *) (hm->buf.memory + SWAP_ENDIAN_LITTLE(*((uint64 *) data)));
-            data += sizeof(uint64);
-            entry = entry->next;
+    // This loop here is why it is important to already have an initialized hashmap
+    // @question Do we maybe want to change this and not require an initalized hashmap?
+    memcpy(hm->buf.memory, data, hm->buf.size);
+    data += hm->buf.chunk_size * hm->buf.count;
+
+    // @question don't we have to possibly endian swap check the free array as well?
+    memcpy(hm->buf.free, data, sizeof(uint64) * CEIL_DIV(hm->buf.count, 64));
+
+    int64 value_size = hm->buf.chunk_size - sizeof(uint64) - sizeof(char) * MAX_KEY_LENGTH - sizeof(uint64);
+
+    // Switch endian AND turn offsets to pointers
+    int32 free_index = 0;
+    int32 bit_index = 0;
+    for (int32 i = 0; i < hm->buf.count; ++i) {
+        if ((hm->buf.free[free_index] & (1ULL << bit_index)) > 0) {
+            HashEntry* entry = (HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, i);
+
+            // element id
+            entry->element_id = SWAP_ENDIAN_LITTLE(entry->element_id);
+
+            // key is already loaded with the memcpy
+            // @question Do we even want to use memcpy? We are re-checking all the values here anyways
+
+            // next pointer
+            if (entry->next) {
+                entry->next = (HashEntry *) (hm->buf.memory + SWAP_ENDIAN_LITTLE((uint64) entry->next));
+            }
+
+            if (value_size == 4) {
+                ((HashEntryInt32 *) entry)->value = SWAP_ENDIAN_LITTLE(((HashEntryInt32 *) entry)->value);
+            } else if (value_size == 8) {
+                ((HashEntryInt64 *) entry)->value = SWAP_ENDIAN_LITTLE(((HashEntryInt64 *) entry)->value);
+            }
         }
     }
 
     // How many bytes was read from data
-    return sizeof(count)
+    return sizeof(hm->buf.count) // hash map count = buffer count
         + hm->buf.count * sizeof(uint64) // table content
-        + hm->buf.count * sizeof(int32) // counter for the next pointer (one for every element)
-        + next_count_total * sizeof(uint64) // next pointer offset
-        + chunk_load(&hm->buf, data);
+        + hm->buf.size;
 }
 
 #endif

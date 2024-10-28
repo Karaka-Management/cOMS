@@ -39,7 +39,7 @@ struct f32_16 {
 inline f32_4 load_f32_4(const f32* mem)
 {
     f32_4 simd;
-    simd.s = _mm_loadu_ps(mem);
+    simd.s = _mm_load_ps(mem);
 
     return simd;
 }
@@ -57,7 +57,7 @@ inline void unload_f32_4(f32_4 a, f32 *array) { _mm_store_ps(array, a.s); }
 inline f32_8 load_f32_8(const f32* mem)
 {
     f32_8 simd;
-    simd.s = _mm256_loadu_ps(mem);
+    simd.s = _mm256_load_ps(mem);
 
     return simd;
 }
@@ -75,7 +75,7 @@ inline void unload_f32_8(f32_8 a, f32 *array) { _mm256_store_ps(array, a.s); }
 inline f32_16 load_f32_16(const f32* mem)
 {
     f32_16 simd;
-    simd.s = _mm512_loadu_ps(mem);
+    simd.s = _mm512_load_ps(mem);
 
     return simd;
 }
@@ -996,8 +996,8 @@ void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps)
         __m512 result_16;
 
         for (; i <= size - steps; i += steps) {
-            a_16 = _mm512_loadu_ps(a);
-            b_16 = _mm512_loadu_ps(b);
+            a_16 = _mm512_load_ps(a);
+            b_16 = _mm512_load_ps(b);
             result_16 = _mm512_mul_ps(a_16, b_16);
             _mm512_store_ps(result, result_16);
 
@@ -1011,8 +1011,8 @@ void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps)
         __m256 result_8;
 
         for (; i <= size - steps; i += steps) {
-            a_8 = _mm256_loadu_ps(a);
-            b_8 = _mm256_loadu_ps(b);
+            a_8 = _mm256_load_ps(a);
+            b_8 = _mm256_load_ps(b);
             result_8 = _mm256_mul_ps(a_8, b_8);
             _mm256_store_ps(result, result_8);
 
@@ -1026,8 +1026,8 @@ void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps)
         __m128 result_4;
 
         for (; i <= size - steps; i += steps) {
-            a_4 = _mm_loadu_ps(a);
-            b_4 = _mm_loadu_ps(b);
+            a_4 = _mm_load_ps(a);
+            b_4 = _mm_load_ps(b);
             result_4 = _mm_mul_ps(a_4, b_4);
             _mm_store_ps(result, result_4);
 
@@ -1057,7 +1057,7 @@ void simd_mult(const f32* a, f32 b, f32* result, int32 size, int32 steps)
         __m512 result_16;
 
         for (; i <= size - steps; i += steps) {
-            a_16 = _mm512_loadu_ps(a);
+            a_16 = _mm512_load_ps(a);
             result_16 = _mm512_mul_ps(a_16, b_16);
             _mm512_store_ps(result, result_16);
 
@@ -1070,7 +1070,7 @@ void simd_mult(const f32* a, f32 b, f32* result, int32 size, int32 steps)
         __m256 result_8;
 
         for (; i <= size - steps; i += steps) {
-            a_8 = _mm256_loadu_ps(a);
+            a_8 = _mm256_load_ps(a);
             result_8 = _mm256_mul_ps(a_8, b_8);
             _mm256_store_ps(result, result_8);
 
@@ -1083,7 +1083,7 @@ void simd_mult(const f32* a, f32 b, f32* result, int32 size, int32 steps)
         __m128 result_4;
 
         for (; i <= size - steps; i += steps) {
-            a_4 = _mm_loadu_ps(a);
+            a_4 = _mm_load_ps(a);
             result_4 = _mm_mul_ps(a_4, b_4);
             _mm_store_ps(result, result_4);
 
@@ -1111,7 +1111,7 @@ void simd_div(const f32* a, f32 b, f32* result, int32 size, int32 steps)
         __m512 result_16;
 
         for (; i <= size - steps; i += steps) {
-            a_16 = _mm512_loadu_ps(a);
+            a_16 = _mm512_load_ps(a);
             result_16 = _mm512_div_ps(a_16, b_16);
             _mm512_store_ps(result, result_16);
 
@@ -1124,7 +1124,7 @@ void simd_div(const f32* a, f32 b, f32* result, int32 size, int32 steps)
         __m256 result_8;
 
         for (; i <= size - steps; i += steps) {
-            a_8 = _mm256_loadu_ps(a);
+            a_8 = _mm256_load_ps(a);
             result_8 = _mm256_div_ps(a_8, b_8);
             _mm256_store_ps(result, result_8);
 
@@ -1137,7 +1137,7 @@ void simd_div(const f32* a, f32 b, f32* result, int32 size, int32 steps)
         __m128 result_4;
 
         for (; i <= size - steps; i += steps) {
-            a_4 = _mm_loadu_ps(a);
+            a_4 = _mm_load_ps(a);
             result_4 = _mm_div_ps(a_4, b_4);
             _mm_store_ps(result, result_4);
 
@@ -1166,7 +1166,7 @@ void simd_div(const f32* a, f32 b, __m256* result, int32 size)
     __m256 result_8;
 
     for (; i <= size - 8; i += 8) {
-        a_8 = _mm256_loadu_ps(a);
+        a_8 = _mm256_load_ps(a);
         result_8 = _mm256_div_ps(a_8, b_8);
         result[j] = result_8;
 
@@ -1181,7 +1181,7 @@ void simd_div(const f32* a, f32 b, __m256* result, int32 size)
         temp[k] = a[i + k] / b;
     }
 
-    result[j] = _mm256_loadu_ps(temp);
+    result[j] = _mm256_load_ps(temp);
 }
 
 inline

@@ -1,6 +1,7 @@
 #ifndef TOS_LOG_DEBUG_MEMORY_C
 #define TOS_LOG_DEBUG_MEMORY_C
 
+#include "../stdlib/Types.h"
 #include "Debug.h"
 #include "DebugMemory.h"
 #include "Log.h"

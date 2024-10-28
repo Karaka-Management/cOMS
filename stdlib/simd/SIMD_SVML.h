@@ -25,7 +25,7 @@
             result[i] = a_array[i] / b_array[i];
         }
 
-        return _mm_loadu_si128((__m128i*)result);
+        return _mm_load_si128((__m128i*)result);
     }
 
     inline __m256i _mm256_div_epi32(__m256i a, __m256i b) {
@@ -38,7 +38,7 @@
             result[i] = a_array[i] / b_array[i];
         }
 
-        return _mm256_loadu_si256((__m256i*)result);
+        return _mm256_load_si256((__m256i*)result);
     }
 
     inline __m512i _mm512_div_epi32(__m512i a, __m512i b) {
@@ -51,7 +51,7 @@
             result[i] = a_array[i] / b_array[i];
         }
 
-        return _mm512_loadu_si512((__m512i*)result);
+        return _mm512_load_si512((__m512i*)result);
     }
 
     inline __m128 _mm_sin_ps(__m128 a) {
@@ -60,7 +60,7 @@
         for (int i = 0; i < 4; ++i) {
             result[i] = sinf(a_array[i]);
         }
-        return _mm_loadu_ps(result);
+        return _mm_load_ps(result);
     }
 
     inline __m128 _mm_cos_ps(__m128 a) {
@@ -69,7 +69,7 @@
         for (int i = 0; i < 4; ++i) {
             result[i] = cosf(a_array[i]);
         }
-        return _mm_loadu_ps(result);
+        return _mm_load_ps(result);
     }
 
     inline __m128 _mm_asin_ps(__m128 a) {
@@ -78,7 +78,7 @@
         for (int i = 0; i < 4; ++i) {
             result[i] = asinf(a_array[i]);
         }
-        return _mm_loadu_ps(result);
+        return _mm_load_ps(result);
     }
 
     inline __m128 _mm_acos_ps(__m128 a) {
@@ -87,7 +87,7 @@
         for (int i = 0; i < 4; ++i) {
             result[i] = acosf(a_array[i]);
         }
-        return _mm_loadu_ps(result);
+        return _mm_load_ps(result);
     }
 
     inline __m256 _mm256_sin_ps(__m256 a) {
@@ -96,7 +96,7 @@
         for (int i = 0; i < 8; ++i) {
             result[i] = sinf(a_array[i]);
         }
-        return _mm256_loadu_ps(result);
+        return _mm256_load_ps(result);
     }
 
     inline __m256 _mm256_cos_ps(__m256 a) {
@@ -105,7 +105,7 @@
         for (int i = 0; i < 8; ++i) {
             result[i] = cosf(a_array[i]);
         }
-        return _mm256_loadu_ps(result);
+        return _mm256_load_ps(result);
     }
 
     inline __m256 _mm256_asin_ps(__m256 a) {
@@ -114,7 +114,7 @@
         for (int i = 0; i < 8; ++i) {
             result[i] = asinf(a_array[i]);
         }
-        return _mm256_loadu_ps(result);
+        return _mm256_load_ps(result);
     }
 
     inline __m256 _mm256_acos_ps(__m256 a) {
@@ -123,7 +123,7 @@
         for (int i = 0; i < 16; ++i) {
             result[i] = acosf(a_array[i]);
         }
-        return _mm256_loadu_ps(result);
+        return _mm256_load_ps(result);
     }
 
     inline __m512 _mm512_sin_ps(__m512 a) {
@@ -132,7 +132,7 @@
         for (int i = 0; i < 16; ++i) {
             result[i] = sinf(a_array[i]);
         }
-        return _mm512_loadu_ps(result);
+        return _mm512_load_ps(result);
     }
 
     inline __m512 _mm512_cos_ps(__m512 a) {
@@ -141,7 +141,7 @@
         for (int i = 0; i < 16; ++i) {
             result[i] = cosf(a_array[i]);
         }
-        return _mm512_loadu_ps(result);
+        return _mm512_load_ps(result);
     }
 
     inline __m512 _mm512_asin_ps(__m512 a) {
@@ -150,7 +150,7 @@
         for (int i = 0; i < 16; ++i) {
             result[i] = asinf(a_array[i]);
         }
-        return _mm512_loadu_ps(result);
+        return _mm512_load_ps(result);
     }
 
     inline __m512 _mm512_acos_ps(__m512 a) {
@@ -159,7 +159,7 @@
         for (int i = 0; i < 16; ++i) {
             result[i] = acosf(a_array[i]);
         }
-        return _mm512_loadu_ps(result);
+        return _mm512_load_ps(result);
     }
 #endif
 

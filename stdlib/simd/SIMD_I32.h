@@ -11,6 +11,7 @@
 
 #include <immintrin.h>
 #include <xmmintrin.h>
+#include <emmintrin.h>
 
 #include "../Types.h"
 #include "../../utils/BitUtils.h"
@@ -45,7 +46,7 @@ struct int32_16 {
 inline int32_4 load_int32_4(const int32* mem)
 {
     int32_4 simd;
-    simd.s = _mm_loadu_epi32(mem);
+    simd.s = _mm_load_si128((__m128i *) mem);
 
     return simd;
 }
@@ -63,7 +64,7 @@ inline void unload_int32_4(int32_4 a, int32 *array) { _mm_store_si128((__m128i *
 inline int32_8 load_int32_8(const int32* mem)
 {
     int32_8 simd;
-    simd.s = _mm256_loadu_epi32(mem);
+    simd.s = _mm256_load_si256((__m256i *) mem);
 
     return simd;
 }
@@ -81,7 +82,7 @@ inline void unload_int32_8(int32_8 a, int32 *array) { _mm256_store_si256((__m256
 inline int32_16 load_int32_16(const int32* mem)
 {
     int32_16 simd;
-    simd.s = _mm512_loadu_epi32(mem);
+    simd.s = _mm512_load_epi32(mem);
 
     return simd;
 }
@@ -1039,8 +1040,8 @@ void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 
         __m512i result_16;
 
         for (; i <= size - steps; i += steps) {
-            a_16 = _mm512_loadu_epi32(a);
-            b_16 = _mm512_loadu_epi32(b);
+            a_16 = _mm512_load_epi32(a);
+            b_16 = _mm512_load_epi32(b);
             result_16 = _mm512_mul_epi32(a_16, b_16);
             _mm512_store_epi32(result, result_16);
 
@@ -1054,8 +1055,8 @@ void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 
         __m256i result_8;
 
         for (; i <= size - steps; i += steps) {
-            a_8 = _mm256_loadu_epi32(a);
-            b_8 = _mm256_loadu_epi32(b);
+            a_8 = _mm256_load_si256((__m256i *) a);
+            b_8 = _mm256_load_si256((__m256i *) b);
             result_8 = _mm256_mul_epi32(a_8, b_8);
             _mm256_store_si256((__m256i *) result, result_8);
 
@@ -1069,8 +1070,8 @@ void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 
         __m128i result_4;
 
         for (; i <= size - steps; i += steps) {
-            a_4 = _mm_loadu_epi32(a);
-            b_4 = _mm_loadu_epi32(b);
+            a_4 = _mm_load_si128((__m128i *) a);
+            b_4 = _mm_load_si128((__m128i *) b);
             result_4 = _mm_mul_epi32(a_4, b_4);
             _mm_store_si128((__m128i *) result, result_4);
 
@@ -1101,9 +1102,9 @@ void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 step
         __m512 result_16;
 
         for (; i <= size - steps; i += steps) {
-            a_16 = _mm512_loadu_epi32(a);
+            a_16 = _mm512_load_epi32(a);
             af_16 = _mm512_cvtepi32_ps(a_16);
-            b_16 = _mm512_loadu_ps(b);
+            b_16 = _mm512_load_ps(b);
             result_16 = _mm512_mul_ps(af_16, b_16);
             _mm512_store_ps(result, result_16);
 
@@ -1118,9 +1119,9 @@ void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 step
         __m256 result_8;
 
         for (; i <= size - steps; i += steps) {
-            a_8 = _mm256_loadu_epi32(a);
+            a_8 = _mm256_load_si256((__m256i *) a);
             af_8 = _mm256_cvtepi32_ps(a_8);
-            b_8 = _mm256_loadu_ps(b);
+            b_8 = _mm256_load_ps(b);
             result_8 = _mm256_mul_ps(af_8, b_8);
             _mm256_store_ps(result, result_8);
 
@@ -1135,9 +1136,9 @@ void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 step
         __m128 result_4;
 
         for (; i <= size - steps; i += steps) {
-            a_4 = _mm_loadu_epi32(a);
+            a_4 = _mm_load_si128((__m128i *) a);
             af_4 = _mm_cvtepi32_ps(a_4);
-            b_4 = _mm_loadu_ps(b);
+            b_4 = _mm_load_ps(b);
             result_4 = _mm_mul_ps(af_4, b_4);
             _mm_store_ps(result, result_4);
 
@@ -1169,9 +1170,9 @@ void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 st
         __m512i resulti_16;
 
         for (; i <= size - steps; i += steps) {
-            a_16 = _mm512_loadu_epi32(a);
+            a_16 = _mm512_load_epi32(a);
             af_16 = _mm512_cvtepi32_ps(a_16);
-            b_16 = _mm512_loadu_ps(b);
+            b_16 = _mm512_load_ps(b);
             result_16 = _mm512_mul_ps(af_16, b_16);
             resulti_16 = _mm512_cvtps_epi32(result_16);
             _mm512_store_epi32(result, resulti_16);
@@ -1188,9 +1189,9 @@ void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 st
         __m256i resulti_8;
 
         for (; i <= size - steps; i += steps) {
-            a_8 = _mm256_loadu_epi32(a);
+            a_8 = _mm256_load_si256((__m256i *) a);
             af_8 = _mm256_cvtepi32_ps(a_8);
-            b_8 = _mm256_loadu_ps(b);
+            b_8 = _mm256_load_ps(b);
             result_8 = _mm256_mul_ps(af_8, b_8);
             resulti_8 = _mm256_cvtps_epi32(result_8);
             _mm256_store_si256((__m256i *) result, resulti_8);
@@ -1207,9 +1208,9 @@ void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 st
         __m128i resulti_4;
 
         for (; i <= size - steps; i += steps) {
-            a_4 = _mm_loadu_epi32(a);
+            a_4 = _mm_load_si128((__m128i *) a);
             af_4 = _mm_cvtepi32_ps(a_4);
-            b_4 = _mm_loadu_ps(b);
+            b_4 = _mm_load_ps(b);
             result_4 = _mm_mul_ps(af_4, b_4);
             resulti_4 = _mm_cvtps_epi32(result_4);
             _mm_store_si128((__m128i *) result, resulti_4);
@@ -1242,7 +1243,7 @@ void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps)
         __m512i resulti_16;
 
         for (; i <= size - steps; i += steps) {
-            a_16 = _mm512_loadu_epi32(a);
+            a_16 = _mm512_load_epi32(a);
             af_16 = _mm512_cvtepi32_ps(a_16);
             result_16 = _mm512_mul_ps(af_16, b_16);
             resulti_16 = _mm512_cvtps_epi32(result_16);
@@ -1259,7 +1260,7 @@ void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps)
         __m256i resulti_8;
 
         for (; i <= size - steps; i += steps) {
-            a_8 = _mm256_loadu_epi32(a);
+            a_8 = _mm256_load_si256((__m256i *) a);
             af_8 = _mm256_cvtepi32_ps(a_8);
             result_8 = _mm256_mul_ps(af_8, b_8);
             resulti_8 = _mm256_cvtps_epi32(result_8);
@@ -1276,7 +1277,7 @@ void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps)
         __m128i resulti_4;
 
         for (; i <= size - steps; i += steps) {
-            a_4 = _mm_loadu_epi32(a);
+            a_4 = _mm_load_si128((__m128i *) a);
             af_4 = _mm_cvtepi32_ps(a_4);
             result_4 = _mm_mul_ps(af_4, b_4);
             resulti_4 = _mm_cvtps_epi32(result_4);
@@ -1307,7 +1308,7 @@ void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps)
         __m512 result_16;
 
         for (; i <= size - steps; i += steps) {
-            a_16 = _mm512_loadu_epi32(a);
+            a_16 = _mm512_load_epi32(a);
             af_16 = _mm512_cvtepi32_ps(a_16);
             result_16 = _mm512_div_ps(af_16, b_16);
             _mm512_store_ps(result, result_16);
@@ -1323,7 +1324,7 @@ void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps)
         __m256 result_8;
 
         for (; i <= size - steps; i += steps) {
-            a_8 = _mm256_loadu_epi32(a);
+            a_8 = _mm256_load_si256((__m256i *) a);
             af_8 = _mm256_cvtepi32_ps(a_8);
             result_8 = _mm256_div_ps(af_8, b_8);
             _mm256_store_ps(result, result_8);
@@ -1338,7 +1339,7 @@ void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps)
         __m128 result_4;
 
         for (; i <= size - steps; i += steps) {
-            a_4 = _mm_loadu_epi32(a);
+            a_4 = _mm_load_si128((__m128i *) a);
             af_4 = _mm_cvtepi32_ps(a_4);
             result_4 = _mm_div_ps(af_4, b_4);
             _mm_store_ps(result, result_4);
@@ -1367,8 +1368,8 @@ void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 s
         __m512i result_16;
 
         for (; i <= size - steps; i += steps) {
-            a_16 = _mm512_loadu_epi32(a);
-            b_16 = _mm512_loadu_epi32(b);
+            a_16 = _mm512_load_epi32(a);
+            b_16 = _mm512_load_epi32(b);
             result_16 = _mm512_add_epi32(a_16, b_16);
             _mm512_store_epi32(result, result_16);
 
@@ -1382,8 +1383,8 @@ void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 s
         __m256i result_8;
 
         for (; i <= size - steps; i += steps) {
-            a_8 = _mm256_loadu_epi32(a);
-            b_8 = _mm256_loadu_epi32(b);
+            a_8 = _mm256_load_si256((__m256i *) a);
+            b_8 = _mm256_load_si256((__m256i *) b);
             result_8 = _mm256_add_epi32(a_8, b_8);
             _mm256_store_si256((__m256i *) result, result_8);
 
@@ -1397,8 +1398,8 @@ void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 s
         __m128i result_4;
 
         for (; i <= size - steps; i += steps) {
-            a_4 = _mm_loadu_epi32(a);
-            b_4 = _mm_loadu_epi32(b);
+            a_4 = _mm_load_si128((__m128i *) a);
+            b_4 = _mm_load_si128((__m128i *) b);
             result_4 = _mm_add_epi32(a_4, b_4);
             _mm_store_si128((__m128i *) result, result_4);
 
@@ -1429,9 +1430,9 @@ void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps
         __m512 result_16;
 
         for (; i <= size - steps; i += steps) {
-            a_16 = _mm512_loadu_epi32(a);
+            a_16 = _mm512_load_epi32(a);
             af_16 = _mm512_cvtepi32_ps(a_16);
-            b_16 = _mm512_loadu_ps(b);
+            b_16 = _mm512_load_ps(b);
             result_16 = _mm512_add_ps(af_16, b_16);
             _mm512_store_ps(result, result_16);
 
@@ -1446,9 +1447,9 @@ void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps
         __m256 result_8;
 
         for (; i <= size - steps; i += steps) {
-            a_8 = _mm256_loadu_epi32(a);
+            a_8 = _mm256_load_si256((__m256i *) a);
             af_8 = _mm256_cvtepi32_ps(a_8);
-            b_8 = _mm256_loadu_ps(b);
+            b_8 = _mm256_load_ps(b);
             result_8 = _mm256_add_ps(af_8, b_8);
             _mm256_store_ps(result, result_8);
 
@@ -1463,9 +1464,9 @@ void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps
         __m128 result_4;
 
         for (; i <= size - steps; i += steps) {
-            a_4 = _mm_loadu_epi32(a);
+            a_4 = _mm_load_si128((__m128i *) a);
             af_4 = _mm_cvtepi32_ps(a_4);
-            b_4 = _mm_loadu_ps(b);
+            b_4 = _mm_load_ps(b);
             result_4 = _mm_add_ps(af_4, b_4);
             _mm_store_ps(result, result_4);
 
@@ -1497,9 +1498,9 @@ void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 ste
         __m512i resulti_16;
 
         for (; i <= size - steps; i += steps) {
-            a_16 = _mm512_loadu_epi32(a);
+            a_16 = _mm512_load_epi32(a);
             af_16 = _mm512_cvtepi32_ps(a_16);
-            b_16 = _mm512_loadu_ps(b);
+            b_16 = _mm512_load_ps(b);
             result_16 = _mm512_add_ps(af_16, b_16);
             resulti_16 = _mm512_cvtps_epi32(result_16);
             _mm512_store_epi32(result, resulti_16);
@@ -1516,9 +1517,9 @@ void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 ste
         __m256i resulti_8;
 
         for (; i <= size - steps; i += steps) {
-            a_8 = _mm256_loadu_epi32(a);
+            a_8 = _mm256_load_si256((__m256i *) a);
             af_8 = _mm256_cvtepi32_ps(a_8);
-            b_8 = _mm256_loadu_ps(b);
+            b_8 = _mm256_load_ps(b);
             result_8 = _mm256_add_ps(af_8, b_8);
             resulti_8 = _mm256_cvtps_epi32(result_8);
             _mm256_store_si256((__m256i *) result, resulti_8);
@@ -1535,9 +1536,9 @@ void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 ste
         __m128i resulti_4;
 
         for (; i <= size - steps; i += steps) {
-            a_4 = _mm_loadu_epi32(a);
+            a_4 = _mm_load_si128((__m128i *) a);
             af_4 = _mm_cvtepi32_ps(a_4);
-            b_4 = _mm_loadu_ps(b);
+            b_4 = _mm_load_ps(b);
             result_4 = _mm_add_ps(af_4, b_4);
             resulti_4 = _mm_cvtps_epi32(result_4);
             _mm_store_si128((__m128i *) result, resulti_4);
@@ -1560,8 +1561,8 @@ void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 ste
 // WARNING: only works with SSE4.2
 // WARNING: incl. \0 both strings must be <= 16 length
 bool str_compare_avx512(const char* str1, const char* str2) {
-    __m128i s1 = _mm_loadu_si128((const __m128i *)  str1);
-    __m128i s2 = _mm_loadu_si128((const __m128i *)  str2);
+    __m128i s1 = _mm_load_si128((__m128i *) (const __m128i *)  str1);
+    __m128i s2 = _mm_load_si128((__m128i *) (const __m128i *)  str2);
 
     return _mm_cmpistrc(s1, s2, _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_EACH) == 0;
 }
@@ -1580,7 +1581,7 @@ endian_swap(const int* val, int* result, int32 size, int32 steps)
         );
 
         for (i = 0; i <= size - steps; i += steps) {
-            __m512i vec = _mm512_loadu_si512((const __m512i *) (val + i));
+            __m512i vec = _mm512_load_si512((const __m512i *) (val + i));
             vec = _mm512_shuffle_epi8(vec, mask_512);
 
             _mm512_storeu_si512((__m512i *) (result + i), vec);
@@ -1594,7 +1595,7 @@ endian_swap(const int* val, int* result, int32 size, int32 steps)
         );
 
         for (i = 0; i <= size - steps; i += steps) {
-            __m256i vec = _mm256_loadu_si256((const __m256i *) (val + i));
+            __m256i vec = _mm256_load_si256((const __m256i *) (val + i));
             vec = _mm256_shuffle_epi8(vec, mask_256);
 
             _mm256_storeu_si256((__m256i *) (result + i), vec);
@@ -1608,7 +1609,7 @@ endian_swap(const int* val, int* result, int32 size, int32 steps)
         );
 
         for (i = 0; i <= size - steps; i += steps) {
-             __m128i vec = _mm_loadu_si128((const __m128i *) (val + i));
+             __m128i vec = _mm_load_si128((__m128i *) (const __m128i *) (val + i));
             vec = _mm_shuffle_epi8(vec, mask_128);
 
             _mm_storeu_si128((__m128i *) (result + i), vec);
