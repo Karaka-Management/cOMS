@@ -11,6 +11,7 @@
 
 #include "../stdlib/Types.h"
 
+inline constexpr
 uint64 hash_djb2(const char* key) {
     uint64 hash = 5381;
     int32 c;

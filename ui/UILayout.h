@@ -4,6 +4,7 @@
 #include "../stdlib/Types.h"
 #include "../stdlib/HashMap.h"
 #include "UIElement.h"
+#include "../asset/Asset.h"
 
 // Modified for every scene
 struct UILayout {
@@ -25,8 +26,7 @@ struct UILayout {
     HashMap hash_map;
 
     int32 vertex_size;
-    int32 vertex_pos;
-    Vertex3DTextureColorIndex* vertices;
+    Asset* ui_asset;
 };
 
 inline

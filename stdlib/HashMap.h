@@ -359,6 +359,10 @@ HashEntry* hashmap_get_entry(HashMap* hm, const char* key) {
 // This function only saves one step (omission of the hash function)
 // The reason for this is in some cases we can use compile time hashing
 HashEntry* hashmap_get_entry(HashMap* hm, const char* key, uint64 index) {
+    if (hm->buf.count == 0) {
+        return NULL;
+    }
+
     index %= hm->buf.count;
     HashEntry* entry = (HashEntry *) hm->table[index];
 

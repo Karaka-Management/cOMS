@@ -194,6 +194,20 @@ Asset* ams_get_asset(AssetManagementSystem* ams, const char* key)
     return entry ? (Asset *) entry->value : NULL;
 }
 
+inline
+Asset* ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 index)
+{
+    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key, index);
+
+    // @bug entry->value seems to be an address outside of any known buffer, how?
+    DEBUG_MEMORY_READ(
+        (uint64) (entry ? (Asset *) entry->value : 0),
+        entry ? ((Asset *) entry->value)->ram_size + sizeof(Asset) : 0
+    );
+
+    return entry ? (Asset *) entry->value : NULL;
+}
+
 // @todo implement defragment command to optimize memory layout since the memory layout will become fragmented over time
 
 Asset* ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 elements = 1)
