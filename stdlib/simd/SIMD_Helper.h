@@ -26,10 +26,10 @@ inline int32 max_sse_supported()
         int32 cpuInfo[4] = {-1};
         __cpuid(cpuInfo, 1); // CPUID function 1
 
-        uint32_t ecx = cpuInfo[2];
-        uint32_t edx = cpuInfo[3];
+        uint32 ecx = cpuInfo[2];
+        uint32 edx = cpuInfo[3];
     #else
-        uint32_t eax, ebx, ecx, edx;
+        uint32 eax, ebx, ecx, edx;
 
         eax = 1; // CPUID function 1
         __asm__ __volatile__("cpuid;"
@@ -77,7 +77,7 @@ int max_avx256_supported()
             }
         }
     #else
-        unsigned int32 eax, ebx, ecx, edx;
+        uint32 eax, ebx, ecx, edx;
 
         __asm__ __volatile__("cpuid"
                              : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
@@ -112,7 +112,7 @@ int max_avx512_supported()
             ebx = cpuInfo[1];
         }
     #else
-        unsigned int32 eax, ebx, ecx, edx;
+        uint32 eax, ebx, ecx, edx;
 
         __asm__ __volatile__("cpuid"
                              : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
@@ -161,8 +161,7 @@ int max_avx512_supported()
     return 0;
 }
 
-/*
-const char avx512_versions[8][12] = {
+const char AVX512_VERSIONS[8][12] = {
     "AVX-512F",
     "AVX-512DQ",
     "AVX-512IFMA",
@@ -172,6 +171,34 @@ const char avx512_versions[8][12] = {
     "AVX-512BW",
     "AVX-512VL"
 };
-*/
+
+bool supports_abm() {
+    bool popcnt_supported;
+    bool lzcnt_supported;
+
+    #ifdef _MSC_VER
+        int cpuInfo[4];
+        __cpuid(cpuInfo, 0x80000001);
+
+        popcnt_supported = (cpuInfo[2] & (1 << 5)) != 0;
+        lzcnt_supported = (cpuInfo[1] & (1 << 5)) != 0;
+    #else
+        uint32 eax, ebx, ecx, edx;
+        eax = 0x80000001;
+
+        __asm__ __volatile__ (
+            "cpuid"
+            : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+            : "a"(eax)
+        );
+
+        // Check if the ABM (POPCNT and LZCNT) bits are set
+        popcnt_supported = (ecx & (1 << 5)) != 0;
+        lzcnt_supported = (ebx & (1 << 5)) != 0;
+    #endif
+
+
+    return popcnt_supported && lzcnt_supported;
+}
 
 #endif

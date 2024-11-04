@@ -46,13 +46,11 @@ typedef intptr_t smm;
 struct v2_int32 {
     union {
         struct {
-            int32 x;
-            int32 y;
+            int32 x, y;
         };
 
         struct {
-            int32 width;
-            int32 height;
+            int32 width, height;
         };
 
         int32 v[2];
@@ -62,18 +60,11 @@ struct v2_int32 {
 struct v3_int32 {
     union {
         struct {
-            union {
-                int32 x;
-                int32 r;
-            };
-            union {
-                int32 y;
-                int32 g;
-            };
-            union {
-                int32 z;
-                int32 b;
-            };
+            int32 x, y, z;
+        };
+
+        struct {
+            int32 r, g, b;
         };
 
         int32 v[3];
@@ -83,10 +74,15 @@ struct v3_int32 {
 struct v4_int32 {
     union {
         struct {
-            int32 x;
-            int32 y;
-            int32 z;
-            int32 w;
+            int32 x, y;
+
+            union {
+                int32 z, width;
+            };
+
+            union {
+                int32 w, height;
+            };
         };
 
         int32 v[4];
@@ -96,8 +92,7 @@ struct v4_int32 {
 struct v2_int64 {
     union {
         struct {
-            int64 x;
-            int64 y;
+            int64 x, y;
         };
 
         int64 v[2];
@@ -107,18 +102,11 @@ struct v2_int64 {
 struct v3_int64 {
     union {
         struct {
-            union {
-                int64 x;
-                int64 r;
-            };
-            union {
-                int64 y;
-                int64 g;
-            };
-            union {
-                int64 z;
-                int64 b;
-            };
+            int64 x, y, z;
+        };
+
+        struct {
+            int64 r, g, b;
         };
 
         int64 v[3];
@@ -128,10 +116,7 @@ struct v3_int64 {
 struct v4_int64 {
     union {
         struct {
-            int64 x;
-            int64 y;
-            int64 z;
-            int64 w;
+            int64 x, y, z, w;
         };
 
         int64 v[4];
@@ -141,8 +126,7 @@ struct v4_int64 {
 struct v2_f32 {
     union {
         struct {
-            f32 x;
-            f32 y;
+            f32 x, y;
         };
 
         f32 v[2];
@@ -152,24 +136,19 @@ struct v2_f32 {
 struct v3_f32 {
     union {
         struct {
-            union {
-                f32 x;
-                f32 r;
-                f32 pitch;
-                f32 u;
-            };
-            union {
-                f32 y;
-                f32 g;
-                f32 yaw;
-                f32 v;
-            };
-            union {
-                f32 z;
-                f32 b;
-                f32 roll;
-                f32 w;
-            };
+            f32 x, y, z;
+        };
+
+        struct {
+            f32 r, g, b;
+        };
+
+        struct {
+            f32 pitch, yaw, roll;
+        };
+
+        struct {
+            f32 u, v, w;
         };
 
         f32 vec[3];
@@ -179,23 +158,15 @@ struct v3_f32 {
 struct v4_f32 {
     union {
         struct {
-            union {
-                f32 x;
-                f32 r;
-            };
-            union {
-                f32 y;
-                f32 g;
-            };
+            f32 x, y, z, w;
+        };
 
-            union {
-                f32 z;
-                f32 b;
-            };
-            union {
-                f32 w;
-                f32 a;
-            };
+        struct {
+            f32 r, g, b, a;
+        };
+
+        struct {
+            f32 x, y, width, height;
         };
 
         f32 vec[4];
@@ -216,18 +187,11 @@ struct v2_f64 {
 struct v3_f64 {
     union {
         struct {
-            union {
-                f64 x;
-                f64 r;
-            };
-            union {
-                f64 y;
-                f64 g;
-            };
-            union {
-                f64 z;
-                f64 b;
-            };
+            f64 x, y, z;
+        };
+
+        struct {
+            f64 r, g, b;
         };
 
         f64 v[3];

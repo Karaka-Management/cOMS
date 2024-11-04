@@ -134,40 +134,30 @@ int32 utf8_get_char_at(const char* in, int32 index) {
 }
 
 inline
-void wchar_to_char(wchar_t* str, int32 length = 0)
+void wchar_to_char(wchar_t* str)
 {
-    char *dest = (char *) str;
-    size_t len = wcslen(str) * sizeof(wchar_t);
+    char *src = (char*) str;
+    char *dest = (char *) src;
 
-    if (length > 0 && length < len) {
-        len = length;
-    }
-
-    for (int32 i = 0; i < len; ++i) {
-        if (*str != '\0') {
-            *dest = (char) *str;
-            ++dest;
+    while (*src != '\0' && src[1] != '\0') {
+        if (*src != '\0') {
+            *dest++ = (char) *src;
         }
 
-        ++str;
+        ++src;
     }
 
     *dest = '\0';
 }
 
 inline
-void wchar_to_char(const wchar_t* __restrict src, char* __restrict dest, int32 length = 0)
+void wchar_to_char(const char* str, char* __restrict dest)
 {
-    size_t len = wcslen(src) * sizeof(wchar_t);
+    char *src = (char*) str;
 
-    if (length > 0 && length < len) {
-        len = length;
-    }
-
-    for (int32 i = 0; i < len; ++i) {
+    while (*src != '\0' && src[1] != '\0') {
         if (*src != '\0') {
-            *dest = (char) *src;
-            ++dest;
+            *dest++ = (char) *src;
         }
 
         ++src;
@@ -182,9 +172,8 @@ int32 str_to_int(const char *str)
     int32 result = 0;
 
     int32 sign = 1;
-    if (*str == '-') {
+    if (*str++ == '-') {
         sign = -1;
-        ++str;
     }
 
     while (*str >= '0' && *str <= '9') {
@@ -210,7 +199,7 @@ int32 int_to_str(int64 number, char *str, const char thousands = ',') {
     }
 
     while (number > 0) {
-        if (thousands
+        if (thousands != '\0'
             && (digit_count == 3 || digit_count == 6 || digit_count == 9 || digit_count == 12 || digit_count == 15)
         ) {
             str[i++] = thousands;
@@ -339,34 +328,54 @@ char* strtok(char* str, const char* __restrict delim, char* *key) {
 inline constexpr
 char toupper_ascii(char c)
 {
-    return c >= 'a' && c <= 'z'
-        ? c & 0x5f
-        : c;
+    return c - 32 * (c >= 'a' && c <= 'z');
+}
+
+inline
+void toupper_ascii(char* str)
+{
+    while (*str != '\0') {
+        *str -= 32 * (*str >= 'a' && *str <= 'z');
+        ++str;
+    }
 }
 
 inline constexpr
 char tolower_ascii(char c)
 {
-    return c >= 'A' && c <= 'Z'
-        ? c | 0x20
-        : c;
+    return c + 32 * (c >= 'A' && c <= 'Z');
+}
+
+inline
+void tolower_ascii(char* str)
+{
+    while (*str != '\0') {
+        *str += 32 * (*str >= 'A' && *str <= 'Z');
+        ++str;
+    }
 }
 
 inline constexpr
 void create_const_name(const unsigned char* name, char* modified_name)
 {
-    // Print block
-    if (name == NULL) {
-        modified_name = NULL;
-    } else {
-        size_t i;
-        const size_t length = strlen((const char* ) name);
-        for (i = 0; i < length; ++i) {
-            modified_name[i] = name[i] == ' ' ? '_' : toupper_ascii(name[i]);
-        }
-
-        modified_name[i] = '\0';
+    size_t i = 0;
+    while (*name != '\0') {
+        modified_name[i] = *name == ' ' ? '_' : toupper_ascii(*name);
+        ++name;
+        ++i;
     }
+
+    modified_name[i] = '\0';
+}
+
+inline
+void create_const_name(unsigned char* name)
+{
+    while (*name != '\0') {
+        *name = *name == ' ' ? '_' : toupper_ascii(*name);
+    }
+
+    *name = '\0';
 }
 
 inline constexpr
@@ -421,12 +430,12 @@ void print_bytes(const void* ptr, size_t size)
 {
     const unsigned char* bytePtr = (const unsigned char *) ptr;
 
-    int32 count = 0;
+    size_t count = 0;
 
-    for (int32 i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         ++count;
         if (count == 1) {
-            printf("%03d - %03d: %02x ", i + 1, i + 8, bytePtr[i]);
+            printf("%03lld - %03lld: %02x ", i + 1, i + 8, bytePtr[i]);
         } else if (count < 8) {
             printf("%02x ", bytePtr[i]);
         } else {
@@ -446,6 +455,23 @@ int32 is_eol(const char* str)
     }
 
     return 0;
+}
+
+inline constexpr
+bool is_whitespace(char str)
+{
+    return str == ' ' || str == '\t';
+}
+
+inline
+int32 chars_to_eol(const char* str)
+{
+    int32 offset = 0;
+    while (!is_eol(str) && *str != '\0')  {
+        ++offset;
+    }
+
+    return offset;
 }
 
 #endif

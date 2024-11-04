@@ -31,6 +31,8 @@ struct BufferMemory {
 inline
 void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
+    ASSERT_SIMPLE(size);
+
     buf->memory = alignment < 2
         ? (byte *) playform_alloc(size)
         : (byte *) playform_alloc_aligned(size, alignment);
@@ -58,6 +60,8 @@ void buffer_free(BufferMemory* buf)
 inline
 void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 64)
 {
+    ASSERT_SIMPLE(size);
+
     // @bug what if an alignment is defined?
     buf->memory = data;
 
@@ -67,6 +71,7 @@ void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 6
     buf->element_alignment = 0;
 
     DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
+    DEBUG_MEMORY_RESERVE((uint64) buf->memory, buf->size, 187);
 }
 
 inline

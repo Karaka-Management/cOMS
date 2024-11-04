@@ -43,6 +43,8 @@ struct RingMemory {
 inline
 void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
 {
+    ASSERT_SIMPLE(size);
+
     ring->memory = alignment < 2
         ? (byte *) playform_alloc(size)
         : (byte *) playform_alloc_aligned(size, alignment);
@@ -62,6 +64,8 @@ void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
 inline
 void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
+    ASSERT_SIMPLE(size);
+
     ring->memory = buffer_get_memory(buf, size, alignment, true);
 
     ring->size = size;
@@ -72,11 +76,14 @@ void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment
     ring->end = 0;
 
     DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
+    DEBUG_MEMORY_RESERVE((uint64) ring->memory, ring->size, 187);
 }
 
 inline
 void ring_init(RingMemory* ring, byte* buf, uint64 size, int32 alignment = 64)
 {
+    ASSERT_SIMPLE(size);
+
     // @bug what if an alignment is defined?
     ring->memory = buf;
 
@@ -90,6 +97,7 @@ void ring_init(RingMemory* ring, byte* buf, uint64 size, int32 alignment = 64)
     memset(ring->memory, 0, ring->size);
 
     DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
+    DEBUG_MEMORY_RESERVE((uint64) ring->memory, ring->size, 187);
 }
 
 inline

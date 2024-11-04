@@ -19,14 +19,16 @@
 
 struct Library {
     HMODULE handle;
-    uint64 last_load;
     bool is_valid;
 
     char dir[MAX_PATH];
-    char src[64];
     char dst[64];
 
-    uint32 function_count;
+    #if DEBUG
+        uint64 last_load;
+    #endif
+
+    int32 function_count;
     const char** function_names;
     void** functions;
 };
@@ -36,13 +38,6 @@ bool library_load(Library* lib)
 {
     size_t path_length = strlen(lib->dir);
 
-    char src[MAX_PATH];
-    str_concat(
-        lib->dir, path_length,
-        lib->src, strlen(lib->src),
-        src
-    );
-
     char dst[MAX_PATH];
     str_concat(
         lib->dir, path_length,
@@ -50,8 +45,18 @@ bool library_load(Library* lib)
         dst
     );
 
-    lib->last_load = last_modified(src);
-    file_copy(src, dst);
+    #if DEBUG
+        char src[MAX_PATH];
+        size_t dst_len = strlen(dst);
+
+        memcpy(src, dst, dst_len + 1);
+
+        memcpy(dst + dst_len - (sizeof(".dll") - 1), "_temp", sizeof(".temp") - 1);
+        memcpy(dst + dst_len - (sizeof(".dll") - 1) + (sizeof(".temp") - 1), ".dll", sizeof(".dll"));
+
+        lib->last_load = last_modified(src);
+        file_copy(src, dst);
+    #endif
 
     // Make sure the dll is actually unloaded (Windows caches this)
     if (GetModuleHandleA((LPCSTR) dst)) {
@@ -60,7 +65,7 @@ bool library_load(Library* lib)
             Sleep(100);
         }
 
-        int i = 0;
+        int32 i = 0;
         while (GetModuleHandleA((LPCSTR) dst) && i < 10) {
             ++i;
             Sleep(100);
@@ -75,7 +80,7 @@ bool library_load(Library* lib)
     }
 
     lib->is_valid = true;
-    for (int c = 0; c < lib->function_count; ++c) {
+    for (int32 c = 0; c < lib->function_count; ++c) {
         void* function = (void *) GetProcAddress(lib->handle, (LPCSTR) lib->function_names[c]);
         if (function) {
             lib->functions[c] = function;
@@ -91,7 +96,7 @@ inline
 void library_unload(Library* lib)
 {
     FreeLibrary(lib->handle);
-    for (int c = 0; c < lib->function_count; ++c) {
+    for (int32 c = 0; c < lib->function_count; ++c) {
         lib->functions[c] = NULL;
     }
 }

@@ -15,6 +15,7 @@
 #include "../../stdlib/simd/SIMD_Helper.h"
 #include "../../utils/StringUtils.h"
 
+#include <psapi.h>
 #include <winsock2.h>
 #include <iphlpapi.h>
 #include <ws2tcpip.h>
@@ -37,28 +38,59 @@
 
 // @todo implement for arm?
 
+uint64 system_private_memory_usage()
+{
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    HANDLE process = GetCurrentProcess();
+
+    GetProcessMemoryInfo(process, (PROCESS_MEMORY_COUNTERS*) &pmc, sizeof(pmc));
+
+    CloseHandle(process);
+
+    return pmc.PrivateUsage;
+}
+
+uint64 system_app_memory_usage()
+{
+    MEMORY_BASIC_INFORMATION mbi;
+    SIZE_T address = 0;
+    size_t total_size = 0;
+
+    // MEM_IMAGE = DLL memory
+    // MEM_MAPPED = Mapped files
+    while (VirtualQueryEx(GetCurrentProcess(), (LPCVOID) address, &mbi, sizeof(mbi)) == sizeof(mbi)) {
+        if (mbi.State == MEM_COMMIT && (mbi.Type == MEM_IMAGE || mbi.Type == MEM_MAPPED)) {
+            total_size += mbi.RegionSize;
+        }
+
+        address += mbi.RegionSize;
+    }
+
+    return total_size;
+}
+
 uint16 system_language_code()
 {
-    LANGID langID = GetUserDefaultUILanguage();
-    wchar_t localeName[LOCALE_NAME_MAX_LENGTH];
+    LANGID lang_id = GetUserDefaultUILanguage();
+    wchar_t local_name[LOCALE_NAME_MAX_LENGTH];
 
-    if (!LCIDToLocaleName(langID, localeName, LOCALE_NAME_MAX_LENGTH, 0)) {
+    if (!LCIDToLocaleName(lang_id, local_name, LOCALE_NAME_MAX_LENGTH, 0)) {
         return 0;
     }
 
-    return (localeName[0] << 8) | localeName[1];
+    return (local_name[0] << 8) | local_name[1];
 }
 
 uint16 system_country_code()
 {
-    LANGID langID = GetUserDefaultUILanguage();
-    wchar_t localeName[LOCALE_NAME_MAX_LENGTH];
+    LANGID lang_id = GetUserDefaultUILanguage();
+    wchar_t local_name[LOCALE_NAME_MAX_LENGTH];
 
-    if (!LCIDToLocaleName(langID, localeName, LOCALE_NAME_MAX_LENGTH, 0)) {
+    if (!LCIDToLocaleName(lang_id, local_name, LOCALE_NAME_MAX_LENGTH, 0)) {
         return 0;
     }
 
-    return (localeName[3] << 8) | localeName[4];
+    return (local_name[3] << 8) | local_name[4];
 }
 
 struct CpuCacheInfo {
@@ -453,6 +485,33 @@ struct DisplayInfo {
     int32 height;
     int32 hz;
 };
+
+void display_info_get_primary(DisplayInfo* info) {
+    DISPLAY_DEVICEA device;
+    DEVMODEA mode;
+
+    device.cb = sizeof(DISPLAY_DEVICEA);
+
+    uint32_t i = 0;
+    while (EnumDisplayDevicesA(NULL, i, &device, 0)) {
+        ++i;
+
+        if (!(device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE)) {
+            continue;
+        }
+
+        mode.dmSize = sizeof(mode);
+
+        if (EnumDisplaySettingsA(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
+            strcpy(info->name, device.DeviceName);
+            info->width = mode.dmPelsWidth;
+            info->height = mode.dmPelsHeight;
+            info->hz = mode.dmDisplayFrequency;
+        }
+
+        break;
+    }
+}
 
 uint32 display_info_get(DisplayInfo* info) {
     DISPLAY_DEVICEA device;

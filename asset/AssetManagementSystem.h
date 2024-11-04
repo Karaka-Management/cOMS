@@ -15,6 +15,7 @@
 #include "../memory/ChunkMemory.h"
 #include "../utils/TestUtils.h"
 #include "../stdlib/HashMap.h"
+#include "../log/DebugMemory.h"
 
 // The major asset types should have their own asset component system
 // All other entities are grouped together in one asset component system
@@ -48,20 +49,38 @@ void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 chunk_size,
     hashmap_create(&ams->hash_map, count, sizeof(HashEntryInt64), buf);
 
     // setup asset_memory
+    chunk_init(&ams->asset_memory, buf, count, sizeof(Asset), 1);
+
+    // setup asset_data_memory
+    chunk_init(&ams->asset_data_memory, buf, count, chunk_size, 1);
+
+    ams->first = NULL;
+    ams->last = NULL;
+}
+
+// WARNING: buf size see ams_get_buffer_size
+void ams_create(AssetManagementSystem* ams, byte* buf, int chunk_size, int count)
+{
+    ASSERT_SIMPLE(chunk_size);
+
+    // setup hash_map
+    hashmap_create(&ams->hash_map, count, sizeof(HashEntryInt64), buf);
+
+    // setup asset_memory
     ams->asset_memory.count = count;
     ams->asset_memory.chunk_size = sizeof(Asset);
     ams->asset_memory.last_pos = -1;
     ams->asset_memory.alignment = 1;
-    ams->asset_memory.memory = buffer_get_memory(buf, sizeof(Asset) * count);
-    ams->asset_memory.free = (uint64 *) buffer_get_memory(buf, CEIL_DIV(count, 64) * sizeof(uint64));
+    ams->asset_memory.memory = buf;
+    ams->asset_memory.free = (uint64 *) (ams->asset_memory.memory + ams->asset_memory.chunk_size * count);
 
     // setup asset_data_memory
     ams->asset_data_memory.count = count;
     ams->asset_data_memory.chunk_size = chunk_size;
     ams->asset_data_memory.last_pos = -1;
     ams->asset_data_memory.alignment = 1;
-    ams->asset_data_memory.memory = buffer_get_memory(buf, chunk_size * count, 64);
-    ams->asset_data_memory.free = (uint64 *) buffer_get_memory(buf, CEIL_DIV(count, 64) * sizeof(uint64));
+    ams->asset_data_memory.memory = (byte *) (ams->asset_memory.free + CEIL_DIV(count, 64));
+    ams->asset_data_memory.free = (uint64 *) (ams->asset_data_memory.memory + ams->asset_data_memory.chunk_size * count);
 
     ams->first = NULL;
     ams->last = NULL;
@@ -79,32 +98,6 @@ int64 ams_get_buffer_size(int count, int chunk_size)
     return hashmap_size(count, sizeof(HashEntryInt64)) // hash map
         + sizeof(Asset) * count + CEIL_DIV(count, 64) * sizeof(uint64) // asset_memory
         + chunk_size * count + CEIL_DIV(count, 64) * sizeof(uint64); // asset_data_memory
-}
-
-// WARNING: buf size see ams_get_buffer_size
-void ams_create(AssetManagementSystem* ams, byte* buf, int chunk_size, int count)
-{
-    // setup hash_map
-    hashmap_create(&ams->hash_map, count, sizeof(HashEntryInt64), buf);
-
-    // setup asset_memory
-    ams->asset_memory.count = count;
-    ams->asset_memory.chunk_size = sizeof(Asset);
-    ams->asset_memory.last_pos = -1;
-    ams->asset_memory.alignment = 1;
-    ams->asset_memory.memory = buf;
-    ams->asset_memory.free = (uint64 *) (ams->asset_memory.memory + sizeof(Asset) * count);
-
-    // setup asset_data_memory
-    ams->asset_data_memory.count = count;
-    ams->asset_data_memory.chunk_size = chunk_size;
-    ams->asset_data_memory.last_pos = -1;
-    ams->asset_data_memory.alignment = 1;
-    ams->asset_data_memory.memory = (byte *) (ams->asset_data_memory.free + CEIL_DIV(count, 64));
-    ams->asset_data_memory.free = (uint64 *) (ams->asset_data_memory.memory + chunk_size * count);
-
-    ams->first = NULL;
-    ams->last = NULL;
 }
 
 inline
@@ -232,7 +225,9 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 el
     chunk_reserve_index(&ams->asset_data_memory, free_asset, elements, true);
     asset->self = chunk_get_element(&ams->asset_data_memory, free_asset);
     asset->size = elements; // Curcial for freeing
-    asset->ram_size = ams->asset_memory.chunk_size * elements;
+    asset->ram_size = (ams->asset_memory.chunk_size + ams->asset_data_memory.chunk_size) * elements;
+
+    DEBUG_MEMORY_RESERVE((uint64) asset->self, elements * ams->asset_data_memory.chunk_size, 180);
 
     // @performance Do we really want a double linked list. Are we really using this feature or is the free_index enough?
     if (free_asset > 0 && free_asset < ams->asset_memory.count - 1) {

@@ -40,6 +40,7 @@ enum LogDataType {
     LOG_DATA_FLOAT32,
     LOG_DATA_FLOAT64
 };
+
 struct LogMemory {
     byte* memory;
 

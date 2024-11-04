@@ -12,6 +12,10 @@
 #include <intrin.h>
 #include "../stdlib/Types.h"
 
+// @todo Replace many of these functions with intrinsic functions
+//      This file can remain but the callers should get adjusted
+//      Obviously we would have to check at runtime if ABM is supported
+
 // Left to right
 #define IS_BIT_SET_L2R(num, pos, bits) ((bool) ((num) & (1 << ((bits - 1) - (pos)))))
 #define BIT_SET_L2R(num, pos, bits) ((num) | ((uint32) 1 << ((bits - 1) - (pos))))
@@ -344,6 +348,52 @@ uint32 bits_reverse(uint32 data, uint32 count)
     }
 
     return reversed;
+}
+
+const int32 BIT_COUNT_LOOKUP_TABLE[256] = {
+    0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
+    1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+    1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+    1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+    3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+    4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
+};
+
+int32 bits_count(uint64 data) {
+    return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
+        + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF]
+        + BIT_COUNT_LOOKUP_TABLE[(data >> 16) & 0xFF]
+        + BIT_COUNT_LOOKUP_TABLE[(data >> 24) & 0xFF]
+        + BIT_COUNT_LOOKUP_TABLE[(data >> 32) & 0xFF]
+        + BIT_COUNT_LOOKUP_TABLE[(data >> 40) & 0xFF]
+        + BIT_COUNT_LOOKUP_TABLE[(data >> 48) & 0xFF]
+        + BIT_COUNT_LOOKUP_TABLE[(data >> 56) & 0xFF];
+}
+
+int32 bits_count(uint32 data) {
+    return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
+        + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF]
+        + BIT_COUNT_LOOKUP_TABLE[(data >> 16) & 0xFF]
+        + BIT_COUNT_LOOKUP_TABLE[(data >> 24) & 0xFF];
+}
+
+int32 bits_count(uint16 data) {
+    return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
+        + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF];
+}
+
+int32 bits_count(uint8 data) {
+    return BIT_COUNT_LOOKUP_TABLE[data];
 }
 
 #endif

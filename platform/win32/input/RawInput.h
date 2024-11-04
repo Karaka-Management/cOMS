@@ -182,6 +182,7 @@ int rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* r
     return i;
 }
 
+inline
 void input_mouse_position(HWND hwnd, v2_int32* pos)
 {
     POINT p;

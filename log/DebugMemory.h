@@ -21,7 +21,8 @@
     #include <x86intrin.h>
 #endif
 
-#define DEBUG_MEMORY_RANGE_MAX 1000
+#define DEBUG_MEMORY_RANGE_MAX 500
+#define DEBUG_MEMORY_RANGE_RES_MAX 100
 
 struct DebugMemoryRange {
     int32 type;
@@ -39,6 +40,9 @@ struct DebugMemory {
 
     uint64 action_idx;
     DebugMemoryRange last_action[DEBUG_MEMORY_RANGE_MAX];
+
+    uint64 reserve_action_idx;
+    DebugMemoryRange reserve_action[DEBUG_MEMORY_RANGE_RES_MAX];
 };
 
 struct DebugMemoryContainer {
@@ -49,21 +53,22 @@ struct DebugMemoryContainer {
 
 #if DEBUG || INTERNAL
     void debug_memory_init(uint64, uint64);
-    void debug_memory_read(uint64, uint64, const char*);
-    void debug_memory_write(uint64, uint64, const char*);
-    void debug_memory_delete(uint64, uint64, const char*);
+    void debug_memory_log(uint64, uint64, int32, const char*);
+    void debug_memory_reserve(uint64, uint64, const char*);
     void debug_memory_reset();
 
     #define DEBUG_MEMORY_INIT(start, size) debug_memory_init((start), (size))
-    #define DEBUG_MEMORY_READ(start, size) debug_memory_read((start), (size), __func__)
-    #define DEBUG_MEMORY_WRITE(start, size) debug_memory_write((start), (size), __func__)
-    #define DEBUG_MEMORY_DELETE(start, size) debug_memory_delete((start), (size), __func__)
+    #define DEBUG_MEMORY_READ(start, size) debug_memory_log((start), (size), 0, __func__)
+    #define DEBUG_MEMORY_WRITE(start, size) debug_memory_log((start), (size), 1, __func__)
+    #define DEBUG_MEMORY_DELETE(start, size) debug_memory_log((start), (size), -1, __func__)
+    #define DEBUG_MEMORY_RESERVE(start, size, type) debug_memory_reserve((start), (size), (type), __func__)
     #define DEBUG_MEMORY_RESET() debug_memory_reset()
 #else
     #define DEBUG_MEMORY_INIT(start, size) ((void) 0)
     #define DEBUG_MEMORY_READ(start, size) ((void) 0)
     #define DEBUG_MEMORY_WRITE(start, size) ((void) 0)
     #define DEBUG_MEMORY_DELETE(start, size) ((void) 0)
+    #define DEBUG_MEMORY_RESERVE(start, size, type) ((void) 0)
     #define DEBUG_MEMORY_RESET() ((void) 0)
 #endif
 

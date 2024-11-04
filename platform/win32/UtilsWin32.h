@@ -24,6 +24,8 @@
 
 #define strtok_r strtok_s
 
+// @todo Consider to implement directly mapped files (CreateFileMapping) for certain files (e.g. map data or texture data, ...)
+
 inline void relative_to_absolute(const char* rel, char* path)
 {
     char self_path[MAX_PATH];
@@ -314,8 +316,28 @@ file_write_struct(const char* path, const void* file, uint32 size)
 inline void
 file_copy(const char* src, const char* dst)
 {
-    CopyFileA((LPCSTR) src, (LPCSTR) dst, false);
+    if (*src == '.') {
+        char src_full_path[MAX_PATH];
+        relative_to_absolute(src, src_full_path);
+
+        if (*dst == '.') {
+            char dst_full_path[MAX_PATH];
+            relative_to_absolute(dst, dst_full_path);
+
+            CopyFileA((LPCSTR) src_full_path, (LPCSTR) dst_full_path, false);
+        } else {
+            CopyFileA((LPCSTR) src_full_path, (LPCSTR) dst, false);
+        }
+    } else if (*dst == '.') {
+        char dst_full_path[MAX_PATH];
+        relative_to_absolute(dst, dst_full_path);
+
+        CopyFileA((LPCSTR) src, (LPCSTR) dst_full_path, false);
+    } else {
+        CopyFileA((LPCSTR) src, (LPCSTR) dst, false);
+    }
 }
+
 inline
 void close_handle(HANDLE fp)
 {

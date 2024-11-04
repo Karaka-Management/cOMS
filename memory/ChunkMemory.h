@@ -33,6 +33,9 @@ struct ChunkMemory {
 inline
 void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignment = 64)
 {
+    ASSERT_SIMPLE(chunk_size);
+    ASSERT_SIMPLE(count);
+
     buf->memory = alignment < 2
         ? (byte *) playform_alloc(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64))
         : (byte *) playform_alloc_aligned(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64), alignment);
@@ -63,13 +66,16 @@ void chunk_free(ChunkMemory* buf)
 }
 
 inline
-void chunk_init(ChunkMemory* buf, byte* data, uint64 count, uint64 chunk_size, int32 alignment = 64)
+void chunk_init(ChunkMemory* buf, BufferMemory* data, uint64 count, uint64 chunk_size, int32 alignment = 64)
 {
+    ASSERT_SIMPLE(chunk_size);
+    ASSERT_SIMPLE(count);
+
     // @bug what if an alignment is defined?
-    buf->memory = data;
+    buf->memory = buffer_get_memory(data, count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64));
 
     buf->count = count;
-    buf->size = chunk_size * count + sizeof(buf->free) * CEIL_DIV(count, 64);
+    buf->size = count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64);
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
@@ -80,6 +86,31 @@ void chunk_init(ChunkMemory* buf, byte* data, uint64 count, uint64 chunk_size, i
     buf->free = (uint64 *) (buf->memory + count * chunk_size);
 
     DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
+    DEBUG_MEMORY_RESERVE((uint64) buf->memory, buf->size, 187);
+}
+
+inline
+void chunk_init(ChunkMemory* buf, byte* data, uint64 count, uint64 chunk_size, int32 alignment = 64)
+{
+    ASSERT_SIMPLE(chunk_size);
+    ASSERT_SIMPLE(count);
+
+    // @bug what if an alignment is defined?
+    buf->memory = data;
+
+    buf->count = count;
+    buf->size = count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64);
+    buf->chunk_size = chunk_size;
+    buf->last_pos = -1;
+    buf->alignment = alignment;
+
+    // @question Could it be beneficial to have this before the element data?
+    //  On the other hand the way we do it right now we never have to move past the free array since it is at the end
+    //  On another hand we could by accident overwrite the values in free if we are not careful
+    buf->free = (uint64 *) (buf->memory + count * chunk_size);
+
+    DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
+    DEBUG_MEMORY_RESERVE((uint64) buf->memory, buf->size, 187);
 }
 
 inline

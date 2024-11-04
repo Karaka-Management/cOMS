@@ -6,6 +6,7 @@
 #include "DebugMemory.h"
 #include "Log.h"
 #include "TimingStat.h"
+#include "../utils/StringUtils.h"
 
 global_persist DebugContainer* debug_container = NULL;
 
@@ -51,7 +52,7 @@ void log_counter(int32 id, int32 value)
 
 // @todo don't use a pointer to this should be in a global together with other logging data (see Log.h)
 inline
-DebugMemory* debug_memory_find(uint64 start, uint64 size)
+DebugMemory* debug_memory_find(uint64 start)
 {
     for (int32 i = 0; i < debug_container->dmc.memory_size; ++i) {
         if (debug_container->dmc.memory_stats[i].start <= start
@@ -70,7 +71,7 @@ void debug_memory_init(uint64 start, uint64 size)
         return;
     }
 
-    const DebugMemory* mem = debug_memory_find(start, size);
+    const DebugMemory* mem = debug_memory_find(start);
     if (mem) {
         return;
     }
@@ -94,13 +95,13 @@ void debug_memory_init(uint64 start, uint64 size)
     ++debug_container->dmc.memory_element_idx;
 }
 
-void debug_memory_write(uint64 start, uint64 size, const char* function)
+void debug_memory_log(uint64 start, uint64 size, int32 type, const char* function)
 {
     if (!start || !debug_container) {
         return;
     }
 
-    DebugMemory* mem = debug_memory_find(start, size);
+    DebugMemory* mem = debug_memory_find(start);
     if (!mem) {
         return;
     }
@@ -109,7 +110,7 @@ void debug_memory_write(uint64 start, uint64 size, const char* function)
         mem->action_idx = 0;
     }
 
-    mem->last_action[mem->action_idx].type = 1;
+    mem->last_action[mem->action_idx].type = type;
     mem->last_action[mem->action_idx].start = start - mem->start;
     mem->last_action[mem->action_idx].size = size;
 
@@ -118,60 +119,33 @@ void debug_memory_write(uint64 start, uint64 size, const char* function)
     mem->last_action[mem->action_idx].function_name = function;
 
     ++mem->action_idx;
-    mem->usage += size;
+    mem->usage += size * type;
 }
 
-void debug_memory_read(uint64 start, uint64 size, const char* function)
+void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* function)
 {
     if (!start || !debug_container) {
         return;
     }
 
-    DebugMemory* mem = debug_memory_find(start, size);
+    DebugMemory* mem = debug_memory_find(start);
     if (!mem) {
         return;
     }
 
-    if (mem->action_idx == DEBUG_MEMORY_RANGE_MAX) {
-        mem->action_idx = 0;
+    if (mem->reserve_action_idx == DEBUG_MEMORY_RANGE_MAX) {
+        mem->reserve_action_idx = 0;
     }
 
-    mem->last_action[mem->action_idx].type = 0;
-    mem->last_action[mem->action_idx].start = start - mem->start;
-    mem->last_action[mem->action_idx].size = size;
+    mem->reserve_action[mem->reserve_action_idx].type = type;
+    mem->reserve_action[mem->reserve_action_idx].start = start - mem->start;
+    mem->reserve_action[mem->reserve_action_idx].size = size;
 
     // @question consider to use other time_ms() since __rdtsc is variable (boost, power saving)
-    mem->last_action[mem->action_idx].time = __rdtsc();
-    mem->last_action[mem->action_idx].function_name = function;
+    mem->reserve_action[mem->reserve_action_idx].time = __rdtsc();
+    mem->reserve_action[mem->reserve_action_idx].function_name = function;
 
-    ++mem->action_idx;
-}
-
-void debug_memory_delete(uint64 start, uint64 size, const char* function)
-{
-    if (!debug_container) {
-        return;
-    }
-
-    DebugMemory* mem = debug_memory_find(start, size);
-    if (!mem) {
-        return;
-    }
-
-    if (mem->action_idx == DEBUG_MEMORY_RANGE_MAX) {
-        mem->action_idx = 0;
-    }
-
-    mem->last_action[mem->action_idx].type = -1;
-    mem->last_action[mem->action_idx].start = start - mem->start;
-    mem->last_action[mem->action_idx].size = size;
-
-    // @question consider to use other time_ms() since __rdtsc is variable (boost, power saving)
-    mem->last_action[mem->action_idx].time = __rdtsc();
-    mem->last_action[mem->action_idx].function_name = function;
-
-    ++mem->action_idx;
-    mem->usage -= size;
+    ++mem->reserve_action_idx;
 }
 
 inline
@@ -252,11 +226,29 @@ byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
             return;
         }
 
-        size_t length = strlen(str);
-        ASSERT_SIMPLE(length < MAX_LOG_LENGTH);
+        size_t str_len = strlen(str);
+        size_t file_len = strlen(file);
+        size_t function_len = strlen(function);
 
-        char* temp = (char *) log_get_memory(length + 1);
-        memcpy(temp, str, length + 1);
+        char line_str[10];
+        int_to_str(line, line_str, '\0');
+
+        size_t line_len = strlen(line_str);
+
+        ASSERT_SIMPLE(str_len + file_len + function_len + line_len + 3 < MAX_LOG_LENGTH);
+
+        char* temp = (char *) log_get_memory(str_len + file_len + function_len + line_len + 3 + 1);
+        memcpy(temp, file, file_len);
+        temp[file_len] = ';';
+
+        memcpy(&temp[file_len], function, function_len);
+        temp[file_len + 1 + function_len] = ';';
+
+        memcpy(&temp[file_len + 1 + function_len], line_str, line_len);
+        temp[file_len + 1 + function_len + 1 + line_len] = ';';
+
+        memcpy(&temp[file_len + 1 + function_len + 1 + line_len + 1], str, str_len);
+        temp[file_len + 1 + function_len + 1 + line_len + 1 + str_len] = '\0';
 
         if (save || debug_container->log_memory.size - debug_container->log_memory.pos < MAX_LOG_LENGTH) {
             log_to_file();
