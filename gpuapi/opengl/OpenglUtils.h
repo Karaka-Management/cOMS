@@ -32,7 +32,7 @@ void change_viewport(Window* w, int32 offset_x = 0, int32 offset_y = 0)
 }
 
 inline
-void vsync_set(bool on)
+void vsync_set(int32 on)
 {
     wglSwapIntervalEXT((int32) on);
 }
@@ -136,7 +136,7 @@ void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
 }
 
 inline
-void texture_use(const Texture* texture, uint32 texture_unit)
+void texture_use(const Texture* texture)
 {
     glActiveTexture(GL_TEXTURE0 + texture->sample_id);
     glBindTexture(GL_TEXTURE_2D, (GLuint) texture->id);
@@ -452,6 +452,17 @@ uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data)
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 
     return vbo;
+}
+
+inline
+uint32 gpuapi_framebuffer_generate()
+{
+    uint32 fbo;
+
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    return fbo;
 }
 
 inline

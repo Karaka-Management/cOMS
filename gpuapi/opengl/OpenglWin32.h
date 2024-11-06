@@ -1167,6 +1167,18 @@ static type_glBufferSubData* glBufferSubData;
 typedef void WINAPI type_glGenBuffers(GLsizei n, GLuint *buffers);
 static type_glGenBuffers* glGenBuffers;
 
+typedef void WINAPI type_glGenRenderbuffers(GLsizei n, GLuint *renderbuffers);
+static type_glGenRenderbuffers* glGenRenderbuffers;
+
+typedef void WINAPI type_glBindRenderbuffer(GLenum target, GLuint renderbuffer);
+static type_glBindRenderbuffer* glBindRenderbuffer;
+
+typedef void WINAPI type_glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
+static type_glRenderbufferStorage* glRenderbufferStorage;
+
+typedef void WINAPI type_glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
+static type_glFramebufferRenderbuffer* glFramebufferRenderbuffer;
+
 typedef void WINAPI type_glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage);
 static type_glBufferData* glBufferData;
 
@@ -1233,6 +1245,7 @@ static type_glProgramParameteri* glProgramParameteri;
 #define WGL_CONTEXT_FLAGS_ARB 0x2094
 #define WGL_CONTEXT_PROFILE_MASK_ARB 0x9126
 
+// @question Why is this even here? Shouldn't this be in Opengl.h?
 #define GL_SHADER_STORAGE_BARRIER_BIT 0x2000
 #define GL_MAX_COMBINED_SHADER_OUTPUT_RESOURCES 0x8F39
 #define GL_SHADER_STORAGE_BUFFER 0x90D2
@@ -1342,7 +1355,7 @@ void set_pixel_format(HDC hdc, int32 multisampling = 0)
             WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
             WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, GL_TRUE,
             WGL_SAMPLE_BUFFERS_ARB, (int32) (multisampling > 0),
-            WGL_SAMPLES_ARB, multisampling, // 4x MSAA
+            WGL_SAMPLES_ARB, multisampling, // MSAA
             0,
         };
 
@@ -1491,6 +1504,10 @@ void opengl_init_gl()
     glBindBufferBase = (type_glBindBufferBase *) wglGetProcAddress("glBindBufferBase");
     glBufferSubData = (type_glBufferSubData *) wglGetProcAddress("glBufferSubData");
     glGenBuffers = (type_glGenBuffers *) wglGetProcAddress("glGenBuffers");
+    glGenRenderbuffers = (type_glGenRenderbuffers *) wglGetProcAddress("glGenRenderbuffers");
+    glBindRenderbuffer = (type_glBindRenderbuffer *) wglGetProcAddress("glBindRenderbuffer");
+    glRenderbufferStorage = (type_glRenderbufferStorage *) wglGetProcAddress("glRenderbufferStorage");
+    glFramebufferRenderbuffer = (type_glFramebufferRenderbuffer *) wglGetProcAddress("glFramebufferRenderbuffer");
     glBufferData = (type_glBufferData *) wglGetProcAddress("glBufferData");
     glActiveTexture = (type_glActiveTexture *) wglGetProcAddress("glActiveTexture");
     glDeleteProgram = (type_glDeleteProgram *) wglGetProcAddress("glDeleteProgram");

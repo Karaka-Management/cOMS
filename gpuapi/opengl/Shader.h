@@ -13,7 +13,8 @@
 
 struct Shader {
     uint32 shader_id;
-    uint32 shader_locations[10];
+    uint32 shader_locations[7];
+    byte shader_data[16];
 };
 
 #endif

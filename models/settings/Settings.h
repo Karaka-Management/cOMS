@@ -10,6 +10,7 @@
 #define TOS_MODELS_SETTINGS_H
 
 #include "../../stdlib/Types.h"
+#include "../../gpuapi/AntiAliasing.h"
 #include "../chat/ChatStatus.h"
 #include "setting_types.h"
 #include "../../module/Module.h"
@@ -120,7 +121,9 @@ struct CSettings {
     byte gpu_contrast;
     byte gpu_gamma;
     f32 gpu_fov;
-    byte gpu_sync = SETTING_TYPE_DISABLED;
+    int8 gpu_sync;
+    AntiAliasingType gpu_aa_type;
+    int8 gpu_aa_samples;
 
     byte gpu_render_distance_terrain = 10;
     byte gpu_render_distance_terrain_secondary = 10;
@@ -395,7 +398,7 @@ void load_settings(CSettings* __restrict client_settings, char* data)
     while (*pos != '\0') {
         // Skip all whitespaces and new lines
         int32 skip;
-        while ((skip = is_eol(pos)) || (skip = (int32) is_whitespace(*pos))) {
+        while ((skip = (int32) is_whitespace(*pos)) || (skip = is_eol(pos))) {
             pos += skip;
         }
 
@@ -486,6 +489,11 @@ void load_settings(CSettings* __restrict client_settings, char* data)
             } else if (strncmp(name, "_shadow_type", sizeof("_shadow_type") - 1) == 0) {
             } else if (strncmp(name, "_sharpening", sizeof("_sharpening") - 1) == 0) {
             } else if (strncmp(name, "_sync", sizeof("_sync") - 1) == 0) {
+                client_settings->gpu_sync = (int8) atoi(pos);
+            } else if (strncmp(name, "_aa_type", sizeof("_aa_type") - 1) == 0) {
+                client_settings->gpu_aa_type = (AntiAliasingType) atoi(pos);
+            } else if (strncmp(name, "_aa_samples", sizeof("_aa_samples") - 1) == 0) {
+                client_settings->gpu_aa_samples = (int8) atoi(pos);
             } else if (strncmp(name, "_terrain_quality", sizeof("_terrain_quality") - 1) == 0) {
             } else if (strncmp(name, "_texture_quality", sizeof("_texture_quality") - 1) == 0) {
             } else if (strncmp(name, "_type", sizeof("_type") - 1) == 0) {

@@ -36,12 +36,16 @@ int rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory*
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
-    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) ring_get_memory(ring, sizeof(RAWINPUTDEVICELIST) * device_count, 4);
+    if (device_count == 0 || device_count > 1000) {
+        return 0;
+    }
+
+    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) ring_get_memory(ring, sizeof(RAWINPUTDEVICELIST) * device_count, 8);
     device_count = GetRawInputDeviceList(pRawInputDeviceList, &device_count, sizeof(RAWINPUTDEVICELIST));
 
     // We always want at least one empty input device slot
     // @todo Change so that we store the actual number of devices
-    if (device_count == 0) {
+    if (device_count == 0 || device_count > 1000) {
         return 0;
     }
 
@@ -108,12 +112,16 @@ int rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* r
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
-    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) ring_get_memory(ring, sizeof(RAWINPUTDEVICELIST) * device_count, 4);
+    if (device_count == 0 || device_count > 1000) {
+        return 0;
+    }
+
+    PRAWINPUTDEVICELIST pRawInputDeviceList = (PRAWINPUTDEVICELIST) ring_get_memory(ring, sizeof(RAWINPUTDEVICELIST) * device_count, 8);
     device_count = GetRawInputDeviceList(pRawInputDeviceList, &device_count, sizeof(RAWINPUTDEVICELIST));
 
     // We always want at least one empty input device slot
     // @todo Change so that we store the actual number of devices
-    if (device_count == 0) {
+    if (device_count == 0 || device_count > 1000) {
         return 0;
     }
 

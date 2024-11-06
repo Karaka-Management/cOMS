@@ -187,6 +187,7 @@ void font_from_file(
     memcpy(font->glyphs, pos, font->glyph_count * sizeof(Glyph));
 
     #if OPENGL
+        // @todo Implement y-offset correction
         for (int32 i = 0; i < font->glyph_count; ++i) {
             float temp = font->glyphs[i].coords.y1;
             font->glyphs[i].coords.y1 = 1.0f - font->glyphs[i].coords.y2;

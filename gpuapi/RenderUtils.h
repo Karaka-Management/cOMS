@@ -404,7 +404,6 @@ f32 vertex_text_create(
     f32 offset_x = x;
     for (int i = 0; i < length; ++i) {
         int32 character = utf8_get_char_at(text, i);
-
         if (character == '\n') {
             y += font->line_height * scale;
             offset_x = x;
@@ -425,13 +424,16 @@ f32 vertex_text_create(
             continue;
         }
 
+        f32 offset_y = y + glyph->metrics.offset_y * scale;
+        offset_x += glyph->metrics.offset_x * scale;
+
         vertex_rect_create(
             vertices, index, zindex,
-            offset_x, y, glyph->metrics.width * scale, glyph->metrics.height * scale, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
+            offset_x, offset_y, glyph->metrics.width * scale, glyph->metrics.height * scale, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
             color_index, glyph->coords.x1, glyph->coords.y1, glyph->coords.x2, glyph->coords.y2
         );
 
-        offset_x += (glyph->metrics.width + glyph->metrics.offset_x) * scale;
+        offset_x += (glyph->metrics.width + glyph->metrics.advance_x) * scale;
     }
 
     // @question How and where to cut off text out of view (here or somewhere else)
@@ -545,13 +547,16 @@ f32 ui_text_create(
             continue;
         }
 
+        f32 offset_y2 = offset_y + glyph->metrics.offset_y * scale;
+        offset_x += glyph->metrics.offset_x * scale;
+
         vertex_rect_create(
             vertices, index, zindex,
-            offset_x, offset_y, glyph->metrics.width * scale, glyph->metrics.height * scale, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
+            offset_x, offset_y2, glyph->metrics.width * scale, glyph->metrics.height * scale, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
             color_index->value_int, glyph->coords.x1, glyph->coords.y1, glyph->coords.x2, glyph->coords.y2
         );
 
-        offset_x += (glyph->metrics.width + glyph->metrics.offset_x) * scale;
+        offset_x += (glyph->metrics.width + glyph->metrics.advance_x) * scale;
     }
 
     element->vertex_count = *index - start;
