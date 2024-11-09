@@ -24,6 +24,23 @@
 
 #define strtok_r strtok_s
 
+inline
+time_t system_time()
+{
+    SYSTEMTIME systemTime;
+    FILETIME fileTime;
+    ULARGE_INTEGER largeInt;
+
+    GetLocalTime(&systemTime);
+    SystemTimeToFileTime(&systemTime, &fileTime);
+
+    // Convert FILETIME to a 64-bit integer
+    largeInt.LowPart = fileTime.dwLowDateTime;
+    largeInt.HighPart = fileTime.dwHighDateTime;
+
+    return ((time_t) (largeInt.QuadPart / 10000000ULL)) - ((time_t) 11644473600ULL);
+}
+
 // @todo Consider to implement directly mapped files (CreateFileMapping) for certain files (e.g. map data or texture data, ...)
 
 inline void relative_to_absolute(const char* rel, char* path)

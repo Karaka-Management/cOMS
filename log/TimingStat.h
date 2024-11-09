@@ -32,8 +32,16 @@ struct TimingStat {
 #if DEBUG || INTERNAL
     void update_timing_stat(uint32, const char*);
     #define UPDATE_TIMING_STAT(stat) update_timing_stat(stat, __func__)
+
+    // These are only needed if we need to delay the overwrite by 1 frame (e.g. ui update)
+    void update_timing_stat_start(uint32, const char*);
+    void update_timing_stat_end(uint32, const char*);
+    #define UPDATE_TIMING_STAT_START(stat) update_timing_stat_start(stat, __func__)
+    #define UPDATE_TIMING_STAT_END(stat) update_timing_stat_end(stat, __func__)
 #else
     #define UPDATE_TIMING_STAT(stat) ((void) 0)
+    #define UPDATE_TIMING_STAT_START(stat) ((void) 0)
+    #define UPDATE_TIMING_STAT_END(stat) ((void) 0)
 #endif
 
 #endif

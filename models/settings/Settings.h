@@ -102,6 +102,7 @@ struct CSettings {
     char path[MAX_PATH];
     bool is_changed = false;
     byte simd_version;
+    int32 simd_step_size;
     bool supports_abm;
 
     // Network data
@@ -178,6 +179,7 @@ struct CSettings {
     byte gpu_anti_aliasing_detail = 0;
     byte gpu_sharpening = SETTING_TYPE_DISABLED;
     byte gpu_ambient_occlusion = SETTING_TYPE_DISABLED;
+    byte gpu_color_deficiency;
 
     bool gpu_gamma_correction = true;
     bool gpu_normal_mapping = true;
@@ -241,37 +243,20 @@ struct CSettings {
 
     char game_theme[32];
 
-    v4_f32* game_ui_dim[50];
+    v4_f32 game_ui_dim[50];
 
     // @todo replace settings below with bit flag
     // UI
     uint64 ui_visibility_flags = 0;
+    uint64 game_visibility_flags = 0;
 
     // HUD
     bool game_hud_animated;
-    bool game_ui_show_hotkeys;
 
-    bool game_show_health_bar_self = false;
-    bool game_show_health_bar_player = false;
-    bool game_show_health_bar_monster = false;
-    bool game_show_health_numbers = false;
-    bool game_show_resource_numbers = false;
     bool game_show_buffs = false;
-    bool game_show_xp_bar_numbers = true;
 
-    bool game_show_name_self = false;
-    bool game_show_name_player = false;
-    bool game_show_name_monster = false;
-    bool game_show_name_npc = false;
-    bool game_show_title_self = false;
-    bool game_show_title_other = false;
     byte game_minion_visibility_self = 128;
     byte game_minion_visibility_player = 128;
-
-    bool game_show_dmg_numbers = false;
-    bool game_show_cooldown_times = false;
-    bool game_show_dodge = true;
-    bool game_show_effect_gains = true; // e.g. XP
 
     bool game_minimap_show_merchants = false;
     bool game_minimap_show_quest = false;
@@ -283,8 +268,6 @@ struct CSettings {
     bool game_map_show_quest = false;
     bool game_map_show_dungeons = false;
     bool game_map_show_names = false;
-
-    bool game_show_subtitles = true;
 
     // Mounts
     uint32 game_default_mount = 0;
@@ -413,7 +396,7 @@ void load_settings(CSettings* __restrict client_settings, char* data)
 
         // Get name
         name = pos;
-        while (!is_eol(pos) && *pos != '\0' && !is_whitespace(*pos)) {
+        while (!is_eol(pos) && *pos != '\0' && !is_whitespace(*pos) && *pos != '[') {
             ++pos;
         }
 
@@ -441,6 +424,8 @@ void load_settings(CSettings* __restrict client_settings, char* data)
                 client_settings->gpu_aspect_ratio = (f32) atof(pos);
             } else if (strncmp(name, "_attack_effect_quality", sizeof("_attack_effect_quality") - 1) == 0) {
             } else if (strncmp(name, "_blur", sizeof("_blur") - 1) == 0) {
+            } else if (strncmp(name, "_color_deficiency", sizeof("_color_deficiency") - 1) == 0) {
+                client_settings->gpu_color_deficiency = (byte) atoi(pos);
             } else if (strncmp(name, "_brightness", sizeof("_brightness") - 1) == 0) {
             } else if (strncmp(name, "_camera_shake", sizeof("_camera_shake") - 1) == 0) {
             } else if (strncmp(name, "_caustics_quality", sizeof("_caustics_quality") - 1) == 0) {
@@ -546,8 +531,20 @@ void load_settings(CSettings* __restrict client_settings, char* data)
             } else if (strncmp(name, "_show_title_other", sizeof("_show_title_other") - 1) == 0) {
             } else if (strncmp(name, "_show_title_self", sizeof("_show_title_self") - 1) == 0) {
             } else if (strncmp(name, "_show_xp_bar_numbers", sizeof("_show_xp_bar_numbers") - 1) == 0) {
+            } else if (strncmp(name, "_ui_visibility_flags", sizeof("_ui_visibility_flags") - 1) == 0) {
+                client_settings->ui_visibility_flags = strtoull(pos, &pos, 10);
+            } else if (strncmp(name, "_visibility_flags", sizeof("_visibility_flags") - 1) == 0) {
+                client_settings->game_visibility_flags = strtoull(pos, &pos, 10);
             } else if (strncmp(name, "_theme", sizeof("_theme") - 1) == 0) {
+                pos += strcpy_to_eol(pos, client_settings->game_theme);
             } else if (strncmp(name, "_ui_dim", sizeof("_ui_dim") - 1) == 0) {
+                int32 index = strtoul(++pos, &pos, 10);
+                pos += 2;
+
+                client_settings->game_ui_dim[index].x = strtof(pos, &pos); ++pos;
+                client_settings->game_ui_dim[index].y = strtof(pos, &pos); ++pos;
+                client_settings->game_ui_dim[index].width = strtof(pos, &pos); ++pos;
+                client_settings->game_ui_dim[index].height = strtof(pos, &pos);
             } else if (strncmp(name, "_ui_show_hotkeys", sizeof("_ui_show_hotkeys") - 1) == 0) {
             } else if (strncmp(name, "_view", sizeof("_view") - 1) == 0) {
             } else if (strncmp(name, "_window1_dim", sizeof("_window1_dim") - 1) == 0) {

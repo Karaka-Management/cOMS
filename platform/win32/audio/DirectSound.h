@@ -16,6 +16,7 @@
 #include "../../../audio/AudioSetting.h"
 #include "../../../utils/MathUtils.h"
 #include "../../../log/Log.h"
+#include "../../../audio/Audio.cpp"
 
 struct DirectSoundSetting {
     LPDIRECTSOUND8 audio_handle;
@@ -191,6 +192,9 @@ void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting)
         0
     );
 
+    // @performance why are we copying again, we already created our buffer, now we have to copy it again?!
+    //  Ideally we should have already copied it into the correct final one, no?
+    //  We should probably provide a audio_buffer_fill function, that does this -> we could remove one whole memcopy
     memcpy(
         (void *) region1,
         (void *) setting->buffer,
@@ -210,5 +214,44 @@ void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting)
     setting->sample_index += setting->sample_buffer_size / setting->sample_size;
     setting->sample_buffer_size = 0;
 }
+
+// Basically the same as audio_play_buffer but by using this we can avoid one copy
+// The only reason we have audio_play_buffer is that there might be situations where this is not possible
+inline
+void audio_fill_play_buffer(AudioSetting* setting, uint32 to_fill, Audio* sound, DirectSoundSetting* api_setting)
+{
+    setting->sample_buffer_size = to_fill;
+
+    if (setting->sample_buffer_size == 0) {
+        return;
+    }
+
+    if (!setting->is_playing) {
+        audio_play(setting, api_setting);
+    }
+
+    void *region1;
+    DWORD region1_size;
+
+    void *region2;
+    DWORD region2_size;
+
+    DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
+
+    api_setting->secondary_buffer->Lock(
+        bytes_to_lock, setting->sample_buffer_size,
+        &region1, &region1_size,
+        &region2, &region2_size,
+        0
+    );
+
+    audio_fill_buffer(setting, to_fill, sound, (int16 *) region1, (int32) region1_size, (int16 *) region2, (int32) region2_size);
+
+    api_setting->secondary_buffer->Unlock(region1, region1_size, region2, region2_size);
+
+    setting->sample_index += setting->sample_buffer_size / setting->sample_size;
+    setting->sample_buffer_size = 0;
+}
+
 
 #endif

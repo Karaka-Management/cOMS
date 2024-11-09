@@ -467,9 +467,23 @@ inline
 int32 chars_to_eol(const char* str)
 {
     int32 offset = 0;
-    while (!is_eol(str) && *str != '\0')  {
+    while (!is_eol(str) && *str++ != '\0')  {
         ++offset;
     }
+
+    return offset;
+}
+
+inline
+int32 strcpy_to_eol(const char* src, char* dst)
+{
+    int32 offset = 0;
+    while (!is_eol(src) && *src != '\0')  {
+        *dst++ = *src++;
+        ++offset;
+    }
+
+    *dst = '\0';
 
     return offset;
 }

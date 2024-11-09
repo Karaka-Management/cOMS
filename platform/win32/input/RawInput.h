@@ -13,6 +13,7 @@
 
 #include "../../../stdlib/Types.h"
 #include "../../../input/Input.h"
+#include "../../../input/ControllerType.h"
 #include "../../../input/ControllerInput.h"
 #include "controller/DualShock4.h"
 #include "../../../utils/TestUtils.h"
@@ -24,9 +25,11 @@
 
 #define INPUT_MOUSE_BUTTON_1 1
 #define INPUT_MOUSE_BUTTON_2 2
-#define INPUT_MOUSE_BUTTON_3 4
-#define INPUT_MOUSE_BUTTON_4 8
-#define INPUT_MOUSE_BUTTON_5 16
+#define INPUT_MOUSE_BUTTON_3 3
+#define INPUT_MOUSE_BUTTON_4 4
+#define INPUT_MOUSE_BUTTON_5 5
+#define INPUT_MOUSE_BUTTON_WHEEL 6
+#define INPUT_MOUSE_BUTTON_HWHEEL 7
 
 // IMPORTANT:
 // Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions requried
@@ -53,7 +56,6 @@ int rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory*
 
     int32 mouse_found = 0;
     int32 keyboard_found = 0;
-    int32 controller_found = 0;
 
     int32 i;
     for (i = 0; i < device_count; ++i) {
@@ -108,6 +110,7 @@ int rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory*
     return i;
 }
 
+// WARNING: While this works we highly recommend to use hid_init_contorllers
 int rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* ring)
 {
     uint32 device_count;
@@ -126,9 +129,6 @@ int rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* r
     }
 
     uint32 cb_size = 256;
-
-    int32 mouse_found = 0;
-    int32 keyboard_found = 0;
     int32 controller_found = 0;
 
     int32 i;
@@ -150,6 +150,24 @@ int rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* r
                         // @bug This is not always true, how to check?
                         states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
 
+                        if (rdi.hid.dwVendorId == 0x054C
+                            && (rdi.hid.dwProductId == 0x05C4 || rdi.hid.dwProductId == 0x09CC)
+                        ) {
+                            states[controller_found].controller_type = CONTROLLER_TYPE_DUALSHOCK4;
+                        } else if (rdi.hid.dwVendorId == 0x054C
+                            && (rdi.hid.dwProductId == 0x0CE6 || rdi.hid.dwProductId == 0x0DF2)
+                        ) {
+                            states[controller_found].controller_type = CONTROLLER_TYPE_DUALSENSE;
+                        } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x02E0) {
+                            states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_360;
+                        } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x02FF) {
+                            states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_ONE;
+                        } else if (rdi.hid.dwVendorId == 0x045E && rdi.hid.dwProductId == 0x028E) {
+                            states[controller_found].controller_type = CONTROLLER_TYPE_XBOX_S;
+                        } else {
+                            states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
+                        }
+
                         // Gamepad
                         rid[0].usUsagePage = 0x01;
                         rid[0].usUsage	   = 0x05;
@@ -168,6 +186,7 @@ int rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* r
                         states[controller_found].handle_controller = pRawInputDeviceList[i].hDevice;
                         // @bug This is not always true, how to check?
                         states[controller_found].connection_type = INPUT_CONNECTION_TYPE_USB;
+                        states[controller_found].controller_type = CONTROLLER_TYPE_OTHER;
 
                         // Joystick
                         rid[0].usUsagePage = 0x01;
@@ -222,54 +241,51 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int32 state_coun
 
             if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) {
                 key.key_state = KEY_STATE_PRESSED;
-                key.key_id = 1;
+                key.key_id = INPUT_MOUSE_BUTTON_1;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) {
                 key.key_state = KEY_STATE_RELEASED;
-                key.key_id = 1;
+                key.key_id = INPUT_MOUSE_BUTTON_1;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) {
                 key.key_state = KEY_STATE_PRESSED;
-                key.key_id = 2;
+                key.key_id = INPUT_MOUSE_BUTTON_2;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) {
                 key.key_state = KEY_STATE_RELEASED;
-                key.key_id = 2;
+                key.key_id = INPUT_MOUSE_BUTTON_2;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) {
                 key.key_state = KEY_STATE_PRESSED;
-                key.key_id = 3;
+                key.key_id = INPUT_MOUSE_BUTTON_3;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) {
                 key.key_state = KEY_STATE_RELEASED;
-                key.key_id = 3;
+                key.key_id = INPUT_MOUSE_BUTTON_3;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN) {
                 key.key_state = KEY_STATE_PRESSED;
-                key.key_id = 4;
+                key.key_id = INPUT_MOUSE_BUTTON_4;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP) {
                 key.key_state = KEY_STATE_RELEASED;
-                key.key_id = 4;
+                key.key_id = INPUT_MOUSE_BUTTON_4;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN) {
                 key.key_state = KEY_STATE_PRESSED;
-                key.key_id = 5;
+                key.key_id = INPUT_MOUSE_BUTTON_5;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP) {
                 key.key_state = KEY_STATE_RELEASED;
-                key.key_id = 5;
+                key.key_id = INPUT_MOUSE_BUTTON_5;
+            } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) {
+                key.key_state = KEY_STATE_RELEASED;
+                key.key_id = INPUT_MOUSE_BUTTON_WHEEL;
+                key.value = (int16) raw->data.mouse.usButtonData;
+            } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_HWHEEL) {
+                key.key_state = KEY_STATE_RELEASED;
+                key.key_id = INPUT_MOUSE_BUTTON_HWHEEL;
+                key.value = (int16) raw->data.mouse.usButtonData;
             } else {
                 return 0;
             }
-
-            /* @todo implement
-            if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) {
-                states[i].state.wheel_delta += raw->data.mouse.usButtonData;
-            }
-
-            if (raw->data.mouse.usButtonFlags & RI_MOUSE_HWHEEL) {
-                states[i].state.hwheel_delta += raw->data.mouse.usButtonData;
-            }
-            */
 
             // @question is mouse wheel really considered a button change?
 
             ++input_count;
 
             key.key_id |= INPUT_MOUSE_PREFIX;
-            key.value = 0;
             key.time = time;
 
             input_set_state(&states[i].state, &key);
@@ -337,34 +353,38 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int32 state_coun
         InputKey key = {(uint16) (raw->data.keyboard.VKey | INPUT_KEYBOARD_PREFIX), new_state, 0, time};
         input_set_state(&states[i].state, &key);
         states[i].state_change_button = true;
-    } else if (raw->header.dwType == RIM_TYPEHID) {
-        if (raw->header.dwSize > sizeof(RAWINPUT)) {
-            // @performance This shouldn't be done every time, it should be polling based
-            // Controllers often CONSTANTLY send data -> really bad
-            // Maybe we can add timer usage instead of polling?
-            while (i < state_count
-                && states[i].handle_controller != raw->header.hDevice
-            ) {
-                ++i;
-            }
-
-            if (i >= state_count || !states[i].connection_type
-                || time - states[i].time_last_input_check < 5
-            ) {
-                return 0;
-            }
-
-            // @todo Find a way to handle most common controllers
-            //      DualSense
-            //      Xbox
-            //      Xinput
-            // Best way would probably to define the controller type in the input
-            ControllerInput controller = {};
-            input_map_dualshock4(&controller, states[i].connection_type, raw->data.hid.bRawData);
-            input_set_controller_state(&states[i], &controller, time);
-
-            states[i].time_last_input_check = time;
+    } else if (raw->header.dwType == RIM_TYPEHID
+        && raw->header.dwSize > sizeof(RAWINPUT)
+    ) {
+        // @performance This shouldn't be done every time, it should be polling based
+        // Controllers often CONSTANTLY send data -> really bad
+        // Maybe we can add timer usage instead of polling?
+        // But we would still need to register them, right?
+        // Ideally we wouldn't even have to register them then because they would still pollute the general buffer
+        while (i < state_count
+            && states[i].handle_controller != raw->header.hDevice
+        ) {
+            ++i;
         }
+
+        if (i >= state_count || !states[i].connection_type
+            || time - states[i].time_last_input_check < 5
+        ) {
+            return 0;
+        }
+
+        ControllerInput controller = {};
+        switch(states[i].controller_type) {
+            case CONTROLLER_TYPE_DUALSHOCK4: {
+                input_map_dualshock4(&controller, states[i].connection_type, raw->data.hid.bRawData);
+            } break;
+            default: {
+            };
+        }
+        input_set_controller_state(&states[i], &controller, time);
+
+        states[i].state_change_button = true;
+        states[i].time_last_input_check = time;
     }
 
     return input_count;
@@ -389,9 +409,7 @@ void input_handle(LPARAM lParam, Input* __restrict states, int state_count, Ring
 
 int32 input_handle_buffered(int buffer_size, Input* __restrict states, int state_count, RingMemory* ring, uint64 time)
 {
-    int32 input_count = 0;
     uint32 cb_size;
-
     GetRawInputBuffer(NULL, &cb_size, sizeof(RAWINPUTHEADER));
     if (!cb_size) {
         return 0;
@@ -402,6 +420,7 @@ int32 input_handle_buffered(int buffer_size, Input* __restrict states, int state
 
     PRAWINPUT raw_input = (PRAWINPUT) ring_get_memory(ring, cb_size, 4);
 
+    int32 input_count = 0;
     uint32 input;
 
     while (true) {

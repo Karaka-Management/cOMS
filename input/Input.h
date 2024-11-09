@@ -133,6 +133,7 @@ struct Input {
         LPDIRECTINPUTDEVICE8* direct_controller; // used by direct input controller
     #endif
 
+    byte controller_type;
     bool state_change_button;
     bool state_change_mouse;
 
@@ -434,7 +435,7 @@ void input_set_state(InputState* state, InputKey* __restrict new_key)
             free_state = &state->state_keys[i];
         } else if (state->state_keys[i].key_id == new_key->key_id) {
             state->state_keys[i].key_state = new_key->key_state;
-            state->state_keys[i].value = new_key->value;
+            state->state_keys[i].value += new_key->value;
             state->state_keys[i].time = new_key->time;
             action_required = false;
         }
@@ -592,23 +593,24 @@ input_hotkey_state(Input* input)
                     continue;
                 }
 
-                bool is_pressed = hotkey_keys_are_active(&input->state, mapping, hotkeys_for_key[possible_hotkey_idx]);
-
                 // store active hotkey, if it is not already active
-                if (is_pressed) {
-                    input->state.state_hotkeys[active_hotkeys] = hotkeys_for_key[possible_hotkey_idx];
-                    ++active_hotkeys;
+                bool is_pressed = hotkey_keys_are_active(&input->state, mapping, hotkeys_for_key[possible_hotkey_idx]);
+                if (!is_pressed) {
+                    continue;
+                }
 
-                    // Run callback if defined
-                    if (input->input_mapping1.callbacks[hotkeys_for_key[possible_hotkey_idx]] != 0
-                        && old_hotkeys[0] != hotkeys_for_key[possible_hotkey_idx]
-                        && old_hotkeys[1] != hotkeys_for_key[possible_hotkey_idx]
-                        && old_hotkeys[2] != hotkeys_for_key[possible_hotkey_idx]
-                        && old_hotkeys[3] != hotkeys_for_key[possible_hotkey_idx]
-                        && old_hotkeys[4] != hotkeys_for_key[possible_hotkey_idx]
-                    ) {
-                        input->input_mapping1.callbacks[hotkeys_for_key[possible_hotkey_idx]](input->callback_data);
-                    }
+                input->state.state_hotkeys[active_hotkeys] = hotkeys_for_key[possible_hotkey_idx];
+                ++active_hotkeys;
+
+                // Run callback if defined
+                if (input->input_mapping1.callbacks[hotkeys_for_key[possible_hotkey_idx]] != 0
+                    && old_hotkeys[0] != hotkeys_for_key[possible_hotkey_idx]
+                    && old_hotkeys[1] != hotkeys_for_key[possible_hotkey_idx]
+                    && old_hotkeys[2] != hotkeys_for_key[possible_hotkey_idx]
+                    && old_hotkeys[3] != hotkeys_for_key[possible_hotkey_idx]
+                    && old_hotkeys[4] != hotkeys_for_key[possible_hotkey_idx]
+                ) {
+                    input->input_mapping1.callbacks[hotkeys_for_key[possible_hotkey_idx]](input->callback_data);
                 }
             }
         }

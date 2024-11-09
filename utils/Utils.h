@@ -10,6 +10,7 @@
 #define TOS_UTILS_H
 
 #include <stdlib.h>
+#include <time.h>
 
 #include "../stdlib/Types.h"
 

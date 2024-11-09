@@ -33,6 +33,25 @@ void update_timing_stat(uint32 stat, const char* function)
 }
 
 inline
+void update_timing_stat_start(uint32 stat, const char* function)
+{
+    uint64 new_tick_count = __rdtsc();
+
+    debug_container->perf_stats[stat].old_tick_count = new_tick_count;
+}
+
+inline
+void update_timing_stat_end(uint32 stat, const char* function)
+{
+    uint64 new_tick_count = __rdtsc();
+
+    debug_container->perf_stats[stat].function = function;
+    debug_container->perf_stats[stat].delta_tick = new_tick_count - debug_container->perf_stats[stat].old_tick_count;
+    debug_container->perf_stats[stat].delta_time = (double) debug_container->perf_stats[stat].delta_tick / (double) debug_container->performance_count_frequency;
+    debug_container->perf_stats[stat].old_tick_count = new_tick_count;
+}
+
+inline
 void reset_counter(int32 id)
 {
     debug_container->counter[id] = 0;
@@ -253,6 +272,8 @@ byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
         if (save || debug_container->log_memory.size - debug_container->log_memory.pos < MAX_LOG_LENGTH) {
             log_to_file();
         }
+
+        ASSERT_SIMPLE(false);
     }
 
     void log(const char* format, LogDataType data_type, void* data, bool should_log, bool save, const char* file, const char* function, int32 line)
@@ -297,6 +318,8 @@ byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
         if (save || debug_container->log_memory.size - debug_container->log_memory.pos < MAX_LOG_LENGTH) {
             log_to_file();
         }
+
+        ASSERT_SIMPLE(false);
     }
 #endif
 

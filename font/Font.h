@@ -39,6 +39,8 @@ struct Font {
     char texture_name[32];
     f32 size;              // Default font size at which the font renders best
     f32 line_height;       // How tall is a single line (mostly important for multiple lines)
+
+    // WARNING: Glyphs MUST be sorted ascending based on codepoint
     Glyph* glyphs;
 
 };

@@ -90,7 +90,7 @@ enum VertexType {
     VERTEX_TYPE_NORMAL = 2,
     VERTEX_TYPE_TEXTURE_COORD = 4,
     VERTEX_TYPE_COLOR = 8,
-    VERTEX_TYPE_ALL = 15
+    VERTEX_TYPE_ALL = 15,
 };
 
 #endif

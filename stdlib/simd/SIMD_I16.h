@@ -789,4 +789,85 @@ inline bool all_false(int16_32 a)
 // @todo from down here we can optimize some of the code by NOT using the wrappers
 //      the code is self contained and we could use te intrinsic functions directly
 
+inline
+void simd_mult(const int16* a, f32 b, int16* result, int32 size, int32 steps)
+{
+    int32 i = 0;
+
+    if (steps == 16) {
+        __m512i a_16;
+        __m512 af_lo, af_hi;
+        __m512 b_16 = _mm512_set1_ps(b);
+        __m512 result_lo, result_hi;
+        __m512i result_16;
+
+        for (; i <= size - steps; i += steps) {
+            a_16 = _mm512_loadu_si512((__m512i*) a);
+
+            af_lo = _mm512_cvtepi32_ps(_mm512_cvtepi16_epi32(_mm512_extracti64x4_epi64(a_16, 0)));
+            af_hi = _mm512_cvtepi32_ps(_mm512_cvtepi16_epi32(_mm512_extracti64x4_epi64(a_16, 1)));
+
+            result_lo = _mm512_mul_ps(af_lo, b_16);
+            result_hi = _mm512_mul_ps(af_hi, b_16);
+
+            result_16 = _mm512_packs_epi32(_mm512_cvtps_epi32(result_lo), _mm512_cvtps_epi32(result_hi));
+            _mm512_storeu_si512((__m512i*) result, result_16);
+
+            a += steps;
+            result += steps;
+        }
+    } else if (steps == 8) {
+        __m256i a_8;
+        __m256 af_lo, af_hi;
+        __m256 b_8 = _mm256_set1_ps(b);
+        __m256 result_lo, result_hi;
+        __m256i result_8;
+
+        for (; i <= size - steps; i += steps) {
+            a_8 = _mm256_loadu_si256((__m256i*) a);
+
+            af_lo = _mm256_cvtepi32_ps(_mm256_cvtepi16_epi32(_mm256_extracti128_si256(a_8, 0)));
+            af_hi = _mm256_cvtepi32_ps(_mm256_cvtepi16_epi32(_mm256_extracti128_si256(a_8, 1)));
+
+            result_lo = _mm256_mul_ps(af_lo, b_8);
+            result_hi = _mm256_mul_ps(af_hi, b_8);
+
+            result_8 = _mm256_packs_epi32(_mm256_cvtps_epi32(result_lo), _mm256_cvtps_epi32(result_hi));
+            _mm256_storeu_si256((__m256i*) result, result_8);
+
+            a += steps;
+            result += steps;
+        }
+    } else if (steps == 4) {
+        __m128i a_4;
+        __m128 af_lo, af_hi;
+        __m128 b_4 = _mm_set1_ps(b);
+        __m128 result_lo, result_hi;
+        __m128i result_4;
+
+        for (; i <= size - steps; i += steps) {
+            a_4 = _mm_loadu_si128((__m128i*) a);
+
+            af_lo = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(a_4));
+            af_hi = _mm_cvtepi32_ps(_mm_cvtepi16_epi32(_mm_srli_si128(a_4, 8)));
+
+            result_lo = _mm_mul_ps(af_lo, b_4);
+            result_hi = _mm_mul_ps(af_hi, b_4);
+
+            result_4 = _mm_packs_epi32(_mm_cvtps_epi32(result_lo), _mm_cvtps_epi32(result_hi));
+            _mm_storeu_si128((__m128i*) result, result_4);
+
+            a += steps;
+            result += steps;
+        }
+    }
+
+    // Handle any remaining elements
+    for (; i < size; ++i) {
+        *result = (int16) ((f32) (*a) * b);
+        ++a;
+        ++result;
+    }
+}
+
 #endif

@@ -162,6 +162,10 @@ struct v4_f32 {
         };
 
         struct {
+            f32 x1, y1, x2, y2;
+        };
+
+        struct {
             f32 r, g, b, a;
         };
 

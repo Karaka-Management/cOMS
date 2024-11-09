@@ -43,11 +43,8 @@ struct Texture {
     //  If yes remember to update prepare_texture()
 
     byte texture_data_type;
-    byte texture_wrap_type_s;
-    byte texture_wrap_type_t;
-    byte texture_wrap_type_r;
-
     byte texture_minification;
+    byte data[16];
 
     Image image;
 };
