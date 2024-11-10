@@ -249,6 +249,7 @@ struct CSettings {
     // UI
     uint64 ui_visibility_flags = 0;
     uint64 game_visibility_flags = 0;
+    uint64 debug_visibility_flags = 0;
 
     // HUD
     bool game_hud_animated;
@@ -535,6 +536,8 @@ void load_settings(CSettings* __restrict client_settings, char* data)
                 client_settings->ui_visibility_flags = strtoull(pos, &pos, 10);
             } else if (strncmp(name, "_visibility_flags", sizeof("_visibility_flags") - 1) == 0) {
                 client_settings->game_visibility_flags = strtoull(pos, &pos, 10);
+            } else if (strncmp(name, "_debug_visibility_flags", sizeof("_debug_visibility_flags") - 1) == 0) {
+                client_settings->debug_visibility_flags = strtoull(pos, &pos, 10);
             } else if (strncmp(name, "_theme", sizeof("_theme") - 1) == 0) {
                 pos += strcpy_to_eol(pos, client_settings->game_theme);
             } else if (strncmp(name, "_ui_dim", sizeof("_ui_dim") - 1) == 0) {
