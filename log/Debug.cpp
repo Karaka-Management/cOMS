@@ -52,6 +52,19 @@ void update_timing_stat_end(uint32 stat, const char* function)
 }
 
 inline
+void update_timing_stat_end_continued(uint32 stat, const char* function)
+{
+    uint64 new_tick_count = __rdtsc();
+
+    debug_container->perf_stats[stat].function = function;
+    debug_container->perf_stats[stat].delta_tick = debug_container->perf_stats[stat].delta_tick
+        + new_tick_count - debug_container->perf_stats[stat].old_tick_count;
+    debug_container->perf_stats[stat].delta_time = debug_container->perf_stats[stat].delta_time
+        + (double) debug_container->perf_stats[stat].delta_tick / (double) debug_container->performance_count_frequency;
+    debug_container->perf_stats[stat].old_tick_count = new_tick_count;
+}
+
+inline
 void reset_counter(int32 id)
 {
     debug_container->counter[id] = 0;
