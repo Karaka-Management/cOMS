@@ -97,6 +97,7 @@ struct PSettings {
     bool allow_invites = true;
 };
 
+// @performance Make sure the settings used in the update and render loop are close to each other to ensure they can be loaded in one cache line
 struct CSettings {
     // Evaluated during startup
     char path[MAX_PATH];
