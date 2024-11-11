@@ -65,15 +65,21 @@ void update_timing_stat_end_continued(uint32 stat, const char* function)
 }
 
 inline
+void update_timing_stat_reset(uint32 stat)
+{
+    debug_container->perf_stats[stat].function = NULL;
+}
+
+inline
 void reset_counter(int32 id)
 {
     debug_container->counter[id] = 0;
 }
 
 inline
-void log_increment(int32 id)
+void log_increment(int32 id, int32 by = 1)
 {
-    ++debug_container->counter[id];
+    debug_container->counter[id] += by;
 }
 
 inline

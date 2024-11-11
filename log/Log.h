@@ -55,7 +55,7 @@ struct LogMemory {
 void log_to_file();
 void log(const char* str, bool should_log, bool save, const char* file, const char* function, int32 line);
 void log(const char* format, LogDataType data_type, void* data, bool should_log, bool save, const char* file, const char* function, int32 line);
-void log_increment(int32);
+void log_increment(int32, int32);
 void log_counter(int32, int32);
 
 #if (LOG_LEVEL == 0)
@@ -64,6 +64,7 @@ void log_counter(int32, int32);
     #define LOG_FORMAT(format, data_type, data, should_log, save) ((void) 0)
     #define LOG_TO_FILE() ((void) 0)
     #define LOG_INCREMENT(a) ((void) 0)
+    #define LOG_INCREMENT_BY(a, b) ((void) 0)
     #define LOG_COUNTER(a, b) ((void) 0)
     #define RESET_COUNTER(a) ((void) 0)
 #else
@@ -71,6 +72,7 @@ void log_counter(int32, int32);
     #define LOG_FORMAT(format, data_type, data, should_log, save) log((format), (data_type), (data), (should_log), (save), __FILE__, __func__, __LINE__)
     #define LOG_TO_FILE() log_to_file()
     #define LOG_INCREMENT(a) log_increment((a))
+    #define LOG_INCREMENT_BY(a, b) log_increment((a), (b))
     #define LOG_COUNTER(a, b) log_counter((a), (b))
     #define RESET_COUNTER(a) reset_counter((a))
 #endif

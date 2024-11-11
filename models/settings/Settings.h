@@ -123,8 +123,6 @@ struct CSettings {
     byte gpu_gamma;
     f32 gpu_fov;
     int8 gpu_sync;
-    AntiAliasingType gpu_aa_type;
-    int8 gpu_aa_samples;
 
     byte gpu_render_distance_terrain = 10;
     byte gpu_render_distance_terrain_secondary = 10;
@@ -175,8 +173,8 @@ struct CSettings {
     byte gpu_reflection_blur = SETTING_TYPE_DISABLED;
     byte gpu_motion_blur = SETTING_TYPE_DISABLED;
     byte gpu_blur = SETTING_TYPE_DISABLED;
-    byte gpu_anti_aliasing = SETTING_TYPE_DISABLED;
-    byte gpu_anti_aliasing_detail = 0;
+    AntiAliasingType gpu_anti_aliasing;
+    int8 gpu_anti_aliasing_detail = 0;
     byte gpu_sharpening = SETTING_TYPE_DISABLED;
     byte gpu_ambient_occlusion = SETTING_TYPE_DISABLED;
     byte gpu_color_deficiency;
@@ -190,11 +188,11 @@ struct CSettings {
     bool gpu_vignetting = true;
     bool gpu_light_shafts = true;
 
-    byte audio_volume_master = 128;
-    byte audio_volume_game = 128;
-    byte audio_volume_environment = 128;
-    byte audio_volume_music = 128;
-    byte audio_volume_speech = 128;
+    f32 audio_volume_master;
+    f32 audio_volume_game;
+    f32 audio_volume_environment;
+    f32 audio_volume_music;
+    f32 audio_volume_speech;
 
     uint16 game_window1_dim[2];
     uint16 game_window1_pos[2];
@@ -263,7 +261,6 @@ struct CSettings {
     bool game_minimap_show_quest = false;
     bool game_minimap_show_dungeons = false;
     bool game_minimap_show_names = false;
-    bool game_show_clock = false;
 
     bool game_map_show_merchants = false;
     bool game_map_show_quest = false;
@@ -419,7 +416,9 @@ void load_settings(CSettings* __restrict client_settings, char* data)
             if (strncmp(name, "_ambient_occlusion", sizeof("_ambient_occlusion") - 1) == 0) {
             } else if (strncmp(name, "_animation_quality", sizeof("_animation_quality") - 1) == 0) {
             } else if (strncmp(name, "_anti_aliasing_detail", sizeof("_anti_aliasing_detail") - 1) == 0) {
+                client_settings->gpu_anti_aliasing_detail = (int8) atoi(pos);
             } else if (strncmp(name, "_anti_aliasing", sizeof("_anti_aliasing") - 1) == 0) {
+                client_settings->gpu_anti_aliasing = (AntiAliasingType) atoi(pos);
             } else if (strncmp(name, "_api", sizeof("_api") - 1) == 0) {
             } else if (strncmp(name, "_aspect_ratio", sizeof("_aspect_ratio") - 1) == 0) {
                 client_settings->gpu_aspect_ratio = (f32) atof(pos);
@@ -476,10 +475,6 @@ void load_settings(CSettings* __restrict client_settings, char* data)
             } else if (strncmp(name, "_sharpening", sizeof("_sharpening") - 1) == 0) {
             } else if (strncmp(name, "_sync", sizeof("_sync") - 1) == 0) {
                 client_settings->gpu_sync = (int8) atoi(pos);
-            } else if (strncmp(name, "_aa_type", sizeof("_aa_type") - 1) == 0) {
-                client_settings->gpu_aa_type = (AntiAliasingType) atoi(pos);
-            } else if (strncmp(name, "_aa_samples", sizeof("_aa_samples") - 1) == 0) {
-                client_settings->gpu_aa_samples = (int8) atoi(pos);
             } else if (strncmp(name, "_terrain_quality", sizeof("_terrain_quality") - 1) == 0) {
             } else if (strncmp(name, "_texture_quality", sizeof("_texture_quality") - 1) == 0) {
             } else if (strncmp(name, "_type", sizeof("_type") - 1) == 0) {
@@ -696,6 +691,7 @@ void load_settings(CSettings* __restrict client_settings, char* data)
             if (strncmp(name, "_volume_environment", sizeof("_volume_environment") - 1) == 0) {
             } else if (strncmp(name, "_volume_game", sizeof("_volume_game") - 1) == 0) {
             } else if (strncmp(name, "_volume_master", sizeof("_volume_master") - 1) == 0) {
+                client_settings->audio_volume_master = (f32) atof(pos);
             } else if (strncmp(name, "_volume_music", sizeof("_volume_music") - 1) == 0) {
             } else if (strncmp(name, "_volume_speech", sizeof("_volume_speech") - 1) == 0) {
             }

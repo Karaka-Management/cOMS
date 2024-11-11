@@ -352,7 +352,7 @@ f32 text_calculate_dimensions_height(
 
 f32 text_calculate_dimensions_width(
     f32 width,
-    const Font* __restrict font, const char* __restrict text, f32 scale, int32 length
+    const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
 ) {
     f32 x = 0;
     f32 offset_x = 0;
@@ -362,7 +362,7 @@ f32 text_calculate_dimensions_width(
     // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
 
     for (int i = 0; i < length; ++i) {
-        int32 character = utf8_get_char_at(text, i);
+        int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
 
         if (character == '\n') {
             x = OMS_MAX(x, offset_x);
@@ -401,7 +401,7 @@ f32 text_calculate_dimensions_width(
 
 void text_calculate_dimensions(
     f32* __restrict width, f32* __restrict height,
-    const Font* __restrict font, const char* __restrict text, f32 scale, int32 length
+    const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
 ) {
     f32 x = 0;
     f32 y = font->line_height * scale;
@@ -413,7 +413,7 @@ void text_calculate_dimensions(
     // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
 
     for (int i = 0; i < length; ++i) {
-        int32 character = utf8_get_char_at(text, i);
+        int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
 
         if (character == '\n') {
             x = OMS_MAX(x, offset_x);
@@ -459,14 +459,15 @@ f32 vertex_text_create(
     const Font* __restrict font, const char* __restrict text, f32 size, uint32 color_index = 0
 ) {
     int32 length = utf8_strlen(text);
+    bool is_ascii = strlen(text) == length;
     float scale = size / font->size;
 
     // If we do a different alignment we need to pre-calculate the width and height
     if (align_h != 0 || align_v != 0) {
         if (align_h != 0 && align_v != 0) {
-            text_calculate_dimensions(&width, &height, font, text, scale, length);
+            text_calculate_dimensions(&width, &height, font, text, is_ascii, scale, length);
         } else if (align_h != 0) {
-            width = text_calculate_dimensions_width(width, font, text, scale, length);
+            width = text_calculate_dimensions_width(width, font, text, is_ascii, scale, length);
         } else {
             height = text_calculate_dimensions_height(height, font, text, scale, length);
         }
@@ -488,7 +489,7 @@ f32 vertex_text_create(
 
     f32 offset_x = x;
     for (int i = 0; i < length; ++i) {
-        int32 character = utf8_get_char_at(text, i);
+        int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {
             y += font->line_height * scale;
             offset_x = x;
@@ -593,6 +594,7 @@ f32 ui_text_create(
     UIAttribute* color_index = ui_attribute_from_group(element_group, UI_ATTRIBUTE_TYPE_FONT_COLOR);
 
     int32 length = utf8_strlen(text->value_str);
+    bool is_ascii = strlen(text->value_str) == length;
     float scale = size->value_float / theme->font.size;
 
     // If we do a different alignment we need to pre-calculate the width and height
@@ -601,9 +603,9 @@ f32 ui_text_create(
         f32 tmp_height = height->value_int;
 
         if (align_h != NULL && align_v != NULL) {
-            text_calculate_dimensions(&tmp_width, &tmp_height, &theme->font, text->value_str, scale, length);
+            text_calculate_dimensions(&tmp_width, &tmp_height, &theme->font, text->value_str, is_ascii, scale, length);
         } else if (align_h != NULL) {
-            tmp_width = text_calculate_dimensions_width(tmp_width, &theme->font, text->value_str, scale, length);
+            tmp_width = text_calculate_dimensions_width(tmp_width, &theme->font, text->value_str, is_ascii, scale, length);
         } else {
             tmp_height = text_calculate_dimensions_height(tmp_height, &theme->font, text->value_str, scale, length);
         }
@@ -627,7 +629,7 @@ f32 ui_text_create(
     f32 offset_x = x->value_int;
     f32 offset_y = y->value_int;
     for (int i = 0; i < length; ++i) {
-        int32 character = utf8_get_char_at(text->value_str, i);
+        int32 character = is_ascii ? text->value_str[i] : utf8_get_char_at(text->value_str, i);
 
         if (character == '\n') {
             offset_y += theme->font.line_height * scale;

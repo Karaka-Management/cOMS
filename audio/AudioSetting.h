@@ -33,8 +33,8 @@ struct AudioSetting {
     // how often has the audio_play been called (required for xaudio)
     uint32 sample_output;
 
-    // 0 - 100
-    int16 volume;
+    // 0.0 - 1.0
+    f32 volume;
 
     // max buffer content/size
     uint32 buffer_size;

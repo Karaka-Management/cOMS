@@ -39,7 +39,7 @@ void audio_fill_buffer(AudioSetting* setting, uint32 to_fill, Audio* sound, int1
     buffer1_size /= setting->sample_size;
     buffer2_size /= setting->sample_size;
     uint32 sample_count = sound->size / sound->sample_size;
-    f32 volume_scale = (f32) setting->volume / 100.0f;
+    f32 volume_scale = setting->volume * setting->volume;
     const int16* data = (int16*) sound->data;
     uint32 sample_index = setting->sample_index;
 
