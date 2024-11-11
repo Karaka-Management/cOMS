@@ -333,6 +333,7 @@ void vertex_input(Vertex3DTextureColorIndex* __restrict vertices, uint32* __rest
     );
 }
 
+static inline
 f32 text_calculate_dimensions_height(
     f32 height,
     const Font* __restrict font, const char* __restrict text, f32 scale, int32 length
@@ -350,6 +351,7 @@ f32 text_calculate_dimensions_height(
     return y;
 }
 
+static inline
 f32 text_calculate_dimensions_width(
     f32 width,
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
@@ -399,6 +401,7 @@ f32 text_calculate_dimensions_width(
     return OMS_MAX(x, offset_x);
 }
 
+static inline
 void text_calculate_dimensions(
     f32* __restrict width, f32* __restrict height,
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
