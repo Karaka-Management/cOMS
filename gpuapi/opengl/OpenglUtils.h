@@ -176,7 +176,7 @@ GLuint shader_make(GLenum type, const char *source, RingMemory* ring)
 
 inline
 GLuint shader_load(GLenum type, const char* path, RingMemory* ring) {
-    uint64 temp = ring->pos;
+    byte* temp = ring->head;
 
     FileBody file;
 
@@ -185,7 +185,7 @@ GLuint shader_load(GLenum type, const char* path, RingMemory* ring) {
     GLuint result = shader_make(type, (const char *) file.content, ring);
 
     // We can immediately dispose of it we can also reset our ring memory position
-    ring->pos = temp;
+    ring->head = temp;
 
     return result;
 }

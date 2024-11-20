@@ -23,6 +23,7 @@
 #include "../../memory/RingMemory.h"
 
 #define strtok_r strtok_s
+#define usleep Sleep
 
 inline
 time_t system_time()
@@ -46,7 +47,8 @@ time_t system_time()
 inline void relative_to_absolute(const char* rel, char* path)
 {
     char self_path[MAX_PATH];
-    if (GetModuleFileNameA(NULL, self_path, MAX_PATH) == 0) {
+    int32 self_path_length = GetModuleFileNameA(NULL, self_path, MAX_PATH);
+    if (self_path_length == 0) {
         return;
     }
 
@@ -55,14 +57,19 @@ inline void relative_to_absolute(const char* rel, char* path)
         temp += 2;
     }
 
-    char* last = strrchr(self_path, '\\');
-    if (last != NULL) {
-        *(last + 1) = '\0';
+    char* last = self_path + self_path_length;
+    while (*last != '\\' && self_path_length > 0) {
+        --last;
+        --self_path_length;
     }
 
-    snprintf(path, MAX_PATH, "%s%s", self_path, temp);
+    ++self_path_length;
+
+    memcpy(path, self_path, self_path_length);
+    strcpy(path + self_path_length, temp);
 }
 
+// @todo Move file code to FileUtils.h
 inline uint64
 file_size(const char* path)
 {

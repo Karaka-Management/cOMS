@@ -336,7 +336,7 @@ void hashmap_insert(HashMap* hm, const char* key, byte* value) {
     }
 }
 
-HashEntry* hashmap_get_entry(HashMap* hm, const char* key) {
+HashEntry* hashmap_get_entry(const HashMap* hm, const char* key) {
     // @performance Do we really want to do this check every time?
     if (hm->buf.count == 0) {
         return NULL;
@@ -358,7 +358,7 @@ HashEntry* hashmap_get_entry(HashMap* hm, const char* key) {
 
 // This function only saves one step (omission of the hash function)
 // The reason for this is in some cases we can use compile time hashing
-HashEntry* hashmap_get_entry(HashMap* hm, const char* key, uint64 index) {
+HashEntry* hashmap_get_entry(const HashMap* hm, const char* key, uint64 index) {
     if (hm->buf.count == 0) {
         return NULL;
     }

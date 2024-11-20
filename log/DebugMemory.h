@@ -54,7 +54,7 @@ struct DebugMemoryContainer {
 #if DEBUG || INTERNAL
     void debug_memory_init(uint64, uint64);
     void debug_memory_log(uint64, uint64, int32, const char*);
-    void debug_memory_reserve(uint64, uint64, const char*);
+    void debug_memory_reserve(uint64, uint64, int32, const char*);
     void debug_memory_reset();
 
     #define DEBUG_MEMORY_INIT(start, size) debug_memory_init((start), (size))

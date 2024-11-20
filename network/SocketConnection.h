@@ -24,11 +24,10 @@ struct SocketConnection {
     #if _WIN32
         SOCKET sd;
     #else
-        int sd;
+        int32 sd;
     #endif
 
-    sockaddr_in6 server_addr;
-    socklen_t addr_len;
+    sockaddr_in6 addr;
     uint16 port;
 };
 

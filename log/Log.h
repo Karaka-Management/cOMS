@@ -41,17 +41,6 @@ enum LogDataType {
     LOG_DATA_FLOAT64
 };
 
-struct LogMemory {
-    byte* memory;
-
-    uint32 id;
-    uint64 size;
-    uint64 pos;
-    int32 alignment;
-    uint64 start;
-    uint64 end;
-};
-
 void log_to_file();
 void log(const char* str, bool should_log, bool save, const char* file, const char* function, int32 line);
 void log(const char* format, LogDataType data_type, void* data, bool should_log, bool save, const char* file, const char* function, int32 line);
@@ -71,7 +60,7 @@ void log_counter(int32, int32);
     #define LOG(str, should_log, save) log((str), (should_log), (save), __FILE__, __func__, __LINE__)
     #define LOG_FORMAT(format, data_type, data, should_log, save) log((format), (data_type), (data), (should_log), (save), __FILE__, __func__, __LINE__)
     #define LOG_TO_FILE() log_to_file()
-    #define LOG_INCREMENT(a) log_increment((a))
+    #define LOG_INCREMENT(a) log_increment((a), 1)
     #define LOG_INCREMENT_BY(a, b) log_increment((a), (b))
     #define LOG_COUNTER(a, b) log_counter((a), (b))
     #define RESET_COUNTER(a) reset_counter((a))

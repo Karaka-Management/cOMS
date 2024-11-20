@@ -9,7 +9,7 @@
 #ifndef TOS_UTILS_BIT_H
 #define TOS_UTILS_BIT_H
 
-#include <intrin.h>
+//#include <intrin.h>
 #include "../stdlib/Types.h"
 
 // @todo Replace many of these functions with intrinsic functions

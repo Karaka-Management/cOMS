@@ -14,6 +14,17 @@
 #include "Log.h"
 #include "TimingStat.h"
 
+struct LogMemory {
+    byte* memory;
+
+    uint32 id;
+    uint64 size;
+    uint64 pos;
+    int32 alignment;
+    uint64 start;
+    uint64 end;
+};
+
 struct DebugContainer {
     DebugMemoryContainer dmc;
 
@@ -31,6 +42,8 @@ struct DebugContainer {
 
     #if _WIN32
         HANDLE log_fp;
+    #elif __linux__
+        int32 log_fp;
     #endif
 };
 

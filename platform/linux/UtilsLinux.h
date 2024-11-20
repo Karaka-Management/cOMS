@@ -16,12 +16,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <linux/limits.h>
-#include <errno.h>
 #include <stdarg.h>
+#include <fcntl.h>
+#include <string.h>
 
 #include "../../stdlib/Types.h"
 #include "../../utils/Utils.h"
 #include "../../utils/TestUtils.h"
+#include "../../memory/RingMemory.h"
 
 #ifndef MAX_PATH
     #define MAX_PATH PATH_MAX
@@ -32,7 +34,6 @@ int sprintf_s(char *buffer, size_t sizeOfBuffer, const char *format, ...) {
     va_list args;
 
     if (buffer == NULL || format == NULL || sizeOfBuffer == 0) {
-        errno = EINVAL;
         return -1;
     }
 
@@ -44,7 +45,6 @@ int sprintf_s(char *buffer, size_t sizeOfBuffer, const char *format, ...) {
 
     if (result >= 0 && (size_t)result >= sizeOfBuffer) {
         buffer[sizeOfBuffer - 1] = '\0';
-        errno = 80;
         return 80;
     }
 
@@ -52,37 +52,41 @@ int sprintf_s(char *buffer, size_t sizeOfBuffer, const char *format, ...) {
     return result;
 }
 
-inline void relative_to_absolute(const char* rel, char* path)
+inline
+void relative_to_absolute(const char* rel, char* path)
 {
+    char self_path[MAX_PATH];
+    int32 self_path_length = readlink("/proc/self/exe", self_path, MAX_PATH - 1);
+    if (self_path_length == -1) {
+        return;
+    }
+
     const char* temp = rel;
     if (temp[0] == '.' && temp[1] == '/') {
         temp += 2;
     }
 
-    char self_path[MAX_PATH];
-    ssize_t count = readlink("/proc/self/exe", self_path, MAX_PATH - 1);
-    if (count == -1) {
-        return;
-    }
-    self_path[count] = '\0';
-
-    char* last = strrchr(self_path, '/');
-    if (last != NULL) {
-        *(last + 1) = '\0';
+    char* last = self_path + self_path_length;
+    while (*last != '/' && self_path_length > 0) {
+        --last;
+        --self_path_length;
     }
 
-    snprintf(path, MAX_PATH, "%s%s", self_path, temp);
+    ++self_path_length;
+
+    memcpy(path, self_path, self_path_length);
+    strcpy(path + self_path_length, temp);
 }
 
 // @todo implement relative path support, similar to UtilsWin32
 inline
 uint64 file_size(const char* filename) {
-    struct stat st;
-    if (stat(filename, &st) != 0) {
+    struct stat buffer;
+    if (stat(filename, &buffer) != 0) {
         return 0;
     }
 
-    return st.st_size;
+    return buffer.st_size;
 }
 
 inline
@@ -95,131 +99,171 @@ uint64 last_modified(const char* filename)
 }
 
 inline
-void file_read(const char* filename, FileBody* file, RingMemory* ring = NULL)
-{
-    FILE *fp = fopen(filename, "rb");
-    fseek(fp, 0, SEEK_END);
+int32 get_append_handle(const char* path) {
+    int32 fp;
+    if (*path == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(path, full_path);
 
-    file->size = ftell(fp);
-    rewind(fp);
-
-    if (ring != NULL) {
-        file->content = ring_get_memory(ring, file->size);
+        fp = open(full_path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
+    } else {
+        fp = open(path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
     }
 
-    fread(file->content, 1, file->size, fp);
-
-    fclose(fp);
-}
-
-inline
-uint64_t file_read_struct(const char* filename, void* file, uint32 size) {
-    FILE *fp = fopen(filename, "rb");
-    if (!fp) {
-        return 0;
-    }
-
-    size_t read_bytes = fread(file, 1, size, fp);
-    fclose(fp);
-
-    return read_bytes;
-}
-
-inline
-bool file_write(const char* filename, const FileBody* file) {
-    FILE *fp = fopen(filename, "wb");
-    if (!fp) {
-        return false;
-    }
-
-    size_t written = fwrite(file->content, 1, file->size, fp);
-    fclose(fp);
-
-    return written == file->size;
-}
-
-inline
-bool file_write_struct(const char* filename, const void* file, uint32_t size) {
-    FILE *fp = fopen(filename, "wb");
-    if (!fp) {
-        return false;
-    }
-
-    size_t written = fwrite(file, 1, size, fp);
-    fclose(fp);
-
-    return written == size;
-}
-
-inline
-void file_copy(const char* src, const char* dst) {
-    FILE *src_fp = fopen(src, "rb");
-    FILE *dst_fp = fopen(dst, "wb");
-
-    if (!src_fp || !dst_fp) {
-        if (src_fp) fclose(src_fp);
-        if (dst_fp) fclose(dst_fp);
-        return;
-    }
-
-    char buffer[4096];
-    size_t bytes;
-    while ((bytes = fread(buffer, 1, sizeof(buffer), src_fp)) > 0) {
-        fwrite(buffer, 1, bytes, dst_fp);
-    }
-
-    fclose(src_fp);
-    fclose(dst_fp);
-}
-
-inline
-FILE* get_append_handle(const char* filename) {
-    FILE *fp = fopen(filename, "ab");
-    if (!fp) {
-        return NULL;
-    }
     return fp;
 }
 
-inline bool file_append(const char* filename, const char* file) {
-    FILE *fp = get_append_handle(filename);
-    if (!fp) {
-        return false;
+inline
+bool file_exists(const char* path) {
+    struct stat buffer;
+    const char* full_path = path;
+    char abs_path[MAX_PATH];
+
+    if (*path == '.') {
+        relative_to_absolute(path, abs_path);
+        full_path = abs_path;
     }
 
-    size_t length = strlen(file);
-    ASSERT_SIMPLE(length < INT32_MAX);
-    size_t written = fwrite(file, 1, length, fp);
-    fclose(fp);
-
-    return written == length;
+    return stat(full_path, &buffer) == 0;
 }
 
-inline bool file_append(FILE* fp, const char* file) {
-    if (!fp) {
+inline
+bool file_copy(const char* src, const char* dst) {
+    char src_full_path[MAX_PATH];
+    char dst_full_path[MAX_PATH];
+
+    if (*src == '.') {
+        relative_to_absolute(src, src_full_path);
+        src = src_full_path;
+    }
+
+    if (*dst == '.') {
+        relative_to_absolute(dst, dst_full_path);
+        dst = dst_full_path;
+    }
+
+    int32 src_fd = open(src, O_RDONLY);
+    if (src_fd < 0) {
         return false;
     }
 
-    size_t length = strlen(file);
-    ASSERT_SIMPLE(length < INT32_MAX);
-    size_t written = fwrite(file, 1, length, fp);
-    fclose(fp);
+    int32 dst_fd = open(dst, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (dst_fd < 0) {
+        close(src_fd);
 
-    return written == length;
+        return false;
+    }
+
+    char buffer[8192];
+    ssize_t bytes_read, bytes_written;
+    bool success = true;
+
+    while ((bytes_read = read(src_fd, buffer, sizeof(buffer))) > 0) {
+        bytes_written = write(dst_fd, buffer, bytes_read);
+        if (bytes_written != bytes_read) {
+            success = false;
+            break;
+        }
+    }
+
+    if (bytes_read < 0) {
+        success = false;
+    }
+
+    close(src_fd);
+    close(dst_fd);
+
+    return success;
 }
 
-inline bool file_append(const char* filename, const FileBody* file) {
-    FILE *fp = get_append_handle(filename);
-    if (!fp) {
+inline
+void file_read(const char* path, FileBody* file, RingMemory* ring) {
+    char full_path[MAX_PATH];
+    const char* abs_path = path;
+
+    if (*path == '.') {
+        relative_to_absolute(path, full_path);
+        abs_path = full_path;
+    }
+
+    int32 fp = open(abs_path, O_RDONLY);
+    if (fp < 0) {
+        file->size = 0;
+        file->content = NULL;
+
+        return;
+    }
+
+    struct stat file_stat;
+    if (fstat(fp, &file_stat) == -1) {
+        close(fp);
+        file->size = 0;
+        file->content = NULL;
+
+        return;
+    }
+
+    if (file_stat.st_size > MAX_INT32) {
+        close(fp);
+        file->size = 0;
+        file->content = NULL;
+
+        return;
+    }
+
+    if (ring != NULL) {
+        file->content = ring_get_memory(ring, file_stat.st_size);
+    }
+
+    ssize_t bytes_read = read(fp, file->content, file_stat.st_size);
+    if (bytes_read != file_stat.st_size) {
+        close(fp);
+        file->content = NULL;
+        file->size = 0;
+
+        return;
+    }
+
+    file->content[bytes_read] = '\0';
+    file->size = bytes_read;
+
+    close(fp);
+}
+
+inline
+bool file_write(const char* path, const FileBody* file) {
+    int32 fd;
+    char full_path[PATH_MAX];
+
+    if (*path == '.') {
+        relative_to_absolute(path, full_path);
+        path = full_path;
+    }
+
+    fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if (fd < 0) {
         return false;
     }
 
-    size_t length = file->size;
-    ASSERT_SIMPLE(length < INT32_MAX);
-    size_t written = fwrite(file->content, 1, length, fp);
-    fclose(fp);
+    ASSERT_SIMPLE(file->size < MAX_INT32);
 
-    return written == length;
+    ssize_t written = write(fd, file->content, file->size);
+    if (written < 0 || (size_t) written != file->size) {
+        close(fd);
+        return false;
+    }
+
+    if (close(fd) < 0) {
+        return false;
+    }
+
+    return true;
+}
+
+inline
+void close_handle(int32 fp)
+{
+    close(fp);
 }
 
 inline
@@ -232,14 +276,4 @@ void self_path(char* path) {
     }
 }
 
-inline
-void strncpy_s(char *dest, size_t destsz, const char *src, size_t count) {
-    size_t i;
-
-    for (i = 0; i < count && i < destsz - 1 && src[i] != '\0'; ++i) {
-        dest[i] = src[i];
-    }
-
-    dest[i] = '\0';
-}
 #endif

@@ -19,18 +19,16 @@
 
 #include "Types.h"
 
-/*
-inline f32 sqrt(f32 a) { return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(a))); }
-inline f64 sqrt(f64 a)
+inline f32 oms_sqrt(f32 a) { return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(a))); }
+inline f64 oms_sqrt(f64 a)
 {
     __m128d temp  =_mm_set_sd(a);
 
     return _mm_cvtsd_f64(_mm_sqrt_sd(temp, temp));
 }
-*/
 
-inline f32 rsqrt(f32 a) { return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(a))); }
-inline f64 rsqrt(f64 a)
+inline f32 oms_rsqrt(f32 a) { return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(a))); }
+inline f64 oms_rsqrt(f64 a)
 {
     __m128d temp  =_mm_set_sd(a);
 
@@ -42,7 +40,7 @@ inline f64 rsqrt(f64 a)
     );
 }
 
-inline f32 round(f32 a)
+inline f32 oms_round(f32 a)
 {
     return _mm_cvtss_f32(
         _mm_round_ss(_mm_setzero_ps(), _mm_set_ss(a), (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC)));
@@ -50,9 +48,9 @@ inline f32 round(f32 a)
 
 inline uint32 round_to_int(f32 a) { return (uint32) _mm_cvtss_si32(_mm_set_ss(a)); }
 
-inline f32 floor(f32 a) { return _mm_cvtss_f32(_mm_floor_ss(_mm_setzero_ps(), _mm_set_ss(a))); }
+inline f32 oms_floor(f32 a) { return _mm_cvtss_f32(_mm_floor_ss(_mm_setzero_ps(), _mm_set_ss(a))); }
 
-inline f32 ceil(f32 a) { return _mm_cvtss_f32(_mm_ceil_ss(_mm_setzero_ps(), _mm_set_ss(a))); }
+inline f32 oms_ceil(f32 a) { return _mm_cvtss_f32(_mm_ceil_ss(_mm_setzero_ps(), _mm_set_ss(a))); }
 
 inline uint32 hash(uint64 a, uint64 b = 0)
 {
@@ -72,7 +70,7 @@ inline void atomic_increment(int32* a, int32 b) {
 }
 
 inline void atomic_increment(int64* a, int64 b) {
-    _aadd_i64(a, b);
+    _aadd_i64((long long int *) a, (long long int) b);
 }
 
 inline void atomic_decrement(int32* a, int32 b) {
@@ -80,7 +78,7 @@ inline void atomic_decrement(int32* a, int32 b) {
 }
 
 inline void atomic_decrement(int64* a, int64 b) {
-    _aadd_i64(a, -b);
+    _aadd_i64((long long int *) a, (long long int) -b);
 }
 
 #endif

@@ -5,56 +5,33 @@
 
 #include "../../stdlib/Types.h"
 
+#if _WIN32
+    #include <ws2def.h>
+    #include <in6addr.h>
+    #include <ws2tcpip.h>
+#elif __linux__
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+#endif
+
 #define HEADER_IPV6_SIZE 40
 // Size 40 bytes
 struct HeaderIPv6 {
     byte data[HEADER_IPV6_SIZE];
 };
 
-// Size 42 bytes
-struct HeaderIPv6Unpacked {
-    byte version;
-    byte traffic_class;
-    uint32 flow_label;
+// Size 40 bytes
+struct PACKED_STRUCT HeaderIPv6Unpacked {
+    uint32 ip6_flow; // also contains version and traffic class
 
-    uint16 length;
-    byte next_header;
-    byte hop_limit;
+    uint16 ip6_plen;
+    byte ip6_nxt;
+    byte ip6_hops;
 
-    byte src[16];
-    byte dst[16];
+    in6_addr ip6_src;
+    in6_addr ip6_dst;
 };
-
-inline
-void unpack_ipv6_header(const HeaderIPv6* ipv6, HeaderIPv6Unpacked* ipv6_unpacked)
-{
-    ipv6_unpacked->version       = (ipv6->data[0] >> 4) & 0x0F;
-    ipv6_unpacked->traffic_class = ((ipv6->data[0] & 0x0F) << 4) | (ipv6->data[1] >> 4);
-    ipv6_unpacked->flow_label    = ((ipv6->data[1] & 0x0F) << 16) | (ipv6->data[2] << 8) | ipv6->data[3];
-    ipv6_unpacked->length        = (ipv6->data[4] << 8) | ipv6->data[5];
-    ipv6_unpacked->next_header   = ipv6->data[6];
-    ipv6_unpacked->hop_limit     = ipv6->data[7];
-
-    memcpy(ipv6_unpacked->src, &ipv6->data[8], 16);
-    memcpy(ipv6_unpacked->dst, &ipv6->data[24], 16);
-}
-
-inline
-void pack_ipv6_header(const HeaderIPv6Unpacked* ipv6_unpacked, HeaderIPv6* ipv6)
-{
-    ipv6->data[0]  = (ipv6_unpacked->version << 4) | (ipv6_unpacked->traffic_class >> 4);
-    ipv6->data[1]  = (ipv6_unpacked->traffic_class << 4) | ((ipv6_unpacked->flow_label >> 16) & 0x0F);
-    ipv6->data[1] |= (ipv6_unpacked->flow_label >> 16) & 0x0F;
-    ipv6->data[2]  = (ipv6_unpacked->flow_label >> 8) & 0xFF;
-    ipv6->data[3]  = ipv6_unpacked->flow_label & 0xFF;
-    ipv6->data[4]  = (ipv6_unpacked->length >> 8) & 0xFF;
-    ipv6->data[5]  = ipv6_unpacked->length & 0xFF;
-    ipv6->data[6]  = ipv6_unpacked->next_header;
-    ipv6->data[7]  = ipv6_unpacked->hop_limit;
-
-    memcpy(&ipv6->data[8], ipv6_unpacked->src, 16);
-    memcpy(&ipv6->data[24], ipv6_unpacked->dst, 16);
-}
+UNPACKED_STRUCT
 
 #define HEADER_UDP_SIZE 8
 // Size 8 bytes
@@ -63,41 +40,38 @@ struct UDPHeaderIPv6 {
 };
 
 // Size 8 bytes
-struct UDPHeaderIPv6Unpacked {
-    uint16 src_port;
-    uint16 dst_port;
-    uint16 length;
-    uint16 checksum;
+struct PACKED_STRUCT UDPHeaderIPv6Unpacked {
+    uint16 source;
+    uint16 dest;
+    uint16 len;
+    uint16 check;
 };
+UNPACKED_STRUCT
+
+struct PACKED_STRUCT UDPPseudoHeaderIPv6 {
+    in6_addr src;
+    in6_addr dst;
+    uint32 length;
+    byte zero[3];
+    byte next_header;
+};
+UNPACKED_STRUCT
 
 inline
-void unpack_udp_header_ipv6(const UDPHeaderIPv6* ipv6, UDPHeaderIPv6Unpacked* udp_unpacked)
+void packet_create_destination_addr(sockaddr_in6* dest_addr, const char* ipv6, uint16 port)
 {
-    udp_unpacked->src_port = (ipv6->data[0] << 8) | ipv6->data[1];
-    udp_unpacked->dst_port = (ipv6->data[2] << 8) | ipv6->data[3];
-    udp_unpacked->length   = (ipv6->data[4] << 8) | ipv6->data[5];
-    udp_unpacked->checksum = (ipv6->data[6] << 8) | ipv6->data[7];
+    memset(dest_addr, 0, sizeof(sockaddr_in6));
+    dest_addr->sin6_family = AF_INET6;
+    dest_addr->sin6_port = SWAP_ENDIAN_BIG(port);
+    inet_pton(AF_INET6, ipv6, &dest_addr->sin6_addr);
 }
 
 inline
-void pack_udp_header_ipv6(const UDPHeaderIPv6Unpacked* udp_unpacked, UDPHeaderIPv6* ipv6)
+void packet_create_destination_addr(sockaddr_in6* dest_addr, in6_addr* ipv6, uint16 port)
 {
-    ipv6->data[0] = (udp_unpacked->src_port >> 8) & 0xFF;
-    ipv6->data[1] = udp_unpacked->src_port & 0xFF;
-    ipv6->data[2] = (udp_unpacked->dst_port >> 8) & 0xFF;
-    ipv6->data[3] = udp_unpacked->dst_port & 0xFF;
-    ipv6->data[4] = (udp_unpacked->length >> 8) & 0xFF;
-    ipv6->data[5] = udp_unpacked->length & 0xFF;
-    ipv6->data[6] = (udp_unpacked->checksum >> 8) & 0xFF;
-    ipv6->data[7] = udp_unpacked->checksum & 0xFF;
+    dest_addr->sin6_family = AF_INET6;
+    dest_addr->sin6_port = SWAP_ENDIAN_BIG(port);
+    memcpy(&dest_addr->sin6_addr, ipv6, sizeof(in6_addr));
 }
-
-// Size 7 bytes
-struct CustomHeaderUnpacked {
-    uint16 msg_sequence;
-    uint16 msg_ack_sequence;
-    uint16 msg_ack;
-    byte msg_type;
-};
 
 #endif

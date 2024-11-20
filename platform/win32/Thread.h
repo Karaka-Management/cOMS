@@ -6,22 +6,15 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_THREADS_OS_WRAPPER_H
-#define TOS_THREADS_OS_WRAPPER_H
+#ifndef TOS_PLATFORM_WIN32_THREAD_H
+#define TOS_PLATFORM_WIN32_THREAD_H
 
 #include <time.h>
 
 #include "../stdlib/Types.h"
-#include "ThreadOSDefines.h"
+#include "ThreadDefines.h"
 
-#ifdef _WIN32
-    #include <windows.h>
-#else
-    #include <pthread.h>
-    #include <unistd.h>
-#endif
-
-#include "ThreadJob.h"
+#include <windows.h>
 
 void ms_to_timespec(timespec *ts, uint32 ms)
 {
@@ -29,12 +22,13 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return;
     }
 
+    // @todo replace time() with os specifc solution
     ts->tv_sec  = (ms / 1000) + time(0);
     ts->tv_nsec = (ms % 1000) * 1000000;
 }
 
 #ifdef _WIN32
-    int pthread_create(pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg)
+    int32 pthread_create(pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg)
     {
         if (thread == NULL || start_routine == NULL) {
             return 1;
@@ -48,7 +42,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_join(pthread_t thread, void**)
+    int32 pthread_join(pthread_t thread, void**)
     {
         WaitForSingleObject(thread, INFINITE);
         CloseHandle(thread);
@@ -56,14 +50,14 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_detach(pthread_t thread)
+    int32 pthread_detach(pthread_t thread)
     {
         CloseHandle(thread);
 
         return 0;
     }
 
-    int pthread_mutex_init(pthread_mutex_t* mutex, pthread_mutexattr_t*)
+    int32 pthread_mutex_init(pthread_mutex_t* mutex, pthread_mutexattr_t*)
     {
         if (mutex == NULL) {
             return 1;
@@ -74,7 +68,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_mutex_destroy(pthread_mutex_t* mutex)
+    int32 pthread_mutex_destroy(pthread_mutex_t* mutex)
     {
         if (mutex == NULL) {
             return 1;
@@ -85,7 +79,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_mutex_lock(pthread_mutex_t* mutex)
+    int32 pthread_mutex_lock(pthread_mutex_t* mutex)
     {
         if (mutex == NULL) {
             return 1;
@@ -96,7 +90,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_mutex_unlock(pthread_mutex_t* mutex)
+    int32 pthread_mutex_unlock(pthread_mutex_t* mutex)
     {
         if (mutex == NULL) {
             return 1;
@@ -107,7 +101,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_cond_init(pthread_cond_t* cond, pthread_condattr_t*)
+    int32 pthread_cond_init(pthread_cond_t* cond, pthread_condattr_t*)
     {
         if (cond == NULL) {
             return 1;
@@ -118,7 +112,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_cond_destroy(pthread_cond_t*)
+    int32 pthread_cond_destroy(pthread_cond_t*)
     {
         /* Windows does not have a destroy for conditionals */
         return 0;
@@ -135,7 +129,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return t < 0 ? 1 : t;
     }
 
-    int pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t* mutex, const timespec* abstime)
+    int32 pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t* mutex, const timespec* abstime)
     {
         if (cond == NULL || mutex == NULL) {
             return 1;
@@ -148,7 +142,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex)
+    int32 pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex)
     {
         if (cond == NULL || mutex == NULL) {
             return 1;
@@ -157,7 +151,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return pthread_cond_timedwait(cond, mutex, NULL);
     }
 
-    int pthread_cond_signal(pthread_cond_t* cond)
+    int32 pthread_cond_signal(pthread_cond_t* cond)
     {
         if (cond == NULL) {
             return 1;
@@ -168,7 +162,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_cond_broadcast(pthread_cond_t* cond)
+    int32 pthread_cond_broadcast(pthread_cond_t* cond)
     {
         if (cond == NULL) {
             return 1;
@@ -179,7 +173,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_rwlock_init(pthread_rwlock_t* rwlock, const pthread_rwlockattr_t*)
+    int32 pthread_rwlock_init(pthread_rwlock_t* rwlock, const pthread_rwlockattr_t*)
     {
         if (rwlock == NULL) {
             return 1;
@@ -191,12 +185,12 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_rwlock_destroy(pthread_rwlock_t*)
+    int32 pthread_rwlock_destroy(pthread_rwlock_t*)
     {
         return 0;
     }
 
-    int pthread_rwlock_rdlock(pthread_rwlock_t* rwlock)
+    int32 pthread_rwlock_rdlock(pthread_rwlock_t* rwlock)
     {
         if (rwlock == NULL) {
             return 1;
@@ -207,7 +201,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_rwlock_tryrdlock(pthread_rwlock_t* rwlock)
+    int32 pthread_rwlock_tryrdlock(pthread_rwlock_t* rwlock)
     {
         if (rwlock == NULL) {
             return 1;
@@ -216,7 +210,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return !TryAcquireSRWLockShared(&rwlock->lock);
     }
 
-    int pthread_rwlock_wrlock(pthread_rwlock_t* rwlock)
+    int32 pthread_rwlock_wrlock(pthread_rwlock_t* rwlock)
     {
         if (rwlock == NULL) {
             return 1;
@@ -228,7 +222,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    int pthread_rwlock_trywrlock(pthread_rwlock_t  *rwlock)
+    int32 pthread_rwlock_trywrlock(pthread_rwlock_t  *rwlock)
     {
         if (rwlock == NULL) {
             return 1;
@@ -242,7 +236,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return ret;
     }
 
-    int pthread_rwlock_unlock(pthread_rwlock_t* rwlock)
+    int32 pthread_rwlock_unlock(pthread_rwlock_t* rwlock)
     {
         if (rwlock == NULL) {
             return 1;
@@ -258,7 +252,7 @@ void ms_to_timespec(timespec *ts, uint32 ms)
         return 0;
     }
 
-    unsigned int pcthread_get_num_procs()
+    uint32 pcthread_get_num_procs()
     {
         SYSTEM_INFO sysinfo;
         GetSystemInfo(&sysinfo);
@@ -268,9 +262,9 @@ void ms_to_timespec(timespec *ts, uint32 ms)
 
     #define pthread_exit(a) {return (a);}
 #else
-    unsigned int pcthread_get_num_procs()
+    uint32 pcthread_get_num_procs()
     {
-        return (unsigned int) sysconf(_SC_NPROCESSORS_ONLN);
+        return (uint32) sysconf(_SC_NPROCESSORS_ONLN);
     }
 #endif
 

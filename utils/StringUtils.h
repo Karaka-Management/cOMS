@@ -435,7 +435,7 @@ void print_bytes(const void* ptr, size_t size)
     for (size_t i = 0; i < size; i++) {
         ++count;
         if (count == 1) {
-            printf("%03lld - %03lld: %02x ", i + 1, i + 8, bytePtr[i]);
+            printf("%03zd - %03zd: %02x ", i + 1, i + 8, bytePtr[i]);
         } else if (count < 8) {
             printf("%02x ", bytePtr[i]);
         } else {
@@ -475,6 +475,177 @@ int32 chars_to_eol(const char* str)
 }
 
 inline
+int32 chars_to(const char* str, char delim)
+{
+    int32 offset = 0;
+    while (*str != delim && *str++ != '\0')  {
+        ++offset;
+    }
+
+    return offset;
+}
+
+inline
+void char_move_to(char** str, const char delim)
+{
+    while (**str != delim && **str != '\0')  {
+        ++(*str);
+    }
+}
+
+inline
+void char_move_past(char** str, const char delim)
+{
+    while (**str != delim && **str != '\0')  {
+        ++(*str);
+    }
+
+    if (**str == delim) {
+        ++(*str);
+    }
+}
+
+inline
+void char_move_past_alpha_num(char** str)
+{
+    while ((**str >= 48 && **str <= 57)
+        || (**str >= 65 && **str <= 90)
+        || (**str >= 97 && **str <= 122)
+        || **str == 45 || **str == 95
+    )  {
+        ++(*str);
+    }
+}
+
+inline
+bool str_is_comment(char* str)
+{
+    return (*str == '/' && str[1] == '/') || (*str == '/' && str[1] == '*');
+}
+
+inline
+void char_skip(char** str, const char delim)
+{
+    while (**str == delim)  {
+        ++(*str);
+    }
+}
+
+inline
+void char_skip_whitespace(char** str)
+{
+    while (**str == ' ' || **str == '\t')  {
+        ++(*str);
+    }
+}
+
+inline
+void char_skip_empty(char** str)
+{
+    while (**str == ' ' || **str == '\t' || **str == '\n' || **str == '\r')  {
+        ++(*str);
+    }
+}
+
+inline
+void char_skip_non_empty(char** str)
+{
+    while (**str != ' ' && **str != '\t' && **str != '\n' && **str != '\0')  {
+        ++(*str);
+    }
+}
+
+inline
+void char_skip_list(char** __restrict str, const char* __restrict delim, int32 len)
+{
+    bool run = true;
+    while (run && **str != '\0') {
+        run = false;
+
+        for (int32 i = 0; i < len; ++i) {
+            if (**str == delim[i]) {
+                run = true;
+                ++(*str);
+
+                break;
+            }
+        }
+    }
+}
+
+inline
+void char_skip_until_list(char** __restrict str, const char* __restrict delim, int32 len)
+{
+    while (**str != '\0') {
+        for (int32 i = 0; i < len; ++i) {
+            if (**str == delim[i]) {
+                return;
+            }
+        }
+
+        ++(*str);
+    }
+}
+
+inline
+void char_copy_until(const char* __restrict src, char* __restrict dest, char delim)
+{
+    while (*src != delim && *src != '\0') {
+        *dest++ = *src++;
+    }
+
+    *dest = '\0';
+}
+
+inline
+void char_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
+{
+    while (*src != '\0') {
+        for (int32 i = 0; i < len; ++i) {
+            if (*src == delim[i]) {
+                *dest = '\0';
+                return;
+            }
+        }
+
+        *dest++ = *src++;
+    }
+
+    *dest = '\0';
+}
+
+inline
+void char_copy_move_until(char** __restrict src, char* __restrict dest, char delim)
+{
+    while (**src != delim) {
+        *dest++ = **src;
+        ++(*src);
+    }
+
+    *dest = '\0';
+}
+
+inline
+void char_copy_move_until(char** __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
+{
+    while (**src != '\0') {
+        for (int32 i = 0; i < len; ++i) {
+            if (**src == delim[i]) {
+                *dest = '\0';
+                return;
+            }
+        }
+
+        *dest++ = **src;
+        ++(*src);
+    }
+
+    *dest = '\0';
+}
+
+// @question Do we really need this, isn't char_copy_move_until better?
+// Maybe create a copy_move_until_eol
+inline
 int32 strcpy_to_eol(const char* src, char* dst)
 {
     int32 offset = 0;
@@ -486,6 +657,20 @@ int32 strcpy_to_eol(const char* src, char* dst)
     *dst = '\0';
 
     return offset;
+}
+
+inline
+void hexstr_to_rgba(v4_f32* rgba, const char* hex)
+{
+    if (*hex == '#') {
+        ++hex;
+    }
+
+    uint32 value = (uint32) strtoul(hex, NULL, 16);
+    rgba->r = (f32) ((value >> 24) & 0xFF) / 255.0f;
+    rgba->g = (f32) ((value >> 16) & 0xFF) / 255.0f;
+    rgba->b = (f32) ((value >> 8) & 0xFF) / 255.0f;
+    rgba->a = (f32) (value & 0xFF) / 255.0f;
 }
 
 #endif

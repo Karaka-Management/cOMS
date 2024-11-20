@@ -10,7 +10,7 @@
 #define TOS_NETWORK_PACKET_CACHE_H
 
 #include "../../memory/RingMemory.h"
-#include "../../utils/BufferMemory.h"
+#include "../../memory/BufferMemory.h"
 
 #if _WIN32
     #include <winsock2.h>

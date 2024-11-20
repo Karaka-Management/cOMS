@@ -12,14 +12,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef _WIN32
-    #include <windows.h>
-#else
-    #include <unistd.h>
-    #include <pthread.h>
+#if _WIN32
+    #include "../platform/win32/ThreadDefines.h"
+    #include "../platform/win32/Thread.h"
+#elif __linux__
+    #include "../platform/linux/ThreadDefines.h"
+    #include "../platform/linux/Thread.h"
 #endif
 
-#include "ThreadOSWrapper.h"
 #include "ThreadJob.h"
 #include "ThreadPool.h"
 

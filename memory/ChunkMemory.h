@@ -6,15 +6,22 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MEMORY_ELEMENT_MEMORY_H
-#define TOS_MEMORY_ELEMENT_MEMORY_H
+#ifndef TOS_MEMORY_CHUNK_MEMORY_H
+#define TOS_MEMORY_CHUNK_MEMORY_H
 
 #include <string.h>
 #include "../stdlib/Types.h"
 #include "../utils/MathUtils.h"
+#include "../utils/TestUtils.h"
 #include "../utils/EndianUtils.h"
-#include "Allocation.h"
 #include "../log/DebugMemory.h"
+#include "BufferMemory.h"
+
+#if _WIN32
+    #include "../platform/win32/Allocation.h"
+#elif __linux__
+    #include "../platform/linux/Allocation.h"
+#endif
 
 struct ChunkMemory {
     byte* memory;
@@ -37,8 +44,8 @@ void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignm
     ASSERT_SIMPLE(count);
 
     buf->memory = alignment < 2
-        ? (byte *) playform_alloc(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64))
-        : (byte *) playform_alloc_aligned(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64), alignment);
+        ? (byte *) platform_alloc(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64))
+        : (byte *) platform_alloc_aligned(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64), alignment);
 
     buf->count = count;
     buf->size = count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64);
@@ -123,6 +130,8 @@ byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false)
     }
 
     DEBUG_MEMORY_READ((uint64) offset, buf->chunk_size);
+
+    ASSERT_SIMPLE(offset);
 
     return offset;
 }

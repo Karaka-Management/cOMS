@@ -1,12 +1,20 @@
-#ifndef TOS_NETWORK_PACKET_H
-#define TOS_NETWORK_PACKET_H
+#ifndef TOS_NETWORK_PACKET_UDP_H
+#define TOS_NETWORK_PACKET_UDP_H
 
 #include <stdio.h>
 
 #include "../../stdlib/Types.h"
 #include "../../compression/LZP.h"
+#include "../../utils/EndianUtils.h"
 
 #include "PacketHeader.h"
+
+#if _WIN32
+    #include <ws2def.h>
+#elif __linux__
+    #include <arpa/inet.h>
+    #include <sys/socket.h>
+#endif
 
 // The message loop is as follows:
 //      Game Data                   -> pack data
@@ -32,52 +40,116 @@ struct UDPPacketIPv6 {
 struct UDPMessageIPv6 {
     HeaderIPv6Unpacked header_ipv6;
     UDPHeaderIPv6Unpacked header_udp;
-    CustomHeaderUnpacked header_custom;
 
-    size_t length;
     byte* data;
 };
 
-/**
- * WARNING: This requires the original message to remain in memory since we are only referencing the data
- */
-inline
-void udp_packet_to_message(const UDPPacketIPv6* packet, UDPMessageIPv6* message)
-{
-    unpack_ipv6_header((const HeaderIPv6*) packet->data, &message->header_ipv6);
-    unpack_udp_header_ipv6((const UDPHeaderIPv6*) (packet->data + HEADER_IPV6_SIZE), &message->header_udp);
-    message->data = (byte *) (packet->data + HEADER_IPV6_SIZE + HEADER_UDP_SIZE);
+uint16 packet_udp_calculate_checksum(uint16* buf, int32 count) {
+    uint32 sum = 0;
 
-    // @todo transform packet data to appropriate packet type
+    // First we create the checksum from the ipv6 header (not all of the data is required)
+    // Alternatively we would have had to create a pseudo_header and do a bunch of memcpy which we didn't want to do
+    HeaderIPv6Unpacked* ipv6_header = (HeaderIPv6Unpacked *) buf;
+    const byte* temp_data = ((byte *) (&ipv6_header->ip6_src));
+    for (uint32 i = 0; i < sizeof(ipv6_header->ip6_src) / 2; ++i) {
+        uint16 word = (uint16) temp_data[i] << 8 | (uint16) temp_data[i + 1];
+        sum += word;
+    }
+
+    temp_data = ((byte *) (&ipv6_header->ip6_dst));
+    for (uint32 i = 0; i < sizeof(ipv6_header->ip6_dst) / 2; ++i) {
+        uint16 word = (uint16) temp_data[i] << 8 | (uint16) temp_data[i + 1];
+        sum += word;
+    }
+
+    temp_data = ((byte *) (&ipv6_header->ip6_plen));
+    for (uint32 i = 0; i < sizeof(ipv6_header->ip6_plen) / 2; ++i) {
+        uint16 word = (uint16) temp_data[i] << 8 | (uint16) temp_data[i + 1];
+        sum += word;
+    }
+
+    // The next header has some 0s prefixed, this is required since the checksum works on uint16
+    byte next_header[] = {0, 0, 0, ipv6_header->ip6_nxt};
+    for (uint32 i = 0; i < sizeof(ipv6_header->ip6_nxt) / 2; ++i) {
+        uint16 word = (uint16) next_header[i] << 8 | (uint16) next_header[i + 1];
+        sum += word;
+    }
+
+    // Now create checksum for udp header and payload/body
+    while (count > 0) {
+        sum += *buf++;
+        --count;
+    }
+
+    sum = (sum >> 16) + (sum & 0xFFFF);
+    sum += (sum >> 16);
+
+    return (uint16) ~sum;
 }
 
-/**
- * The original message can be deleted since the data is copied over
- */
+// WARNING: ports need to be already in big endian
 inline
-void message_to_udp_packet(const UDPMessageIPv6* message, UDPPacketIPv6* packet)
-{
-    pack_ipv6_header(&message->header_ipv6, (HeaderIPv6 *) packet);
+uint16 packet_udp_create_raw(
+    byte* __restrict packet,
+    in6_addr* __restrict ipv6_src, uint16 port_src,
+    in6_addr* __restrict ipv6_dst, uint16 port_dst,
+    uint16 flow,
+    byte* __restrict data, uint16 data_length
+) {
+    // create ipv6 header
+    HeaderIPv6Unpacked* ip6_header = (HeaderIPv6Unpacked *) packet;
+    ip6_header->ip6_flow = SWAP_ENDIAN_BIG((6 << 28) | (0 << 20) | flow);
+    ip6_header->ip6_plen = SWAP_ENDIAN_BIG((uint16) (sizeof(UDPHeaderIPv6Unpacked) + data_length));
+    ip6_header->ip6_nxt = IPPROTO_UDP;
+    ip6_header->ip6_hops = 64;
+    memcpy(&ip6_header->ip6_src, ipv6_src, sizeof(in6_addr));
+    memcpy(&ip6_header->ip6_dst, ipv6_dst, sizeof(in6_addr));
 
-    packet->data = packet->data + HEADER_IPV6_SIZE;
-    pack_udp_header_ipv6(&message->header_udp, (UDPHeaderIPv6 *) packet);
-    packet->data = packet->data - HEADER_IPV6_SIZE;
+    // create udp header
+    UDPHeaderIPv6Unpacked* udp_header = (UDPHeaderIPv6Unpacked *) (packet + sizeof(HeaderIPv6Unpacked));
 
-    memcpy(packet->data + HEADER_IPV6_SIZE + HEADER_UDP_SIZE, message->data, message->length);
+    udp_header->source = port_src;
+    udp_header->dest = port_dst;
+    udp_header->len = ip6_header->ip6_plen;
+    udp_header->check = 0;
+
+    // create payload
+    memcpy(packet + sizeof(HeaderIPv6Unpacked) + sizeof(UDPHeaderIPv6Unpacked), data, data_length);
+
+    udp_header->check = SWAP_ENDIAN_BIG(packet_udp_calculate_checksum(
+        (uint16 *) (packet),
+        (sizeof(UDPHeaderIPv6Unpacked) + data_length) / 2
+    ));
+
+    // Raw sockets must use the entire packet size
+    return sizeof(HeaderIPv6Unpacked) + sizeof(UDPHeaderIPv6Unpacked) + data_length;
+}
+
+// WARNING: ports need to be already in big endian
+inline
+uint16 packet_udp_create(
+    byte* __restrict packet,
+    uint16 port_src, uint16 port_dst,
+    byte* __restrict data, uint16 data_length
+) {
+    // create udp header
+    UDPHeaderIPv6Unpacked* udp_header = (UDPHeaderIPv6Unpacked *) packet;
+
+    udp_header->source = port_src;
+    udp_header->dest = port_dst;
+    udp_header->len = SWAP_ENDIAN_BIG((uint16) (sizeof(UDPHeaderIPv6Unpacked) + data_length));
+    udp_header->check = 0;
+
+    // create payload
+    memcpy(packet + sizeof(UDPHeaderIPv6Unpacked), data, data_length);
+
+    return data_length;
 }
 
 inline
-void decompress_data(UDPMessageIPv6* message, byte* decompress_buffer)
+void packet_flowinfo_set(sockaddr_in6* dest, uint16 flow)
 {
-    lzp_decode(message->data, message->length, decompress_buffer);
-    message->data = decompress_buffer;
-}
-
-inline
-void compress_data(UDPMessageIPv6* message, byte* compressed_buffer)
-{
-    lzp_encode(message->data, message->length, compressed_buffer);
-    message->data = compressed_buffer;
+    dest->sin6_flowinfo = SWAP_ENDIAN_BIG((6 << 28) | (0 << 20) | flow);
 }
 
 #endif

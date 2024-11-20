@@ -132,7 +132,7 @@ uint32 lzp3_encode(const byte* in, size_t length, byte* out) {
 
     int32 out_size = 0;
 
-    int32 i = 0;
+    size_t i = 0;
     while (i < length) {
         int32 match_position = 0;
         int32 match_length = find_longest_match(window, window_start, (char *)&in[i], (int32) (length - i), &match_position);
@@ -163,7 +163,7 @@ uint32 lzp3_decode(const byte* in, size_t length, byte* out) {
 
     int32 out_size = 0;
 
-    int32 i = 0;
+    size_t i = 0;
     while (i < length) {
         if (in[i] == 0xFF) {
             int32 match_position = in[i + 1];

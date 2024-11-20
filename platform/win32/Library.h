@@ -16,22 +16,9 @@
 #include "../../stdlib/Types.h"
 #include "UtilsWin32.h"
 #include "../../utils/StringUtils.h"
+#include "../Library.h"
 
-struct Library {
-    HMODULE handle;
-    bool is_valid;
-
-    char dir[MAX_PATH];
-    char dst[64];
-
-    #if DEBUG
-        uint64 last_load;
-    #endif
-
-    int32 function_count;
-    const char** function_names;
-    void** functions;
-};
+// @todo Rename file to Library.cpp
 
 inline
 bool library_load(Library* lib)

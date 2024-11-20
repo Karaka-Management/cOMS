@@ -4,6 +4,7 @@
 #include "../stdlib/Types.h"
 #include "../memory/RingMemory.h"
 #include "../utils/EndianUtils.h"
+#include "../utils/StringUtils.h"
 #include "../stdlib/HashMap.h"
 #include "../font/Font.h"
 
@@ -126,9 +127,7 @@ void theme_from_file_txt(
     int32 temp_group_count = 0;
     while (*pos != '\0') {
         // Skip all white spaces
-        while (*pos == ' ' || *pos == '\t' || *pos == '\n') {
-            ++pos;
-        }
+        char_skip_empty(&pos);
 
         // Is group name
         if (*pos == '#' || *pos == '.') {
@@ -136,9 +135,7 @@ void theme_from_file_txt(
         }
 
         // Go to the end of the line
-        while (*pos != '\n' && *pos != '\0') {
-            ++pos;
-        }
+        char_move_to(&pos, '\n');
 
         // Go to next line
         if (*pos != '\0') {
@@ -157,9 +154,7 @@ void theme_from_file_txt(
     pos += 8; // move past version
 
     while (*pos != '\0') {
-        while (*pos == ' ' || *pos == '\t') {
-            ++pos;
-        }
+        char_skip_empty(&pos);
 
         if (*pos == '\n') {
             ++pos;
@@ -178,14 +173,7 @@ void theme_from_file_txt(
         last_token_newline = false;
 
         if (!block_open) {
-            int32 i = 0;
-            while (*pos != '\0' && *pos != ' ' && *pos != '\n' && i < 31) {
-                block_name[i] = *pos;
-                ++pos;
-                ++i;
-            }
-
-            block_name[i] = '\0';
+            char_copy_move_until(&pos, block_name, " \n", sizeof(" \n") - 1);
 
             // All blocks need to start with #. In the past this wasn't the case and may not be in the future. This is why we keep this if here.
             if (*block_name == '#' || *block_name == '.') {
@@ -210,19 +198,10 @@ void theme_from_file_txt(
             continue;
         }
 
-        int32 i = 0;
-        while (*pos != '\0' && *pos != ' ' && *pos != ':' && *pos != '\n' && i < 31) {
-            attribute_name[i] = *pos;
-            ++pos;
-            ++i;
-        }
-
-        attribute_name[i] = '\0';
+        char_copy_move_until(&pos, attribute_name, " :\n", sizeof(" :\n") - 1);
 
         // Skip any white spaces or other delimeters
-        while (*pos == ' ' || *pos == '\t' || *pos == ':') {
-            ++pos;
-        }
+        char_skip_list(&pos, " \t:", sizeof(" \t:") - 1);
 
         ASSERT_SIMPLE((*pos != '\0' && *pos != '\n'));
 
@@ -232,12 +211,8 @@ void theme_from_file_txt(
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TYPE;
 
             char str[32];
-            char* temp = str;
-            while (*pos != '\n' && *pos != '\0') {
-                *temp++ = *pos++;
-            }
+            char_copy_move_until(&pos, str, '\n');
 
-            *temp = '\0';
             for (int32 j = 0; j < UI_ELEMENT_TYPE_SIZE; ++j) {
                 if (strcmp(str, ui_element_type_to_string_const((UIElementType) j)) == 0) {
 
@@ -250,22 +225,12 @@ void theme_from_file_txt(
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_STYLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_STYLE;
 
-            char* temp = attribute.value_str;
-            while (*pos != '\n' && *pos != '\0') {
-                *temp++ = *pos++;
-            }
-
-            *temp = '\0';
+            char_copy_move_until(&pos, attribute.value_str, '\n');
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_COLOR;
-            uint32 value = (uint32) strtoul(pos, &pos, 16);
-
-            attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
+            hexstr_to_rgba(&attribute.value_v4_f32, pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_SIZE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_SIZE;
             attribute.value_float = strtof(pos, &pos);
@@ -288,21 +253,11 @@ void theme_from_file_txt(
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR;
-            uint32 value = (uint32) strtoul(pos, &pos, 16);
-
-            attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
+            hexstr_to_rgba(&attribute.value_v4_f32, pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG;
 
-            i = 0;
-            while (*pos != '\0' && *pos != '\n') {
-                attribute.value_str[i] = *pos++;
-            }
-
-            attribute.value_str[i] = '\0';
+            char_copy_move_until(&pos, attribute.value_str, '\n');
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY;
             attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos));
@@ -319,12 +274,7 @@ void theme_from_file_txt(
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_COLOR;
-            uint32 value = (uint32) strtoul(pos, &pos, 16);
-
-            attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
+            hexstr_to_rgba(&attribute.value_v4_f32, pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10);
@@ -332,12 +282,7 @@ void theme_from_file_txt(
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR;
-            uint32 value = (uint32) strtoul(pos, &pos, 16);
-
-            attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
+            hexstr_to_rgba(&attribute.value_v4_f32, pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10);
@@ -345,12 +290,7 @@ void theme_from_file_txt(
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR;
-            uint32 value = (uint32) strtoul(pos, &pos, 16);
-
-            attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
+            hexstr_to_rgba(&attribute.value_v4_f32, pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10);
@@ -358,12 +298,7 @@ void theme_from_file_txt(
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR;
-            uint32 value = (uint32) strtoul(pos, &pos, 16);
-
-            attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
+            hexstr_to_rgba(&attribute.value_v4_f32, pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10);
@@ -371,12 +306,7 @@ void theme_from_file_txt(
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR;
-            uint32 value = (uint32) strtoul(pos, &pos, 16);
-
-            attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
+            hexstr_to_rgba(&attribute.value_v4_f32, pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10);
@@ -399,12 +329,7 @@ void theme_from_file_txt(
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR;
-            uint32 value = (uint32) strtoul(pos, &pos, 16);
-
-            attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
+            hexstr_to_rgba(&attribute.value_v4_f32, pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE;
             attribute.value_float = strtof(pos, &pos);
@@ -415,12 +340,7 @@ void theme_from_file_txt(
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR;
-            uint32 value = (uint32) strtoul(pos, &pos, 16);
-
-            attribute.value_v4_f32.r = (f32) ((value >> 24) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.g = (f32) ((value >> 16) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.b = (f32) ((value >> 8) & 0xFF) / 255.0f;
-            attribute.value_v4_f32.a = (f32) (value & 0xFF) / 255.0f;
+            hexstr_to_rgba(&attribute.value_v4_f32, pos);
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE;
             attribute.value_float = strtof(pos, &pos);
@@ -434,9 +354,7 @@ void theme_from_file_txt(
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TRANSITION_DURATION;
             attribute.value_float = strtof(pos, &pos);
         } else {
-            while (*pos != '\n' && *pos != '\0') {
-                ++pos;
-            }
+            char_move_to(&pos, '\n');
 
             continue;
         }
@@ -453,6 +371,8 @@ void theme_from_file_txt(
             data_offset += sizeof(attribute);
             ++temp_group->attribute_size;
         }
+
+        char_move_to(&pos, '\n');
     }
 
     // We still need to sort the last group

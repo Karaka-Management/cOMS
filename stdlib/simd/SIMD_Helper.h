@@ -18,6 +18,13 @@
     #include <intrin.h>
 #endif
 
+enum SIMDVersion {
+    SIMD_VERSION_NONE,
+    SIMD_VERSION_128,
+    SIMD_VERSION_256,
+    SIMD_VERSION_512,
+};
+
 // @todo implement for arm?
 
 inline int32 max_sse_supported()

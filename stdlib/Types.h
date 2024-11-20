@@ -11,6 +11,14 @@
 
 #include <stdint.h>
 
+#ifdef _MSC_VER
+    #define PACKED_STRUCT  __pragma(pack(push, 1))
+    #define UNPACKED_STRUCT __pragma(pack(pop))
+#else
+    #define PACKED_STRUCT  __attribute__((__packed__))
+    #define UNPACKED_STRUCT
+#endif
+
 typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;
@@ -158,7 +166,17 @@ struct v3_f32 {
 struct v4_f32 {
     union {
         struct {
-            f32 x, y, z, w;
+            f32 x, y;
+
+            union {
+                struct {
+                    f32 z, w;
+                };
+
+                struct {
+                    f32 width, height;
+                };
+            };
         };
 
         struct {
@@ -167,10 +185,6 @@ struct v4_f32 {
 
         struct {
             f32 r, g, b, a;
-        };
-
-        struct {
-            f32 x, y, width, height;
         };
 
         f32 vec[4];

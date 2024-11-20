@@ -14,16 +14,22 @@
 #include "../utils/MathUtils.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/TestUtils.h"
-#include "Allocation.h"
 #include "../log/DebugMemory.h"
+
+#if _WIN32
+    #include "../platform/win32/Allocation.h"
+#elif __linux__
+    #include "../platform/linux/Allocation.h"
+#endif
 
 // @question Consider to use element_alignment to automatically align/pad elmeents
 
 struct BufferMemory {
     byte* memory;
+    byte* end;
+    byte* head;
 
     uint64 size;
-    uint64 pos;
     int32 alignment;
     int32 element_alignment;
 };
@@ -34,12 +40,14 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
     ASSERT_SIMPLE(size);
 
     buf->memory = alignment < 2
-        ? (byte *) playform_alloc(size)
-        : (byte *) playform_alloc_aligned(size, alignment);
+        ? (byte *) platform_alloc(size)
+        : (byte *) platform_alloc_aligned(size, alignment);
 
+    buf->end = buf->memory + size;
+    buf->head = buf->memory;
+    buf->size = size;
     buf->alignment = alignment;
     buf->element_alignment = 0;
-    buf->size = size;
 
     memset(buf->memory, 0, buf->size);
 
@@ -65,8 +73,9 @@ void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 6
     // @bug what if an alignment is defined?
     buf->memory = data;
 
+    buf->end = buf->memory + size;
+    buf->head = buf->memory;
     buf->size = size;
-    buf->pos = 0;
     buf->alignment = alignment;
     buf->element_alignment = 0;
 
@@ -78,8 +87,8 @@ inline
 void buffer_reset(BufferMemory* buf)
 {
     // @bug arent we wasting element 0 (see get_memory, we are not using 0 only next element)
-    DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->pos);
-    buf->pos = 0;
+    DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->head - buf->memory);
+    buf->head = buf->memory;
 }
 
 inline
@@ -92,21 +101,23 @@ byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 0, bool 
     }
 
     if (aligned > 1) {
-        uintptr_t address = (uintptr_t) buf->memory;
-        buf->pos += (aligned - ((address + buf->pos) & (aligned - 1))) % aligned;
+        uintptr_t address = (uintptr_t) buf->head;
+        buf->head += (aligned - (address & (aligned - 1))) % aligned;
     }
 
     size = ROUND_TO_NEAREST(size, aligned);
-    ASSERT_SIMPLE(buf->pos + size <= buf->size);
+    ASSERT_SIMPLE(buf->head + size <= buf->end);
 
-    byte* offset = (byte *) (buf->memory + buf->pos);
     if (zeroed) {
-        memset((void *) offset, 0, size);
+        memset((void *) buf->head, 0, size);
     }
 
-    DEBUG_MEMORY_WRITE((uint64) offset, size);
+    DEBUG_MEMORY_WRITE((uint64) buf->head, size);
 
-    buf->pos += size;
+    byte* offset = buf->head;
+    buf->head += size;
+
+    ASSERT_SIMPLE(offset);
 
     return offset;
 }
@@ -120,9 +131,9 @@ int64 buffer_dump(const BufferMemory* buf, byte* data)
     *((uint64 *) data) = SWAP_ENDIAN_LITTLE(buf->size);
     data += sizeof(buf->size);
 
-    // Pos
-    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(buf->pos);
-    data += sizeof(buf->pos);
+    // head
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE((uint64) (buf->head - buf->memory));
+    data += sizeof(uint64);
 
     // Alignment
     *((int32 *) data) = SWAP_ENDIAN_LITTLE(buf->alignment);
@@ -130,6 +141,10 @@ int64 buffer_dump(const BufferMemory* buf, byte* data)
 
     *((int32 *) data) = SWAP_ENDIAN_LITTLE(buf->element_alignment);
     data += sizeof(buf->element_alignment);
+
+    // End
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE((uint64) (buf->end - buf->memory));
+    data += sizeof(buf->end);
 
     // All memory is handled in the buffer -> simply copy the buffer
     memcpy(data, buf->memory, buf->size);
@@ -141,13 +156,15 @@ int64 buffer_dump(const BufferMemory* buf, byte* data)
 inline
 int64 buffer_load(BufferMemory* buf, const byte* data)
 {
+    const byte* start = data;
+
     // Size
     buf->size = SWAP_ENDIAN_LITTLE(*((uint64 *) data));
     data += sizeof(buf->size);
 
-    // Pos
-    buf->pos = SWAP_ENDIAN_LITTLE(*((uint64 *) data));
-    data += sizeof(buf->pos);
+    // head
+    buf->head = buf->memory + SWAP_ENDIAN_LITTLE(*((uint64 *) data));
+    data += sizeof(uint64);
 
     // Alignment
     buf->alignment = SWAP_ENDIAN_LITTLE(*((int32 *) data));
@@ -156,8 +173,14 @@ int64 buffer_load(BufferMemory* buf, const byte* data)
     buf->element_alignment = SWAP_ENDIAN_LITTLE(*((int32 *) data));
     data += sizeof(buf->element_alignment);
 
+    // End
+    buf->end = buf->memory + SWAP_ENDIAN_LITTLE(*((uint64 *) data));
+    data += sizeof(uint64);
+
     memcpy(buf->memory, data, buf->size);
     data += buf->size;
+
+    return data - start;
 }
 
 #endif

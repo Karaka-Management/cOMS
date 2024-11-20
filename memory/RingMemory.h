@@ -10,34 +10,37 @@
 #define TOS_MEMORY_RING_MEMORY_H
 
 #include <string.h>
+#include <immintrin.h>
 
 #include "../stdlib/Types.h"
 #include "../utils/MathUtils.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/TestUtils.h"
 
-#include "Allocation.h"
 #include "BufferMemory.h"
 #include "../log/DebugMemory.h"
 
+#if _WIN32
+    #include "../platform/win32/Allocation.h"
+#elif __linux__
+    #include "../platform/linux/Allocation.h"
+#endif
+
 struct RingMemory {
     byte* memory;
+    byte* end;
+
+    byte* head;
+
+    // This variable is usually only used by single read/write code mostly found in threads.
+    // One thread inserts elements -> updates head
+    // The other thread reads elements -> updates tail
+    // This code itself doesn't change this variable
+    byte* tail;
 
     uint64 size;
-    uint64 pos;
     int32 alignment;
     int32 element_alignment;
-
-    // The following two indices are only used in special cases such as iterating through a portion
-    // of the ring memory. In such cases it may be necessary to know where the start and end are.
-    // Examples for such cases are if a worker thread is pulling data from this ring memory in chunks.
-
-    // @question Is it guaranteed that if a thread realizes end changed, that also the memory is changed
-    //      or is it possible that end changed but it still has old *memory in the cache?
-    //      if yes we need to also check and wait for *memory != NULL and obviously set the memory to NULL
-    //      after using it.
-    uint64 start;
-    uint64 end;
 };
 
 inline
@@ -46,15 +49,15 @@ void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
     ASSERT_SIMPLE(size);
 
     ring->memory = alignment < 2
-        ? (byte *) playform_alloc(size)
-        : (byte *) playform_alloc_aligned(size, alignment);
+        ? (byte *) platform_alloc(size)
+        : (byte *) platform_alloc_aligned(size, alignment);
 
+    ring->end = ring->memory + size;;
+    ring->head = ring->memory;
+    ring->tail = ring->memory;
     ring->size = size;
-    ring->pos = 0;
     ring->alignment = alignment;
     ring->element_alignment = 0;
-    ring->start = 0;
-    ring->end = 0;
 
     memset(ring->memory, 0, ring->size);
 
@@ -68,12 +71,12 @@ void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment
 
     ring->memory = buffer_get_memory(buf, size, alignment, true);
 
+    ring->end = ring->memory + size;;
+    ring->head = ring->memory;
+    ring->tail = ring->memory;
     ring->size = size;
-    ring->pos = 0;
     ring->alignment = alignment;
     ring->element_alignment = 0;
-    ring->start = 0;
-    ring->end = 0;
 
     DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
     DEBUG_MEMORY_RESERVE((uint64) ring->memory, ring->size, 187);
@@ -87,12 +90,12 @@ void ring_init(RingMemory* ring, byte* buf, uint64 size, int32 alignment = 64)
     // @bug what if an alignment is defined?
     ring->memory = buf;
 
+    ring->end = ring->memory + size;;
+    ring->head = ring->memory;
+    ring->tail = ring->memory;
     ring->size = size;
-    ring->pos = 0;
     ring->alignment = alignment;
     ring->element_alignment = 0;
-    ring->start = 0;
-    ring->end = 0;
 
     memset(ring->memory, 0, ring->size);
 
@@ -111,35 +114,37 @@ void ring_free(RingMemory* buf)
 }
 
 inline
-uint64 ring_calculate_position(const RingMemory* ring, uint64 pos, uint64 size, byte aligned = 0)
+byte* ring_calculate_position(const RingMemory* ring, uint64 size, byte aligned = 0)
 {
     if (aligned == 0) {
         aligned = (byte) OMS_MAX(ring->element_alignment, 1);
     }
 
-    if (aligned) {
-        uintptr_t address = (uintptr_t) ring->memory;
-        pos += (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
+    byte* head = ring->head;
+
+    if (aligned > 1) {
+        uintptr_t address = (uintptr_t) head;
+        head += (aligned - (address & (aligned - 1))) % aligned;
     }
 
     size = ROUND_TO_NEAREST(size, aligned);
-    if (pos + size > ring->size) {
-        pos = 0;
+    if (head + size > ring->end) {
+        head = ring->memory;
 
         if (aligned > 1) {
-            uintptr_t address = (uintptr_t) ring->memory;
-            pos += (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
+            uintptr_t address = (uintptr_t) head;
+            head += (aligned - (address & (aligned - 1))) % aligned;
         }
     }
 
-    return pos;
+    return head;
 }
 
 inline
 void ring_reset(RingMemory* ring)
 {
     DEBUG_MEMORY_DELETE((uint64) ring->memory, ring->size);
-    ring->pos = 0;
+    ring->head = ring->memory;
 }
 
 byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zeroed = false)
@@ -151,28 +156,30 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zero
     }
 
     if (aligned > 1) {
-        uintptr_t address = (uintptr_t) ring->memory;
-        ring->pos += (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
+        uintptr_t address = (uintptr_t) ring->head;
+        ring->head += (aligned - (address& (aligned - 1))) % aligned;
     }
 
     size = ROUND_TO_NEAREST(size, aligned);
-    if (ring->pos + size > ring->size) {
+    if (ring->head + size > ring->end) {
         ring_reset(ring);
 
         if (aligned > 1) {
-            uintptr_t address = (uintptr_t) ring->memory;
-            ring->pos += (aligned - ((address + ring->pos) & (aligned - 1))) % aligned;
+            uintptr_t address = (uintptr_t) ring->head;
+            ring->head += (aligned - (address & (aligned - 1))) % aligned;
         }
     }
 
-    byte* offset = (byte *) (ring->memory + ring->pos);
     if (zeroed) {
-        memset((void *) offset, 0, size);
+        memset((void *) ring->head, 0, size);
     }
 
-    DEBUG_MEMORY_WRITE((uint64) offset, size);
+    DEBUG_MEMORY_WRITE((uint64) ring->head, size);
 
-    ring->pos += size;
+    byte* offset = ring->head;
+    ring->head += size;
+
+    ASSERT_SIMPLE(offset);
 
     return offset;
 }
@@ -190,34 +197,49 @@ byte* ring_get_element(const RingMemory* ring, uint64 element_count, uint64 elem
 }
 
 /**
- * Checks if one additional element can be inserted without overwriting the start index
+ * Checks if one additional element can be inserted without overwriting the tail index
  */
 inline
 bool ring_commit_safe(const RingMemory* ring, uint64 size, byte aligned = 0)
 {
-    uint64 pos = ring_calculate_position(ring, ring->pos, size, aligned);
+    // aligned * 2 since that should be the maximum overhead for an element
+    uint64 max_mem_required = size + aligned * 2;
 
-    if (ring->start == ring->end && ring->pos == 0) {
+    if (ring->tail < ring->head) {
+        return ((uint64) (ring->end - ring->head)) > max_mem_required
+            || ((uint64) (ring->tail - ring->memory)) > max_mem_required;
+    } else if (ring->tail > ring->head) {
+        return ((uint64) (ring->tail - ring->head)) > max_mem_required;
+    } else {
+        // @question Is this really the case? What if it is completely filled?
         return true;
     }
+}
 
-    return ring->start < ring->pos
-        ? ring->start < pos
-        : pos < ring->start;
+inline
+void ring_force_head_update(const RingMemory* ring)
+{
+    _mm_clflush(ring->head);
+}
+
+inline
+void ring_force_tail_update(const RingMemory* ring)
+{
+    _mm_clflush(ring->tail);
 }
 
 inline
 int64 ring_dump(const RingMemory* ring, byte* data)
 {
-    byte* start = data;
+    byte* tail = data;
 
     // Size
     *((uint64 *) data) = SWAP_ENDIAN_LITTLE(ring->size);
     data += sizeof(ring->size);
 
-    // Pos
-    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(ring->pos);
-    data += sizeof(ring->pos);
+    // head
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE((uint64) (ring->head - ring->memory));
+    data += sizeof(ring->head);
 
     // Alignment
     *((int32 *) data) = SWAP_ENDIAN_LITTLE(ring->alignment);
@@ -226,18 +248,18 @@ int64 ring_dump(const RingMemory* ring, byte* data)
     *((int32 *) data) = SWAP_ENDIAN_LITTLE(ring->element_alignment);
     data += sizeof(ring->element_alignment);
 
-    // Start/End
-    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(ring->start);
-    data += sizeof(ring->start);
+    // tail/End
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE((uint64) (ring->tail - ring->memory));
+    data += sizeof(ring->tail);
 
-    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(ring->end);
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE((uint64) (ring->end - ring->memory));
     data += sizeof(ring->end);
 
     // All memory is handled in the buffer -> simply copy the buffer
     memcpy(data, ring->memory, ring->size);
     data += ring->size;
 
-    return data - start;
+    return data - tail;
 }
 
 #endif

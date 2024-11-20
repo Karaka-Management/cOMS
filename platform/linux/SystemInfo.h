@@ -6,80 +6,35 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_SYSTEM_INFO_H
-#define TOS_UTILS_SYSTEM_INFO_H
+#ifndef TOS_PLATFORM_LINUX_SYSTEM_INFO_C
+#define TOS_PLATFORM_LINUX_SYSTEM_INFO_C
 
 #include <stdio.h>
 #include <stdint.h>
-#include "../stdlib/Types.h"
-#include "../stdlib/simd/SIMD_Helper.h"
-#include "StringUtils.h"
+#include "../../stdlib/Types.h"
+#include "../../stdlib/simd/SIMD_Helper.h"
+#include "../../utils/StringUtils.h"
+#include "../SystemInfo.h"
 
-#if _WIN32
-    #include <winsock2.h>
-    #include <iphlpapi.h>
-    #include <ws2tcpip.h>
-    #include <windows.h>
-    #include <d3d11.h>
-    #include <dxgi.h>
-    #include <wbemidl.h>
-    #include <comdef.h>
-    #include <winnls.h>
-#else
-    #include <locale.h>
-#endif
+#include <locale.h>
+#include <cpuid.h>
 
-#ifdef _MSC_VER
-    #include <intrin.h>
-#endif
-
-#if __linux__ && (__i386__ || __x86_64__)
-    #include <cpuid.h>
-#endif
 
 // @todo implement for arm?
-// @todo implement for linux?
 
 uint16 system_language_code()
 {
-    #if _WIN32
-        LANGID langID = GetUserDefaultUILanguage();
-        wchar_t localeName[LOCALE_NAME_MAX_LENGTH];
-
-        if (!LCIDToLocaleName(langID, localeName, LOCALE_NAME_MAX_LENGTH, 0)) {
-            return 0;
-        }
-    #else
-        char *localeName = setlocale(LC_ALL, "");
-    #endif
+    const char* localeName = setlocale(LC_ALL, "");
 
     return (localeName[0] << 8) | localeName[1];
 }
 
 uint16 system_country_code()
 {
-    #if _WIN32
-        LANGID langID = GetUserDefaultUILanguage();
-        wchar_t localeName[LOCALE_NAME_MAX_LENGTH];
-
-        if (!LCIDToLocaleName(langID, localeName, LOCALE_NAME_MAX_LENGTH, 0)) {
-            return 0;
-        }
-    #else
-        char *localeName = setlocale(LC_ALL, "");
-    #endif
+    const char* localeName = setlocale(LC_ALL, "");
 
     return (localeName[3] << 8) | localeName[4];
 }
-
-struct CpuCacheInfo {
-    int32 level;
-    int32 size;
-    int32 ways;
-    int32 partitions;
-    int32 sets;
-    int32 line_size;
-};
 
 void cache_info_get(int32 level, CpuCacheInfo* cache) {
     uint32 eax, ebx, ecx, edx;
@@ -92,20 +47,9 @@ void cache_info_get(int32 level, CpuCacheInfo* cache) {
     cache->sets = 0;
     cache->line_size = 0;
 
-    #if _WIN32
-        int32 regs[4];
-        __cpuidex(regs, 4, level);
-        eax = regs[0];
-        ebx = regs[1];
-        ecx = regs[2];
-        edx = regs[3];
+    __cpuid_count(4, level, eax, ebx, ecx, edx);
 
-        type = (eax & 0x1F);
-    #else
-        __cpuid_count(4, level, eax, ebx, ecx, edx);
-
-        type = (eax & 0x1F);
-    #endif
+    type = (eax & 0x1F);
 
     if (type == 0) {
         return;
@@ -117,12 +61,6 @@ void cache_info_get(int32 level, CpuCacheInfo* cache) {
     cache->sets = ecx + 1;
     cache->size = cache->ways * cache->partitions * cache->line_size * cache->sets;
 }
-
-// @todo add vendor name
-struct MainboardInfo {
-    char name[64];
-    char serial_number[64];
-};
 
 void mainboard_info_get(MainboardInfo* info) {
     info->name[63] = '\0';
@@ -253,12 +191,6 @@ void mainboard_info_get(MainboardInfo* info) {
     CoUninitialize();
 }
 
-// @todo add ipv6
-struct NetworkInfo {
-    char slot[64];
-    byte mac[8];
-};
-
 int network_info_get(NetworkInfo* info) {
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -312,23 +244,6 @@ int network_info_get(NetworkInfo* info) {
     return i;
 }
 
-struct SIMDInfo {
-    f32 sse;
-    int32 avx256;
-    int32 avx512;
-};
-
-struct CpuInfo {
-    char vendor[13];
-    char brand[49];
-    int32 model;
-    int32 family;
-    int32 mhz;
-    CpuCacheInfo cache[4];
-    int32 page_size;
-    SIMDInfo simd;
-};
-
 void cpu_info_get(CpuInfo* info) {
     int32 temp;
     info->simd.sse = (temp = max_sse_supported()) > 9 ? temp / 10.0f : temp;
@@ -380,41 +295,15 @@ void cpu_info_get(CpuInfo* info) {
     RegCloseKey(hKey);
 }
 
-struct OSInfo {
-    char vendor[16];
-    char name[64];
-    int32 major;
-    int32 minor;
-};
-
 void os_info_get(OSInfo* info) {
-    info->vendor[15] = '\0';
-    info->name[63] = '\0';
+    memcpy(info->vendor, "Linux", sizeof("Linux"));
+    memcpy(info->name, "Linux", sizeof("Linux"));
+    info->major = 0;
+    info->minor = 0;
 
-    #if defined(_WIN32) || defined(_WIN64)
-        OSVERSIONINFOEXW version_info;
-        memset(&version_info, 0, sizeof(OSVERSIONINFOEXW));
-        version_info.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEXW);
-        NTSTATUS(WINAPI *RtlGetVersion)(OSVERSIONINFOEXW*) = (NTSTATUS(WINAPI *)(OSVERSIONINFOEXW*))GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion");
-        if (RtlGetVersion != nullptr) {
-            RtlGetVersion(&version_info);
-        }
-
-        memcpy(info->vendor, "Microsoft", sizeof("Microsoft"));
-        memcpy(info->name, "Windows", sizeof("Windows"));
-        info->major = version_info.dwMajorVersion;
-        info->minor = version_info.dwMinorVersion;
-    #else
-        memcpy(info->vendor, "Linux", sizeof("Linux"));
-        memcpy(info->name, "Linux", sizeof("Linux"));
-        info->major = 0;
-        info->minor = 0;
-    #endif
+    info->vendor[sizeof("Linux")] = '\0';
+    info->name[sizeof("Linux")] = '\0';
 }
-
-struct RamInfo {
-    int32 memory;
-};
 
 void ram_info_get(RamInfo* info) {
     MEMORYSTATUSEX statex;
@@ -422,11 +311,6 @@ void ram_info_get(RamInfo* info) {
     GlobalMemoryStatusEx(&statex);
     info->memory = (int) (statex.ullTotalPhys / (1024 * 1024));
 }
-
-struct GpuInfo {
-    char name[64];
-    int32 vram;
-};
 
 uint32 gpu_info_get(GpuInfo* info) {
     IDXGIFactory *pFactory = NULL;
@@ -459,13 +343,6 @@ uint32 gpu_info_get(GpuInfo* info) {
     return i;
 }
 
-struct DisplayInfo {
-    char name[64];
-    int32 width;
-    int32 height;
-    int32 hz;
-};
-
 uint32 display_info_get(DisplayInfo* info) {
     DISPLAY_DEVICEA device;
     DEVMODEA mode;
@@ -490,23 +367,6 @@ uint32 display_info_get(DisplayInfo* info) {
     return i;
 }
 
-struct SystemInfo {
-    OSInfo os;
-    MainboardInfo mainboard;
-
-    NetworkInfo network[4];
-    int32 network_count;
-
-    CpuInfo cpu;
-    RamInfo ram;
-
-    GpuInfo gpu[2];
-    int32 gpu_count;
-
-    DisplayInfo display[6];
-    int32 display_count;
-};
-
 void system_info_render(char* buf, const SystemInfo* info) {
     const char avx512[8][12] = {
         "AVX-512F",
@@ -521,7 +381,6 @@ void system_info_render(char* buf, const SystemInfo* info) {
 
     sprintf_s(
         buf,
-        4096,
         "OS:\n"
         "==============\n"
         "Vendor: %s\n" "Name: %s\n" "Major: %d\n" "Minor: %d\n"

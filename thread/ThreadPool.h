@@ -13,15 +13,19 @@
 #include <stdlib.h>
 
 #ifdef _WIN32
-    #include <windows.h>
+    #include "../platform/win32/Thread.h"
 #else
-    #include <unistd.h>
-    #include <pthread.h>
+    #include "../platform/linux/Thread.h"
 #endif
 
 #include "../stdlib/Types.h"
 #include "ThreadJob.h"
-#include "ThreadOSWrapper.h"
+
+#if _WIN32
+
+#elif __linux__
+    #include "../platform/linux/Thread.h"
+#endif
 
 struct ThreadPool {
     ThreadJob *work_first;

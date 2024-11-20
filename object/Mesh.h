@@ -21,6 +21,7 @@
 #include "../memory/RingMemory.h"
 #include "../stdlib/simd/SIMD_I32.h"
 #include "../utils/EndianUtils.h"
+#include "../utils/StringUtils.h"
 
 #define MESH_VERSION 1
 
@@ -87,7 +88,6 @@ void mesh_from_file_txt(
 
     mesh->vertices = (f32 *) mesh->data;
 
-
     // @todo The temp memory reservation is bad, once the file format is really finalized we need to change this.
     //  We can't just assume these sizes
     int32 vertex_count = 0;
@@ -109,9 +109,7 @@ void mesh_from_file_txt(
     uint32 temp_color_count = 0;
 
     while (*pos != '\0') {
-        while (*pos == ' ' || *pos == '\t' || *pos == '\n') {
-            ++pos;
-        }
+        char_skip_empty(&pos);
 
         if (*pos == '\0') {
             break;
@@ -154,15 +152,11 @@ void mesh_from_file_txt(
             state = 15;
         } else {
             // not supported or comment
-            while (*pos != '\n' && *pos != '\0') {
-                ++pos;
-            }
+            char_move_to(&pos, '\n');
         }
 
         // move past keyword
-        while (*pos != ' ' && *pos != '\n' && *pos != '\0') {
-            ++pos;
-        }
+        char_skip_non_empty(&pos);
 
         // move past whitespaces and newline
         bool is_next_line = false;

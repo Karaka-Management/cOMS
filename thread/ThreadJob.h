@@ -12,7 +12,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ThreadOSDefines.h"
+#if _WIN32
+    #include "../platform/win32/ThreadDefines.h"
+#elif __linux__
+    #include "../platform/linux/ThreadDefines.h"
+#endif
 
 struct job_t {
     ThreadJobFunc func;
