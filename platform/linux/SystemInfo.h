@@ -19,7 +19,6 @@
 #include <locale.h>
 #include <cpuid.h>
 
-
 // @todo implement for arm?
 
 uint16 system_language_code()

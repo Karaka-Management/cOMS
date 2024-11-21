@@ -10,7 +10,8 @@
 #include "PacketHeader.h"
 
 #if _WIN32
-    #include <ws2def.h>
+    #include <winsock2.h>
+    #include <Ws2ipdef.h>
 #elif __linux__
     #include <arpa/inet.h>
     #include <sys/socket.h>

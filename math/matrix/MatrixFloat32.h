@@ -12,13 +12,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "../../stdlib/Intrinsics.h"
 #include "../../utils/MathUtils.h"
 #include "../../utils/TestUtils.h"
 
+#if ARM
+    #include "../../stdlib/IntrinsicsArm.h"
+#else
+    #include "../../stdlib/Intrinsics.h"
+#endif
+
 // @todo Implement intrinsic versions!
 
-void vec2_normalize_f32(f32* __restrict x, f32* __restrict y)
+void vec2_normalize(f32* __restrict x, f32* __restrict y)
 {
     f32 d = sqrtf((*x) * (*x) + (*y) * (*y));
 
@@ -89,7 +94,7 @@ f32 vec2_dot(const v2_f32* a, const v2_f32* b) {
     return a->x * b->x + a->y * b->y;
 }
 
-void vec3_normalize_f32(f32* __restrict x, f32* __restrict y, f32* __restrict z)
+void vec3_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z)
 {
     f32 d = sqrtf((*x) * (*x) + (*y) * (*y) + (*z) * (*z));
 
@@ -98,7 +103,7 @@ void vec3_normalize_f32(f32* __restrict x, f32* __restrict y, f32* __restrict z)
     *z /= d;
 }
 
-void vec3_normalize_f32(v3_f32* vec)
+void vec3_normalize(v3_f32* vec)
 {
     f32 d = sqrtf(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
 
@@ -178,7 +183,7 @@ f32 vec3_dot(const v3_f32* a, const v3_f32* b) {
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
-void vec4_normalize_f32(f32* __restrict x, f32* __restrict y, f32* __restrict z, f32* __restrict w)
+void vec4_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z, f32* __restrict w)
 {
     f32 d = sqrtf((*x) * (*x) + (*y) * (*y) + (*z) * (*z) + (*w) * (*w));
 

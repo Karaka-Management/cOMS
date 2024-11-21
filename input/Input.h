@@ -189,121 +189,119 @@ void input_init(Input* input, uint8 size, void* callback_data, BufferMemory* buf
 }
 
 inline
-void input_clean_state(InputState* state)
+void input_clean_state(InputKey* state_keys)
 {
     for (int32 i = 0; i < MAX_KEY_STATES; ++i) {
-        if (state->state_keys[i].key_state == KEY_STATE_RELEASED) {
-            state->state_keys[i].key_id = 0;
+        if (state_keys[i].key_state == KEY_STATE_RELEASED) {
+            state_keys[i].key_id = 0;
         }
     }
 }
 
 inline
-bool input_action_exists(const InputState* state, int16 key)
+bool input_action_exists(const InputKey* state_keys, int16 key)
 {
-    return state->state_keys[0].key_id == key
-        || state->state_keys[1].key_id == key
-        || state->state_keys[2].key_id == key
-        || state->state_keys[3].key_id == key
-        || state->state_keys[4].key_id == key
-        || state->state_keys[4].key_id == key
-        || state->state_keys[5].key_id == key
-        || state->state_keys[6].key_id == key
-        || state->state_keys[7].key_id == key
-        || state->state_keys[8].key_id == key
-        || state->state_keys[9].key_id == key;
+    return state_keys[0].key_id == key
+        || state_keys[1].key_id == key
+        || state_keys[2].key_id == key
+        || state_keys[3].key_id == key
+        || state_keys[4].key_id == key
+        || state_keys[4].key_id == key
+        || state_keys[5].key_id == key
+        || state_keys[6].key_id == key
+        || state_keys[7].key_id == key
+        || state_keys[8].key_id == key
+        || state_keys[9].key_id == key;
 }
 
 inline
-bool input_is_down(const InputState* state, int16 key)
+bool input_is_down(const InputKey* state_keys, int16 key)
 {
-    return (state->state_keys[0].key_id == key && state->state_keys[0].key_state != KEY_STATE_RELEASED)
-        || (state->state_keys[1].key_id == key && state->state_keys[1].key_state != KEY_STATE_RELEASED)
-        || (state->state_keys[2].key_id == key && state->state_keys[2].key_state != KEY_STATE_RELEASED)
-        || (state->state_keys[3].key_id == key && state->state_keys[3].key_state != KEY_STATE_RELEASED)
-        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state != KEY_STATE_RELEASED)
-        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state != KEY_STATE_RELEASED)
-        || (state->state_keys[5].key_id == key && state->state_keys[5].key_state != KEY_STATE_RELEASED)
-        || (state->state_keys[6].key_id == key && state->state_keys[6].key_state != KEY_STATE_RELEASED)
-        || (state->state_keys[7].key_id == key && state->state_keys[7].key_state != KEY_STATE_RELEASED)
-        || (state->state_keys[8].key_id == key && state->state_keys[8].key_state != KEY_STATE_RELEASED)
-        || (state->state_keys[9].key_id == key && state->state_keys[9].key_state != KEY_STATE_RELEASED);
+    return (state_keys[0].key_id == key && state_keys[0].key_state != KEY_STATE_RELEASED)
+        || (state_keys[1].key_id == key && state_keys[1].key_state != KEY_STATE_RELEASED)
+        || (state_keys[2].key_id == key && state_keys[2].key_state != KEY_STATE_RELEASED)
+        || (state_keys[3].key_id == key && state_keys[3].key_state != KEY_STATE_RELEASED)
+        || (state_keys[4].key_id == key && state_keys[4].key_state != KEY_STATE_RELEASED)
+        || (state_keys[5].key_id == key && state_keys[5].key_state != KEY_STATE_RELEASED)
+        || (state_keys[6].key_id == key && state_keys[6].key_state != KEY_STATE_RELEASED)
+        || (state_keys[7].key_id == key && state_keys[7].key_state != KEY_STATE_RELEASED)
+        || (state_keys[8].key_id == key && state_keys[8].key_state != KEY_STATE_RELEASED)
+        || (state_keys[9].key_id == key && state_keys[9].key_state != KEY_STATE_RELEASED);
 }
 
 inline
-bool input_is_pressed(const InputState* state, int16 key)
+bool input_is_pressed(const InputKey* state_keys, int16 key)
 {
-    return (state->state_keys[0].key_id == key && state->state_keys[0].key_state == KEY_STATE_PRESSED)
-        || (state->state_keys[1].key_id == key && state->state_keys[1].key_state == KEY_STATE_PRESSED)
-        || (state->state_keys[2].key_id == key && state->state_keys[2].key_state == KEY_STATE_PRESSED)
-        || (state->state_keys[3].key_id == key && state->state_keys[3].key_state == KEY_STATE_PRESSED)
-        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_PRESSED)
-        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_PRESSED)
-        || (state->state_keys[5].key_id == key && state->state_keys[5].key_state == KEY_STATE_PRESSED)
-        || (state->state_keys[6].key_id == key && state->state_keys[6].key_state == KEY_STATE_PRESSED)
-        || (state->state_keys[7].key_id == key && state->state_keys[7].key_state == KEY_STATE_PRESSED)
-        || (state->state_keys[8].key_id == key && state->state_keys[8].key_state == KEY_STATE_PRESSED)
-        || (state->state_keys[9].key_id == key && state->state_keys[9].key_state == KEY_STATE_PRESSED);
+    return (state_keys[0].key_id == key && state_keys[0].key_state == KEY_STATE_PRESSED)
+        || (state_keys[1].key_id == key && state_keys[1].key_state == KEY_STATE_PRESSED)
+        || (state_keys[2].key_id == key && state_keys[2].key_state == KEY_STATE_PRESSED)
+        || (state_keys[3].key_id == key && state_keys[3].key_state == KEY_STATE_PRESSED)
+        || (state_keys[4].key_id == key && state_keys[4].key_state == KEY_STATE_PRESSED)
+        || (state_keys[5].key_id == key && state_keys[5].key_state == KEY_STATE_PRESSED)
+        || (state_keys[6].key_id == key && state_keys[6].key_state == KEY_STATE_PRESSED)
+        || (state_keys[7].key_id == key && state_keys[7].key_state == KEY_STATE_PRESSED)
+        || (state_keys[8].key_id == key && state_keys[8].key_state == KEY_STATE_PRESSED)
+        || (state_keys[9].key_id == key && state_keys[9].key_state == KEY_STATE_PRESSED);
 }
 
 inline
-bool input_is_held(const InputState* state, int16 key)
+bool input_is_held(const InputKey* state_keys, int16 key)
 {
-    return (state->state_keys[0].key_id == key && state->state_keys[0].key_state == KEY_STATE_HELD)
-        || (state->state_keys[1].key_id == key && state->state_keys[1].key_state == KEY_STATE_HELD)
-        || (state->state_keys[2].key_id == key && state->state_keys[2].key_state == KEY_STATE_HELD)
-        || (state->state_keys[3].key_id == key && state->state_keys[3].key_state == KEY_STATE_HELD)
-        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_HELD)
-        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_HELD)
-        || (state->state_keys[5].key_id == key && state->state_keys[5].key_state == KEY_STATE_HELD)
-        || (state->state_keys[6].key_id == key && state->state_keys[6].key_state == KEY_STATE_HELD)
-        || (state->state_keys[7].key_id == key && state->state_keys[7].key_state == KEY_STATE_HELD)
-        || (state->state_keys[8].key_id == key && state->state_keys[8].key_state == KEY_STATE_HELD)
-        || (state->state_keys[9].key_id == key && state->state_keys[9].key_state == KEY_STATE_HELD);
+    return (state_keys[0].key_id == key && state_keys[0].key_state == KEY_STATE_HELD)
+        || (state_keys[1].key_id == key && state_keys[1].key_state == KEY_STATE_HELD)
+        || (state_keys[2].key_id == key && state_keys[2].key_state == KEY_STATE_HELD)
+        || (state_keys[3].key_id == key && state_keys[3].key_state == KEY_STATE_HELD)
+        || (state_keys[4].key_id == key && state_keys[4].key_state == KEY_STATE_HELD)
+        || (state_keys[4].key_id == key && state_keys[4].key_state == KEY_STATE_HELD)
+        || (state_keys[5].key_id == key && state_keys[5].key_state == KEY_STATE_HELD)
+        || (state_keys[6].key_id == key && state_keys[6].key_state == KEY_STATE_HELD)
+        || (state_keys[7].key_id == key && state_keys[7].key_state == KEY_STATE_HELD)
+        || (state_keys[8].key_id == key && state_keys[8].key_state == KEY_STATE_HELD)
+        || (state_keys[9].key_id == key && state_keys[9].key_state == KEY_STATE_HELD);
 }
 
 inline
-bool input_is_released(const InputState* state, int16 key)
+bool input_is_released(const InputKey* state_keys, int16 key)
 {
-    return (state->state_keys[0].key_id == key && state->state_keys[0].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[1].key_id == key && state->state_keys[1].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[2].key_id == key && state->state_keys[2].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[3].key_id == key && state->state_keys[3].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[5].key_id == key && state->state_keys[5].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[6].key_id == key && state->state_keys[6].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[7].key_id == key && state->state_keys[7].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[8].key_id == key && state->state_keys[8].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[9].key_id == key && state->state_keys[9].key_state == KEY_STATE_RELEASED);
+    return (state_keys[0].key_id == key && state_keys[0].key_state == KEY_STATE_RELEASED)
+        || (state_keys[1].key_id == key && state_keys[1].key_state == KEY_STATE_RELEASED)
+        || (state_keys[2].key_id == key && state_keys[2].key_state == KEY_STATE_RELEASED)
+        || (state_keys[3].key_id == key && state_keys[3].key_state == KEY_STATE_RELEASED)
+        || (state_keys[4].key_id == key && state_keys[4].key_state == KEY_STATE_RELEASED)
+        || (state_keys[4].key_id == key && state_keys[4].key_state == KEY_STATE_RELEASED)
+        || (state_keys[5].key_id == key && state_keys[5].key_state == KEY_STATE_RELEASED)
+        || (state_keys[6].key_id == key && state_keys[6].key_state == KEY_STATE_RELEASED)
+        || (state_keys[7].key_id == key && state_keys[7].key_state == KEY_STATE_RELEASED)
+        || (state_keys[8].key_id == key && state_keys[8].key_state == KEY_STATE_RELEASED)
+        || (state_keys[9].key_id == key && state_keys[9].key_state == KEY_STATE_RELEASED);
 }
 
 inline
-bool input_was_down(const InputState* state, int16 key)
+bool input_was_down(const InputKey* state_keys, int16 key)
 {
-    return (state->state_keys[0].key_id == key && state->state_keys[0].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[1].key_id == key && state->state_keys[1].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[2].key_id == key && state->state_keys[2].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[3].key_id == key && state->state_keys[3].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[4].key_id == key && state->state_keys[4].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[5].key_id == key && state->state_keys[5].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[6].key_id == key && state->state_keys[6].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[7].key_id == key && state->state_keys[7].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[8].key_id == key && state->state_keys[8].key_state == KEY_STATE_RELEASED)
-        || (state->state_keys[9].key_id == key && state->state_keys[9].key_state == KEY_STATE_RELEASED);
+    return (state_keys[0].key_id == key && state_keys[0].key_state == KEY_STATE_RELEASED)
+        || (state_keys[1].key_id == key && state_keys[1].key_state == KEY_STATE_RELEASED)
+        || (state_keys[2].key_id == key && state_keys[2].key_state == KEY_STATE_RELEASED)
+        || (state_keys[3].key_id == key && state_keys[3].key_state == KEY_STATE_RELEASED)
+        || (state_keys[4].key_id == key && state_keys[4].key_state == KEY_STATE_RELEASED)
+        || (state_keys[4].key_id == key && state_keys[4].key_state == KEY_STATE_RELEASED)
+        || (state_keys[5].key_id == key && state_keys[5].key_state == KEY_STATE_RELEASED)
+        || (state_keys[6].key_id == key && state_keys[6].key_state == KEY_STATE_RELEASED)
+        || (state_keys[7].key_id == key && state_keys[7].key_state == KEY_STATE_RELEASED)
+        || (state_keys[8].key_id == key && state_keys[8].key_state == KEY_STATE_RELEASED)
+        || (state_keys[9].key_id == key && state_keys[9].key_state == KEY_STATE_RELEASED);
 }
 
 inline
 bool inputs_are_down(
-    const InputState* state,
+    const InputKey* state_keys,
     int16 key0, int16 key1 = 0, int16 key2 = 0, int16 key3 = 0, int16 key4 = 0
 ) {
-    return (key0 != 0 && input_is_down(state, key0))
-        && (key1 == 0 || input_is_down(state, key1))
-        && (key2 == 0 || input_is_down(state, key2))
-        && (key3 == 0 || input_is_down(state, key3))
-        && (key4 == 0 || input_is_down(state, key4));
+    return (key0 != 0 && input_is_down(state_keys, key0))
+        && (key1 == 0 || input_is_down(state_keys, key1))
+        && (key2 == 0 || input_is_down(state_keys, key2))
+        && (key3 == 0 || input_is_down(state_keys, key3))
+        && (key4 == 0 || input_is_down(state_keys, key4));
 }
 
 void input_add_callback(InputMapping* mapping, uint8 hotkey, InputCallback callback)
@@ -387,19 +385,19 @@ input_add_hotkey(
 }
 
 inline
-bool hotkey_is_active(const InputState* state, uint8 hotkey)
+bool hotkey_is_active(const uint8* state_hotkeys, uint8 hotkey)
 {
-    return state->state_hotkeys[0] == hotkey
-        || state->state_hotkeys[1] == hotkey
-        || state->state_hotkeys[2] == hotkey
-        || state->state_hotkeys[3] == hotkey
-        || state->state_hotkeys[4] == hotkey;
+    return state_hotkeys[0] == hotkey
+        || state_hotkeys[1] == hotkey
+        || state_hotkeys[2] == hotkey
+        || state_hotkeys[3] == hotkey
+        || state_hotkeys[4] == hotkey;
 }
 
 // similar to hotkey_is_active but instead of just performing a lookup in the input_hotkey_state created results
 // this is actively checking the current input state (not the hotkey state)
 inline
-bool hotkey_keys_are_active(const InputState* state, const InputMapping* mapping, uint8 hotkey)
+bool hotkey_keys_are_active(const InputKey* state_keys, const InputMapping* mapping, uint8 hotkey)
 {
     int16 key0 = mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION];
     int16 key1 = mapping->hotkeys[(hotkey - 1) * MAX_HOTKEY_COMBINATION + 1];
@@ -411,32 +409,32 @@ bool hotkey_keys_are_active(const InputState* state, const InputMapping* mapping
     // Therefore, if a key has a state -> treat it as if active
 
     // The code below also allows optional keys which have a negative sign (at least one of the optional keys must be valid)
-    bool is_active = input_action_exists(state, (int16) OMS_ABS(key0));
+    bool is_active = input_action_exists(state_keys, (int16) OMS_ABS(key0));
     if ((!is_active && (key0 > 0 || key1 >= 0)) || (is_active && key0 < 0)) {
         return is_active;
     }
 
-    is_active = input_action_exists(state, (int16) OMS_ABS(key1));
+    is_active = input_action_exists(state_keys, (int16) OMS_ABS(key1));
     if ((!is_active && (key1 > 0 || key2 >= 0)) || (is_active && key1 < 0)) {
         return is_active;
     }
 
-    return input_action_exists(state, (int16) OMS_ABS(key2));
+    return input_action_exists(state_keys, (int16) OMS_ABS(key2));
 }
 
 inline
-void input_set_state(InputState* state, InputKey* __restrict new_key)
+void input_set_state(InputKey* state_keys, InputKey* __restrict new_key)
 {
     InputKey* free_state = NULL;
     bool action_required = true;
 
     for (int32 i = 0; i < MAX_KEY_STATES; ++i) {
-        if (!free_state && state->state_keys[i].key_id == 0) {
-            free_state = &state->state_keys[i];
-        } else if (state->state_keys[i].key_id == new_key->key_id) {
-            state->state_keys[i].key_state = new_key->key_state;
-            state->state_keys[i].value += new_key->value;
-            state->state_keys[i].time = new_key->time;
+        if (!free_state && state_keys[i].key_id == 0) {
+            free_state = &state_keys[i];
+        } else if (state_keys[i].key_id == new_key->key_id) {
+            state_keys[i].key_state = new_key->key_state;
+            state_keys[i].value += new_key->value;
+            state_keys[i].time = new_key->time;
             action_required = false;
         }
     }
@@ -524,7 +522,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
 
     if (count > 0) {
         for (int32 i = 0; i < count; ++i) {
-            input_set_state(&input->state, &keys[i]);
+            input_set_state(input->state.state_keys, &keys[i]);
         }
     }
 
@@ -566,7 +564,9 @@ input_hotkey_state(Input* input)
             InputMapping* mapping;
             if (i == 0) {
                 mapping = &input->input_mapping1;
-            } else if (input->handle_controller && key->key_id > INPUT_CONTROLLER_PREFIX) {
+            } else if ((input->handle_controller || input->direct_controller)
+                && key->key_id > INPUT_CONTROLLER_PREFIX
+            ) {
                 mapping = &input->input_mapping2;
             } else {
                 continue;
@@ -581,7 +581,7 @@ input_hotkey_state(Input* input)
 
             // Check every possible hotkey
             // Since multiple input devices have their own button/key indices whe have to do this weird range handling
-            for (int possible_hotkey_idx = 0; possible_hotkey_idx < MAX_KEY_TO_HOTKEY; ++possible_hotkey_idx) {
+            for (int32 possible_hotkey_idx = 0; possible_hotkey_idx < MAX_KEY_TO_HOTKEY; ++possible_hotkey_idx) {
                 // We only support a slimited amount of active hotkeys
                 if (active_hotkeys >= MAX_KEY_PRESSES) {
                     return;
@@ -589,12 +589,12 @@ input_hotkey_state(Input* input)
 
                 // Hotkey already active
                 // @question Do we even need this? This shouldn't happen anyway?!
-                if (hotkey_is_active(&input->state, hotkeys_for_key[possible_hotkey_idx])) {
+                if (hotkey_is_active(input->state.state_hotkeys, hotkeys_for_key[possible_hotkey_idx])) {
                     continue;
                 }
 
                 // store active hotkey, if it is not already active
-                bool is_pressed = hotkey_keys_are_active(&input->state, mapping, hotkeys_for_key[possible_hotkey_idx]);
+                bool is_pressed = hotkey_keys_are_active(input->state.state_keys, mapping, hotkeys_for_key[possible_hotkey_idx]);
                 if (!is_pressed) {
                     continue;
                 }

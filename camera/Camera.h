@@ -18,7 +18,6 @@
 #define CAMERA_MAX_INPUTS 4
 
 // @todo Please check out if we can switch to quaternions. We tried but failed.
-// The functions with a 2 at the end are our current backup solution which shouldn't be used (probably)
 
 struct Camera {
     v3_f32 location;
@@ -45,16 +44,17 @@ struct Camera {
 void
 camera_update_vectors(Camera* camera)
 {
-    camera->front.x = cosf(OMS_DEG2RAD(camera->orientation.x)) * cosf(OMS_DEG2RAD(camera->orientation.y));
+    f32 cos_ori_x = cosf(OMS_DEG2RAD(camera->orientation.x));
+    camera->front.x = cos_ori_x * cosf(OMS_DEG2RAD(camera->orientation.y));
     camera->front.y = sinf(OMS_DEG2RAD(camera->orientation.x));
-    camera->front.z = cosf(OMS_DEG2RAD(camera->orientation.x)) * sinf(OMS_DEG2RAD(camera->orientation.y));
-    vec3_normalize_f32(&camera->front);
+    camera->front.z = cos_ori_x * sinf(OMS_DEG2RAD(camera->orientation.y));
+    vec3_normalize(&camera->front);
 
     vec3_cross(&camera->right, &camera->front, &camera->world_up);
-    vec3_normalize_f32(&camera->right);
+    vec3_normalize(&camera->right);
 
     vec3_cross(&camera->up, &camera->right, &camera->front);
-    vec3_normalize_f32(&camera->up);
+    vec3_normalize(&camera->up);
 }
 
 void camera_rotate(Camera* camera, int32 dx, int32 dy, f32 dt)
@@ -137,11 +137,11 @@ void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool rela
 
         v3_f32 right;
         vec3_cross(&right, &camera->world_up, &forward);
-        vec3_normalize_f32(&right);
+        vec3_normalize(&right);
 
         v3_f32 up;
         vec3_cross(&up, &right, &forward);
-        vec3_normalize_f32(&up);
+        vec3_normalize(&up);
 
         for (int32 i = 0; i < CAMERA_MAX_INPUTS; i++) {
             switch(movement[i]) {
@@ -275,6 +275,8 @@ void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* t
     translation[11] = camera->location.z;
 }
 
+// @performance This function might be optimizable with simd?
+//  the normalization might also be not required?
 void
 camera_view_matrix_lh(const Camera* __restrict camera, f32* __restrict view)
 {
@@ -282,7 +284,7 @@ camera_view_matrix_lh(const Camera* __restrict camera, f32* __restrict view)
 
     v3_f32 xaxis;
     vec3_cross(&xaxis, &camera->world_up, &zaxis);
-    vec3_normalize_f32(&xaxis);
+    vec3_normalize(&xaxis);
 
     v3_f32 yaxis;
     vec3_cross(&yaxis, &zaxis, &xaxis);
@@ -305,6 +307,8 @@ camera_view_matrix_lh(const Camera* __restrict camera, f32* __restrict view)
     view[15] = 1.0f;
 }
 
+// @performance This function might be optimizable with simd?
+//  the normalization might also be not required?
 void
 camera_view_matrix_rh(const Camera* __restrict camera, f32* __restrict view)
 {
@@ -312,7 +316,7 @@ camera_view_matrix_rh(const Camera* __restrict camera, f32* __restrict view)
 
     v3_f32 xaxis;
     vec3_cross(&xaxis, &zaxis, &camera->world_up);
-    vec3_normalize_f32(&xaxis);
+    vec3_normalize(&xaxis);
 
     v3_f32 yaxis;
     vec3_cross(&yaxis, &zaxis, &xaxis);

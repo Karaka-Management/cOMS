@@ -10,7 +10,7 @@
 #include "PacketHeader.h"
 
 #if _WIN32
-    #include <ws2def.h>
+    #include <winsock2.h>
 #elif __linux__
     #include <arpa/inet.h>
     #include <sys/socket.h>
@@ -94,7 +94,7 @@ uint16 packet_udp_create_raw(
     in6_addr* __restrict ipv6_src, uint16 port_src,
     in6_addr* __restrict ipv6_dst, uint16 port_dst,
     uint16 flow,
-    byte* __restrict data, uint16 data_length
+    const byte* __restrict data, uint16 data_length
 ) {
     // create ipv6 header
     HeaderIPv6Unpacked* ip6_header = (HeaderIPv6Unpacked *) packet;
@@ -113,6 +113,7 @@ uint16 packet_udp_create_raw(
     udp_header->len = ip6_header->ip6_plen;
     udp_header->check = 0;
 
+    // @performance consider to do the compression right here instead of the memcpy
     // create payload
     memcpy(packet + sizeof(HeaderIPv6Unpacked) + sizeof(UDPHeaderIPv6Unpacked), data, data_length);
 
@@ -129,19 +130,11 @@ uint16 packet_udp_create_raw(
 inline
 uint16 packet_udp_create(
     byte* __restrict packet,
-    uint16 port_src, uint16 port_dst,
-    byte* __restrict data, uint16 data_length
+    const byte* __restrict data, uint16 data_length
 ) {
-    // create udp header
-    UDPHeaderIPv6Unpacked* udp_header = (UDPHeaderIPv6Unpacked *) packet;
-
-    udp_header->source = port_src;
-    udp_header->dest = port_dst;
-    udp_header->len = SWAP_ENDIAN_BIG((uint16) (sizeof(UDPHeaderIPv6Unpacked) + data_length));
-    udp_header->check = 0;
-
+    // @performance consider to do the compression right here instead of the memcpy
     // create payload
-    memcpy(packet + sizeof(UDPHeaderIPv6Unpacked), data, data_length);
+    memcpy(packet, data, data_length);
 
     return data_length;
 }

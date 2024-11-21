@@ -17,21 +17,36 @@
 
 struct int64_2 {
     union {
-        __m128i s;
+        #if ARM
+            svint64_t s;
+        #else
+            __m128i s;
+        #endif
+
         int64 v[2];
     };
 };
 
 struct int64_4 {
     union {
-        __m256i s;
+        #if ARM
+            svint64_t s;
+        #else
+            __m256i s;
+        #endif
+
         int64 v[4];
     };
 };
 
 struct int64_8 {
     union {
-        __m512i s;
+        #if ARM
+            svint64_t s;
+        #else
+            __m512i s;
+        #endif
+
         int64 v[8];
     };
 };

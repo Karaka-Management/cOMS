@@ -13,7 +13,7 @@
 
 #if _WIN32
     #include <winsock2.h>
-    #include <ws2tcpip.h>
+    #include <ws2ipdef.h>
 #else
     #include <netdb.h>
     #include <unistd.h>

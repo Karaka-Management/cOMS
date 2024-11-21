@@ -14,10 +14,13 @@
 #ifdef _MSC_VER
     #define PACKED_STRUCT  __pragma(pack(push, 1))
     #define UNPACKED_STRUCT __pragma(pack(pop))
+    typedef SSIZE_T ssize_t;
 #else
     #define PACKED_STRUCT  __attribute__((__packed__))
     #define UNPACKED_STRUCT
 #endif
+
+#define ARRAY_COUNT(a) (sizeof(a) / sizeof((a)[0]))
 
 typedef int8_t int8;
 typedef int16_t int16;

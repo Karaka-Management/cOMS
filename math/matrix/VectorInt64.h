@@ -12,7 +12,6 @@
 #include <immintrin.h>
 #include <xmmintrin.h>
 
-#include "../../stdlib/Intrinsics.h"
 #include "../../utils/MathUtils.h"
 #include "../../stdlib/simd/SIMD_I64.h"
 

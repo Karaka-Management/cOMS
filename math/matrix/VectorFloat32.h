@@ -9,7 +9,6 @@
 #ifndef TOS_MATH_MATRIX_VECTOR_FLOAT32_H
 #define TOS_MATH_MATRIX_VECTOR_FLOAT32_H
 
-#include "../../stdlib/Intrinsics.h"
 #include "../../utils/MathUtils.h"
 #include "../../stdlib/simd/SIMD_F32.h"
 

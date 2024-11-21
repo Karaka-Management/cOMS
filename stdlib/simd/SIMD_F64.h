@@ -16,21 +16,36 @@
 
 struct f64_2 {
     union {
-        __m128 s;
+        #if ARM
+            svfloat64_t s;
+        #else
+            __m128 s;
+        #endif
+
         f64 v[2];
     };
 };
 
 struct f64_4 {
     union {
-        __m256 s;
+        #if ARM
+            svfloat64_t s;
+        #else
+            __m256 s;
+        #endif
+
         f64 v[4];
     };
 };
 
 struct f64_8 {
     union {
-        __m512 s;
+        #if ARM
+            svfloat64_t s;
+        #else
+            __m512 s;
+        #endif
+
         f64 v[8];
     };
 };

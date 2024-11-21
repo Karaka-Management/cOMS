@@ -1,7 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "../stdlib/Intrinsics.h"
 #include "Animation.h"
+
+#if ARM
+    #include "../stdlib/IntrinsicsArm.h"
+#else
+    #include "../stdlib/Intrinsics.h"
+#endif
 
 double fade(double t) {
     return t * t * t * (t * (t * 6 - 15) + 10);

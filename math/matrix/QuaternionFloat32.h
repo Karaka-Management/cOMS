@@ -10,9 +10,15 @@
 #ifndef TOS_MATH_MATRIX_QUATERNION_FLOAT32_H
 #define TOS_MATH_MATRIX_QUATERNION_FLOAT32_H
 
-#include "../../stdlib/Intrinsics.h"
 #include "../../utils/MathUtils.h"
 #include "../../utils/TestUtils.h"
+#include "MatrixFloat32.h"
+
+#if ARM
+    #include "../../stdlib/IntrinsicsArm.h"
+#else
+    #include "../../stdlib/Intrinsics.h"
+#endif
 
 // @todo Remove unused functions there are a lot (AFTER you implemented quaternion handling in the camera)
 

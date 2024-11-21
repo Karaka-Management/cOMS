@@ -48,7 +48,7 @@ void socket_client_udp_create(SocketConnection* con, uint16 port = 0) {
     // Bind socket
     con->addr.sin6_family = AF_INET6;
     con->addr.sin6_addr = in6addr_any;
-    con->addr.sin6_port = port; // 0 = OS decides the port
+    con->addr.sin6_port = SWAP_ENDIAN_BIG(port); // 0 = OS decides the port
 
     if (bind(con->sd, (struct sockaddr*) &con->addr, sizeof(con->addr)) == SOCKET_ERROR) {
         closesocket(con->sd);

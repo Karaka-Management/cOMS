@@ -10,8 +10,13 @@
 #ifndef TOS_UTILS_MATH_UTILS_H
 #define TOS_UTILS_MATH_UTILS_H
 
-#include "../stdlib/Intrinsics.h"
 #include <math.h>
+
+#if ARM
+    #include "../stdlib/IntrinsicsArm.h"
+#else
+    #include "../stdlib/Intrinsics.h"
+#endif
 
 #define OMS_PI 3.14159265358979323846f
 #define OMS_PI_OVER_TWO (OMS_PI / 2.0f)

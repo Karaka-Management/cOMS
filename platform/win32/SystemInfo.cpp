@@ -35,6 +35,7 @@
     #pragma comment(lib, "iphlpapi.lib")
     #pragma comment(lib, "d3d12.lib")
     #pragma comment(lib, "dxgi.lib")
+    #pragma comment(lib, "Ws2_32.lib")
 #endif
 
 // @todo implement for arm?

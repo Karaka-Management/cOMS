@@ -18,21 +18,36 @@
 
 struct int8_16 {
     union {
-        __m128i s;
+        #if ARM
+            svint8_t s;
+        #else
+            __m128i s;
+        #endif
+
         int8 v[16];
     };
 };
 
 struct int8_32 {
     union {
-        __m256i s;
+        #if ARM
+            svint8_t s;
+        #else
+            __m256i s;
+        #endif
+
         int8 v[32];
     };
 };
 
 struct int8_64 {
     union {
-        __m512i s;
+        #if ARM
+            svint8_t s;
+        #else
+            __m512i s;
+        #endif
+
         int8 v[64];
     };
 };

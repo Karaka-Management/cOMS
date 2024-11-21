@@ -215,7 +215,12 @@ void debug_memory_log(uint64 start, uint64 size, int32 type, const char* functio
     mem->last_action[mem->action_idx].function_name = function;
 
     ++mem->action_idx;
-    mem->usage += size * type;
+
+    if (type < 0 && mem->usage < size * -type) {
+        mem->usage = 0;
+    } else {
+        mem->usage += size * type;
+    }
 }
 
 void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* function)

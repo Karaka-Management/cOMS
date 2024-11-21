@@ -24,21 +24,36 @@
 
 struct int32_4 {
     union {
-        __m128i s;
+        #if ARM
+            svint32_t s;
+        #else
+            __m128i s;
+        #endif
+
         int32 v[4];
     };
 };
 
 struct int32_8 {
     union {
-        __m256i s;
+        #if ARM
+            svint32_t s;
+        #else
+            __m256i s;
+        #endif
+
         int32 v[8];
     };
 };
 
 struct int32_16 {
     union {
-        __m512i s;
+        #if ARM
+            svint32_t s;
+        #else
+            __m512i s;
+        #endif
+
         int32 v[16];
     };
 };

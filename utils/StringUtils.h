@@ -222,7 +222,7 @@ int32 int_to_str(int64 number, char *str, const char thousands = ',') {
         str[k] = temp;
     }
 
-    return i - 1;
+    return i;
 }
 
 inline
@@ -299,6 +299,18 @@ str_concat(
     *dst = '\0';
 
     return src1_length + src2_length;
+}
+
+inline
+void str_concat(
+    const char* src, size_t src_length,
+    int64 data,
+    char* dst
+) {
+    memcpy(dst, src, src_length);
+    int32 len = int_to_str(data, dst + src_length);
+
+    dst[src_length + len] = '\0';
 }
 
 inline

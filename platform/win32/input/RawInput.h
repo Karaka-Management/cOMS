@@ -86,7 +86,7 @@ int rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory*
                     }
                 } break;
             case RIM_TYPEKEYBOARD: {
-                if (states[keyboard_found].handle_keyboard != NULL) {
+                    if (states[keyboard_found].handle_keyboard != NULL) {
                         ++keyboard_found;
                     }
 
@@ -219,13 +219,12 @@ void input_mouse_position(HWND hwnd, v2_int32* pos)
     }
 }
 
-int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int32 state_count, uint64 time)
+int32 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32 state_count, uint64 time)
 {
     int32 input_count = 0;
 
     int32 i = 0;
     if (raw->header.dwType == RIM_TYPEMOUSE) {
-        // @performance Change so we can directly access the correct state (maybe map handle address to index?)
         while (i < state_count
             && states[i].handle_mouse != raw->header.hDevice
         ) {
@@ -270,10 +269,12 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int32 state_coun
                 key.key_state = KEY_STATE_RELEASED;
                 key.key_id = INPUT_MOUSE_BUTTON_5;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) {
+                // @bug not working
                 key.key_state = KEY_STATE_RELEASED;
                 key.key_id = INPUT_MOUSE_BUTTON_WHEEL;
                 key.value = (int16) raw->data.mouse.usButtonData;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_HWHEEL) {
+                // @bug not working
                 key.key_state = KEY_STATE_RELEASED;
                 key.key_id = INPUT_MOUSE_BUTTON_HWHEEL;
                 key.value = (int16) raw->data.mouse.usButtonData;
@@ -281,17 +282,15 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int32 state_coun
                 return 0;
             }
 
-            // @question is mouse wheel really considered a button change?
-
             ++input_count;
 
             key.key_id |= INPUT_MOUSE_PREFIX;
             key.time = time;
 
-            input_set_state(&states[i].state, &key);
+            input_set_state(states[i].state.state_keys, &key);
             states[i].state_change_button = true;
         } else if (states[i].mouse_movement) {
-            // do we want to handle mouse movement for every individual movement, or do we want to pull it
+            // @question do we want to handle mouse movement for every individual movement, or do we want to pull it
             if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) {
                 RECT rect;
 
@@ -351,7 +350,7 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* states, int32 state_coun
 
         // @todo change to MakeCode instead of VKey
         InputKey key = {(uint16) (raw->data.keyboard.VKey | INPUT_KEYBOARD_PREFIX), new_state, 0, time};
-        input_set_state(&states[i].state, &key);
+        input_set_state(states[i].state.state_keys, &key);
         states[i].state_change_button = true;
     } else if (raw->header.dwType == RIM_TYPEHID
         && raw->header.dwSize > sizeof(RAWINPUT)
@@ -407,7 +406,7 @@ void input_handle(LPARAM lParam, Input* __restrict states, int state_count, Ring
     input_raw_handle((RAWINPUT *) lpb, states, state_count, time);
 }
 
-int32 input_handle_buffered(int buffer_size, Input* __restrict states, int state_count, RingMemory* ring, uint64 time)
+int32 input_handle_buffered(int32 buffer_size, Input* __restrict states, int state_count, RingMemory* ring, uint64 time)
 {
     uint32 cb_size;
     GetRawInputBuffer(NULL, &cb_size, sizeof(RAWINPUTHEADER));

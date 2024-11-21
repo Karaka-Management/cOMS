@@ -9,8 +9,13 @@
 #ifndef TOS_MATH_MATRIX_INT64_H
 #define TOS_MATH_MATRIX_INT64_H
 
-#include "../../stdlib/Intrinsics.h"
 #include "../../utils/MathUtils.h"
+
+#if ARM
+    #include "../../stdlib/IntrinsicsArm.h"
+#else
+    #include "../../stdlib/Intrinsics.h"
+#endif
 
 #endif
 

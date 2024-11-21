@@ -6,8 +6,8 @@
 #include "../../stdlib/Types.h"
 
 #if _WIN32
-    #include <ws2def.h>
-    #include <in6addr.h>
+    #include <winsock2.h>
+    #include <Ws2ipdef.h>
     #include <ws2tcpip.h>
 #elif __linux__
     #include <netinet/in.h>

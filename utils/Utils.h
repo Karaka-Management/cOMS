@@ -14,8 +14,6 @@
 
 #include "../stdlib/Types.h"
 
-#define ARRAY_COUNT(a) (sizeof(a) / sizeof((a)[0]))
-
 struct FileBody {
     uint64 size = 0; // doesn't include null termination (same as strlen)
     byte* content;
