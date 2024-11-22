@@ -23,6 +23,9 @@
 // @performance Create improved vertice generation for components (input + button, chat, ...) where we don't use as many
 //      degenerate triangled
 
+// @todo in many places we use ->value_int. We should load it as a value_float and also define it as float in the theme.
+// This way we wouldn't have to convert the value
+
 inline
 void vertex_degenerate_create(
     Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
@@ -53,7 +56,7 @@ inline
 void vertex_line_create(
     Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x1, f32 y1, f32 x2, f32 y2, f32 thickness, int32 align_h, int32 align_v,
-    uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
+    f32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
 ) {
     if (align_h == UI_ALIGN_H_RIGHT) {
         x1 -= thickness;
@@ -132,7 +135,7 @@ inline
 void vertex_rect_create(
     Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
-    uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
+    f32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
 ) {
     if (align_h == UI_ALIGN_H_RIGHT) {
         x -= width;
@@ -189,7 +192,7 @@ inline
 void vertex_rect_border_create(
     Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y, f32 width, f32 height, f32 thickness, int32 align_h, int32 align_v,
-    uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
+    f32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
 ) {
     if (align_h == UI_ALIGN_H_RIGHT) {
         x -= width;
@@ -325,7 +328,7 @@ void vertex_rect_border_create(
 
 void vertex_input(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
-    uint32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
+    f32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
 )
 {
     vertex_rect_border_create(
@@ -473,7 +476,7 @@ void text_calculate_dimensions(
 f32 vertex_text_create(
     Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
-    const Font* __restrict font, const char* __restrict text, f32 size, uint32 color_index = 0
+    const Font* __restrict font, const char* __restrict text, f32 size, f32 color_index = 0
 ) {
     int32 length = utf8_strlen(text);
     bool is_ascii = strlen(text) == length;
@@ -619,8 +622,8 @@ f32 ui_text_create(
 
     // If we do a different alignment we need to pre-calculate the width and height
     if (align_h != NULL || align_v != NULL) {
-        f32 tmp_width = width->value_int;
-        f32 tmp_height = height->value_int;
+        f32 tmp_width = (f32) width->value_int;
+        f32 tmp_height = (f32) height->value_int;
 
         if (align_h != NULL && align_v != NULL) {
             text_calculate_dimensions(&tmp_width, &tmp_height, &theme->font, text->value_str, is_ascii, scale, length);
@@ -646,14 +649,14 @@ f32 ui_text_create(
     uint32 first_glyph = theme->font.glyphs[0].codepoint;
 
     int32 start = *index;
-    f32 offset_x = x->value_int;
-    f32 offset_y = y->value_int;
+    f32 offset_x = (f32) x->value_int;
+    f32 offset_y = (f32) y->value_int;
     for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text->value_str[i] : utf8_get_char_at(text->value_str, i);
 
         if (character == '\n') {
             offset_y += theme->font.line_height * scale;
-            offset_x = x->value_int;
+            offset_x = (f32) x->value_int;
 
             continue;
         }

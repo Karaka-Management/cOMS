@@ -23,7 +23,25 @@
 #include "../../memory/RingMemory.h"
 
 #define strtok_r strtok_s
-#define usleep Sleep
+
+void usleep(uint64 microseconds)
+{
+    if ((microseconds % 1000) == 0) {
+        Sleep((DWORD) (microseconds / 1000));
+        return;
+    }
+
+    LARGE_INTEGER frequency;
+    QueryPerformanceFrequency(&frequency);
+
+    LARGE_INTEGER start, end;
+    QueryPerformanceCounter(&start);
+    long long target = start.QuadPart + (microseconds * frequency.QuadPart) / 1000000;
+
+    do {
+        QueryPerformanceCounter(&end);
+    } while (end.QuadPart < target);
+}
 
 inline
 time_t system_time()
@@ -113,7 +131,7 @@ file_size(const char* path)
 }
 
 inline
-uint64 time_ms()
+uint64 time_mu()
 {
     LARGE_INTEGER frequency;
     LARGE_INTEGER counter;

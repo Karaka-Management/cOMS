@@ -33,7 +33,11 @@ void audio_from_file(RingMemory* ring, const char* path, Audio* audio)
 }
 
 inline
-void audio_fill_buffer(AudioSetting* setting, uint32 to_fill, Audio* sound, int16* buffer1, int32 buffer1_size, int16* buffer2 = NULL, int32 buffer2_size = 0)
+void audio_fill_buffer(
+    AudioSetting* setting, uint32 to_fill, const Audio* sound,
+    int16* buffer1, int32 buffer1_size,
+    int16* buffer2 = NULL, int32 buffer2_size = 0
+)
 {
     uint32 limit = to_fill / setting->sample_size;
     buffer1_size /= setting->sample_size;
