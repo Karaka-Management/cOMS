@@ -84,18 +84,17 @@ void update_timing_stat(uint32 stat, const char* function)
 {
     uint64 new_tick_count = __rdtsc();
 
-    debug_container->perf_stats[stat].function = function;
-    debug_container->perf_stats[stat].delta_tick = new_tick_count - debug_container->perf_stats[stat].old_tick_count;
-    debug_container->perf_stats[stat].delta_time = (double) debug_container->perf_stats[stat].delta_tick / (double) debug_container->performance_count_frequency;
-    debug_container->perf_stats[stat].old_tick_count = new_tick_count;
+    TimingStat* timing_stat = &debug_container->perf_stats[stat];
+    timing_stat->function = function;
+    timing_stat->delta_tick = new_tick_count - timing_stat->old_tick_count;
+    timing_stat->delta_time = (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
+    timing_stat->old_tick_count = new_tick_count;
 }
 
 inline
 void update_timing_stat_start(uint32 stat, const char*)
 {
-    uint64 new_tick_count = __rdtsc();
-
-    debug_container->perf_stats[stat].old_tick_count = new_tick_count;
+    debug_container->perf_stats[stat].old_tick_count = __rdtsc();
 }
 
 inline
@@ -103,10 +102,11 @@ void update_timing_stat_end(uint32 stat, const char* function)
 {
     uint64 new_tick_count = __rdtsc();
 
-    debug_container->perf_stats[stat].function = function;
-    debug_container->perf_stats[stat].delta_tick = new_tick_count - debug_container->perf_stats[stat].old_tick_count;
-    debug_container->perf_stats[stat].delta_time = (double) debug_container->perf_stats[stat].delta_tick / (double) debug_container->performance_count_frequency;
-    debug_container->perf_stats[stat].old_tick_count = new_tick_count;
+    TimingStat* timing_stat = &debug_container->perf_stats[stat];
+    timing_stat->function = function;
+    timing_stat->delta_tick = new_tick_count - timing_stat->old_tick_count;
+    timing_stat->delta_time = (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
+    timing_stat->old_tick_count = new_tick_count;
 }
 
 inline
@@ -114,12 +114,11 @@ void update_timing_stat_end_continued(uint32 stat, const char* function)
 {
     uint64 new_tick_count = __rdtsc();
 
-    debug_container->perf_stats[stat].function = function;
-    debug_container->perf_stats[stat].delta_tick = debug_container->perf_stats[stat].delta_tick
-        + new_tick_count - debug_container->perf_stats[stat].old_tick_count;
-    debug_container->perf_stats[stat].delta_time = debug_container->perf_stats[stat].delta_time
-        + (double) debug_container->perf_stats[stat].delta_tick / (double) debug_container->performance_count_frequency;
-    debug_container->perf_stats[stat].old_tick_count = new_tick_count;
+    TimingStat* timing_stat = &debug_container->perf_stats[stat];
+    timing_stat->function = function;
+    timing_stat->delta_tick = timing_stat->delta_tick + new_tick_count - timing_stat->old_tick_count;
+    timing_stat->delta_time = timing_stat->delta_time + (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
+    timing_stat->old_tick_count = new_tick_count;
 }
 
 inline
@@ -172,23 +171,25 @@ void debug_memory_init(uint64 start, uint64 size)
         return;
     }
 
-    if (debug_container->dmc.memory_size <= debug_container->dmc.memory_element_idx) {
-        DebugMemory* old = debug_container->dmc.memory_stats;
+    DebugMemoryContainer* dmc = &debug_container->dmc;
+    if (dmc->memory_size <= dmc->memory_element_idx) {
+        DebugMemory* old = dmc->memory_stats;
 
-        debug_container->dmc.memory_size += 3;
-        debug_container->dmc.memory_stats = (DebugMemory *) calloc(debug_container->dmc.memory_size, sizeof(DebugMemory));
+        dmc->memory_size += 3;
+        dmc->memory_stats = (DebugMemory *) calloc(dmc->memory_size, sizeof(DebugMemory));
 
         if (old) {
-            memcpy(debug_container->dmc.memory_stats, old, (debug_container->dmc.memory_size - 3) * sizeof(DebugMemory));
+            memcpy(dmc->memory_stats, old, (dmc->memory_size - 3) * sizeof(DebugMemory));
             free(old);
         }
     }
 
-    debug_container->dmc.memory_stats[debug_container->dmc.memory_element_idx].start = start;
-    debug_container->dmc.memory_stats[debug_container->dmc.memory_element_idx].size = size;
-    debug_container->dmc.memory_stats[debug_container->dmc.memory_element_idx].usage = 0;
+    DebugMemory* debug_mem = &dmc->memory_stats[dmc->memory_element_idx];
+    debug_mem->start = start;
+    debug_mem->size = size;
+    debug_mem->usage = 0;
 
-    ++debug_container->dmc.memory_element_idx;
+    ++dmc->memory_element_idx;
 }
 
 void debug_memory_log(uint64 start, uint64 size, int32 type, const char* function)
@@ -206,13 +207,14 @@ void debug_memory_log(uint64 start, uint64 size, int32 type, const char* functio
         mem->action_idx = 0;
     }
 
-    mem->last_action[mem->action_idx].type = type;
-    mem->last_action[mem->action_idx].start = start - mem->start;
-    mem->last_action[mem->action_idx].size = size;
+    DebugMemoryRange* dmr = &mem->last_action[mem->action_idx];
+    dmr->type = type;
+    dmr->start = start - mem->start;
+    dmr->size = size;
 
     // We are using rdtsc since it is faster -> less debugging overhead than using time()
-    mem->last_action[mem->action_idx].time = __rdtsc();
-    mem->last_action[mem->action_idx].function_name = function;
+    dmr->time = __rdtsc();
+    dmr->function_name = function;
 
     ++mem->action_idx;
 
@@ -238,13 +240,14 @@ void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* fun
         mem->reserve_action_idx = 0;
     }
 
-    mem->reserve_action[mem->reserve_action_idx].type = type;
-    mem->reserve_action[mem->reserve_action_idx].start = start - mem->start;
-    mem->reserve_action[mem->reserve_action_idx].size = size;
+    DebugMemoryRange* dmr = &mem->reserve_action[mem->reserve_action_idx];
+    dmr->type = type;
+    dmr->start = start - mem->start;
+    dmr->size = size;
 
     // We are using rdtsc since it is faster -> less debugging overhead than using time()
-    mem->reserve_action[mem->reserve_action_idx].time = __rdtsc();
-    mem->reserve_action[mem->reserve_action_idx].function_name = function;
+    dmr->time = __rdtsc();
+    dmr->function_name = function;
 
     ++mem->reserve_action_idx;
 }
@@ -273,29 +276,30 @@ byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
         return 0;
     }
 
-    ASSERT_SIMPLE(size <= debug_container->log_memory.size);
+    LogMemory* log_mem = &debug_container->log_memory;
+    ASSERT_SIMPLE(size <= log_mem->size);
 
     if (aligned > 1) {
-        uintptr_t address = (uintptr_t) debug_container->log_memory.memory;
-        debug_container->log_memory.pos += (aligned - ((address + debug_container->log_memory.pos) & (aligned - 1))) % aligned;
+        uintptr_t address = (uintptr_t) log_mem->memory;
+        log_mem->pos += (aligned - ((address + log_mem->pos) & (aligned - 1))) % aligned;
     }
 
     size = ROUND_TO_NEAREST(size, aligned);
-    if (debug_container->log_memory.pos + size > debug_container->log_memory.size) {
-        debug_container->log_memory.pos = 0;
+    if (log_mem->pos + size > log_mem->size) {
+        log_mem->pos = 0;
 
         if (aligned > 1) {
-            uintptr_t address = (uintptr_t) debug_container->log_memory.memory;
-            debug_container->log_memory.pos += (aligned - ((address + debug_container->log_memory.pos) & (aligned - 1))) % aligned;
+            uintptr_t address = (uintptr_t) log_mem->memory;
+            log_mem->pos += (aligned - ((address + log_mem->pos) & (aligned - 1))) % aligned;
         }
     }
 
-    byte* offset = (byte *) (debug_container->log_memory.memory + debug_container->log_memory.pos);
+    byte* offset = (byte *) (log_mem->memory + log_mem->pos);
     if (zeroed) {
         memset((void *) offset, 0, size);
     }
 
-    debug_container->log_memory.pos += size;
+    log_mem->pos += size;
 
     return offset;
 }

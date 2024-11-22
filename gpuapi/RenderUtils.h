@@ -71,27 +71,27 @@ void vertex_line_create(
         y2 -= thickness / 2;
     }
 
-    float n1 = -(y2 - y1);
-    float n2 = x2 - x1;
-    float n_ = sqrtf(n2 * n2 + n1 * n1);
-    float norm1 = n1 / n_;
-    float norm2 = n2 / n_;
+    f32 n1 = -(y2 - y1);
+    f32 n2 = x2 - x1;
+    f32 n_ = sqrtf(n2 * n2 + n1 * n1);
+    f32 norm1 = n1 / n_;
+    f32 norm2 = n2 / n_;
 
     // @todo Currently we always use p1 and never p2
     //      This is wrong and depends on the Alignment, no? Maybe not
     // Calculate both parallel points to the start position
-    float p1_x1 = x1 + thickness * norm1;
-    float p1_y1 = y1 + thickness * norm2;
+    f32 p1_x1 = x1 + thickness * norm1;
+    f32 p1_y1 = y1 + thickness * norm2;
 
-    // float p2_x1 = x1 - thickness * norm1;
-    // float p2_y1 = y1 - thickness * norm2;
+    // f32 p2_x1 = x1 - thickness * norm1;
+    // f32 p2_y1 = y1 - thickness * norm2;
 
     // Calculate both parallel points to the end position
-    float p1_x2 = x2 + thickness * norm1;
-    float p1_y2 = y2 + thickness * norm2;
+    f32 p1_x2 = x2 + thickness * norm1;
+    f32 p1_y2 = y2 + thickness * norm2;
 
-    // float p2_x2 = x2 - thickness * norm1;
-    // float p2_y2 = y2 - thickness * norm2;
+    // f32 p2_x2 = x2 - thickness * norm1;
+    // f32 p2_y2 = y2 - thickness * norm2;
 
     vertex_degenerate_create(vertices, index, zindex, x1, y1);
 
@@ -148,6 +148,9 @@ void vertex_rect_create(
 
     vertex_degenerate_create(vertices, index, zindex, x, y);
 
+    f32 y_height = y + height;
+    f32 x_width = x + width;
+
     // Rectangle
     vertices[*index].position.x = x;
     vertices[*index].position.y = y;
@@ -158,14 +161,14 @@ void vertex_rect_create(
     ++(*index);
 
     vertices[*index].position.x = x;
-    vertices[*index].position.y = y + height;
+    vertices[*index].position.y = y_height;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x1;
     vertices[*index].tex_coord.y = tex_y2;
     vertices[*index].color = color_index;
     ++(*index);
 
-    vertices[*index].position.x = x + width;
+    vertices[*index].position.x = x_width;
     vertices[*index].position.y = y;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x2;
@@ -173,8 +176,8 @@ void vertex_rect_create(
     vertices[*index].color = color_index;
     ++(*index);
 
-    vertices[*index].position.x = x + width;
-    vertices[*index].position.y = y + height;
+    vertices[*index].position.x = x_width;
+    vertices[*index].position.y = y_height;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x2;
     vertices[*index].tex_coord.y = tex_y2;
@@ -205,6 +208,11 @@ void vertex_rect_border_create(
     // @bug While this works for the whole rectangle it doesn't work for individual borders
     // @todo We need a version where you can define individual borders
 
+    f32 y_height = y + height;
+    f32 y_thickness = y + thickness;
+    f32 x_width = x + width;
+    f32 x_thickness = x + thickness;
+
     // Rectangle
     // Top border
     vertices[*index].position.x = x;
@@ -216,14 +224,14 @@ void vertex_rect_border_create(
     ++(*index);
 
     vertices[*index].position.x = x;
-    vertices[*index].position.y = y + thickness;
+    vertices[*index].position.y = y_thickness;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x1;
     vertices[*index].tex_coord.y = tex_y2;
     vertices[*index].color = color_index;
     ++(*index);
 
-    vertices[*index].position.x = x + width;
+    vertices[*index].position.x = x_width;
     vertices[*index].position.y = y;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x2;
@@ -231,8 +239,8 @@ void vertex_rect_border_create(
     vertices[*index].color = color_index;
     ++(*index);
 
-    vertices[*index].position.x = x + width;
-    vertices[*index].position.y = y + thickness;
+    vertices[*index].position.x = x_width;
+    vertices[*index].position.y = y_thickness;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x2;
     vertices[*index].tex_coord.y = tex_y2;
@@ -240,24 +248,24 @@ void vertex_rect_border_create(
     ++(*index);
 
     // Right border
-    vertices[*index].position.x = x + width - thickness;
-    vertices[*index].position.y = y + thickness;
+    vertices[*index].position.x = x_width - thickness;
+    vertices[*index].position.y = y_thickness;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x2;
     vertices[*index].tex_coord.y = tex_y2;
     vertices[*index].color = color_index;
     ++(*index);
 
-    vertices[*index].position.x = x + width;
-    vertices[*index].position.y = y + height;
+    vertices[*index].position.x = x_width;
+    vertices[*index].position.y = y_height;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x1;
     vertices[*index].tex_coord.y = tex_y2;
     vertices[*index].color = color_index;
     ++(*index);
 
-    vertices[*index].position.x = x + width - thickness;
-    vertices[*index].position.y = y + height;
+    vertices[*index].position.x = x_width - thickness;
+    vertices[*index].position.y = y_height;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x2;
     vertices[*index].tex_coord.y = tex_y1;
@@ -265,8 +273,8 @@ void vertex_rect_border_create(
     ++(*index);
 
     // Bottom border
-    vertices[*index].position.x = x + width - thickness;
-    vertices[*index].position.y = y + height - thickness;
+    vertices[*index].position.x = x_width - thickness;
+    vertices[*index].position.y = y_height - thickness;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x2;
     vertices[*index].tex_coord.y = tex_y2;
@@ -274,7 +282,7 @@ void vertex_rect_border_create(
     ++(*index);
 
     vertices[*index].position.x = x;
-    vertices[*index].position.y = y + height;
+    vertices[*index].position.y = y_height;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x1;
     vertices[*index].tex_coord.y = tex_y2;
@@ -282,7 +290,7 @@ void vertex_rect_border_create(
     ++(*index);
 
     vertices[*index].position.x = x;
-    vertices[*index].position.y = y + height - thickness;
+    vertices[*index].position.y = y_height - thickness;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x2;
     vertices[*index].tex_coord.y = tex_y1;
@@ -290,8 +298,8 @@ void vertex_rect_border_create(
     ++(*index);
 
     // Left border
-    vertices[*index].position.x = x + thickness;
-    vertices[*index].position.y = y + height - thickness;
+    vertices[*index].position.x = x_thickness;
+    vertices[*index].position.y = y_height - thickness;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x2;
     vertices[*index].tex_coord.y = tex_y2;
@@ -299,15 +307,15 @@ void vertex_rect_border_create(
     ++(*index);
 
     vertices[*index].position.x = x;
-    vertices[*index].position.y = y + thickness;
+    vertices[*index].position.y = y_thickness;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x1;
     vertices[*index].tex_coord.y = tex_y2;
     vertices[*index].color = color_index;
     ++(*index);
 
-    vertices[*index].position.x = x + thickness;
-    vertices[*index].position.y = y + thickness;
+    vertices[*index].position.x = x_thickness;
+    vertices[*index].position.y = y_thickness;
     vertices[*index].position.z = zindex;
     vertices[*index].tex_coord.x = tex_x2;
     vertices[*index].tex_coord.y = tex_y1;
@@ -338,13 +346,14 @@ f32 text_calculate_dimensions_height(
     f32 height,
     const Font* __restrict font, const char* __restrict text, f32 scale, int32 length
 ) {
-    f32 y = font->line_height * scale;
+    f32 line_height = font->line_height * scale;
+    f32 y = line_height;
 
     // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
 
-    for (int i = 0; i < length; ++i) {
+    for (int32 i = 0; i < length; ++i) {
         if (text[i] == '\n') {
-            y += font->line_height * scale;
+            y += line_height;
         }
     }
 
@@ -363,7 +372,7 @@ f32 text_calculate_dimensions_width(
 
     // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
 
-    for (int i = 0; i < length; ++i) {
+    for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
 
         if (character == '\n') {
@@ -376,13 +385,14 @@ f32 text_calculate_dimensions_width(
         Glyph* glyph = NULL;
         // We try to jump t othe correct glyph based on the glyph codepoint
         // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
-        if (font->glyph_count > character - first_glyph
-            && font->glyphs[character - first_glyph].codepoint == character
+        int32 perfect_glyph_pos = character - first_glyph;
+        if (font->glyph_count > perfect_glyph_pos
+            && font->glyphs[perfect_glyph_pos].codepoint == character
         ) {
-            glyph = &font->glyphs[character - first_glyph];
+            glyph = &font->glyphs[perfect_glyph_pos];
         } else {
             // @performance consider to do binary search
-            for (int j = 0; j <= character - first_glyph && j < font->glyph_count; ++j) {
+            for (int32 j = 0; j <= perfect_glyph_pos && j < font->glyph_count; ++j) {
                 if (font->glyphs[j].codepoint == character) {
                     glyph = &font->glyphs[j];
 
@@ -406,8 +416,9 @@ void text_calculate_dimensions(
     f32* __restrict width, f32* __restrict height,
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
 ) {
+    f32 line_height = font->line_height * scale;
     f32 x = 0;
-    f32 y = font->line_height * scale;
+    f32 y = line_height;
 
     f32 offset_x = 0;
 
@@ -415,12 +426,12 @@ void text_calculate_dimensions(
 
     // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
 
-    for (int i = 0; i < length; ++i) {
+    for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
 
         if (character == '\n') {
             x = OMS_MAX(x, offset_x);
-            y += font->line_height * scale;
+            y += line_height;
 
             offset_x = 0;
 
@@ -430,13 +441,14 @@ void text_calculate_dimensions(
         Glyph* glyph = NULL;
         // We try to jump t othe correct glyph based on the glyph codepoint
         // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
-        if (font->glyph_count > character - first_glyph
-            && font->glyphs[character - first_glyph].codepoint == character
+        int32 perfect_glyph_pos = character - first_glyph;
+        if (font->glyph_count > perfect_glyph_pos
+            && font->glyphs[perfect_glyph_pos].codepoint == character
         ) {
-            glyph = &font->glyphs[character - first_glyph];
+            glyph = &font->glyphs[perfect_glyph_pos];
         } else {
             // @performance consider to do binary search
-            for (int j = 0; j <= character - first_glyph && j < font->glyph_count; ++j) {
+            for (int32 j = 0; j <= perfect_glyph_pos && j < font->glyph_count; ++j) {
                 if (font->glyphs[j].codepoint == character) {
                     glyph = &font->glyphs[j];
 
@@ -465,7 +477,7 @@ f32 vertex_text_create(
 ) {
     int32 length = utf8_strlen(text);
     bool is_ascii = strlen(text) == length;
-    float scale = size / font->size;
+    f32 scale = size / font->size;
 
     // If we do a different alignment we need to pre-calculate the width and height
     if (align_h != 0 || align_v != 0) {
@@ -493,7 +505,7 @@ f32 vertex_text_create(
     uint32 first_glyph = font->glyphs[0].codepoint;
 
     f32 offset_x = x;
-    for (int i = 0; i < length; ++i) {
+    for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {
             y += font->line_height * scale;
@@ -505,13 +517,14 @@ f32 vertex_text_create(
         Glyph* glyph = NULL;
         // We try to jump t othe correct glyph based on the glyph codepoint
         // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
-        if (font->glyph_count > character - first_glyph
-            && font->glyphs[character - first_glyph].codepoint == character
+        int32 perfect_glyph_pos = character - first_glyph;
+        if (font->glyph_count > perfect_glyph_pos
+            && font->glyphs[perfect_glyph_pos].codepoint == character
         ) {
-            glyph = &font->glyphs[character - first_glyph];
+            glyph = &font->glyphs[perfect_glyph_pos];
         } else {
             // @performance consider to do binary search
-            for (int j = 0; j <= character - first_glyph && j < font->glyph_count; ++j) {
+            for (int32 j = 0; j <= perfect_glyph_pos && j < font->glyph_count; ++j) {
                 if (font->glyphs[j].codepoint == character) {
                     glyph = &font->glyphs[j];
 
@@ -602,7 +615,7 @@ f32 ui_text_create(
 
     int32 length = utf8_strlen(text->value_str);
     bool is_ascii = strlen(text->value_str) == length;
-    float scale = size->value_float / theme->font.size;
+    f32 scale = size->value_float / theme->font.size;
 
     // If we do a different alignment we need to pre-calculate the width and height
     if (align_h != NULL || align_v != NULL) {
@@ -635,7 +648,7 @@ f32 ui_text_create(
     int32 start = *index;
     f32 offset_x = x->value_int;
     f32 offset_y = y->value_int;
-    for (int i = 0; i < length; ++i) {
+    for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text->value_str[i] : utf8_get_char_at(text->value_str, i);
 
         if (character == '\n') {
@@ -648,13 +661,14 @@ f32 ui_text_create(
         Glyph* glyph = NULL;
         // We try to jump t othe correct glyph based on the glyph codepoint
         // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
-        if (theme->font.glyph_count > character - first_glyph
-            && theme->font.glyphs[character - first_glyph].codepoint == character
+        int32 perfect_glyph_pos = character - first_glyph;
+        if (theme->font.glyph_count > perfect_glyph_pos
+            && theme->font.glyphs[perfect_glyph_pos].codepoint == character
         ) {
-            glyph = &theme->font.glyphs[character - first_glyph];
+            glyph = &theme->font.glyphs[perfect_glyph_pos];
         } else {
             // @performance consider to do binary search
-            for (int j = 0; j <= character - first_glyph && j < theme->font.glyph_count; ++j) {
+            for (int32 j = 0; j <= perfect_glyph_pos && j < theme->font.glyph_count; ++j) {
                 if (theme->font.glyphs[j].codepoint == character) {
                     glyph = &theme->font.glyphs[j];
 

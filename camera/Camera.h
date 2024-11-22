@@ -20,6 +20,8 @@
 // @todo Please check out if we can switch to quaternions. We tried but failed.
 
 struct Camera {
+    bool is_changed;
+
     v3_f32 location;
     v4_f32 orientation;
 
@@ -39,6 +41,8 @@ struct Camera {
     f32 znear;
     f32 zfar;
     f32 aspect;
+
+    f32 view[16];
 };
 
 void
@@ -48,17 +52,19 @@ camera_update_vectors(Camera* camera)
     camera->front.x = cos_ori_x * cosf(OMS_DEG2RAD(camera->orientation.y));
     camera->front.y = sinf(OMS_DEG2RAD(camera->orientation.x));
     camera->front.z = cos_ori_x * sinf(OMS_DEG2RAD(camera->orientation.y));
-    vec3_normalize(&camera->front);
 
     vec3_cross(&camera->right, &camera->front, &camera->world_up);
-    vec3_normalize(&camera->right);
-
     vec3_cross(&camera->up, &camera->right, &camera->front);
+
+    // We checked if combining these 3 into a single SIMD function, but it was slower
+    vec3_normalize(&camera->right);
+    vec3_normalize(&camera->front);
     vec3_normalize(&camera->up);
 }
 
 void camera_rotate(Camera* camera, int32 dx, int32 dy, f32 dt)
 {
+    camera->is_changed = true;
     camera->orientation.x += dy * camera->sensitivity;
     camera->orientation.y -= dx * camera->sensitivity;
 
@@ -82,6 +88,7 @@ void camera_rotate(Camera* camera, int32 dx, int32 dy, f32 dt)
 // you can have up to 4 camera movement inputs at the same time
 void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool relative_to_world = true)
 {
+    camera->is_changed = true;
     f32 velocity = camera->speed * dt;
 
     if (relative_to_world) {
@@ -137,10 +144,11 @@ void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool rela
 
         v3_f32 right;
         vec3_cross(&right, &camera->world_up, &forward);
-        vec3_normalize(&right);
 
         v3_f32 up;
         vec3_cross(&up, &right, &forward);
+
+        vec3_normalize(&right);
         vec3_normalize(&up);
 
         for (int32 i = 0; i < CAMERA_MAX_INPUTS; i++) {
@@ -275,10 +283,8 @@ void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* t
     translation[11] = camera->location.z;
 }
 
-// @performance This function might be optimizable with simd?
-//  the normalization might also be not required?
 void
-camera_view_matrix_lh(const Camera* __restrict camera, f32* __restrict view)
+camera_view_matrix_lh(Camera* __restrict camera)
 {
     v3_f32 zaxis = { camera->front.x, camera->front.y, camera->front.z };
 
@@ -289,28 +295,28 @@ camera_view_matrix_lh(const Camera* __restrict camera, f32* __restrict view)
     v3_f32 yaxis;
     vec3_cross(&yaxis, &zaxis, &xaxis);
 
-    view[0] = xaxis.x;
-    view[1] = yaxis.x;
-    view[2] = zaxis.x;
-    view[3] = 0.0f;
-    view[4] = xaxis.y;
-    view[5] = yaxis.y;
-    view[6] = zaxis.y;
-    view[7] = 0.0f;
-    view[8] = xaxis.z;
-    view[9] = yaxis.z;
-    view[10] = zaxis.z;
-    view[11] = 0;
-    view[12] = -vec3_dot(&xaxis, &camera->location);
-    view[13] = -vec3_dot(&yaxis, &camera->location);
-    view[14] = -vec3_dot(&zaxis, &camera->location);
-    view[15] = 1.0f;
+    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
+    // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
+    camera->view[0] = xaxis.x;
+    camera->view[1] = yaxis.x;
+    camera->view[2] = zaxis.x;
+    camera->view[3] = 0.0f;
+    camera->view[4] = xaxis.y;
+    camera->view[5] = yaxis.y;
+    camera->view[6] = zaxis.y;
+    camera->view[7] = 0.0f;
+    camera->view[8] = xaxis.z;
+    camera->view[9] = yaxis.z;
+    camera->view[10] = zaxis.z;
+    camera->view[11] = 0;
+    camera->view[12] = -vec3_dot(&xaxis, &camera->location);
+    camera->view[13] = -vec3_dot(&yaxis, &camera->location);
+    camera->view[14] = -vec3_dot(&zaxis, &camera->location);
+    camera->view[15] = 1.0f;
 }
 
-// @performance This function might be optimizable with simd?
-//  the normalization might also be not required?
 void
-camera_view_matrix_rh(const Camera* __restrict camera, f32* __restrict view)
+camera_view_matrix_rh(Camera* __restrict camera)
 {
     v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
@@ -321,22 +327,24 @@ camera_view_matrix_rh(const Camera* __restrict camera, f32* __restrict view)
     v3_f32 yaxis;
     vec3_cross(&yaxis, &zaxis, &xaxis);
 
-    view[0] = xaxis.x;
-    view[1] = yaxis.x;
-    view[2] = zaxis.x;
-    view[3] = 0.0f;
-    view[4] = xaxis.y;
-    view[5] = yaxis.y;
-    view[6] = zaxis.y;
-    view[7] = 0.0f;
-    view[8] = xaxis.z;
-    view[9] = yaxis.z;
-    view[10] = zaxis.z;
-    view[11] = 0;
-    view[12] = -vec3_dot(&xaxis, &camera->location);
-    view[13] = -vec3_dot(&yaxis, &camera->location);
-    view[14] = -vec3_dot(&zaxis, &camera->location);
-    view[15] = 1.0f;
+    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
+    // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
+    camera->view[0] = xaxis.x;
+    camera->view[1] = yaxis.x;
+    camera->view[2] = zaxis.x;
+    camera->view[3] = 0.0f;
+    camera->view[4] = xaxis.y;
+    camera->view[5] = yaxis.y;
+    camera->view[6] = zaxis.y;
+    camera->view[7] = 0.0f;
+    camera->view[8] = xaxis.z;
+    camera->view[9] = yaxis.z;
+    camera->view[10] = zaxis.z;
+    camera->view[11] = 0;
+    camera->view[12] = -vec3_dot(&xaxis, &camera->location);
+    camera->view[13] = -vec3_dot(&yaxis, &camera->location);
+    camera->view[14] = -vec3_dot(&zaxis, &camera->location);
+    camera->view[15] = 1.0f;
 }
 
 #endif

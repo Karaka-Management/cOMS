@@ -23,6 +23,7 @@
 
 // @todo Implement intrinsic versions!
 
+inline
 void vec2_normalize(f32* __restrict x, f32* __restrict y)
 {
     f32 d = sqrtf((*x) * (*x) + (*y) * (*y));
@@ -94,6 +95,7 @@ f32 vec2_dot(const v2_f32* a, const v2_f32* b) {
     return a->x * b->x + a->y * b->y;
 }
 
+inline
 void vec3_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z)
 {
     f32 d = sqrtf((*x) * (*x) + (*y) * (*y) + (*z) * (*z));
@@ -103,6 +105,7 @@ void vec3_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z)
     *z /= d;
 }
 
+inline
 void vec3_normalize(v3_f32* vec)
 {
     f32 d = sqrtf(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
@@ -179,6 +182,7 @@ void vec3_cross(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) {
     vec->z = a->x * b->y - a->y * b->x;
 }
 
+inline
 f32 vec3_dot(const v3_f32* a, const v3_f32* b) {
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }

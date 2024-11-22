@@ -533,16 +533,18 @@ void
 input_hotkey_state(Input* input)
 {
     uint8 old_hotkeys[MAX_KEY_PRESSES];
-    memcpy(old_hotkeys, input->state.state_hotkeys, sizeof(uint8) * MAX_KEY_PRESSES);
+    InputState* state = &input->state;
 
-    memset(input->state.state_hotkeys, 0, sizeof(uint8) * MAX_KEY_PRESSES);
+    memcpy(old_hotkeys, state->state_hotkeys, sizeof(uint8) * MAX_KEY_PRESSES);
+
+    memset(state->state_hotkeys, 0, sizeof(uint8) * MAX_KEY_PRESSES);
 
     int32 active_hotkeys = 0;
 
     // Check every key down state
     for (int key_state = 0; key_state < MAX_KEY_STATES; ++key_state) {
-        if (input->state.state_keys[key_state].key_id == 0
-            || input->state.state_keys[key_state].key_state == KEY_STATE_RELEASED
+        if (state->state_keys[key_state].key_id == 0
+            || state->state_keys[key_state].key_state == KEY_STATE_RELEASED
         ) {
             // no key defined for this down state
             continue;
@@ -551,7 +553,7 @@ input_hotkey_state(Input* input)
         // Is a key defined for this state AND is at least one hotkey defined for this key
         //      If no hotkey is defined we don't care
         //      Careful, remember MAX_MOUSE_KEYS offset
-        InputKey* key = &input->state.state_keys[key_state];
+        InputKey* key = &state->state_keys[key_state];
         int32 internal_key_id = (key->key_id & ~(INPUT_KEYBOARD_PREFIX | INPUT_CONTROLLER_PREFIX))
             + ((bool) (key->key_id & INPUT_KEYBOARD_PREFIX)) * MAX_MOUSE_KEYS
             + ((bool) (key->key_id & INPUT_CONTROLLER_PREFIX)) * (MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS);
@@ -589,17 +591,17 @@ input_hotkey_state(Input* input)
 
                 // Hotkey already active
                 // @question Do we even need this? This shouldn't happen anyway?!
-                if (hotkey_is_active(input->state.state_hotkeys, hotkeys_for_key[possible_hotkey_idx])) {
+                if (hotkey_is_active(state->state_hotkeys, hotkeys_for_key[possible_hotkey_idx])) {
                     continue;
                 }
 
                 // store active hotkey, if it is not already active
-                bool is_pressed = hotkey_keys_are_active(input->state.state_keys, mapping, hotkeys_for_key[possible_hotkey_idx]);
+                bool is_pressed = hotkey_keys_are_active(state->state_keys, mapping, hotkeys_for_key[possible_hotkey_idx]);
                 if (!is_pressed) {
                     continue;
                 }
 
-                input->state.state_hotkeys[active_hotkeys] = hotkeys_for_key[possible_hotkey_idx];
+                state->state_hotkeys[active_hotkeys] = hotkeys_for_key[possible_hotkey_idx];
                 ++active_hotkeys;
 
                 // Run callback if defined
