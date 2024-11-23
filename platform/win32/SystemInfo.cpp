@@ -27,16 +27,14 @@
 #include <comdef.h>
 #include <winnls.h>
 
-#ifdef _MSC_VER
-    // @performance Do we really need all these libs, can't we simplify that?!
-    #include <intrin.h>
-    #pragma comment(lib, "Advapi32.lib")
-    #pragma comment(lib, "wbemuuid.lib")
-    #pragma comment(lib, "iphlpapi.lib")
-    #pragma comment(lib, "d3d12.lib")
-    #pragma comment(lib, "dxgi.lib")
-    #pragma comment(lib, "Ws2_32.lib")
-#endif
+// @performance Do we really need all these libs, can't we simplify that?!
+#include <intrin.h>
+#pragma comment(lib, "Advapi32.lib")
+#pragma comment(lib, "wbemuuid.lib")
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "Ws2_32.lib")
 
 // @todo implement for arm?
 
@@ -318,6 +316,9 @@ void cpu_info_get(CpuInfo* info) {
     info->simd.sse = (temp = max_sse_supported()) > 9 ? temp / 10.0f : temp;
     info->simd.avx256 = max_avx256_supported();
     info->simd.avx512 = max_avx512_supported();
+    info->simd.sve = max_sve_supported();
+    info->simd.neon = max_neon_supported();
+    info->simd.abm = supports_abm();
 
     cache_info_get(1, &info->cache[0]);
     cache_info_get(2, &info->cache[1]);
@@ -326,15 +327,16 @@ void cpu_info_get(CpuInfo* info) {
 
     SYSTEM_INFO sys_info;
     GetSystemInfo(&sys_info);
+    info->thread_count = sys_info.dwNumberOfProcessors;
     info->page_size = sys_info.dwPageSize;
 
     int32 cpuInfo[4] = { 0 };
     __cpuid(cpuInfo, 0);
 
     memset(info->vendor, 0, sizeof(info->vendor));
-    *((int*)info->vendor) = cpuInfo[1];
-    *((int*)(info->vendor + 4)) = cpuInfo[3];
-    *((int*)(info->vendor + 8)) = cpuInfo[2];
+    *((int32 *) info->vendor) = cpuInfo[1];
+    *((int32 *) (info->vendor + 4)) = cpuInfo[3];
+    *((int32 *) (info->vendor + 8)) = cpuInfo[2];
     info->vendor[12] = '\0';
 
     __cpuid(cpuInfo, 0x80000002);
@@ -513,7 +515,7 @@ void system_info_render(char* buf, const SystemInfo* info) {
         "\n"
         "CPU:\n"
         "==============\n"
-        "Hardware\n" "Vendor: %s\n" "Brand: %s\n" "Model: %d\n" "Family: %d\n" "Mhz: %d\n" "Page Size: %d\n"
+        "Hardware\n" "Vendor: %s\n" "Brand: %s\n" "Model: %d\n" "Family: %d\n" "Mhz: %d\n" "Thread Count: %d\n" "Page Size: %d\n"
         "\n"
         "Cache:\n"
         "L1: Size %d Line %d\n"
@@ -521,7 +523,7 @@ void system_info_render(char* buf, const SystemInfo* info) {
         "L3: Size %d Line %d\n"
         "L4: Size %d Line %d\n"
         "\n"
-        "SIMD:\n" "SSE: %.1f\n" "AVX256: %d\n" "AVX512: %s\n"
+        "SIMD:\n" "SSE: %.1f\n" "AVX256: %d\n" "AVX512: %s\n" "SVE: %d\n" "NEON: %d\n" "ABM: %d\n"
         "\n"
         "GPU:\n"
         "==============\n"
@@ -546,12 +548,12 @@ void system_info_render(char* buf, const SystemInfo* info) {
         info->network_count < 2 ? "" : info->network[1].slot, info->network_count < 2 ? 0 : info->network[1].mac[0], info->network_count < 2 ? 0 : info->network[1].mac[1], info->network_count < 2 ? 0 : info->network[1].mac[2], info->network_count < 2 ? 0 : info->network[1].mac[3], info->network_count < 2 ? 0 : info->network[1].mac[4], info->network_count < 2 ? 0 : info->network[1].mac[5], info->network_count < 2 ? 0 : info->network[1].mac[6], info->network_count < 2 ? 0 : info->network[1].mac[7],
         info->network_count < 3 ? "" : info->network[2].slot, info->network_count < 3 ? 0 : info->network[2].mac[0], info->network_count < 3 ? 0 : info->network[2].mac[1], info->network_count < 3 ? 0 : info->network[2].mac[2], info->network_count < 3 ? 0 : info->network[2].mac[3], info->network_count < 3 ? 0 : info->network[2].mac[4], info->network_count < 3 ? 0 : info->network[2].mac[5], info->network_count < 3 ? 0 : info->network[2].mac[6], info->network_count < 3 ? 0 : info->network[2].mac[7],
         info->network_count < 4 ? "" : info->network[3].slot, info->network_count < 4 ? 0 : info->network[3].mac[0], info->network_count < 4 ? 0 : info->network[3].mac[1], info->network_count < 4 ? 0 : info->network[3].mac[2], info->network_count < 4 ? 0 : info->network[3].mac[3], info->network_count < 4 ? 0 : info->network[3].mac[4], info->network_count < 4 ? 0 : info->network[3].mac[5], info->network_count < 4 ? 0 : info->network[3].mac[6], info->network_count < 4 ? 0 : info->network[3].mac[7],
-        info->cpu.vendor, info->cpu.brand, info->cpu.model, info->cpu.family, info->cpu.mhz, info->cpu.page_size,
+        info->cpu.vendor, info->cpu.brand, info->cpu.model, info->cpu.family, info->cpu.mhz, info->cpu.thread_count, info->cpu.page_size,
         info->cpu.cache[0].size, info->cpu.cache[0].line_size,
         info->cpu.cache[1].size, info->cpu.cache[1].line_size,
         info->cpu.cache[2].size, info->cpu.cache[2].line_size,
         info->cpu.cache[3].size, info->cpu.cache[3].line_size,
-        info->cpu.simd.sse, info->cpu.simd.avx256, info->cpu.simd.avx512 > 0 ? avx512[info->cpu.simd.avx512 - 1] : "0",
+        info->cpu.simd.sse, info->cpu.simd.avx256, info->cpu.simd.avx512 > 0 ? avx512[info->cpu.simd.avx512 - 1] : "0", info->cpu.simd.sve, info->cpu.simd.neon, (int32) info->cpu.simd.abm,
         info->gpu[0].name, info->gpu[0].vram,
         info->gpu_count < 2 ? "" : info->gpu[1].name, info->gpu_count < 2 ? 0 : info->gpu[1].vram,
         info->display[0].name, info->display[0].width, info->display[0].height, info->display[0].hz,

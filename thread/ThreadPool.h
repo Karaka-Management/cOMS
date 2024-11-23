@@ -12,20 +12,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../stdlib/Types.h"
+
 #ifdef _WIN32
     #include "../platform/win32/Thread.h"
-#else
-    #include "../platform/linux/Thread.h"
-#endif
-
-#include "../stdlib/Types.h"
-#include "ThreadJob.h"
-
-#if _WIN32
-
 #elif __linux__
     #include "../platform/linux/Thread.h"
 #endif
+
+#include "ThreadJob.h"
 
 struct ThreadPool {
     ThreadJob *work_first;
@@ -63,11 +58,7 @@ ThreadJob *thread_pool_work_poll(ThreadPool *pool)
     return work;
 }
 
-#ifdef _WIN32
-static DWORD WINAPI thread_pool_worker(void* arg)
-#else
-static void* thread_pool_worker(void *arg)
-#endif
+static THREAD_RETURN thread_pool_worker(void* arg)
 {
     ThreadPool *pool = (ThreadPool *) arg;
     ThreadJob *work;
@@ -128,7 +119,7 @@ ThreadPool *thread_pool_create(size_t num, ThreadPool* pool)
     pool->work_first = NULL;
     pool->work_last  = NULL;
 
-    for (i = 0; i < num; i++) {
+    for (i = 0; i < num; ++i) {
         pthread_create(&thread, NULL, thread_pool_worker, pool);
         ++(pool->size);
 
@@ -183,11 +174,7 @@ void thread_pool_destroy(ThreadPool *pool)
 
 ThreadJob* thread_pool_add_work(ThreadPool *pool, ThreadJob* job)
 {
-    if (pool == NULL) {
-        return NULL;
-    }
-
-    if (job == NULL) {
+    if (pool == NULL || job == NULL) {
         return NULL;
     }
 

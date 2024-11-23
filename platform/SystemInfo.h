@@ -36,6 +36,9 @@ struct SIMDInfo {
     f32 sse;
     int32 avx256;
     int32 avx512;
+    int32 sve;
+    int32 neon;
+    bool abm;
 };
 
 struct CpuInfo {
@@ -43,6 +46,7 @@ struct CpuInfo {
     char brand[49];
     int32 model;
     int32 family;
+    int32 thread_count;
     int32 mhz;
     CpuCacheInfo cache[4];
     int32 page_size;

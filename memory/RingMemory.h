@@ -22,8 +22,10 @@
 
 #if _WIN32
     #include "../platform/win32/Allocation.h"
+    #include "../platform/win32/Thread.h"
 #elif __linux__
     #include "../platform/linux/Allocation.h"
+    #include "../platform/linux/Thread.h"
 #endif
 
 struct RingMemory {
@@ -41,7 +43,12 @@ struct RingMemory {
     uint64 size;
     int32 alignment;
     int32 element_alignment;
+
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
 };
+
+// @bug alignment should also include the end point, not just the start
 
 inline
 void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
@@ -147,6 +154,33 @@ void ring_reset(RingMemory* ring)
     ring->head = ring->memory;
 }
 
+// Moves a pointer based on the size you want to consume (new position = after consuming size)
+void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, byte aligned = 0)
+{
+    ASSERT_SIMPLE(size <= ring->size);
+
+    if (aligned == 0) {
+        aligned = (byte) OMS_MAX(ring->element_alignment, 1);
+    }
+
+    if (aligned > 1) {
+        uintptr_t address = (uintptr_t) *pos;
+        *pos += (aligned - (address& (aligned - 1))) % aligned;
+    }
+
+    size = ROUND_TO_NEAREST(size, aligned);
+    if (*pos + size > ring->end) {
+        *pos = ring->memory;
+
+        if (aligned > 1) {
+            uintptr_t address = (uintptr_t) *pos;
+            *pos += (aligned - (address & (aligned - 1))) % aligned;
+        }
+    }
+
+    *pos += size;
+}
+
 byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zeroed = false)
 {
     ASSERT_SIMPLE(size <= ring->size);
@@ -203,6 +237,8 @@ inline
 bool ring_commit_safe(const RingMemory* ring, uint64 size, byte aligned = 0)
 {
     // aligned * 2 since that should be the maximum overhead for an element
+    // @bug could this result in a case where the ring is considered empty/full (false positive/negative)?
+    // The "correct" version would probably to use ring_move_pointer in some form
     uint64 max_mem_required = size + aligned * 2;
 
     if (ring->tail < ring->head) {
@@ -211,7 +247,6 @@ bool ring_commit_safe(const RingMemory* ring, uint64 size, byte aligned = 0)
     } else if (ring->tail > ring->head) {
         return ((uint64) (ring->tail - ring->head)) > max_mem_required;
     } else {
-        // @question Is this really the case? What if it is completely filled?
         return true;
     }
 }
@@ -231,7 +266,7 @@ void ring_force_tail_update(const RingMemory* ring)
 inline
 int64 ring_dump(const RingMemory* ring, byte* data)
 {
-    byte* tail = data;
+    byte* start = data;
 
     // Size
     *((uint64 *) data) = SWAP_ENDIAN_LITTLE(ring->size);
@@ -259,7 +294,7 @@ int64 ring_dump(const RingMemory* ring, byte* data)
     memcpy(data, ring->memory, ring->size);
     data += ring->size;
 
-    return data - tail;
+    return data - start;
 }
 
 #endif

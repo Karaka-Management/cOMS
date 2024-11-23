@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../stdlib/Types.h"
+
 #if _WIN32
     #include "../platform/win32/ThreadDefines.h"
     #include "../platform/win32/Thread.h"
@@ -25,7 +27,7 @@
 
 void thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
 {
-    for (int i = 0; i < worker->mutex_size; ++i) {
+    for (int32 i = 0; i < worker->mutex_size; ++i) {
         pthread_mutex_init(&worker->mutex[i], NULL);
     }
 
@@ -35,10 +37,11 @@ void thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
 
 void thread_stop(Worker* worker)
 {
+    atomic_set(&worker->state, 0);
     pthread_join(worker->thread, NULL);
     pthread_cond_destroy(&worker->condition);
 
-    for (int i = 0; i < worker->mutex_size; ++i) {
+    for (int32 i = 0; i < worker->mutex_size; ++i) {
         pthread_mutex_destroy(&worker->mutex[i]);
     }
 }

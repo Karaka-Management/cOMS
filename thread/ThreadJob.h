@@ -12,28 +12,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../stdlib/Types.h"
+
 #if _WIN32
     #include "../platform/win32/ThreadDefines.h"
 #elif __linux__
     #include "../platform/linux/ThreadDefines.h"
 #endif
 
-struct job_t {
+struct PoolWorker {
     ThreadJobFunc func;
     void *arg;
-    int state;
-    job_t *next;
+    volatile int32 state;
+    PoolWorker *next;
 };
 
-typedef job_t ThreadJob;
+typedef PoolWorker ThreadJob;
 
 struct Worker {
-    int index; // @todo When are we using this?
-    int state;
+    volatile int32 state;
 
     pthread_t thread;
     pthread_cond_t condition;
-    int mutex_size;
+    int32 mutex_size;
     pthread_mutex_t* mutex;
 };
 
