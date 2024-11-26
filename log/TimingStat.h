@@ -10,7 +10,6 @@
 #define TOS_LOG_TIMING_STAT_H
 
 #include <stdio.h>
-#include <time.h>
 #include "../stdlib/Types.h"
 #include "Debug.h"
 

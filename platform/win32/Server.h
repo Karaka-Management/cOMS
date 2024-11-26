@@ -16,7 +16,6 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-#include "../../stdlib/Types.h"
 #include "../../network/SocketConnection.h"
 #include "../../utils/EndianUtils.h"
 

@@ -7,6 +7,8 @@
 #include "Log.h"
 #include "TimingStat.h"
 #include "../utils/StringUtils.h"
+#include "../utils/TestUtils.h"
+#include "../utils/MathUtils.h"
 
 global_persist DebugContainer* debug_container = NULL;
 
@@ -21,7 +23,7 @@ global_persist DebugContainer* debug_container = NULL;
         QueryPerformanceFrequency(&perf_counter);
         debug_container->performance_count_frequency = perf_counter.QuadPart;
     }
-#else
+#elif __linux__
     void setup_performance_count() {
         if (!debug_container) {
             return;

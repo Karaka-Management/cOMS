@@ -6,28 +6,11 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_THREAD_DEFINES_H
-#define TOS_PLATFORM_WIN32_THREAD_DEFINES_H
+#ifndef TOS_PLATFORM_WIN32_THREADING_ATOMIC_H
+#define TOS_PLATFORM_WIN32_THREADING_ATOMIC_H
 
-#include <stdio.h>
 #include <windows.h>
-
-#include "../../stdlib/Types.h"
-
-typedef DWORD (WINAPI *ThreadJobFunc)(void*);
-typedef CRITICAL_SECTION pthread_mutex_t;
-typedef void pthread_mutexattr_t;
-typedef void pthread_condattr_t;
-typedef void pthread_rwlockattr_t;
-typedef HANDLE pthread_t;
-typedef CONDITION_VARIABLE pthread_cond_t;
-
-struct pthread_rwlock_t {
-    SRWLOCK lock;
-    bool exclusive;
-};
-
-#define THREAD_RETURN DWORD WINAPI
+#include "../../../stdlib/Types.h"
 
 inline
 void atomic_set(volatile int32* value, int32 new_value)

@@ -136,12 +136,12 @@ int32 utf8_get_char_at(const char* in, int32 index) {
 inline
 void wchar_to_char(wchar_t* str)
 {
-    char *src = (char*) str;
-    char *dest = (char *) src;
+    char* src = (char*) str;
+    char* dest = src;
 
     while (*src != '\0' && src[1] != '\0') {
         if (*src != '\0') {
-            *dest++ = (char) *src;
+            *dest++ = *src;
         }
 
         ++src;
@@ -151,16 +151,14 @@ void wchar_to_char(wchar_t* str)
 }
 
 inline
-void wchar_to_char(const char* str, char* __restrict dest)
+void wchar_to_char(const char* __restrict str, char* __restrict dest)
 {
-    char *src = (char*) str;
-
-    while (*src != '\0' && src[1] != '\0') {
-        if (*src != '\0') {
-            *dest++ = (char) *src;
+    while (*str != '\0' && str[1] != '\0') {
+        if (*str != '\0') {
+            *dest++ = (char) *str;
         }
 
-        ++src;
+        ++str;
     }
 
     *dest = '\0';
@@ -189,8 +187,8 @@ int32 str_to_int(const char *str)
 inline constexpr
 int32 int_to_str(int64 number, char *str, const char thousands = ',') {
     int32 i = 0;
-    int64 sign = number;
     int32 digit_count = 0;
+    int64 sign = number;
 
     if (number == 0) {
         str[i++] = '0';
@@ -243,7 +241,8 @@ size_t str_count(const char* __restrict str, const char* __restrict substr)
     return count;
 }
 
-inline char* strsep(const char* *sp, const char* sep)
+inline
+char* strsep(const char** sp, const char* sep)
 {
     char* p, *s;
 
@@ -251,7 +250,7 @@ inline char* strsep(const char* *sp, const char* sep)
         return (NULL);
     }
 
-    s = (char* ) *sp;
+    s = (char *) *sp;
     p = s + strcspn(s, sep);
 
     if (*p != '\0') {
@@ -431,8 +430,7 @@ void str_replace(const char* str, const char* __restrict search, const char* __r
         memcpy(result_ptr, replace, replace_len);
         result_ptr += replace_len;
 
-        current += search_len;
-        str = current;
+        str = current + search_len;
     }
 
     strcpy(result_ptr, str);
@@ -476,7 +474,7 @@ bool is_whitespace(char str)
 }
 
 inline
-int32 chars_to_eol(const char* str)
+int32 str_to_eol(const char* str)
 {
     int32 offset = 0;
     while (!is_eol(str) && *str++ != '\0')  {
@@ -487,7 +485,7 @@ int32 chars_to_eol(const char* str)
 }
 
 inline
-int32 chars_to(const char* str, char delim)
+int32 str_to(const char* str, char delim)
 {
     int32 offset = 0;
     while (*str != delim && *str++ != '\0')  {
@@ -498,7 +496,7 @@ int32 chars_to(const char* str, char delim)
 }
 
 inline
-void char_move_to(char** str, const char delim)
+void str_move_to(char** str, char delim)
 {
     while (**str != delim && **str != '\0')  {
         ++(*str);
@@ -506,7 +504,7 @@ void char_move_to(char** str, const char delim)
 }
 
 inline
-void char_move_past(char** str, const char delim)
+void str_move_past(char** str, char delim)
 {
     while (**str != delim && **str != '\0')  {
         ++(*str);
@@ -518,7 +516,7 @@ void char_move_past(char** str, const char delim)
 }
 
 inline
-void char_move_past_alpha_num(char** str)
+void str_move_past_alpha_num(char** str)
 {
     while ((**str >= 48 && **str <= 57)
         || (**str >= 65 && **str <= 90)
@@ -536,7 +534,7 @@ bool str_is_comment(char* str)
 }
 
 inline
-void char_skip(char** str, const char delim)
+void str_skip(char** str, char delim)
 {
     while (**str == delim)  {
         ++(*str);
@@ -544,7 +542,7 @@ void char_skip(char** str, const char delim)
 }
 
 inline
-void char_skip_whitespace(char** str)
+void str_skip_whitespace(char** str)
 {
     while (**str == ' ' || **str == '\t')  {
         ++(*str);
@@ -552,7 +550,7 @@ void char_skip_whitespace(char** str)
 }
 
 inline
-void char_skip_empty(char** str)
+void str_skip_empty(char** str)
 {
     while (**str == ' ' || **str == '\t' || **str == '\n' || **str == '\r')  {
         ++(*str);
@@ -560,7 +558,7 @@ void char_skip_empty(char** str)
 }
 
 inline
-void char_skip_non_empty(char** str)
+void str_skip_non_empty(char** str)
 {
     while (**str != ' ' && **str != '\t' && **str != '\n' && **str != '\0')  {
         ++(*str);
@@ -568,7 +566,7 @@ void char_skip_non_empty(char** str)
 }
 
 inline
-void char_skip_list(char** __restrict str, const char* __restrict delim, int32 len)
+void str_skip_list(char** __restrict str, const char* __restrict delim, int32 len)
 {
     bool run = true;
     while (run && **str != '\0') {
@@ -586,7 +584,7 @@ void char_skip_list(char** __restrict str, const char* __restrict delim, int32 l
 }
 
 inline
-void char_skip_until_list(char** __restrict str, const char* __restrict delim, int32 len)
+void str_skip_until_list(char** __restrict str, const char* __restrict delim, int32 len)
 {
     while (**str != '\0') {
         for (int32 i = 0; i < len; ++i) {
@@ -600,7 +598,7 @@ void char_skip_until_list(char** __restrict str, const char* __restrict delim, i
 }
 
 inline
-void char_copy_until(const char* __restrict src, char* __restrict dest, char delim)
+void str_copy_until(const char* __restrict src, char* __restrict dest, char delim)
 {
     while (*src != delim && *src != '\0') {
         *dest++ = *src++;
@@ -610,7 +608,7 @@ void char_copy_until(const char* __restrict src, char* __restrict dest, char del
 }
 
 inline
-void char_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
+void str_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
 {
     while (*src != '\0') {
         for (int32 i = 0; i < len; ++i) {
@@ -627,9 +625,37 @@ void char_copy_until(const char* __restrict src, char* __restrict dest, const ch
 }
 
 inline
-void char_copy_move_until(char** __restrict src, char* __restrict dest, char delim)
+int32 str_copy_until(char* __restrict dest, const char* __restrict src, char delim)
 {
-    while (**src != delim) {
+    int32 len = 0;
+    while (*src != delim && *src != '\0') {
+        *dest++ = *src++;
+        ++len;
+    }
+
+    *dest = '\0';
+
+    return len;
+}
+
+inline
+int32 str_copy(char* __restrict dest, const char* __restrict src, char delim)
+{
+    int32 len = 0;
+    while (*src != delim) {
+        *dest++ = *src++;
+        ++len;
+    }
+
+    *dest = '\0';
+
+    return len;
+}
+
+inline
+void str_copy_move_until(char** __restrict src, char* __restrict dest, char delim)
+{
+    while (**src != delim && **src != '\0') {
         *dest++ = **src;
         ++(*src);
     }
@@ -638,7 +664,7 @@ void char_copy_move_until(char** __restrict src, char* __restrict dest, char del
 }
 
 inline
-void char_copy_move_until(char** __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
+void str_copy_move_until(char** __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
 {
     while (**src != '\0') {
         for (int32 i = 0; i < len; ++i) {
@@ -655,8 +681,6 @@ void char_copy_move_until(char** __restrict src, char* __restrict dest, const ch
     *dest = '\0';
 }
 
-// @question Do we really need this, isn't char_copy_move_until better?
-// Maybe create a copy_move_until_eol
 inline
 int32 strcpy_to_eol(const char* src, char* dst)
 {

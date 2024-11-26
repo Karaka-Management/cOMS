@@ -10,8 +10,6 @@
 #define TOS_ASSET_H
 
 #include "../stdlib/Types.h"
-#include "../object/Vertex.h"
-#include "../stdlib/HashMap.h"
 #include "AssetType.h"
 
 #define MAX_ASSET_NAME_LENGTH 32

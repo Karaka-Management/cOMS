@@ -33,7 +33,7 @@ struct NetworkInfo {
 };
 
 struct SIMDInfo {
-    f32 sse;
+    int32 sse;
     int32 avx256;
     int32 avx512;
     int32 sve;
@@ -89,8 +89,11 @@ struct SystemInfo {
     GpuInfo gpu[2];
     int32 gpu_count;
 
+    DisplayInfo display_primary;
     DisplayInfo display[6];
     int32 display_count;
+
+    int32 language;
 };
 
 #endif

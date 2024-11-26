@@ -17,10 +17,7 @@
 #include "../../../input/ControllerInput.h"
 #include "controller/DualShock4.h"
 #include "../../../utils/TestUtils.h"
-#include "../../../utils/MathUtils.h"
 #include "../../../memory/RingMemory.h"
-#include "../../../memory/BufferMemory.h"
-#include "../../../stdlib/simd/SIMD_I8.h"
 #include <winDNS.h>
 
 #define INPUT_MOUSE_BUTTON_1 1
@@ -32,7 +29,7 @@
 #define INPUT_MOUSE_BUTTON_HWHEEL 7
 
 // IMPORTANT:
-// Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions requried
+// Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions required
 // aligned memory. So far we only figured out that 4 bytes works, maybe this needs to be 8 in the future?!
 
 int rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory* ring)
@@ -110,7 +107,7 @@ int rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory*
     return i;
 }
 
-// WARNING: While this works we highly recommend to use hid_init_contorllers
+// WARNING: While this works we highly recommend to use hid_init_controllers
 int rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* ring)
 {
     uint32 device_count;

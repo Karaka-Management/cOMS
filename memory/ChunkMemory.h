@@ -18,9 +18,9 @@
 #include "BufferMemory.h"
 
 #if _WIN32
-    #include "../platform/win32/Allocation.h"
+    #include "../platform/win32/Allocator.h"
 #elif __linux__
-    #include "../platform/linux/Allocation.h"
+    #include "../platform/linux/Allocator.h"
 #endif
 
 struct ChunkMemory {
@@ -66,9 +66,9 @@ void chunk_free(ChunkMemory* buf)
 {
     DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->size);
     if (buf->alignment < 2) {
-        platform_free((void **) &buf->memory, buf->size);
+        platform_free((void **) &buf->memory);
     } else {
-        platform_aligned_free((void **) &buf->memory, buf->size);
+        platform_aligned_free((void **) &buf->memory);
     }
 }
 

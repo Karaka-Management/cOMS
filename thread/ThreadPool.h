@@ -15,9 +15,9 @@
 #include "../stdlib/Types.h"
 
 #ifdef _WIN32
-    #include "../platform/win32/Thread.h"
+    #include "../platform/win32/threading/Thread.h"
 #elif __linux__
-    #include "../platform/linux/Thread.h"
+    #include "../platform/linux/threading/Thread.h"
 #endif
 
 #include "ThreadJob.h"

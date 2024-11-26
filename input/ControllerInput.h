@@ -51,6 +51,8 @@ enum ControllerButton {
 };
 
 struct ControllerInput {
+    // @todo should probably include controller_id for xinput and LPDIRECTINPUTDEVICE8 for directinput
+
     int8 button[MAX_CONTROLLER_KEYS];
     bool is_analog[MAX_CONTROLLER_KEYS]; // = uses deadzone
 

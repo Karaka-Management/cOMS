@@ -15,7 +15,6 @@
 #include "../stdlib/Types.h"
 #include "../utils/BitUtils.h"
 #include "../utils/EndianUtils.h"
-#include "../utils/Utils.h"
 
 struct HuffmanNode {
     HuffmanNode* left;
@@ -152,7 +151,7 @@ void huffman_dump(const Huffman* hf, byte* out)
 
 void huffman_load(Huffman* hf, const byte* in)
 {
-    // load the char -> code relations and convert relative indeces to pointers
+    // load the char -> code relations and convert relative indices to pointers
     for (int32 i = 0; i < ARRAY_COUNT(hf->code); ++i) {
         int64 value = SWAP_ENDIAN_LITTLE(*((int64 *) in));
         in += sizeof(value);

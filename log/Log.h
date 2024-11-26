@@ -10,16 +10,8 @@
 #define TOS_LOG_H
 
 #include <stdio.h>
-#include <string.h>
-
 #include "../stdlib/Types.h"
-#include "../utils/TestUtils.h"
-#include "../utils/MathUtils.h"
 #include "Debug.h"
-
-#ifdef _WIN32
-    #include <windows.h>
-#endif
 
 #ifndef LOG_LEVEL
     #define LOG_LEVEL 0

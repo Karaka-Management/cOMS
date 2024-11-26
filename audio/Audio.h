@@ -10,16 +10,6 @@
 #define TOS_AUDIO_H
 
 #include "../stdlib/Types.h"
-#include "../utils/StringUtils.h"
-#include "../memory/RingMemory.h"
-
-#if _WIN32
-    #include "../platform/win32/UtilsWin32.h"
-#else
-    #include "../platform/linux/UtilsLinux.h"
-#endif
-
-#include "Audio.h"
 
 struct Audio {
     // bits per sample

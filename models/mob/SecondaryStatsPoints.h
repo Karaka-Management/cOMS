@@ -29,7 +29,7 @@ static const int SECONDARY_STAT_INDICES[] = {
  * @todo optimize order of struct members to ensure optimal struct size
  */
 
-// Character stats modifiable thorugh skill tree?
+// Character stats modifiable through skill tree?
 struct SecondaryStatsPoints {
     /*
     @todo
@@ -45,15 +45,12 @@ struct SecondaryStatsPoints {
     // This allows us to create skills with multiple additive damage types AND composite damage that has multiple types at the same time
     uint16 dmg[MOB_STATS_TYPE_SIZE];
 
-    uint16 dmg_reflection;
-    uint16 dmg_reflection_chance;
-
     // @question is this a damage number or is this a % number of the total damage?
     uint16 dmg_crit;
     uint16 dmg_crit_chance;
 
     // @question is this similar to the different damage categories, is this a % of the total damage or should this just be a flag
-    uint16 dmg_pircing;
+    uint16 dmg_piercing;
 
     // Health & Resource
     uint16 health;
@@ -84,6 +81,9 @@ struct SecondaryStatsPoints {
     // Accuracy
     uint16 block_chance;
     uint16 block_amount;
+
+    uint16 dmg_reflection;
+    uint16 dmg_reflection_chance;
 
     uint16 dodge_chance;
     uint16 cc_protection;
@@ -162,7 +162,7 @@ struct SecondaryStatsPoints2 {
     byte dmg_crit_chance;
 
     // @question is this similar to the different damage categories, is this a % of the total damage or should this just be a flag
-    byte dmg_pircing;
+    byte dmg_piercing;
 
     // Health & Resource
     byte health;
@@ -257,7 +257,7 @@ struct SecondaryStatsRelPoints2 {
     byte dmg_crit;
     byte dmg_crit_chance;
 
-    byte dmg_pircing;
+    byte dmg_piercing;
 
     // Health & Resource
     byte health;
@@ -281,7 +281,7 @@ struct SecondaryStatsRelPoints2 {
     byte resource_loss_on_dmg_taken;
 
     // Defense types
-    //      think about it as armor and/or resistence if it helps
+    //      think about it as armor and/or resistance if it helps
     byte defense[MOB_STATS_TYPE_SIZE];
 
     // Accuracy

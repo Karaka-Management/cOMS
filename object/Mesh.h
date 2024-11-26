@@ -109,7 +109,7 @@ void mesh_from_file_txt(
     uint32 temp_color_count = 0;
 
     while (*pos != '\0') {
-        char_skip_empty(&pos);
+        str_skip_empty(&pos);
 
         if (*pos == '\0') {
             break;
@@ -152,11 +152,11 @@ void mesh_from_file_txt(
             state = 15;
         } else {
             // not supported or comment
-            char_move_to(&pos, '\n');
+            str_move_to(&pos, '\n');
         }
 
         // move past keyword
-        char_skip_non_empty(&pos);
+        str_skip_non_empty(&pos);
 
         // move past whitespaces and newline
         bool is_next_line = false;

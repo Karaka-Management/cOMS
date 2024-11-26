@@ -105,7 +105,7 @@ int compare_by_attribute_id(const void* a, const void* b) {
 //      attributes ...
 //      attributes ...
 
-// WARNING: theme needs to have memory already reserved and asigned to data
+// WARNING: theme needs to have memory already reserved and assigned to data
 void theme_from_file_txt(
     UIThemeStyle* theme,
     byte* data
@@ -127,7 +127,7 @@ void theme_from_file_txt(
     int32 temp_group_count = 0;
     while (*pos != '\0') {
         // Skip all white spaces
-        char_skip_empty(&pos);
+        str_skip_empty(&pos);
 
         // Is group name
         if (*pos == '#' || *pos == '.') {
@@ -135,7 +135,7 @@ void theme_from_file_txt(
         }
 
         // Go to the end of the line
-        char_move_to(&pos, '\n');
+        str_move_to(&pos, '\n');
 
         // Go to next line
         if (*pos != '\0') {
@@ -154,7 +154,7 @@ void theme_from_file_txt(
     pos += 8; // move past version
 
     while (*pos != '\0') {
-        char_skip_empty(&pos);
+        str_skip_empty(&pos);
 
         if (*pos == '\n') {
             ++pos;
@@ -173,7 +173,7 @@ void theme_from_file_txt(
         last_token_newline = false;
 
         if (!block_open) {
-            char_copy_move_until(&pos, block_name, " \n", sizeof(" \n") - 1);
+            str_copy_move_until(&pos, block_name, " \n", sizeof(" \n") - 1);
 
             // All blocks need to start with #. In the past this wasn't the case and may not be in the future. This is why we keep this if here.
             if (*block_name == '#' || *block_name == '.') {
@@ -198,10 +198,10 @@ void theme_from_file_txt(
             continue;
         }
 
-        char_copy_move_until(&pos, attribute_name, " :\n", sizeof(" :\n") - 1);
+        str_copy_move_until(&pos, attribute_name, " :\n", sizeof(" :\n") - 1);
 
         // Skip any white spaces or other delimeters
-        char_skip_list(&pos, " \t:", sizeof(" \t:") - 1);
+        str_skip_list(&pos, " \t:", sizeof(" \t:") - 1);
 
         ASSERT_SIMPLE((*pos != '\0' && *pos != '\n'));
 
@@ -211,7 +211,7 @@ void theme_from_file_txt(
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TYPE;
 
             char str[32];
-            char_copy_move_until(&pos, str, '\n');
+            str_copy_move_until(&pos, str, '\n');
 
             for (int32 j = 0; j < UI_ELEMENT_TYPE_SIZE; ++j) {
                 if (strcmp(str, ui_element_type_to_string_const((UIElementType) j)) == 0) {
@@ -225,7 +225,7 @@ void theme_from_file_txt(
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_STYLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_STYLE;
 
-            char_copy_move_until(&pos, attribute.value_str, '\n');
+            str_copy_move_until(&pos, attribute.value_str, '\n');
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
@@ -257,7 +257,7 @@ void theme_from_file_txt(
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG;
 
-            char_copy_move_until(&pos, attribute.value_str, '\n');
+            str_copy_move_until(&pos, attribute.value_str, '\n');
         } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY;
             attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos));
@@ -354,7 +354,7 @@ void theme_from_file_txt(
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TRANSITION_DURATION;
             attribute.value_float = strtof(pos, &pos);
         } else {
-            char_move_to(&pos, '\n');
+            str_move_to(&pos, '\n');
 
             continue;
         }
@@ -372,7 +372,7 @@ void theme_from_file_txt(
             ++temp_group->attribute_size;
         }
 
-        char_move_to(&pos, '\n');
+        str_move_to(&pos, '\n');
     }
 
     // We still need to sort the last group

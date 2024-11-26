@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <windows.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef _MSC_VER
     #include  <io.h>
@@ -21,6 +22,7 @@
 #include "../../utils/Utils.h"
 #include "../../utils/TestUtils.h"
 #include "../../memory/RingMemory.h"
+#include "../../log/Debug.cpp"
 
 #define strtok_r strtok_s
 
@@ -60,9 +62,36 @@ time_t system_time()
     return ((time_t) (largeInt.QuadPart / 10000000ULL)) - ((time_t) 11644473600ULL);
 }
 
+// doesn't return clock time, only to return time since program start
+// -> can be used for profiling
+inline
+uint64 time_mu()
+{
+    LARGE_INTEGER counter;
+    QueryPerformanceCounter(&counter);
+
+    return (counter.QuadPart * 1000000) / debug_container->performance_count_frequency;
+}
+
+inline
+time_t unix_epoch_s()
+{
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+
+    ULARGE_INTEGER li;
+    li.LowPart = ft.dwLowDateTime;
+    li.HighPart = ft.dwHighDateTime;
+
+    time_t seconds_since_epoch = (li.QuadPart - 116444736000000000ULL) / 10000000ULL;
+
+    return seconds_since_epoch;
+}
+
 // @todo Consider to implement directly mapped files (CreateFileMapping) for certain files (e.g. map data or texture data, ...)
 
-inline void relative_to_absolute(const char* rel, char* path)
+inline
+void relative_to_absolute(const char* rel, char* path)
 {
     char self_path[MAX_PATH];
     int32 self_path_length = GetModuleFileNameA(NULL, self_path, MAX_PATH);
@@ -128,21 +157,6 @@ file_size(const char* path)
     CloseHandle(fp);
 
     return size.QuadPart;
-}
-
-inline
-uint64 time_mu()
-{
-    LARGE_INTEGER frequency;
-    LARGE_INTEGER counter;
-
-    if (!QueryPerformanceFrequency(&frequency)) {
-        return 0;
-    }
-
-    QueryPerformanceCounter(&counter);
-
-    return (counter.QuadPart * 1000000) / frequency.QuadPart;
 }
 
 inline

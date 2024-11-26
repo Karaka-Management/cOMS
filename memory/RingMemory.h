@@ -21,11 +21,13 @@
 #include "../log/DebugMemory.h"
 
 #if _WIN32
-    #include "../platform/win32/Allocation.h"
-    #include "../platform/win32/Thread.h"
+    #include "../platform/win32/Allocator.h"
+    #include "../platform/win32/threading/ThreadDefines.h"
+    #include "../platform/win32/threading/Semaphore.h"
 #elif __linux__
-    #include "../platform/linux/Allocation.h"
-    #include "../platform/linux/Thread.h"
+    #include "../platform/linux/Allocator.h"
+    #include "../platform/linux/threading/ThreadDefines.h"
+    #include "../platform/linux/threading/Semaphore.h"
 #endif
 
 struct RingMemory {
@@ -34,7 +36,7 @@ struct RingMemory {
 
     byte* head;
 
-    // This variable is usually only used by single read/write code mostly found in threads.
+    // This variable is usually only used by single producer/consumer code mostly found in threads.
     // One thread inserts elements -> updates head
     // The other thread reads elements -> updates tail
     // This code itself doesn't change this variable
@@ -44,8 +46,13 @@ struct RingMemory {
     int32 alignment;
     int32 element_alignment;
 
+    // We support both conditional locking and semaphore locking
+    // These values are not initialized and not used unless you use the queue
     pthread_mutex_t mutex;
     pthread_cond_t cond;
+
+    sem_t empty;
+    sem_t full;
 };
 
 // @bug alignment should also include the end point, not just the start
@@ -114,9 +121,9 @@ inline
 void ring_free(RingMemory* buf)
 {
     if (buf->alignment < 2) {
-        platform_free((void **) &buf->memory, buf->size);
+        platform_free((void **) &buf->memory);
     } else {
-        platform_aligned_free((void **) &buf->memory, buf->size);
+        platform_aligned_free((void **) &buf->memory);
     }
 }
 
@@ -216,6 +223,41 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zero
     ASSERT_SIMPLE(offset);
 
     return offset;
+}
+
+// Same as ring_get_memory but DOESN'T move the head
+byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, byte aligned = 0, bool zeroed = false)
+{
+    ASSERT_SIMPLE(size <= ring->size);
+
+    if (aligned == 0) {
+        aligned = (byte) OMS_MAX(ring->element_alignment, 1);
+    }
+
+    byte* pos = ring->head;
+
+    if (aligned > 1) {
+        uintptr_t address = (uintptr_t) pos;
+        pos += (aligned - (address& (aligned - 1))) % aligned;
+    }
+
+    size = ROUND_TO_NEAREST(size, aligned);
+    if (pos + size > ring->end) {
+        ring_reset(ring);
+
+        if (aligned > 1) {
+            uintptr_t address = (uintptr_t) pos;
+            pos += (aligned - (address & (aligned - 1))) % aligned;
+        }
+    }
+
+    if (zeroed) {
+        memset((void *) pos, 0, size);
+    }
+
+    DEBUG_MEMORY_WRITE((uint64) pos, size);
+
+    return pos;
 }
 
 // Used if the ring only contains elements of a certain size

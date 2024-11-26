@@ -17,7 +17,7 @@ static const int PRIMARY_STAT_INDICES[] = {0, 1, 2, 3, 4, 5, 6, 7};
 // Character stats modifiable through leveling (simple +/- buttons)
 struct PrimaryStatsPoints {
     uint16 stat_str; // strength      : effects health + base damage
-    uint16 stat_int; // inteligence   : effects resource + base demage
+    uint16 stat_int; // intelligence   : effects resource + base damage
     uint16 stat_acc; // accuracy      : effects critical chance + base damage + miss chance
     uint16 stat_agi; // agility       : effects resource + base damage + dodge chance
     // @todo not implemented in database

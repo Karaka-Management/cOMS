@@ -17,12 +17,12 @@
 #include "../log/DebugMemory.h"
 
 #if _WIN32
-    #include "../platform/win32/Allocation.h"
+    #include "../platform/win32/Allocator.h"
 #elif __linux__
-    #include "../platform/linux/Allocation.h"
+    #include "../platform/linux/Allocator.h"
 #endif
 
-// @question Consider to use element_alignment to automatically align/pad elmeents
+// @question Consider to use element_alignment to automatically align/pad elements
 
 struct BufferMemory {
     byte* memory;
@@ -59,9 +59,9 @@ void buffer_free(BufferMemory* buf)
 {
     DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->size);
     if (buf->alignment < 2) {
-        platform_free((void **) &buf->memory, buf->size);
+        platform_free((void **) &buf->memory);
     } else {
-        platform_aligned_free((void **) &buf->memory, buf->size);
+        platform_aligned_free((void **) &buf->memory);
     }
 }
 
@@ -86,7 +86,7 @@ void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 6
 inline
 void buffer_reset(BufferMemory* buf)
 {
-    // @bug arent we wasting element 0 (see get_memory, we are not using 0 only next element)
+    // @bug aren't we wasting element 0 (see get_memory, we are not using 0 only next element)
     DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->head - buf->memory);
     buf->head = buf->memory;
 }

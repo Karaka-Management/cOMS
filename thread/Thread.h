@@ -15,11 +15,11 @@
 #include "../stdlib/Types.h"
 
 #if _WIN32
-    #include "../platform/win32/ThreadDefines.h"
-    #include "../platform/win32/Thread.h"
+    #include "../platform/win32/threading/Thread.h"
+    #include "../platform/win32/threading/Atomic.h"
 #elif __linux__
-    #include "../platform/linux/ThreadDefines.h"
-    #include "../platform/linux/Thread.h"
+    #include "../platform/linux/threading/Thread.h"
+    #include "../platform/linux/threading/Atomic.h"
 #endif
 
 #include "ThreadJob.h"

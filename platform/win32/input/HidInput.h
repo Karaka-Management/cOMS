@@ -23,7 +23,7 @@
 #pragma comment(lib, "hid.lib")
 #pragma comment(lib, "setupapi.lib")
 
-void hid_init_contorllers(Input* __restrict states, int32 state_count, RingMemory* ring) {
+void hid_init_controllers(Input* __restrict states, int32 state_count, RingMemory* ring) {
 
     HANDLE* controller_handles = NULL;
 

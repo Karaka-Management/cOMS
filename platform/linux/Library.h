@@ -62,7 +62,7 @@ bool library_load(Library* lib)
     }
 
     lib->is_valid = true;
-    for (int32_t c = 0; c < lib->function_count; ++c) {
+    for (int32 c = 0; c < lib->function_count; ++c) {
         void* function = dlsym(lib->handle, lib->function_names[c]);
         if (function) {
             lib->functions[c] = function;
@@ -82,7 +82,7 @@ void library_unload(Library* lib)
         lib->handle = NULL;
     }
 
-    for (int32_t c = 0; c < lib->function_count; ++c) {
+    for (int32 c = 0; c < lib->function_count; ++c) {
         lib->functions[c] = NULL;
     }
 }

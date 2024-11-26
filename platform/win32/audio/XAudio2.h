@@ -15,7 +15,6 @@
 
 #include "../../../stdlib/Types.h"
 #include "../../../audio/AudioSetting.h"
-#include "../../../utils/MathUtils.h"
 #include "../../../log/Log.h"
 #include "../../../audio/Audio.cpp"
 

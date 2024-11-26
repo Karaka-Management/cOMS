@@ -13,7 +13,6 @@
 #include <stdint.h>
 #include "../../stdlib/Types.h"
 #include "../../stdlib/simd/SIMD_Helper.h"
-#include "../../utils/StringUtils.h"
 #include "../SystemInfo.h"
 
 #include <psapi.h>
@@ -312,8 +311,7 @@ int network_info_get(NetworkInfo* info) {
 }
 
 void cpu_info_get(CpuInfo* info) {
-    int32 temp;
-    info->simd.sse = (temp = max_sse_supported()) > 9 ? temp / 10.0f : temp;
+    info->simd.sse = max_sse_supported();
     info->simd.avx256 = max_avx256_supported();
     info->simd.avx512 = max_avx512_supported();
     info->simd.sve = max_sve_supported();
@@ -553,7 +551,7 @@ void system_info_render(char* buf, const SystemInfo* info) {
         info->cpu.cache[1].size, info->cpu.cache[1].line_size,
         info->cpu.cache[2].size, info->cpu.cache[2].line_size,
         info->cpu.cache[3].size, info->cpu.cache[3].line_size,
-        info->cpu.simd.sse, info->cpu.simd.avx256, info->cpu.simd.avx512 > 0 ? avx512[info->cpu.simd.avx512 - 1] : "0", info->cpu.simd.sve, info->cpu.simd.neon, (int32) info->cpu.simd.abm,
+        info->cpu.simd.sse > 9 ? (f32) info->cpu.simd.sse / 10.0f : (f32) info->cpu.simd.sse, info->cpu.simd.avx256, info->cpu.simd.avx512 > 0 ? avx512[info->cpu.simd.avx512 - 1] : "0", info->cpu.simd.sve, info->cpu.simd.neon, (int32) info->cpu.simd.abm,
         info->gpu[0].name, info->gpu[0].vram,
         info->gpu_count < 2 ? "" : info->gpu[1].name, info->gpu_count < 2 ? 0 : info->gpu[1].vram,
         info->display[0].name, info->display[0].width, info->display[0].height, info->display[0].hz,
@@ -575,6 +573,8 @@ void system_info_get(SystemInfo* info)
     ram_info_get(&info->ram);
     info->gpu_count = gpu_info_get(info->gpu);
     info->display_count = display_info_get(info->display);
+    display_info_get_primary(&info->display_primary);
+    info->language = system_language_code();
 }
 
 #endif

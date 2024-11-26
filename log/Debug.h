@@ -11,8 +11,11 @@
 
 #include "../stdlib/Types.h"
 #include "DebugMemory.h"
-#include "Log.h"
 #include "TimingStat.h"
+
+#if _WIN32
+    #include <windows.h>
+#endif
 
 struct LogMemory {
     byte* memory;

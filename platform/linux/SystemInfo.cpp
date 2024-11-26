@@ -13,7 +13,6 @@
 #include <stdint.h>
 #include "../../stdlib/Types.h"
 #include "../../stdlib/simd/SIMD_Helper.h"
-#include "../../utils/StringUtils.h"
 #include "../SystemInfo.h"
 
 #include <locale.h>

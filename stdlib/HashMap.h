@@ -9,11 +9,11 @@
 #ifndef TOS_STDLIB_HASHMAP_H
 #define TOS_STDLIB_HASHMAP_H
 
+#include "Types.h"
 #include "../hash/GeneralHash.h"
 #include "../memory/RingMemory.h"
 #include "../memory/BufferMemory.h"
 #include "../memory/ChunkMemory.h"
-#include "Types.h"
 #include "../utils/StringUtils.h"
 
 #define MAX_KEY_LENGTH 32
@@ -406,7 +406,7 @@ int64 hashmap_dump(const HashMap* hm, byte* data)
     *((uint64 *) data) = SWAP_ENDIAN_LITTLE(hm->buf.count);
     data += sizeof(uint64);
 
-    // Dump the table content where the elements are relative indeces/pointers
+    // Dump the table content where the elements are relative indices/pointers
     for (int32 i = 0; i < hm->buf.count; ++i) {
         *((uint64 *) data) = hm->table[i]
             ? SWAP_ENDIAN_LITTLE((uintptr_t) hm->table[i] - (uintptr_t) hm->buf.memory)

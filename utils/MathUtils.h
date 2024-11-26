@@ -12,12 +12,6 @@
 
 #include <math.h>
 
-#if ARM
-    #include "../stdlib/IntrinsicsArm.h"
-#else
-    #include "../stdlib/Intrinsics.h"
-#endif
-
 #define OMS_PI 3.14159265358979323846f
 #define OMS_PI_OVER_TWO (OMS_PI / 2.0f)
 #define OMS_PI_OVER_FOUR (OMS_PI / 4.0f)
@@ -25,7 +19,7 @@
 
 #define OMS_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define OMS_MIN(a, b) ((a) > (b) ? (b) : (a))
-#define OMS_CLAMP(a, b, c) (OMS_MAX(OMS_MIN((a), (b))), (c))
+#define OMS_CLAMP(a, b, c) (OMS_MAX(OMS_MIN((a), (b)), (c)))
 #define OMS_ABS(a) ((a) > 0 ? (a) : -(a))
 #define OMS_DEG2RAD(angle) ((angle) * OMS_PI / 180.0f)
 #define OMS_RAD2DEG(angle) ((angle) * 180.0f / OMS_PI)

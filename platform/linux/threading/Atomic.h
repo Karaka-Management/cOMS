@@ -6,17 +6,11 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_THREAD_DEFINES_H
-#define TOS_PLATFORM_LINUX_THREAD_DEFINES_H
+#ifndef TOS_PLATFORM_LINUX_THREADING_ATOMIC_H
+#define TOS_PLATFORM_LINUX_THREADING_ATOMIC_H
 
 #include <pthread.h>
-#include <unistd.h>
-
-#include "../../stdlib/Types.h"
-
-typedef void* (*ThreadJobFunc)(void*);
-
-#define THREAD_RETURN void*
+#include "../../../stdlib/Types.h"
 
 inline
 void atomic_set(volatile int32* value, int32 new_value)
