@@ -15,7 +15,7 @@
 #define OMS_PI 3.14159265358979323846f
 #define OMS_PI_OVER_TWO (OMS_PI / 2.0f)
 #define OMS_PI_OVER_FOUR (OMS_PI / 4.0f)
-#define OMS_TWO_PI (2 * OMS_PI)
+#define OMS_TWO_PI (2.0f * OMS_PI)
 
 #define OMS_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define OMS_MIN(a, b) ((a) > (b) ? (b) : (a))

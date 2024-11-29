@@ -14,7 +14,7 @@
 #include "../stdlib/Types.h"
 
 struct FileBody {
-    uint64 size = 0; // doesn't include null termination (same as strlen)
+    uint64 size; // doesn't include null termination (same as strlen)
     byte* content;
 };
 
@@ -82,6 +82,30 @@ int random_weighted_index(const int32* arr, int32 array_count)
     }
 
     return item_rarity;
+}
+
+bool is_equal_aligned(const byte* region1, const byte* region2, uint64 size)
+{
+    while (size > 4) {
+        if (*(const int32_t*) region1 != *(const int32_t*) region2) {
+            return false;
+        }
+
+        region1 += 4;
+        region2 += 4;
+        size -= 4;
+    }
+
+    for (; size > 0; --size) {
+        if (region1 != region2) {
+            return false;
+        }
+
+        ++region1;
+        ++region2;
+    }
+
+    return true;
 }
 
 #endif

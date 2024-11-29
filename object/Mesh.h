@@ -13,9 +13,9 @@
 #include "../stdlib/Types.h"
 
 #if _WIN32
-    #include "../platform/win32/UtilsWin32.h"
+    #include "../platform/win32/FileUtils.cpp"
 #else
-    #include "../platform/linux/UtilsLinux.h"
+    #include "../platform/linux/FileUtils.cpp"
 #endif
 
 #include "../memory/RingMemory.h"
@@ -27,7 +27,7 @@
 
 // @todo how to handle different objects and groups?
 //      maybe make a mesh hold other meshes?
-// @todo handle vertice arrays where for example no texture coordinates are defined/used
+// @todo handle vertices arrays where for example no texture coordinates are defined/used
 struct Mesh {
     byte* data; // memory owner that subdevides into the pointers below
 
@@ -406,7 +406,7 @@ void mesh_from_file_txt(
 
         mesh->vertex_count = face_count * 3;
 
-        // Every face consists of 3 vertecies -> *3
+        // Every face consists of 3 vertices -> *3
         for (int32 i = 0; i < face_count * 3; ++i) {
             const f32* vertex_pos = &vertices[faces[i * face_size] * 3];
             memcpy(
@@ -415,7 +415,7 @@ void mesh_from_file_txt(
                 3 * sizeof(f32)
             );
 
-            // Normals come before texture coordinates since we most likely need them more than texture (e.g. pre-copmuting of shadows on cpu etc.)
+            // Normals come before texture coordinates since we most likely need them more than texture (e.g. pre-computing of shadows on cpu etc.)
             if (mesh->vertex_type & VERTEX_TYPE_NORMAL) {
                 const f32* normal_pos = &normals[faces[i * face_size + 1 + normal_offset] * 3];
 
@@ -486,7 +486,7 @@ int32 mesh_from_file(
     #if !_WIN32 && !__LITTLE_ENDIAN
         mesh->version = endian_swap(mesh->version);
         mesh->vertex_type = endian_swap(mesh->vertex_type);
-        mesh->verted_count = endian_swap(mesh->verted_count);
+        mesh->vertex_count = endian_swap(mesh->vertex_count);
     #endif
 
     int32 vertex_size = 0;

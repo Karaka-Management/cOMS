@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <windows.h>
 
+#define THREAD_RETURN DWORD WINAPI
 typedef DWORD (WINAPI *ThreadJobFunc)(void*);
 typedef CRITICAL_SECTION pthread_mutex_t;
 typedef void pthread_mutexattr_t;
@@ -24,7 +25,5 @@ struct pthread_rwlock_t {
     SRWLOCK lock;
     bool exclusive;
 };
-
-#define THREAD_RETURN DWORD WINAPI
 
 #endif

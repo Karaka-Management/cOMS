@@ -2,9 +2,13 @@
 #define TOS_MODULE_MANAGER_H
 
 #include "Module.h"
+#include "../memory/RingMemory.h"
 
 #if _WIN32
+    #include "../platform/win32/FileUtils.cpp"
     #include "../platform/win32/UtilsWin32.h"
+#elif __linux__
+    #include "../platform/linux/FileUtils.cpp"
 #endif
 
 struct ModuleManager {

@@ -10,6 +10,7 @@
 #define TOS_ASSET_TYPE_H
 
 enum AssetType {
+    ASSET_TYPE_GENERAL,
     ASSET_TYPE_OBJ,
     ASSET_TYPE_TEXTURE,
     ASSET_TYPE_AUDIO,

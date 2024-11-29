@@ -43,7 +43,7 @@ bool library_load(Library* lib)
         memcpy(dst + dst_len - (sizeof(".so") - 1), "_temp", sizeof("_temp") - 1);
         memcpy(dst + dst_len - (sizeof(".so") - 1) + (sizeof("_temp") - 1), ".so", sizeof(".so"));
 
-        lib->last_load = last_modified(src);
+        lib->last_load = file_last_modified(src);
         file_copy(src, dst);
     #endif
 

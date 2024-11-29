@@ -9,7 +9,7 @@
 #ifndef TOS_PLATFORM_LINUX_THREADING_ATOMIC_H
 #define TOS_PLATFORM_LINUX_THREADING_ATOMIC_H
 
-#include <pthread.h>
+#include <stdatomic.h>
 #include "../../../stdlib/Types.h"
 
 inline
@@ -19,9 +19,27 @@ void atomic_set(volatile int32* value, int32 new_value)
 }
 
 inline
+void atomic_get(volatile byte* value, byte data[16])
+{
+    __atomic_store((volatile __int128 *) value, (__int128 *) data, __ATOMIC_SEQ_CST);
+}
+
+inline
 int32 atomic_get(volatile int32* value)
 {
     return __atomic_load_n((int32 *) value, __ATOMIC_SEQ_CST);
+}
+
+inline
+int64 atomic_get(volatile int64* value)
+{
+    return __atomic_load_n((int64 *) value, __ATOMIC_SEQ_CST);
+}
+
+inline
+void atomic_get(volatile byte* value, byte data[16])
+{
+    __atomic_load((volatile __int128 *) value, (__int128 *) data, __ATOMIC_SEQ_CST);
 }
 
 inline
@@ -42,6 +60,22 @@ int32 atomic_add(volatile int32* value, int32 increment) {
 inline
 int32 atomic_subtract(volatile int32* value, int32 decrement) {
     return __atomic_fetch_sub(value, decrement, __ATOMIC_SEQ_CST);
+}
+
+inline
+int32 atomic_compare_exchange_weak(volatile int32* value, int32* expected, int32 desired) {
+    __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+    return *expected;
+}
+
+inline
+int32 atomic_fetch_add(volatile int32* value, int32 operand) {
+    return __atomic_fetch_add(value, operand, __ATOMIC_SEQ_CST);
+}
+
+inline
+int32 atomic_fetch_sub(volatile int32* value, int32 operand) {
+    return __atomic_fetch_sub(value, operand, __ATOMIC_SEQ_CST);
 }
 
 #endif

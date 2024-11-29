@@ -45,14 +45,6 @@ struct RingMemory {
     uint64 size;
     int32 alignment;
     int32 element_alignment;
-
-    // We support both conditional locking and semaphore locking
-    // These values are not initialized and not used unless you use the queue
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-
-    sem_t empty;
-    sem_t full;
 };
 
 // @bug alignment should also include the end point, not just the start

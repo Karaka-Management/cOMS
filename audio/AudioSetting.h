@@ -10,11 +10,22 @@
 #define TOS_AUDIO_SETTING_H
 
 #include "../stdlib/Types.h"
+#include "../math/matrix/MatrixFloat32.h"
 
 #define SOUND_API_DIRECT_SOUND 0
 #define SOUND_API_XAUDIO2 1
 
 struct AudioSetting {
+    // position in the audio data
+    // WARNING: not the byte position, but the index based on the sample size
+    uint32 sample_index;
+
+    // @todo add more settings e.g. repeat etc
+
+    uint32 latency;
+
+    f32 master_volume;
+
     // bits per sample
     // usually 48000 or 44100
     uint32 sample_rate;
@@ -24,17 +35,8 @@ struct AudioSetting {
     // usually 2 * 16 = 4
     uint32 sample_size;
 
-    // position in the audio data
-    // WARNING: not the byte position, but the index based on the sample size
-    uint32 sample_index;
-
-    uint32 latency;
-
     // how often has the audio_play been called (required for xaudio)
     uint32 sample_output;
-
-    // 0.0 - 1.0
-    f32 volume;
 
     // max buffer content/size
     uint32 buffer_size;
@@ -44,10 +46,20 @@ struct AudioSetting {
     uint32 sample_buffer_size;
     int16* buffer;
 
-    bool is_playing = false;
     byte type = SOUND_API_DIRECT_SOUND;
-
-    // @todo add more settings e.g. repeat etc
 };
+
+struct AudioLocationSetting {
+    v3_f32 audio_location;
+    v3_f32 audio_lookat;
+    v3_f32 audio_moveto;
+    f32 audio_velocity;
+};
+
+inline
+void update_audio_location_settings(AudioLocationSetting* settings)
+{
+    vec3_normalize(&settings->audio_lookat);
+}
 
 #endif

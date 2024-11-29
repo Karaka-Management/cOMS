@@ -106,7 +106,6 @@ void audio_play(AudioSetting* setting, DirectSoundSetting* api_setting)
     }
 
     api_setting->secondary_buffer->Play(0, 0, DSBPLAY_LOOPING);
-    setting->is_playing = true;
 }
 
 inline
@@ -116,7 +115,6 @@ void audio_stop(AudioSetting* setting, DirectSoundSetting* api_setting) {
     }
 
     api_setting->secondary_buffer->Stop();
-    setting->is_playing = false;
 }
 
 inline
@@ -155,7 +153,8 @@ uint32 audio_buffer_fillable(const AudioSetting* setting, const DirectSoundSetti
     DWORD target_cursor = (player_cursor + (setting->latency * setting->sample_size)) % setting->buffer_size;
 
     if (bytes_to_lock == player_cursor) {
-        bytes_to_write = setting->is_playing ? 0 : setting->buffer_size;
+        // @bug What if just started?
+        bytes_to_write = 0;
     } else if (bytes_to_lock > target_cursor) {
         bytes_to_write = setting->buffer_size - bytes_to_lock;
         bytes_to_write += target_cursor;
@@ -173,10 +172,6 @@ void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting)
         return;
     }
 
-    if (!setting->is_playing) {
-        audio_play(setting, api_setting);
-    }
-
     void *region1;
     DWORD region1_size;
 
@@ -192,9 +187,6 @@ void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting)
         0
     );
 
-    // @performance why are we copying again, we already created our buffer, now we have to copy it again?!
-    //  Ideally we should have already copied it into the correct final one, no?
-    //  We should probably provide a audio_buffer_fill function, that does this -> we could remove one whole memcopy
     memcpy(
         (void *) region1,
         (void *) setting->buffer,
@@ -214,44 +206,5 @@ void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting)
     setting->sample_index += setting->sample_buffer_size / setting->sample_size;
     setting->sample_buffer_size = 0;
 }
-
-// Basically the same as audio_play_buffer but by using this we can avoid one copy
-// The only reason we have audio_play_buffer is that there might be situations where this is not possible
-inline
-void audio_fill_play_buffer(AudioSetting* setting, uint32 to_fill, Audio* sound, DirectSoundSetting* api_setting)
-{
-    setting->sample_buffer_size = to_fill;
-
-    if (setting->sample_buffer_size == 0) {
-        return;
-    }
-
-    if (!setting->is_playing) {
-        audio_play(setting, api_setting);
-    }
-
-    void *region1;
-    DWORD region1_size;
-
-    void *region2;
-    DWORD region2_size;
-
-    DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
-
-    api_setting->secondary_buffer->Lock(
-        bytes_to_lock, setting->sample_buffer_size,
-        &region1, &region1_size,
-        &region2, &region2_size,
-        0
-    );
-
-    audio_fill_buffer(setting, to_fill, sound, (int16 *) region1, (int32) region1_size, (int16 *) region2, (int32) region2_size);
-
-    api_setting->secondary_buffer->Unlock(region1, region1_size, region2, region2_size);
-
-    setting->sample_index += setting->sample_buffer_size / setting->sample_size;
-    setting->sample_buffer_size = 0;
-}
-
 
 #endif

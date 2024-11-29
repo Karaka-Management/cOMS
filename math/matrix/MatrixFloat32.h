@@ -96,6 +96,18 @@ f32 vec2_dot(const v2_f32* a, const v2_f32* b) {
 }
 
 inline
+f32 vec3_length(f32 x, f32 y, f32 z)
+{
+    return sqrtf(x * x + y * y + z * z);
+}
+
+inline
+f32 vec3_length(v3_f32* vec)
+{
+    return sqrtf(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
+}
+
+inline
 void vec3_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z)
 {
     f32 d = sqrtf((*x) * (*x) + (*y) * (*y) + (*z) * (*z));

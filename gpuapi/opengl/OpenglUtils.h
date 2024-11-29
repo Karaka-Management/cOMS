@@ -19,10 +19,13 @@
 #include "../RenderUtils.h"
 #include "Opengl.h"
 
-#ifdef _WIN32
+#if _WIN32
     #include <windows.h>
-    #include "../../platform/win32/UtilsWin32.h"
+    #include "../../platform/win32/FileUtils.cpp"
     #include "../../platform/win32/Window.h"
+#elif __linux__
+    #include "../../platform/linux/FileUtils.cpp"
+    #include "../../platform/linux/Window.h"
 #endif
 
 inline

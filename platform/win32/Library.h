@@ -14,7 +14,7 @@
 #include <string.h>
 
 #include "../../stdlib/Types.h"
-#include "UtilsWin32.h"
+#include "FileUtils.cpp"
 #include "../../utils/StringUtils.h"
 #include "../Library.h"
 
@@ -41,7 +41,7 @@ bool library_load(Library* lib)
         memcpy(dst + dst_len - (sizeof(".dll") - 1), "_temp", sizeof(".temp") - 1);
         memcpy(dst + dst_len - (sizeof(".dll") - 1) + (sizeof(".temp") - 1), ".dll", sizeof(".dll"));
 
-        lib->last_load = last_modified(src);
+        lib->last_load = file_last_modified(src);
         file_copy(src, dst);
     #endif
 

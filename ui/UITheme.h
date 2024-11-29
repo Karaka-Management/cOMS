@@ -12,9 +12,9 @@
 #include "UIElementType.h"
 
 #if _WIN32
-    #include "../platform/win32/UtilsWin32.h"
+    #include "../platform/win32/FileUtils.cpp"
 #else
-    #include "../platform/linux/UtilsLinux.h"
+    #include "../platform/linux/FileUtils.cpp"
 #endif
 
 #define UI_THEME_VERSION 1

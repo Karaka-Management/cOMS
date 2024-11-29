@@ -16,7 +16,7 @@ typedef HANDLE sem_t;
 
 void sem_init(sem_t* semaphore, int32 value)
 {
-    *semaphore = CreateSemaphore(NULL, value, MAX_INT32, NULL);
+    *semaphore = CreateSemaphore(NULL, value, MAX_UINT32, NULL);
 }
 
 void sem_destroy(sem_t* semaphore)

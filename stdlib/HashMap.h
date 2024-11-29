@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_STDLIB_HASHMAP_H
-#define TOS_STDLIB_HASHMAP_H
+#ifndef TOS_STDLIB_HASH_MAP_H
+#define TOS_STDLIB_HASH_MAP_H
 
 #include "Types.h"
 #include "../hash/GeneralHash.h"
@@ -122,11 +122,6 @@ int64 hashmap_size(const HashMap* hm)
 }
 
 void hashmap_insert(HashMap* hm, const char* key, int32 value) {
-    // @performance Do we really want to do this check every time?
-    if (hm->buf.count == 0) {
-        return;
-    }
-
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -152,11 +147,6 @@ void hashmap_insert(HashMap* hm, const char* key, int32 value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, int64 value) {
-    // @performance Do we really want to do this check every time?
-    if (hm->buf.count == 0) {
-        return;
-    }
-
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -182,11 +172,6 @@ void hashmap_insert(HashMap* hm, const char* key, int64 value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, uintptr_t value) {
-    // @performance Do we really want to do this check every time?
-    if (hm->buf.count == 0) {
-        return;
-    }
-
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -212,11 +197,6 @@ void hashmap_insert(HashMap* hm, const char* key, uintptr_t value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, void* value) {
-    // @performance Do we really want to do this check every time?
-    if (hm->buf.count == 0) {
-        return;
-    }
-
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -242,11 +222,6 @@ void hashmap_insert(HashMap* hm, const char* key, void* value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, f32 value) {
-    // @performance Do we really want to do this check every time?
-    if (hm->buf.count == 0) {
-        return;
-    }
-
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -272,11 +247,6 @@ void hashmap_insert(HashMap* hm, const char* key, f32 value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, const char* value) {
-    // @performance Do we really want to do this check every time?
-    if (hm->buf.count == 0) {
-        return;
-    }
-
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -304,11 +274,6 @@ void hashmap_insert(HashMap* hm, const char* key, const char* value) {
 }
 
 void hashmap_insert(HashMap* hm, const char* key, byte* value) {
-    // @performance Do we really want to do this check every time?
-    if (hm->buf.count == 0) {
-        return;
-    }
-
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int64 element = chunk_reserve(&hm->buf, 1);
@@ -337,11 +302,6 @@ void hashmap_insert(HashMap* hm, const char* key, byte* value) {
 }
 
 HashEntry* hashmap_get_entry(const HashMap* hm, const char* key) {
-    // @performance Do we really want to do this check every time?
-    if (hm->buf.count == 0) {
-        return NULL;
-    }
-
     uint64 index = hash_djb2(key) % hm->buf.count;
     HashEntry* entry = (HashEntry *) hm->table[index];
 
@@ -359,10 +319,6 @@ HashEntry* hashmap_get_entry(const HashMap* hm, const char* key) {
 // This function only saves one step (omission of the hash function)
 // The reason for this is in some cases we can use compile time hashing
 HashEntry* hashmap_get_entry(const HashMap* hm, const char* key, uint64 index) {
-    if (hm->buf.count == 0) {
-        return NULL;
-    }
-
     index %= hm->buf.count;
     HashEntry* entry = (HashEntry *) hm->table[index];
 
@@ -378,7 +334,7 @@ HashEntry* hashmap_get_entry(const HashMap* hm, const char* key, uint64 index) {
 }
 
 void hashmap_delete_entry(HashMap* hm, const char* key) {
-    uint64 index = hash_djb2(key);
+    uint64 index = hash_djb2(key) % hm->buf.count;
     HashEntry* entry = (HashEntry *) hm->table[index];
     HashEntry* prev = NULL;
 

@@ -11,6 +11,7 @@
 
 #include "../stdlib/Types.h"
 
+// This represents the audio file
 struct Audio {
     // bits per sample
     // usually 48000 or 44100

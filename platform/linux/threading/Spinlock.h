@@ -9,7 +9,7 @@
 #ifndef TOS_PLATFORM_LINUX_THREADING_SPINLOCK_H
 #define TOS_PLATFORM_LINUX_THREADING_SPINLOCK_H
 
-#include <pthread.h>
+#include <stdatomic.h>
 #include "../../../stdlib/Types.h"
 
 typedef volatile int32 spinlock32;

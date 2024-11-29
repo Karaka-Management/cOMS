@@ -15,21 +15,21 @@
 typedef RingMemory Queue;
 
 inline
-void queue_alloc(Queue* queue, uint64 size, uint32 element_size, int32 alignment = 64)
+void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, int32 alignment = 64)
 {
-    ring_alloc(queue, size, alignment);
+    ring_alloc(queue, element_count * element_size, alignment);
 }
 
 inline
-void queue_init(Queue* queue, BufferMemory* buf, uint64 size, uint32 element_size, int32 alignment = 64)
+void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 element_size, int32 alignment = 64)
 {
-    ring_init(queue, buf, size, alignment);
+    ring_init(queue, buf, element_count * element_size, alignment);
 }
 
 inline
-void queue_init(Queue* queue, byte* buf, uint64 size, uint32 element_size, int32 alignment = 64)
+void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_size, int32 alignment = 64)
 {
-    ring_init(queue, buf, size, alignment);
+    ring_init(queue, buf, element_count * element_size, alignment);
 }
 
 inline

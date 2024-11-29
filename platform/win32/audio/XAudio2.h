@@ -117,7 +117,6 @@ void audio_play(AudioSetting* setting, XAudio2Setting* api_setting) {
     }
 
     api_setting->source_voice->Start(0, XAUDIO2_COMMIT_NOW);
-    setting->is_playing = true;
 
     if (setting->sample_index > 1) {
         setting->sample_index = 0;
@@ -131,7 +130,6 @@ void audio_stop(AudioSetting* setting, XAudio2Setting* api_setting) {
     }
 
     api_setting->source_voice->Stop(0, XAUDIO2_COMMIT_NOW);
-    setting->is_playing = false;
 }
 
 inline
@@ -155,10 +153,6 @@ void audio_free(AudioSetting* setting, XAudio2Setting* api_setting)
 
     if (api_setting->internal_buffer[1].pAudioData) {
         free((void *) api_setting->internal_buffer[1].pAudioData);
-    }
-
-    if (setting->buffer) {
-        free((void *) setting->buffer);
     }
 }
 
@@ -190,15 +184,8 @@ void audio_play_buffer(AudioSetting* setting, XAudio2Setting* api_setting) {
         return;
     }
 
-    if (!setting->is_playing) {
-        audio_play(setting, api_setting);
-    }
-
     uint32 idx = setting->sample_output % 2;
 
-    // @performance why are we copying again, we already created our buffer, now we have to copy it again?!
-    //  Ideally we should have already copied it into the correct final one, no?
-    //  We should probably provide a audio_buffer_fill function, that does this -> we could remove one whole memcopy
     memcpy(
         (void *) api_setting->internal_buffer[idx].pAudioData,
         setting->buffer,
@@ -211,35 +198,7 @@ void audio_play_buffer(AudioSetting* setting, XAudio2Setting* api_setting) {
         return;
     }
 
-    setting->sample_index += setting->sample_buffer_size / setting->sample_size;
-    setting->sample_buffer_size = 0;
-}
-
-// Basically the same as audio_play_buffer but by using this we can avoid one copy
-// The only reason we have audio_play_buffer is that there might be situations where this is not possible
-inline
-void audio_fill_play_buffer(AudioSetting* setting, uint32 to_fill, Audio* sound, XAudio2Setting* api_setting)
-{
-    setting->sample_buffer_size = to_fill;
-
-    if (!api_setting->source_voice || setting->sample_buffer_size == 0) {
-        return;
-    }
-
-    if (!setting->is_playing) {
-        audio_play(setting, api_setting);
-    }
-
-    uint32 idx = setting->sample_output % 2;
-
-    audio_fill_buffer(setting, to_fill, sound, (int16 *) api_setting->internal_buffer[idx].pAudioData, to_fill);
-
-    if (!SUCCEEDED(api_setting->source_voice->SubmitSourceBuffer(&api_setting->internal_buffer[idx]))) {
-        LOG("Xaudio2: SubmitSourceBuffer failed\n", true, true);
-
-        return;
-    }
-
+    ++setting->sample_output;
     setting->sample_index += setting->sample_buffer_size / setting->sample_size;
     setting->sample_buffer_size = 0;
 }

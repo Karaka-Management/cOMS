@@ -10,7 +10,7 @@
 #define TOS_PLATFORM_WIN32_THREADING_THREAD_H
 
 #include "../../../stdlib/Types.h"
-#include "../UtilsWin32.h"
+#include "../TimeUtils.h"
 #include "ThreadDefines.h"
 
 #include <windows.h>
@@ -103,18 +103,6 @@ int32 pthread_cond_destroy(pthread_cond_t*)
 {
     /* Windows does not have a destroy for conditionals */
     return 0;
-}
-
-static DWORD timespec_to_ms(const timespec* abstime)
-{
-    if (abstime == NULL) {
-        return INFINITE;
-    }
-
-    time_t seconds_since_epoch = unix_epoch_s();
-    DWORD t = (DWORD) (((abstime->tv_sec - seconds_since_epoch) * 1000) + (abstime->tv_nsec / 1000000));
-
-    return t < 0 ? 1 : t;
 }
 
 int32 pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t* mutex, const timespec* abstime)

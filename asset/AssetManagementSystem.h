@@ -39,8 +39,11 @@ struct AssetManagementSystem {
     // Actual asset data
     ChunkMemory asset_data_memory;
 
+    // @performance Do we really need the linked list, the ChunkMemory should allow us to do some smart stuff
     Asset* first;
     Asset* last;
+
+    pthread_mutex_t mutex;
 };
 
 void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 chunk_size, int32 count)
@@ -56,6 +59,8 @@ void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 chunk_size,
 
     ams->first = NULL;
     ams->last = NULL;
+
+    pthread_mutex_init(&ams->mutex, NULL);
 }
 
 // WARNING: buf size see ams_get_buffer_size
@@ -84,10 +89,17 @@ void ams_create(AssetManagementSystem* ams, byte* buf, int chunk_size, int count
 
     ams->first = NULL;
     ams->last = NULL;
+
+    pthread_mutex_init(&ams->mutex, NULL);
+}
+
+void ams_free(AssetManagementSystem* ams)
+{
+    pthread_mutex_destroy(&ams->mutex);
 }
 
 inline
-int32 ams_calculate_chunks(AssetManagementSystem* ams, int32 byte_size)
+int32 ams_calculate_chunks(const AssetManagementSystem* ams, int32 byte_size)
 {
     return (int32) CEIL_DIV(byte_size, ams->asset_data_memory.chunk_size);
 }
@@ -201,8 +213,34 @@ Asset* ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 index)
     return entry ? (Asset *) entry->value : NULL;
 }
 
+// @performance We could probably avoid locking by adding a atomic flag to indicate if the value is valid
+Asset* threaded_ams_get_asset(AssetManagementSystem* ams, uint64 element) {
+    pthread_mutex_lock(&ams->mutex);
+    Asset* asset = ams_get_asset(ams, element);
+    pthread_mutex_unlock(&ams->mutex);
+
+    return asset;
+}
+
+Asset* threaded_ams_get_asset(AssetManagementSystem* ams, const char* key) {
+    pthread_mutex_lock(&ams->mutex);
+    Asset* asset = ams_get_asset(ams, key);
+    pthread_mutex_unlock(&ams->mutex);
+
+    return asset;
+}
+
+Asset* threaded_ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 index) {
+    pthread_mutex_lock(&ams->mutex);
+    Asset* asset = ams_get_asset(ams, key, index);
+    pthread_mutex_unlock(&ams->mutex);
+
+    return asset;
+}
+
 // @todo implement defragment command to optimize memory layout since the memory layout will become fragmented over time
 
+// @performance This function is VERY important, check if we can optimize it
 Asset* ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 elements = 1)
 {
     int64 free_asset = chunk_reserve(&ams->asset_memory, elements, true);
@@ -224,7 +262,7 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 el
 
     chunk_reserve_index(&ams->asset_data_memory, free_asset, elements, true);
     asset->self = chunk_get_element(&ams->asset_data_memory, free_asset);
-    asset->size = elements; // Curcial for freeing
+    asset->size = elements; // Crucial for freeing
     asset->ram_size = (ams->asset_memory.chunk_size + ams->asset_data_memory.chunk_size) * elements;
 
     DEBUG_MEMORY_RESERVE((uint64) asset->self, elements * ams->asset_data_memory.chunk_size, 180);
