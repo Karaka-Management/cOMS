@@ -25,6 +25,16 @@ void atomic_set(volatile int64* value, int64 new_value)
 }
 
 inline
+int32 atomic_set_fetch(volatile int32* value, int32 new_value) {
+    return __atomic_exchange_n(value, new_value, __ATOMIC_SEQ_CST);
+}
+
+inline
+int64 atomic_set_fetch(volatile int64* value, int64 new_value) {
+    return __atomic_exchange_n(value, new_value, __ATOMIC_SEQ_CST);
+}
+
+inline
 void atomic_get(volatile byte* value, byte data[16])
 {
     __atomic_store((volatile __int128 *) value, (__int128 *) data, __ATOMIC_SEQ_CST);

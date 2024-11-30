@@ -25,6 +25,18 @@ void atomic_set(volatile int64* value, int64 new_value)
 }
 
 inline
+int32 atomic_set_fetch(volatile int32* value, int32 new_value)
+{
+    return (int32) InterlockedExchange((long *) value, new_value);
+}
+
+inline
+int64 atomic_set_fetch(volatile int64* value, int64 new_value)
+{
+    return (int64) InterlockedExchange((long *) value, (long) new_value);
+}
+
+inline
 void atomic_set(volatile byte* value, const byte new_value[16])
 {
     int64* value64 = (int64*) value;

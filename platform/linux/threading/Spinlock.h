@@ -10,7 +10,6 @@
 #define TOS_PLATFORM_LINUX_THREADING_SPINLOCK_H
 
 #include "../../../stdlib/Types.h"
-#include "Spinlock.h"
 
 typedef volatile int32 spinlock32;
 

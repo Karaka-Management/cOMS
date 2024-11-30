@@ -11,6 +11,7 @@
 
 #include <windows.h>
 #include "../TimeUtils.h"
+#include "Spinlock.h"
 
 inline
 void spinlock_start(spinlock32* lock, int32 delay = 10) {
