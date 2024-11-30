@@ -511,7 +511,7 @@ f32 vertex_text_create(
     for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {
-            y += font->line_height * scale;
+            y -= font->line_height * scale;
             offset_x = x;
 
             continue;

@@ -112,6 +112,9 @@ void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* b
 {
     // Get file handle
     archive->fd = file_read_async_handle(path);
+    if (!archive->fd) {
+        return;
+    }
 
     FileBody file;
     file.size = 64;

@@ -15,6 +15,9 @@
 
 #if _WIN32
     #include <windows.h>
+    #include "../platform/win32/threading/Spinlock.h"
+#elif __linux__
+    #include "../platform/linux/threading/Spinlock.h"
 #endif
 
 struct LogMemory {
@@ -33,6 +36,7 @@ struct DebugContainer {
 
     // Used for logging timings for different sections
     TimingStat* perf_stats;
+    spinlock32 perf_stats_spinlock;
 
     // Required to calculate the "fps"
     uint64 performance_count_frequency;

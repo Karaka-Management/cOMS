@@ -86,17 +86,21 @@ void update_timing_stat(uint32 stat, const char* function)
 {
     uint64 new_tick_count = __rdtsc();
 
+    spinlock_start(&debug_container->perf_stats_spinlock);
     TimingStat* timing_stat = &debug_container->perf_stats[stat];
     timing_stat->function = function;
     timing_stat->delta_tick = new_tick_count - timing_stat->old_tick_count;
     timing_stat->delta_time = (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
     timing_stat->old_tick_count = new_tick_count;
+    spinlock_end(&debug_container->perf_stats_spinlock);
 }
 
 inline
 void update_timing_stat_start(uint32 stat, const char*)
 {
+    spinlock_start(&debug_container->perf_stats_spinlock);
     debug_container->perf_stats[stat].old_tick_count = __rdtsc();
+    spinlock_end(&debug_container->perf_stats_spinlock);
 }
 
 inline
@@ -104,11 +108,13 @@ void update_timing_stat_end(uint32 stat, const char* function)
 {
     uint64 new_tick_count = __rdtsc();
 
+    spinlock_start(&debug_container->perf_stats_spinlock);
     TimingStat* timing_stat = &debug_container->perf_stats[stat];
     timing_stat->function = function;
     timing_stat->delta_tick = new_tick_count - timing_stat->old_tick_count;
     timing_stat->delta_time = (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
     timing_stat->old_tick_count = new_tick_count;
+    spinlock_end(&debug_container->perf_stats_spinlock);
 }
 
 inline
@@ -116,35 +122,45 @@ void update_timing_stat_end_continued(uint32 stat, const char* function)
 {
     uint64 new_tick_count = __rdtsc();
 
+    spinlock_start(&debug_container->perf_stats_spinlock);
     TimingStat* timing_stat = &debug_container->perf_stats[stat];
     timing_stat->function = function;
     timing_stat->delta_tick = timing_stat->delta_tick + new_tick_count - timing_stat->old_tick_count;
     timing_stat->delta_time = timing_stat->delta_time + (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
     timing_stat->old_tick_count = new_tick_count;
+    spinlock_end(&debug_container->perf_stats_spinlock);
 }
 
 inline
 void update_timing_stat_reset(uint32 stat)
 {
+    spinlock_start(&debug_container->perf_stats_spinlock);
     debug_container->perf_stats[stat].function = NULL;
+    spinlock_end(&debug_container->perf_stats_spinlock);
 }
 
 inline
 void reset_counter(int32 id)
 {
+    spinlock_start(&debug_container->perf_stats_spinlock);
     debug_container->counter[id] = 0;
+    spinlock_end(&debug_container->perf_stats_spinlock);
 }
 
 inline
 void log_increment(int32 id, int32 by = 1)
 {
+    spinlock_start(&debug_container->perf_stats_spinlock);
     debug_container->counter[id] += by;
+    spinlock_end(&debug_container->perf_stats_spinlock);
 }
 
 inline
 void log_counter(int32 id, int32 value)
 {
+    spinlock_start(&debug_container->perf_stats_spinlock);
     debug_container->counter[id] = value;
+    spinlock_end(&debug_container->perf_stats_spinlock);
 }
 
 // @todo don't use a pointer to this should be in a global together with other logging data (see Log.h)

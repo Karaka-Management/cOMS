@@ -43,6 +43,7 @@ struct AssetManagementSystem {
     Asset* first;
     Asset* last;
 
+    // @question do we want to create an extra threaded version? Or a combined one, like we have right now.
     pthread_mutex_t mutex;
 };
 
