@@ -14,6 +14,8 @@ global_persist DebugContainer* debug_container = NULL;
 
 #if _WIN32
     #include <windows.h>
+    #include "../platform/win32/threading/Atomic.h"
+    #include "../platform/win32/threading/Spinlock.cpp"
     void setup_performance_count() {
         if (!debug_container) {
             return;
@@ -24,6 +26,8 @@ global_persist DebugContainer* debug_container = NULL;
         debug_container->performance_count_frequency = perf_counter.QuadPart;
     }
 #elif __linux__
+#include "../platform/linux/threading/Atomic.h"
+#include "../platform/linux/threading/Spinlock.cpp"
     void setup_performance_count() {
         if (!debug_container) {
             return;
@@ -98,9 +102,7 @@ void update_timing_stat(uint32 stat, const char* function)
 inline
 void update_timing_stat_start(uint32 stat, const char*)
 {
-    spinlock_start(&debug_container->perf_stats_spinlock);
-    debug_container->perf_stats[stat].old_tick_count = __rdtsc();
-    spinlock_end(&debug_container->perf_stats_spinlock);
+    atomic_set((int64 *) &debug_container->perf_stats[stat].old_tick_count, __rdtsc());
 }
 
 inline
@@ -134,33 +136,25 @@ void update_timing_stat_end_continued(uint32 stat, const char* function)
 inline
 void update_timing_stat_reset(uint32 stat)
 {
-    spinlock_start(&debug_container->perf_stats_spinlock);
-    debug_container->perf_stats[stat].function = NULL;
-    spinlock_end(&debug_container->perf_stats_spinlock);
+    atomic_set((int32 *) debug_container->perf_stats[stat].function, 0);
 }
 
 inline
 void reset_counter(int32 id)
 {
-    spinlock_start(&debug_container->perf_stats_spinlock);
-    debug_container->counter[id] = 0;
-    spinlock_end(&debug_container->perf_stats_spinlock);
+    atomic_set(&debug_container->counter[id], 0);
 }
 
 inline
 void log_increment(int32 id, int32 by = 1)
 {
-    spinlock_start(&debug_container->perf_stats_spinlock);
-    debug_container->counter[id] += by;
-    spinlock_end(&debug_container->perf_stats_spinlock);
+    atomic_add(&debug_container->counter[id], by);
 }
 
 inline
 void log_counter(int32 id, int32 value)
 {
-    spinlock_start(&debug_container->perf_stats_spinlock);
-    debug_container->counter[id] = value;
-    spinlock_end(&debug_container->perf_stats_spinlock);
+    atomic_set(&debug_container->counter[id], value);
 }
 
 // @todo don't use a pointer to this should be in a global together with other logging data (see Log.h)

@@ -13,14 +13,4 @@
 
 typedef volatile long spinlock32;
 
-inline
-void spinlock_start(spinlock32* lock) {
-    while (InterlockedExchange(lock, 1) == 1) {}
-}
-
-inline
-void spinlock_end(spinlock32* lock) {
-    InterlockedExchange(lock, 0);
-}
-
 #endif

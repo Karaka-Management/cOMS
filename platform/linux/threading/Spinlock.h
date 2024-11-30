@@ -9,19 +9,9 @@
 #ifndef TOS_PLATFORM_LINUX_THREADING_SPINLOCK_H
 #define TOS_PLATFORM_LINUX_THREADING_SPINLOCK_H
 
-#include <stdatomic.h>
 #include "../../../stdlib/Types.h"
+#include "Spinlock.h"
 
 typedef volatile int32 spinlock32;
-
-inline
-void spinlock_start(spinlock32* lock) {
-    while (__atomic_exchange_n(lock, 1, __ATOMIC_ACQUIRE)) {}
-}
-
-inline
-void spinlock_end(spinlock32* lock) {
-    __atomic_store_n(lock, 0, __ATOMIC_RELEASE);
-}
 
 #endif

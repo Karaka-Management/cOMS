@@ -65,20 +65,4 @@ inline uint32 hash(uint64 a, uint64 b = 0)
     return _mm_extract_epi32(hash, 0);
 }
 
-inline void atomic_increment(int32* a, int32 b) {
-    _aadd_i32(a, b);
-}
-
-inline void atomic_increment(int64* a, int64 b) {
-    _aadd_i64((long long int *) a, (long long int) b);
-}
-
-inline void atomic_decrement(int32* a, int32 b) {
-    _aadd_i32(a, -b);
-}
-
-inline void atomic_decrement(int64* a, int64 b) {
-    _aadd_i64((long long int *) a, (long long int) -b);
-}
-
 #endif

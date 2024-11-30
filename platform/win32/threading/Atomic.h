@@ -19,6 +19,12 @@ void atomic_set(volatile int32* value, int32 new_value)
 }
 
 inline
+void atomic_set(volatile int64* value, int64 new_value)
+{
+    InterlockedExchange((long *) value, (long) new_value);
+}
+
+inline
 void atomic_set(volatile byte* value, const byte new_value[16])
 {
     int64* value64 = (int64*) value;
@@ -31,7 +37,7 @@ void atomic_set(volatile byte* value, const byte new_value[16])
         expected_high = value64[1];
     } while (
         !InterlockedCompareExchange128(
-            (volatile long long*) value,
+            (volatile long long *) value,
             new_value64[1],
             new_value64[0],
             &expected_low
@@ -68,13 +74,13 @@ void atomic_decrement(volatile int32* value) {
 }
 
 inline
-int32 atomic_add(volatile int32* value, int32 increment) {
-    return InterlockedExchangeAdd((long *) value, increment);
+void atomic_add(volatile int32* value, int32 increment) {
+    InterlockedAdd((long *) value, increment);
 }
 
 inline
-int32 atomic_subtract(volatile int32* value, int32 decrement) {
-    return InterlockedExchangeAdd((long *) value, -decrement);
+void atomic_sub(volatile int32* value, int32 decrement) {
+    InterlockedAdd((long *) value, -decrement);
 }
 
 inline
