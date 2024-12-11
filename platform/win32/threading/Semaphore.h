@@ -29,6 +29,14 @@ void sem_wait(sem_t* semaphore) {
     WaitForSingleObject(*semaphore, INFINITE);
 }
 
+int32 sem_timedwait(sem_t* semaphore, uint64 ms) {
+    return (int32) WaitForSingleObject(*semaphore, (DWORD) ms);
+}
+
+int32 sem_trywait(sem_t* semaphore) {
+    return (int32) WaitForSingleObject(*semaphore, 0);
+}
+
 // increment
 void sem_post(sem_t* semaphore) {
     ReleaseSemaphore(*semaphore, 1, NULL);

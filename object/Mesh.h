@@ -29,7 +29,7 @@
 //      maybe make a mesh hold other meshes?
 // @todo handle vertices arrays where for example no texture coordinates are defined/used
 struct Mesh {
-    byte* data; // memory owner that subdevides into the pointers below
+    byte* data; // memory owner that subdivides into the pointers below
 
     // @todo Implement the version into the file, currently not implemented
     int32 version;
@@ -70,13 +70,17 @@ struct Mesh {
 };
 
 // @todo also handle textures etc.
-// WARNING: mesh needs to have memory already reserved and asigned to data
+// WARNING: mesh needs to have memory already reserved and assigned to data
 void mesh_from_file_txt(
     Mesh* mesh,
-    byte* data,
+    const char* path,
     RingMemory* ring
 ) {
-    char* pos = (char *) data;
+    FileBody file;
+    file_read(path, &file, ring);
+    ASSERT_SIMPLE(file.size);
+
+    char* pos = (char *) file.content;
 
     // move past the version string
     pos += 8;
@@ -458,19 +462,15 @@ enum MeshLoadingRestriction {
 // @todo sometimes we don't care about some data, we should have an option which defines which data should be loaded
 //      this can improve performance for algorithms on this. e.g.:
 //      on the server side we only care about the vertex positions for collision (no normals, no color, ...)
-int32 mesh_from_file(
-    RingMemory* ring,
-    const char* path,
+int32 mesh_from_data(
+    const byte* data,
     Mesh* mesh,
     const char* group = NULL,
     int32 load_format = MESH_LOADING_RESTRICTION_EVERYTHING,
     int32 steps = 8
 )
 {
-    FileBody file;
-    file_read(path, &file, ring);
-
-    byte* pos = file.content;
+    const byte* pos = data;
 
     // Read version
     mesh->version = *((int32 *) pos);
@@ -537,24 +537,24 @@ int32 mesh_from_file(
     return offset;
 }
 
-void mesh_to_file(
-    RingMemory* ring,
-    const char* path,
+// @bug this is wrong, since it is the max size
+// We would have to check the vertex format to calculate the actual size
+int32 mesh_data_size(const Mesh* mesh)
+{
+    return sizeof(mesh->version)
+        + sizeof(mesh->vertex_type)
+        + sizeof(mesh->vertex_count)
+        + 12 * sizeof(f32) * mesh->vertex_count; // 12 is the maximum value
+}
+
+int32 mesh_to_data(
     const Mesh* mesh,
+    byte* data,
     int32 vertex_save_format = VERTEX_TYPE_ALL,
     int32 steps = 8
 )
 {
-    FileBody file;
-
-    // Temporary file size for buffer
-    // @todo check the actual size, we are currently more or less guessing
-    file.size = sizeof(mesh)
-        + sizeof(Vertex3D) * mesh->vertex_count
-        + 4096;
-
-    file.content = ring_get_memory(ring, file.size, 64);
-    byte* pos = file.content;
+    byte* pos = data;
 
     // version
     memcpy(pos, &mesh->version, sizeof(mesh->version));
@@ -571,7 +571,7 @@ void mesh_to_file(
     memcpy(pos, &mesh->vertex_count, sizeof(mesh->vertex_count));
     pos += sizeof(mesh->vertex_count);
 
-    // verticies
+    // vertices
     int32 vertex_size = 0;
     if (mesh->vertex_type & VERTEX_TYPE_POSITION) {
         vertex_size += 3;
@@ -614,16 +614,16 @@ void mesh_to_file(
         pos += vertex_size * sizeof(f32) * mesh->vertex_count;
     }
 
-    file.size = pos - file.content;
+    int32 size = (int32) (pos - data);
 
     SWAP_ENDIAN_LITTLE_SIMD(
-        (int32 *) file.content,
-        (int32 *) file.content,
-        file.size / 4, // everything in here is 4 bytes -> super easy to swap
+        (int32 *) data,
+        (int32 *) data,
+        size / 4, // everything in here is 4 bytes -> super easy to swap
         steps
     );
 
-    file_write(path, &file);
+    return size;
 }
 
 #endif

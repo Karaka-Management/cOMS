@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_SERVER_H
-#define TOS_PLATFORM_WIN32_SERVER_H
+#ifndef TOS_PLATFORM_WIN32_NETWORK_SERVER_H
+#define TOS_PLATFORM_WIN32_NETWORK_SERVER_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,9 +16,9 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-#include "../../stdlib/Types.h"
-#include "../../network/SocketConnection.h"
-#include "../../utils/EndianUtils.h"
+#include "../../../stdlib/Types.h"
+#include "../../../network/SocketConnection.h"
+#include "../../../utils/EndianUtils.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 

@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <linux/limits.h>
 #include <stdarg.h>
@@ -28,7 +30,54 @@
     #define MAX_PATH PATH_MAX
 #endif
 
-typedef int32 FileHandler;
+typedef int32 FileHandle;
+typedef int MMFHandle;
+
+inline
+MMFHandle file_mmf_handle(FileHandle fp) {
+    return fp;
+}
+
+inline
+void* mmf_region_init(MMFHandle fh, size_t offset, size_t length = 0) {
+    if (length == 0) {
+        struct stat st;
+        if (fstat(fh, &st) != 0) {
+            return null;
+        }
+
+        length = st.st_size - offset;
+    }
+
+    size_t page_size = sysconf(_SC_PAGESIZE);
+
+    // Offset (must be page-aligned)
+    size_t aligned_offset = offset & ~(page_size - 1);
+    size_t offset_diff = offset - aligned_offset;
+    size_t map_length = length + offset_diff;
+
+    void *mapped_region = mmap(nullptr, map_length, PROT_READ, MAP_PRIVATE, fh, aligned_offset);
+
+    if (mapped_region == MAP_FAILED) {
+        return null;
+    }
+
+    return (char *) mapped_region + offset_diff;
+}
+
+inline
+void mmf_region_release(void* region, size_t length = 0) {
+    size_t page_size = sysconf(_SC_PAGESIZE);
+
+    void *aligned_region = (void *) ((uintptr_t)region & ~(page_size - 1));
+
+    munmap(aligned_region, length);
+}
+
+inline
+void file_mmf_close(MMFHandle fh) {
+    close(fh);
+}
 
 inline
 void relative_to_absolute(const char* rel, char* path)
@@ -77,8 +126,8 @@ uint64 file_last_modified(const char* filename)
 }
 
 inline
-FileHandler file_append_handle(const char* path) {
-    FileHandler fp;
+FileHandle file_append_handle(const char* path) {
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -151,6 +200,9 @@ bool file_copy(const char* src, const char* dst) {
     close(src_fd);
     close(dst_fd);
 
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, bytes_written);
+
     return success;
 }
 
@@ -205,6 +257,8 @@ void file_read(const char* path, FileBody* file, RingMemory* ring) {
     file->content[bytes_read] = '\0';
     file->size = bytes_read;
 
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+
     close(fp);
 }
 
@@ -235,11 +289,13 @@ bool file_write(const char* path, const FileBody* file) {
         return false;
     }
 
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+
     return true;
 }
 
 inline
-void close_handle(FileHandler fp)
+void file_close_handle(FileHandle fp)
 {
     close(fp);
 }

@@ -16,6 +16,13 @@
 #include "../stdlib/simd/SIMD_I32.h"
 #include "../memory/RingMemory.h"
 #include "../memory/BufferMemory.h"
+#include "../image/Image.cpp"
+#include "../object/Mesh.h"
+#include "../object/Texture.h"
+#include "../audio/Audio.cpp"
+#include "../font/Font.h"
+#include "../localization/Language.h"
+#include "../ui/UITheme.h"
 #include "AssetManagementSystem.h"
 
 #if _WIN32
@@ -25,16 +32,21 @@
     #include "../platform/win32/FileUtils.cpp"
 #endif
 
+#define ASSET_ARCHIVE_VERSION 1
+
 struct AssetArchiveElement {
-    int32 type;
+    uint32 type;
 
-    int32 start;
-    int32 length;
+    uint32 start;
+    uint32 length;
 
-    int32 dependency_start; // actual index for asset_dependencies
-    int32 dependency_count;
+    uint32 dependency_start; // actual index for asset_dependencies
+    uint32 dependency_count;
 };
 
+// It is important to understand that for performance reasons the assets addresses are stored in an array
+// This makes it very fast to access because there is only one indirection.
+// On the other hand we can only find assets by their ID/location and not by name.
 struct AssetArchiveHeader {
     int32 version;
 
@@ -49,7 +61,14 @@ struct AssetArchive {
     AssetArchiveHeader header;
     byte* data; // owner of the data
 
-    FileHandler fd;
+    FileHandle fd;
+    FileHandle fd_async;
+
+    // @performance We still need to implement the loading with this and then profile it to see if it is faster.
+    // If not remove
+    MMFHandle mmf;
+
+    int32 asset_type_map[ASSET_TYPE_SIZE];
 };
 
 // Calculates how large the header memory has to be to hold all its information
@@ -91,7 +110,9 @@ void asset_archive_header_load(AssetArchiveHeader* header, byte* data, int32 ste
         steps
     );
 
-    header->asset_dependencies = (int32 *) ((byte *) header->asset_element + header->asset_count * sizeof(AssetArchiveElement));
+    if (header->asset_dependency_count) {
+        header->asset_dependencies = (int32 *) ((byte *) header->asset_element + header->asset_count * sizeof(AssetArchiveElement));
+    }
 
     memcpy(header->asset_dependencies, data, header->asset_dependency_count * sizeof(int32));
     SWAP_ENDIAN_LITTLE_SIMD(
@@ -110,17 +131,22 @@ AssetArchiveElement* asset_archive_element_find(const AssetArchive* archive, int
 
 void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* buf, RingMemory* ring, int32 steps = 8)
 {
-    // Get file handle
-    archive->fd = file_read_async_handle(path);
+    archive->fd = file_read_handle(path);
     if (!archive->fd) {
         return;
     }
+
+    archive->fd_async = file_read_async_handle(path);
+    if (!archive->fd_async) {
+        return;
+    }
+    archive->mmf = file_mmf_handle(archive->fd_async);
 
     FileBody file;
     file.size = 64;
 
     // Find header size
-    file.content = ring_get_memory(ring, file.size);
+    file.content = ring_get_memory(ring, file.size, 4);
     file_read(archive->fd, &file, 0, file.size);
     file.size = asset_archive_header_size(archive, file.content);
 
@@ -134,33 +160,50 @@ void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* b
         4
     );
 
+    archive->header.asset_element = (AssetArchiveElement *) archive->data;
+
     // Read entire header
     file.content = ring_get_memory(ring, file.size);
     file_read(archive->fd, &file, 0, file.size);
     asset_archive_header_load(&archive->header, file.content, steps);
 }
 
-// @performance This can probably be done much faster by handling the loading of dependencies faster
-void asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetManagementSystem* ams_array, RingMemory* ring)
+// @question Do we want to allow a callback function?
+// Very often we want to do something with the data (e.g. upload it to the gpu)
+// Maybe we could just accept a int value which we set atomically as a flag that the asset is complete?
+// this way we can check much faster if we can work with this data from the caller?!
+// The only problem is that we need to pass the pointer to this int in the thrd_queue since we queue the files to load there
+Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetManagementSystem* ams_array, RingMemory* ring)
 {
-    AssetArchiveElement* element = &archive->header.asset_element[id];
-    AssetManagementSystem* ams = element->type > 0
-        ? &ams_array[element->type]
-        : &ams_array[0];
+    // @todo add calculation from element->type to ams index
 
-    uint64 hash = hash_djb2((const char *) &id);
+    AssetArchiveElement* element = &archive->header.asset_element[id];
+    AssetManagementSystem* ams = &ams_array[archive->asset_type_map[element->type]];
+
+    // @todo This is a little bit stupid, reconsider
+    char id_str[5];
+    id_str[4] = '\0';
+    *((int32 *) id_str) = id;
+
+    uint64 hash = hash_djb2(id_str);
+
+    Asset* asset;
 
     // @performance I think we could optimize the ams_reserver_asset in a way so we don't have to lock it the entire time
     pthread_mutex_lock(&ams->mutex);
-    // @bug this is not how this function works
-    if (hashmap_get_entry(&ams->hash_map, (const char *) &id, hash)) {
+    // @bug If we have multiple archive files the ids also repeat, which is not possible for the hash map
+    // Possible solution: also store a string name for every asset. This would add HASH_MAP_MAX_KEY_LENGTH bytes of data to every asset though (see hash map key size = 32)
+
+    asset = ams_get_asset(ams, id_str, hash);
+    if (asset) {
+        // Asset already loaded
         pthread_mutex_unlock(&ams->mutex);
+
+        return asset;
     }
 
     if (element->type == 0) {
-        // @bug We can't just do this, this won't work. Check if we might want to change the asset management directly to hash indices or at least int values
-        Asset* asset = ams_reserve_asset(ams, (const char *) &id, ams_calculate_chunks(ams, element->length));
-        asset->self = (byte *) (asset + 1);
+        asset = ams_reserve_asset(ams, id_str, ams_calculate_chunks(ams, element->length));
 
         FileBody file = {};
         file.content = asset->self;
@@ -168,34 +211,83 @@ void asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetManage
         // We are directly reading into the correct destination
         file_read(archive->fd, &file, element->start, element->length);
     } else {
+        // @performance In this case we may want to check if memory mapped regions are better.
+        // 1. I don't think they work together with async loading
+        // 2. Profile which one is faster
+        // 3. The big benefit of mmf would be that we can avoid one memcpy and directly load the data into the object
+        // 4. Of course the disadvantage would be to no longer have async loading
+
         // We are reading into temp memory since we have to perform transformations on the data
         FileBodyAsync file = {};
-        file_read_async(archive->fd, &file, element->start, element->length, ring);
+        file_read_async(archive->fd_async, &file, element->start, element->length, ring);
 
         // This happens while the file system loads the data
-        Asset* asset = ams_reserve_asset(ams, (const char *) &id, ams_calculate_chunks(ams, element->length));
-        asset->self = (byte *) (asset + 1);
+        asset = ams_reserve_asset(ams, id_str, ams_calculate_chunks(ams, element->length));
+        asset->is_ram = true;
 
-        byte* data = ring_get_memory(ring, element->length, 64);
-        size_t data_size = 0;
-
-        // @todo create platform wrapper
-        GetOverlappedResult(archive->fd, &file.ov, NULL, true);
+        file_async_wait(archive->fd_async, &file.ov, true);
         switch (element->type) {
-            case 1: {
+            case ASSET_TYPE_IMAGE: {
+                // @todo Do we really want to store textures in the asset management system or only images?
+                // If it is only images then we need to somehow also manage textures
+                Texture* texture = (Texture *) asset->self;
+                texture->image.pixels = (byte *) (texture + 1);
+
+                image_from_data(file.content, &texture->image);
+
+                asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.pixel_type);
+                asset->ram_size = asset->vram_size + sizeof(Texture);
+
+                #if OPENGL
+                    // @bug I think order_rows has the wrong value
+                    if (texture->image.order_rows == IMAGE_ROW_ORDER_TOP_TO_BOTTOM) {
+                        image_flip_vertical(ring, &texture->image);
+                        texture->image.order_rows = IMAGE_ROW_ORDER_BOTTOM_TO_TOP;
+                    }
+                #endif
+            } break;
+            case ASSET_TYPE_AUDIO: {
+                Audio* audio = (Audio *) asset->self;
+                audio->data = (byte *) (audio + 1);
+
+                audio_from_data(file.content, audio);
+            } break;
+            case ASSET_TYPE_OBJ: {
+                Mesh* mesh = (Mesh *) asset->self;
+                mesh->data = (byte *) (mesh + 1);
+
+                mesh_from_data(file.content, mesh);
+            } break;
+            case ASSET_TYPE_LANGUAGE: {
+                Language* language = (Language *) asset->self;
+                language->data = (byte *) (language + 1);
+
+                language_from_data(file.content, language);
+            } break;
+            case ASSET_TYPE_FONT: {
+                Font* font = (Font *) asset->self;
+                font->glyphs = (Glyph *) (font + 1);
+
+                font_from_data(file.content, font);
+            } break;
+            case ASSET_TYPE_THEME: {
+                UIThemeStyle* theme = (UIThemeStyle *) asset->self;
+                theme->data = (byte *) (theme + 1);
+
+                theme_from_data(file.content, theme);
             } break;
             default: {
             }
         }
-
-        memcpy(asset->self, data, data_size);
     }
     pthread_mutex_unlock(&ams->mutex);
 
-    // @performance maybe do in worker threads?
-    for (int32 i = 0; i < element->dependency_count; ++i) {
+    // @performance maybe do in worker threads? This just feels very slow
+    for (uint32 i = 0; i < element->dependency_count; ++i) {
         asset_archive_asset_load(archive, id, ams, ring);
     }
+
+    return asset;
 }
 
 #endif

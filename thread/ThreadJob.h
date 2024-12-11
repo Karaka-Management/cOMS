@@ -13,6 +13,7 @@
 #include <stdlib.h>
 
 #include "../stdlib/Types.h"
+#include "../memory/ThreadedRingMemory.h"
 
 #if _WIN32
     #include "../platform/win32/threading/ThreadDefines.h"
@@ -20,14 +21,16 @@
     #include "../platform/linux/threading/ThreadDefines.h"
 #endif
 
-struct PoolWorker {
-    ThreadJobFunc func;
-    void *arg;
-    volatile int32 state;
-    PoolWorker *next;
-};
+typedef void (*ThreadPoolJobFunc)(void*);
 
-typedef PoolWorker ThreadJob;
+struct PoolWorker {
+    int32 id;
+    volatile int32 state;
+    void* arg;
+    void* result;
+    RingMemory ring;
+    ThreadPoolJobFunc func;
+};
 
 struct Worker {
     volatile int32 state;

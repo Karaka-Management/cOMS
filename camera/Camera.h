@@ -19,8 +19,14 @@
 
 // @todo Please check out if we can switch to quaternions. We tried but failed.
 
+enum CameraStateChanges : byte {
+    CAMERA_STATE_CHANGE_NONE = 0,
+    CAMERA_STATE_CHANGE_NORMAL = 1,
+    CAMERA_STATE_CHANGE_WINDOW = 2,
+};
+
 struct Camera {
-    bool is_changed;
+    byte state_changes;
 
     v3_f32 location;
     v4_f32 orientation;
@@ -43,6 +49,8 @@ struct Camera {
     f32 aspect;
 
     f32 view[16];
+    f32 projection[16];
+    f32 orth[16];
 };
 
 void
@@ -64,7 +72,7 @@ camera_update_vectors(Camera* camera)
 
 void camera_rotate(Camera* camera, int32 dx, int32 dy, f32 dt)
 {
-    camera->is_changed = true;
+    camera->state_changes |= CAMERA_STATE_CHANGE_NORMAL;
     camera->orientation.x += dy * camera->sensitivity;
     camera->orientation.y -= dx * camera->sensitivity;
 
@@ -88,7 +96,7 @@ void camera_rotate(Camera* camera, int32 dx, int32 dy, f32 dt)
 // you can have up to 4 camera movement inputs at the same time
 void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool relative_to_world = true)
 {
-    camera->is_changed = true;
+    camera->state_changes |= CAMERA_STATE_CHANGE_NORMAL;
     f32 velocity = camera->speed * dt;
 
     if (relative_to_world) {
@@ -214,11 +222,11 @@ void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool rela
 }
 
 inline
-void camera_orth_matrix_lh(const Camera* __restrict camera, f32* __restrict orth)
+void camera_orth_matrix_lh(Camera* __restrict camera)
 {
-    mat4_identity_sparse(orth);
+    mat4_identity(camera->orth);
     mat4_ortho_sparse_lh(
-        orth,
+        camera->orth,
         0, camera->viewport_width,
         0, camera->viewport_height,
         camera->znear,
@@ -227,11 +235,11 @@ void camera_orth_matrix_lh(const Camera* __restrict camera, f32* __restrict orth
 }
 
 inline
-void camera_orth_matrix_rh(const Camera* __restrict camera, f32* __restrict orth)
+void camera_orth_matrix_rh(Camera* __restrict camera)
 {
-    mat4_identity_sparse(orth);
+    mat4_identity(camera->orth);
     mat4_ortho_sparse_rh(
-        orth,
+        camera->orth,
         0, camera->viewport_width,
         0, camera->viewport_height,
         camera->znear,
@@ -240,11 +248,11 @@ void camera_orth_matrix_rh(const Camera* __restrict camera, f32* __restrict orth
 }
 
 inline
-void camera_projection_matrix_lh(const Camera* __restrict camera, f32* __restrict projection)
+void camera_projection_matrix_lh(Camera* __restrict camera)
 {
-    mat4_identity_sparse(projection);
+    mat4_identity(camera->projection);
     mat4_perspective_sparse_lh(
-        projection,
+        camera->projection,
         camera->fov,
         camera->aspect,
         camera->znear,
@@ -253,11 +261,11 @@ void camera_projection_matrix_lh(const Camera* __restrict camera, f32* __restric
 }
 
 inline
-void camera_projection_matrix_rh(const Camera* __restrict camera, f32* __restrict projection)
+void camera_projection_matrix_rh(Camera* __restrict camera)
 {
-    mat4_identity_sparse(projection);
+    mat4_identity(camera->projection);
     mat4_perspective_sparse_rh(
-        projection,
+        camera->projection,
         camera->fov,
         camera->aspect,
         camera->znear,

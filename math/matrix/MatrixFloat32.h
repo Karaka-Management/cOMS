@@ -23,6 +23,10 @@
 
 // @todo Implement intrinsic versions!
 
+// INFO: I thought we could remove some of the functions. Sometimes we have a function that modifies the original value and then we also have the same function that fills a new result value.
+//      On gcc the optimized code creates the same assembly if we would just choose to return the new value vs. modifying a value by pointer.
+//      However, on MSVC this is not the case and the pointer version has more and slower assembly code for the pass-by-value function
+
 inline
 void vec2_normalize(f32* __restrict x, f32* __restrict y)
 {

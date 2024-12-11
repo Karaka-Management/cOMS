@@ -36,8 +36,8 @@ enum LogDataType {
 void log_to_file();
 void log(const char* str, bool should_log, bool save, const char* file, const char* function, int32 line);
 void log(const char* format, LogDataType data_type, void* data, bool should_log, bool save, const char* file, const char* function, int32 line);
-void log_increment(int32, int32);
-void log_counter(int32, int32);
+void log_increment(int32, int64);
+void log_counter(int32, int64);
 
 #if (LOG_LEVEL == 0)
     // Don't perform any logging at log level 0

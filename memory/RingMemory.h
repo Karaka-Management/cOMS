@@ -58,7 +58,7 @@ void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
         ? (byte *) platform_alloc(size)
         : (byte *) platform_alloc_aligned(size, alignment);
 
-    ring->end = ring->memory + size;;
+    ring->end = ring->memory + size;
     ring->head = ring->memory;
     ring->tail = ring->memory;
     ring->size = size;
@@ -77,7 +77,7 @@ void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment
 
     ring->memory = buffer_get_memory(buf, size, alignment, true);
 
-    ring->end = ring->memory + size;;
+    ring->end = ring->memory + size;
     ring->head = ring->memory;
     ring->tail = ring->memory;
     ring->size = size;
@@ -96,7 +96,7 @@ void ring_init(RingMemory* ring, byte* buf, uint64 size, int32 alignment = 64)
     // @bug what if an alignment is defined?
     ring->memory = buf;
 
-    ring->end = ring->memory + size;;
+    ring->end = ring->memory + size;
     ring->head = ring->memory;
     ring->tail = ring->memory;
     ring->size = size;
@@ -110,12 +110,12 @@ void ring_init(RingMemory* ring, byte* buf, uint64 size, int32 alignment = 64)
 }
 
 inline
-void ring_free(RingMemory* buf)
+void ring_free(RingMemory* ring)
 {
-    if (buf->alignment < 2) {
-        platform_free((void **) &buf->memory);
+    if (ring->alignment < 2) {
+        platform_free((void **) &ring->memory);
     } else {
-        platform_aligned_free((void **) &buf->memory);
+        platform_aligned_free((void **) &ring->memory);
     }
 }
 

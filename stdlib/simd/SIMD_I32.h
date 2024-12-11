@@ -1332,7 +1332,6 @@ void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps)
             result += steps;
        }
     } else if (steps == 8) {
-        // @todo this his how all the functions should be implemented that take in baseic types and output basic types
         __m256i a_8;
         __m256 af_8;
         __m256 b_8 = _mm256_set1_ps(b);

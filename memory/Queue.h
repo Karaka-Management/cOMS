@@ -38,13 +38,30 @@ void queue_free(Queue* queue)
     ring_free(queue);
 }
 
+inline
+bool queue_is_empty(Queue* queue) {
+    return queue->head == queue->tail;
+}
+
+inline
+bool queue_set_empty(Queue* queue) {
+    return queue->head = queue->tail;
+}
+
+inline
+bool queue_is_full(Queue* queue, uint64 size, byte aligned = 0) {
+    return !ring_commit_safe((RingMemory *) queue, size, aligned);
+}
+
 // Conditional Lock
 inline
-void queue_enqueue(Queue* queue, byte* data, uint64 size, byte aligned = 0)
+byte* queue_enqueue(Queue* queue, byte* data, uint64 size, byte aligned = 0)
 {
     byte* mem = ring_get_memory_nomove(queue, size, aligned);
     memcpy(mem, data, size);
     ring_move_pointer(queue, &queue->head, size, aligned);
+
+    return mem;
 }
 
 inline
@@ -60,10 +77,34 @@ void queue_enqueue_end(Queue* queue, uint64 size, byte aligned = 0)
 }
 
 inline
-byte* queue_dequeue(Queue* queue, byte* data, uint64 size, byte aligned = 0)
+bool queue_dequeue(Queue* queue, byte* data, uint64 size, byte aligned = 0)
 {
-    memcpy(data, queue->tail, size);
+    if (queue->head == queue->tail) {
+        return false;
+    }
+
+    if (size == 4) {
+        *((int32 *) data) = *((int32 *) queue->tail);
+    } else {
+        memcpy(data, queue->tail, size);
+    }
+
     ring_move_pointer(queue, &queue->tail, size, aligned);
+
+    return true;
+}
+
+inline
+byte* queue_dequeue_keep(Queue* queue, uint64 size, byte aligned = 0)
+{
+    if (queue->head == queue->tail) {
+        return NULL;
+    }
+
+    byte* data = queue->tail;
+    ring_move_pointer(queue, &queue->tail, size, aligned);
+
+    return data;
 }
 
 inline

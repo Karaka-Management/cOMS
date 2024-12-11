@@ -22,7 +22,9 @@
 #include "../../utils/TestUtils.h"
 #include "../../memory/RingMemory.h"
 
-typedef HANDLE FileHandler;
+typedef HANDLE FileHandle;
+typedef HANDLE MMFHandle;
+typedef OVERLAPPED file_overlapped;
 
 struct FileBodyAsync {
     // doesn't include null termination (same as strlen)
@@ -31,7 +33,30 @@ struct FileBodyAsync {
     OVERLAPPED ov;
 };
 
-// @todo Consider to implement directly mapped files (CreateFileMapping) for certain files (e.g. map data or texture data, ...)
+inline
+MMFHandle file_mmf_handle(FileHandle fp)
+{
+    return CreateFileMappingA(fp, NULL, PAGE_READONLY, 0, 0, NULL);
+}
+
+inline
+void* mmf_region_init(MMFHandle fh, size_t offset, size_t length = 0)
+{
+    DWORD high = (DWORD) ((offset >> 32) & 0xFFFFFFFF);
+    DWORD low = (DWORD) (offset & 0xFFFFFFFF);
+
+    return MapViewOfFile(fh, FILE_MAP_READ, high, low, length);
+}
+
+inline
+void mmf_region_release(void* fh) {
+    UnmapViewOfFile(fh);
+}
+
+inline
+void file_mmf_close(MMFHandle fh) {
+    CloseHandle(fh);
+}
 
 inline
 void relative_to_absolute(const char* rel, char* path)
@@ -63,7 +88,7 @@ inline uint64
 file_size(const char* path)
 {
     // @performance Profile against fseek strategy
-    FileHandler fp;
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -121,7 +146,7 @@ bool file_exists(const char* path)
 inline void
 file_read(const char* path, FileBody* file, RingMemory* ring = NULL)
 {
-    FileHandler fp;
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -159,11 +184,10 @@ file_read(const char* path, FileBody* file, RingMemory* ring = NULL)
     }
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, size.QuadPart);
+        file->content = ring_get_memory(ring, size.QuadPart + 1);
     }
 
     DWORD bytes;
-    ASSERT_SIMPLE(size.QuadPart < MAX_UINT32);
     if (!ReadFile(fp, file->content, (uint32) size.QuadPart, &bytes, NULL)) {
         CloseHandle(fp);
         file->content = NULL;
@@ -175,12 +199,14 @@ file_read(const char* path, FileBody* file, RingMemory* ring = NULL)
 
     file->content[bytes] = '\0';
     file->size = size.QuadPart;
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes);
 }
 
 inline
 void file_read(const char* path, FileBody* file, uint64 offset, uint64 length = MAX_UINT64, RingMemory* ring = NULL)
 {
-    FileHandler fp;
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -232,7 +258,7 @@ void file_read(const char* path, FileBody* file, uint64 offset, uint64 length = 
     uint64 read_length = OMS_MIN(length, file_size - offset);
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, read_length);
+        file->content = ring_get_memory(ring, read_length + 1);
     }
 
     // Move the file pointer to the offset position
@@ -246,7 +272,6 @@ void file_read(const char* path, FileBody* file, uint64 offset, uint64 length = 
     }
 
     DWORD bytes;
-    ASSERT_SIMPLE(read_length < MAX_UINT32);
     if (!ReadFile(fp, file->content, (uint32) read_length, &bytes, NULL)) {
         CloseHandle(fp);
         file->content = NULL;
@@ -258,10 +283,12 @@ void file_read(const char* path, FileBody* file, uint64 offset, uint64 length = 
 
     file->content[bytes] = '\0';
     file->size = bytes;
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes);
 }
 
 inline
-void file_read(FileHandler fp, FileBody* file, uint64 offset = 0, uint64 length = MAX_UINT64, RingMemory* ring = NULL)
+void file_read(FileHandle fp, FileBody* file, uint64 offset = 0, uint64 length = MAX_UINT64, RingMemory* ring = NULL)
 {
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
@@ -285,7 +312,7 @@ void file_read(FileHandler fp, FileBody* file, uint64 offset = 0, uint64 length 
     uint64 read_length = OMS_MIN(length, file_size - offset);
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, read_length);
+        file->content = ring_get_memory(ring, read_length + 1);
     }
 
     // Move the file pointer to the offset position
@@ -299,7 +326,6 @@ void file_read(FileHandler fp, FileBody* file, uint64 offset = 0, uint64 length 
     }
 
     DWORD bytes;
-    ASSERT_SIMPLE(read_length < MAX_UINT32);
     if (!ReadFile(fp, file->content, (uint32) read_length, &bytes, NULL)) {
         CloseHandle(fp);
         file->content = NULL;
@@ -307,16 +333,16 @@ void file_read(FileHandler fp, FileBody* file, uint64 offset = 0, uint64 length 
         return;
     }
 
-    CloseHandle(fp);
-
     file->content[bytes] = '\0';
     file->size = bytes;
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes);
 }
 
 inline uint64
 file_read_struct(const char* path, void* file, uint32 size)
 {
-    FileHandler fp;
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -361,13 +387,15 @@ file_read_struct(const char* path, void* file, uint32 size)
 
     CloseHandle(fp);
 
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, read);
+
     return read;
 }
 
 inline bool
 file_write(const char* path, const FileBody* file)
 {
-    FileHandler fp;
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -397,7 +425,6 @@ file_write(const char* path, const FileBody* file)
 
     DWORD written;
     DWORD length = (DWORD) file->size;
-    ASSERT_SIMPLE(file->size < MAX_UINT32);
     if (!WriteFile(fp, file->content, length, &written, NULL)) {
         CloseHandle(fp);
         return false;
@@ -405,13 +432,15 @@ file_write(const char* path, const FileBody* file)
 
     CloseHandle(fp);
 
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, length);
+
     return true;
 }
 
 inline bool
 file_write_struct(const char* path, const void* file, uint32 size)
 {
-    FileHandler fp;
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -444,6 +473,8 @@ file_write_struct(const char* path, const void* file, uint32 size)
 
     CloseHandle(fp);
 
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+
     return true;
 }
 
@@ -473,7 +504,7 @@ file_copy(const char* src, const char* dst)
 }
 
 inline
-void close_handle(FileHandler fp)
+void file_close_handle(FileHandle fp)
 {
     CloseHandle(fp);
 }
@@ -481,7 +512,7 @@ void close_handle(FileHandler fp)
 inline
 HANDLE file_append_handle(const char* path)
 {
-    FileHandler fp;
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -514,10 +545,10 @@ HANDLE file_append_handle(const char* path)
 
 inline
 bool file_read_async(
-    FileHandler fp,
+    FileHandle fp,
     FileBodyAsync* file,
     uint64_t offset = 0,
-    uint64_t length = MAXUINT64,
+    uint64_t length = MAX_UINT64,
     RingMemory* ring = NULL
 ) {
     LARGE_INTEGER size;
@@ -559,7 +590,6 @@ bool file_read_async(
     file->ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     DWORD bytes_read = 0;
-    ASSERT_SIMPLE(read_length < MAXDWORD);
     if (!ReadFile(fp, file->content, (DWORD) read_length, &bytes_read, &file->ov)) {
         DWORD error = GetLastError();
         if (error != ERROR_IO_PENDING) {
@@ -573,13 +603,23 @@ bool file_read_async(
     }
 
     file->size = read_length;
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, read_length);
+
     return true;
 }
 
 inline
-FileHandler file_read_handle(const char* path)
+void file_async_wait(FileHandle fp, file_overlapped* overlapped, bool wait)
 {
-    FileHandler fp;
+    DWORD bytesTransferred;
+    GetOverlappedResult(fp, overlapped, &bytesTransferred, wait);
+}
+
+inline
+FileHandle file_read_handle(const char* path)
+{
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -611,9 +651,9 @@ FileHandler file_read_handle(const char* path)
 }
 
 inline
-FileHandler file_read_async_handle(const char* path)
+FileHandle file_read_async_handle(const char* path)
 {
-    FileHandler fp;
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -646,7 +686,7 @@ FileHandler file_read_async_handle(const char* path)
 
 bool file_append(const char* path, const char* file)
 {
-    FileHandler fp;
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -675,39 +715,40 @@ bool file_append(const char* path, const char* file)
     }
 
     DWORD written;
-    DWORD length = (DWORD) strlen(file); // @question WHY is WriteFile not supporting larger data?
-    ASSERT_SIMPLE(length < MAX_UINT32);
+    DWORD length = (DWORD) strlen(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
         CloseHandle(fp);
         return false;
     }
 
     CloseHandle(fp);
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+
     return true;
 }
 
 inline bool
-file_append(FileHandler fp, const char* file)
+file_append(FileHandle fp, const char* file)
 {
     if (fp == INVALID_HANDLE_VALUE) {
         return false;
     }
 
     DWORD written;
-    DWORD length = (DWORD) strlen(file); // @question WHY is WriteFile not supporting larger data?
-    ASSERT_SIMPLE(length < MAX_UINT32);
-
+    DWORD length = (DWORD) strlen(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
         CloseHandle(fp);
         return false;
     }
 
-    CloseHandle(fp);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+
     return true;
 }
 
 inline bool
-file_append(FileHandler fp, const char* file, size_t length)
+file_append(FileHandle fp, const char* file, size_t length)
 {
     if (fp == INVALID_HANDLE_VALUE) {
         return false;
@@ -719,13 +760,15 @@ file_append(FileHandler fp, const char* file, size_t length)
         return false;
     }
 
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
+
     return true;
 }
 
 inline bool
 file_append(const char* path, const FileBody* file)
 {
-    FileHandler fp;
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);
@@ -755,13 +798,15 @@ file_append(const char* path, const FileBody* file)
 
     DWORD bytes;
     DWORD length = (DWORD) file->size;
-    ASSERT_SIMPLE(file->size < MAX_UINT32);
     if (!WriteFile(fp, file->content, length, &bytes, NULL)) {
         CloseHandle(fp);
         return false;
     }
 
     CloseHandle(fp);
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, bytes);
+
     return true;
 }
 
@@ -770,7 +815,7 @@ uint64 file_last_modified(const char* path)
 {
     WIN32_FIND_DATA find_data;
 
-    FileHandler fp;
+    FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
         relative_to_absolute(path, full_path);

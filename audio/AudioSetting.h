@@ -20,23 +20,19 @@ struct AudioSetting {
     // WARNING: not the byte position, but the index based on the sample size
     uint32 sample_index;
 
-    // @todo add more settings e.g. repeat etc
-
-    uint32 latency;
-
     f32 master_volume;
 
     // bits per sample
     // usually 48000 or 44100
-    uint32 sample_rate;
+    uint16 sample_rate;
 
     // bytes per bloc
     // channel count * bit
     // usually 2 * 16 = 4
-    uint32 sample_size;
+    byte sample_size;
 
     // how often has the audio_play been called (required for xaudio)
-    uint32 sample_output;
+    byte sample_output;
 
     // max buffer content/size
     uint32 buffer_size;
@@ -47,6 +43,9 @@ struct AudioSetting {
     int16* buffer;
 
     byte type = SOUND_API_DIRECT_SOUND;
+    byte latency;
+
+    // @todo add more settings e.g. repeat etc
 };
 
 struct AudioLocationSetting {

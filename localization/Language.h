@@ -10,21 +10,31 @@
     #include "../platform/linux/FileUtils.cpp"
 #endif
 
+#define LANGUAGE_VERSION 1
+
 struct Language {
     // WARNING: the actual start of data is data -= sizeof(count); see file loading below
     byte* data;
 
     int32 count;
+    int64 size;
     char** lang;
 };
 
 void language_from_file_txt(
     Language* language,
-    byte* data
+    const char* path,
+    RingMemory* ring
 ) {
+    FileBody file;
+    file_read(path, &file, ring);
+    ASSERT_SIMPLE(file.size);
+
     // count elements
     language->count = 1;
     int64 len = 0;
+
+    byte* data = file.content;
 
     while (data[len] != '\0') {
         if (data[len] == '\n' && data[len + 1] == '\n') {
@@ -36,6 +46,7 @@ void language_from_file_txt(
         ++len;
     }
 
+    language->size = len;
     language->lang = (char **) language->data;
     memcpy(language->data + language->count * sizeof(char *), data, len);
 
@@ -54,22 +65,35 @@ void language_from_file_txt(
     }
 }
 
+int32 language_data_size(const Language* language)
+{
+    return (int32) (language->size
+        + sizeof(language->count)
+        + sizeof(language->size)
+        + language->count * sizeof(uint64)
+    );
+}
+
 // File layout - binary
 // offsets for start of strings
 // actual string data
-void language_from_file(
+int32 language_from_data(
+    const byte* data,
     Language* language
 ) {
-    byte* pos = language->data;
+    const byte* pos = data;
 
     // Count
     language->count = SWAP_ENDIAN_LITTLE(*((int32 *) pos));
     pos += sizeof(language->count);
 
-    language->lang = (char **) pos;
+    language->size = SWAP_ENDIAN_LITTLE(*((int32 *) pos));
+    pos += sizeof(language->size);
+
+    language->lang = (char **) language->data;
     char** pos_lang = language->lang;
 
-    byte* start = pos;
+    byte* start = language->data;
 
     // Load pointers/offsets
     for (int32 i = 0; i < language->count; ++i) {
@@ -77,27 +101,28 @@ void language_from_file(
         pos += sizeof(uint64);
     }
 
-    // We don't have to load the actual strings, they are already in ->data due to the file reading
+    memcpy(
+        language->data + language->count * sizeof(uint64),
+        pos,
+        language->size
+    );
+
+    return language_data_size(language);
 }
 
-void language_to_file(
-    RingMemory* ring,
-    const char* path,
-    Language* language
+int32 language_to_data(
+    const Language* language,
+    byte* data
 ) {
-    FileBody file;
-
-    // Temporary file size for buffer
-    // @todo This is a bad placeholder, The problem is we don't know how much we actually need without stepping through the elements
-    //      I also don't want to add a size variable to the theme as it is useless in all other cases
-    file.size = MEGABYTE * 32;
-
-    file.content = ring_get_memory(ring, file.size, 64);
-    byte* pos = file.content;
+    byte* pos = data;
 
     // Count
     *((int32 *) pos) = SWAP_ENDIAN_LITTLE(language->count);
     pos += sizeof(language->count);
+
+    // Count
+    *((int32 *) pos) = SWAP_ENDIAN_LITTLE((int32) language->size);
+    pos += sizeof(language->size);
 
     byte* start = pos;
 
@@ -107,19 +132,14 @@ void language_to_file(
         pos += sizeof(uint64);
     }
 
-    int64 len_total = 0;
-
     // Save actual strings
-    int64 len;
-    for (int32 i = 0; i < language->count; ++i) {
-        len = strlen(language->lang[i]);
-        len_total += len;
-        memcpy((char *) pos, language->lang[i], len + 1);
-        pos += len;
-    }
+    memcpy(
+        pos,
+        language->data + language->count * sizeof(uint64),
+        language->size
+    );
 
-    file.size = pos - file.content;
-    file_write(path, &file);
+    return language_data_size(language);
 }
 
 #endif

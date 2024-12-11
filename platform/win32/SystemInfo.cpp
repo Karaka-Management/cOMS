@@ -25,6 +25,7 @@
 #include <wbemidl.h>
 #include <comdef.h>
 #include <winnls.h>
+#include <hidsdi.h>
 
 // @performance Do we really need all these libs, can't we simplify that?!
 #include <intrin.h>

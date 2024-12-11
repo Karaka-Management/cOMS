@@ -161,4 +161,87 @@ void shader_check_compile_errors(uint32 id, char* log)
     }
 }
 
+int32 shader_program_optimize(const char* input, char* output)
+{
+    const char* read_ptr = input;
+    char* write_ptr = output;
+    bool in_string = false;
+
+    while (*read_ptr) {
+        // Remove leading whitespace
+        while (*read_ptr == ' ' || *read_ptr == '\t' || is_eol(read_ptr)) {
+            ++read_ptr;
+        }
+
+        if (write_ptr != output
+            && *(write_ptr - 1) != '\n' && *(write_ptr - 1) != ';' && *(write_ptr - 1) != '{'
+            && *(write_ptr - 1) != '('
+            && *(write_ptr - 1) != ','
+        ) {
+            *write_ptr++ = '\n';
+        }
+
+        // Handle single-line comments (//)
+        if (*read_ptr == '/' && *(read_ptr + 1) == '/' && !in_string) {
+            // Go to end of line
+            while (*read_ptr && *read_ptr != '\n') {
+                ++read_ptr;
+            }
+
+            continue;
+        }
+
+        // Handle multi-line comments (/* */)
+        if (*read_ptr == '/' && *(read_ptr + 1) == '*' && !in_string) {
+            // Go to end of comment
+            while (*read_ptr && (*read_ptr != '*' || *(read_ptr + 1) != '/')) {
+                ++read_ptr;
+            }
+
+            if (*read_ptr == '*' && *(read_ptr + 1) == '/') {
+                read_ptr += 2;
+            }
+
+            continue;
+        }
+
+        // Handle strings to avoid removing content within them
+        if (*read_ptr == '"') {
+            in_string = !in_string;
+        }
+
+        // Copy valid characters to write_ptr
+        while (*read_ptr && !is_eol(read_ptr) && *read_ptr != '"'
+            && !(*read_ptr == '/' && (*(read_ptr + 1) == '/' || *(read_ptr + 1) == '*'))
+        ) {
+            if (!in_string
+                && (*read_ptr == '*' || *read_ptr == '/' || *read_ptr == '=' || *read_ptr == '+' || *read_ptr == '-' || *read_ptr == '%'
+                    || *read_ptr == '(' || *read_ptr == ')'
+                    || *read_ptr == '{' || *read_ptr == '}'
+                    || *read_ptr == ',' || *read_ptr == '?' || *read_ptr == ':' || *read_ptr == ';'
+                    || *read_ptr == '&' || *read_ptr == '|'
+                    || *read_ptr == '>' || *read_ptr == '<'
+                )
+            ) {
+                if (is_whitespace(*(write_ptr - 1)) || *(write_ptr - 1) == '\n') {
+                    --write_ptr;
+                }
+
+                *write_ptr++ = *read_ptr++;
+
+                if (*read_ptr && is_whitespace(*read_ptr)) {
+                    ++read_ptr;
+                }
+            } else {
+                *write_ptr++ = *read_ptr++;
+            }
+        }
+    }
+
+    *write_ptr = '\0';
+
+    // -1 to remove \0 from length, same as strlen
+    return (int32) (write_ptr - output);
+}
+
 #endif

@@ -9,8 +9,9 @@
 #ifndef TOS_SOUND_DIRECT_SOUND_H
 #define TOS_SOUND_DIRECT_SOUND_H
 
-#include <dsound.h>
 #include <windows.h>
+#include <mmeapi.h>
+#include <dsound.h>
 
 #include "../../../stdlib/Types.h"
 #include "../../../audio/AudioSetting.h"
@@ -172,10 +173,10 @@ void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting)
         return;
     }
 
-    void *region1;
+    void* region1;
     DWORD region1_size;
 
-    void *region2;
+    void* region2;
     DWORD region2_size;
 
     DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
@@ -203,6 +204,7 @@ void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting)
 
     api_setting->secondary_buffer->Unlock(region1, region1_size, region2, region2_size);
 
+    // @question Do we want to keep this here or move it to the audio mixer?
     setting->sample_index += setting->sample_buffer_size / setting->sample_size;
     setting->sample_buffer_size = 0;
 }

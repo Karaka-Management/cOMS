@@ -90,7 +90,13 @@ void image_tga_generate(const FileBody* src_data, Image* image)
     uint32 pixel_bytes = src.header.bits_per_pixel / 8;
     byte alpha_offset = pixel_bytes > 3;
 
-    image->has_alpha |= (bool) alpha_offset;
+    if (pixel_bytes == 4) {
+        image->pixel_type = (byte) PIXEL_TYPE_RGBA;
+    } else if (pixel_bytes == 3) {
+        image->pixel_type = (byte) PIXEL_TYPE_RGB;
+    } else {
+        ASSERT_SIMPLE(false);
+    }
 
     // We can check same settings through equality since we use the same values
     if (image->order_rows == src.header.vertical_ordering
@@ -131,7 +137,7 @@ void image_tga_generate(const FileBody* src_data, Image* image)
             // Add alpha channel at end of every RGB value
             if (alpha_offset > 0) {
                 image->pixels[row_pos1 + x * pixel_bytes + 3] = src.pixels[row_pos2 + x * pixel_bytes + pixel_bytes + 3];
-            } else if (image->has_alpha) {
+            } else if (image->pixel_type == PIXEL_TYPE_RGBA) {
                 image->pixels[row_pos1 + x * pixel_bytes + 3] = 0xFF;
             }
         }

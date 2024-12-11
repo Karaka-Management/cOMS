@@ -27,6 +27,9 @@
 #define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
 #define OMS_CEIL(x) ((x) == (int)(x) ? (int)(x) : ((x) > 0 ? (int)(x) + 1 : (int)(x)))
 
+// Modulo function when b is a power of 2
+#define MODULO_2(a, b) ((a) & (b - 1))
+
 #define SQRT_2 1.4142135623730950488016887242097f
 
 #endif

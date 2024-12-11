@@ -21,7 +21,7 @@ uint64 rle_encode(const char* in, size_t length, char* out)
     uint64 count;
     uint64 j = 0;
 
-    for (uint64 i = 0; i < length; i++) {
+    for (uint64 i = 0; i < length; ++i) {
         count = 1;
         while (i + 1 < length && in[i] == in[i + 1]) {
             ++count;
@@ -42,7 +42,7 @@ uint64 rle_decode(const char* in, size_t length, char* out)
 {
     uint64 j = 0;
 
-    for (int64 i = 0; i < length; i++) {
+    for (int64 i = 0; i < length; ++i) {
         char current_char = in[i];
         ++i;
 
@@ -53,7 +53,7 @@ uint64 rle_decode(const char* in, size_t length, char* out)
         }
         --i;
 
-        for (int32 k = 0; k < count; k++) {
+        for (int32 k = 0; k < count; ++k) {
             out[j++] = current_char;
         }
     }

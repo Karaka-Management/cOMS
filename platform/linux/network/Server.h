@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_SERVER_H
-#define TOS_PLATFORM_LINUX_SERVER_H
+#ifndef TOS_PLATFORM_LINUX_NETWORK_SERVER_H
+#define TOS_PLATFORM_LINUX_NETWORK_SERVER_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,9 +21,9 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "../../stdlib/Types.h"
-#include "../../network/SocketConnection.h"
-#include "../../utils/EndianUtils.h"
+#include "../../../stdlib/Types.h"
+#include "../../../network/SocketConnection.h"
+#include "../../../utils/EndianUtils.h"
 
 // WARNING: requires `sudo setcap cap_net_raw=eip /path/to/your_program`
 void socket_server_raw_create(const char* hostname, SocketConnection* con) {

@@ -137,7 +137,7 @@ void hid_init_controllers(Input* __restrict states, int32 state_count, RingMemor
     SetupDiDestroyDeviceInfoList(device_info_set);
 }
 
-uint32 hid_divice_poll(Input* state, uint64 time) {
+uint32 hid_device_poll(Input* state, uint64 time) {
     UCHAR buffer[128];
     DWORD bytes_read;
 

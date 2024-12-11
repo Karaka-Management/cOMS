@@ -13,158 +13,120 @@
 #include <stdlib.h>
 
 #include "../stdlib/Types.h"
+#include "../memory/Queue.h"
+#include "../memory/BufferMemory.h"
 
 #ifdef _WIN32
     #include "../platform/win32/threading/Thread.h"
+    #include "../platform/win32/threading/Atomic.h"
 #elif __linux__
     #include "../platform/linux/threading/Thread.h"
+    #include "../platform/linux/threading/Atomic.h"
 #endif
 
 #include "ThreadJob.h"
 
 struct ThreadPool {
-    ThreadJob *work_first;
-    ThreadJob *work_last;
+    // This is not a threaded queue since we want to handle the mutex in here, not in the queue for finer control
+    Queue work_queue;
 
     pthread_mutex_t work_mutex;
     pthread_cond_t work_cond;
     pthread_cond_t working_cond;
 
-    size_t working_cnt;
-    size_t thread_cnt;
+    int32 working_cnt;
+    int32 thread_cnt;
 
     int32 size;
-    bool stop;
+    int32 state;
+
+    uint32 id_counter;
 };
-
-ThreadJob *thread_pool_work_poll(ThreadPool *pool)
-{
-    if (pool == NULL) {
-        return NULL;
-    }
-
-    ThreadJob *work = pool->work_first;
-    if (work == NULL) {
-        return NULL;
-    }
-
-    if (work->next == NULL) {
-        pool->work_first = NULL;
-        pool->work_last  = NULL;
-    } else {
-        pool->work_first = work->next;
-    }
-
-    return work;
-}
 
 static THREAD_RETURN thread_pool_worker(void* arg)
 {
-    ThreadPool *pool = (ThreadPool *) arg;
-    ThreadJob *work;
+    ThreadPool* pool = (ThreadPool *) arg;
+    PoolWorker* work;
 
     while (true) {
         pthread_mutex_lock(&pool->work_mutex);
-
-        while (pool->work_first == NULL && !pool->stop) {
+        while (queue_is_empty(&pool->work_queue) && !pool->state) {
             pthread_cond_wait(&pool->work_cond, &pool->work_mutex);
         }
 
-        if (pool->stop) {
+        if (pool->state == 1) {
+            pthread_mutex_unlock(&pool->work_mutex);
+
             break;
         }
 
-        work = thread_pool_work_poll(pool);
-        ++(pool->working_cnt);
+        work = (PoolWorker *) queue_dequeue_keep(&pool->work_queue, sizeof(PoolWorker), 64);
         pthread_mutex_unlock(&pool->work_mutex);
 
-        if (work != NULL) {
-            work->func(work);
+        if (!work) {
+            continue;
         }
 
-        pthread_mutex_lock(&pool->work_mutex);
-        --(pool->working_cnt);
+        atomic_increment(&pool->working_cnt);
+        atomic_set(&work->state, 2);
+        work->func(work);
+        atomic_set(&work->state, 1);
 
-        if (!pool->stop && pool->working_cnt == 0 && pool->work_first == NULL) {
+        // Job gets marked after completion -> can be overwritten now
+        if (atomic_get(&work->id) == -1) {
+            atomic_set(&work->id, 0);
+        }
+
+        atomic_decrement(&pool->working_cnt);
+
+        if (atomic_get(&pool->state) == 0 && atomic_get(&pool->working_cnt) == 0) {
             pthread_cond_signal(&pool->working_cond);
         }
-
-        pthread_mutex_unlock(&pool->work_mutex);
     }
 
-    --(pool->thread_cnt);
     pthread_cond_signal(&pool->working_cond);
-    pthread_mutex_unlock(&pool->work_mutex);
+    atomic_decrement(&pool->thread_cnt);
 
     return NULL;
 }
 
-ThreadPool *thread_pool_create(size_t num, ThreadPool* pool)
+void thread_pool_create(ThreadPool* pool, BufferMemory* buf, int32 thread_count)
 {
-    pthread_t thread;
-    size_t i;
+    queue_init(&pool->work_queue, buf, 64, sizeof(PoolWorker), 64);
 
-    if (num == 0) {
-        num = 2;
-    }
-
-    pool->thread_cnt = num;
+    pool->thread_cnt = thread_count;
 
     // @todo switch from pool mutex and pool cond to threadjob mutex/cond
-    //      thread_pool_wait etc. should just itereate over all mutexes
+    //      thread_pool_wait etc. should just iterate over all mutexes
     pthread_mutex_init(&pool->work_mutex, NULL);
     pthread_cond_init(&pool->work_cond, NULL);
     pthread_cond_init(&pool->working_cond, NULL);
 
-    pool->work_first = NULL;
-    pool->work_last  = NULL;
-
-    for (i = 0; i < num; ++i) {
+    pthread_t thread;
+    for (pool->size = 0; pool->size < thread_count; ++pool->size) {
         pthread_create(&thread, NULL, thread_pool_worker, pool);
-        ++(pool->size);
-
         pthread_detach(thread);
     }
-
-    return pool;
 }
 
-void thread_pool_wait(ThreadPool *pool)
+void thread_pool_wait(ThreadPool* pool)
 {
-    if (pool == NULL) {
-        return;
-    }
-
     pthread_mutex_lock(&pool->work_mutex);
-
-    while (true) {
-        if ((!pool->stop && pool->working_cnt != 0) || (pool->stop && pool->thread_cnt != 0)) {
-            pthread_cond_wait(&pool->working_cond, &pool->work_mutex);
-        } else {
-            break;
-        }
+    while ((!pool->state && pool->working_cnt != 0) || (pool->state && pool->thread_cnt != 0)) {
+        pthread_cond_wait(&pool->working_cond, &pool->work_mutex);
     }
-
     pthread_mutex_unlock(&pool->work_mutex);
 }
 
-void thread_pool_destroy(ThreadPool *pool)
+void thread_pool_destroy(ThreadPool* pool)
 {
-    if (pool == NULL) {
-        return;
-    }
+    // This sets the queue to empty
+    atomic_set((void **) &pool->work_queue.tail, (void **) &pool->work_queue.head);
 
-    pthread_mutex_lock(&pool->work_mutex);
-    ThreadJob *work = pool->work_first;
+    // This sets the state to "shutdown"
+    atomic_set(&pool->state, 1);
 
-    while (work != NULL) {
-        work = work->next;
-    }
-
-    pool->stop = true;
     pthread_cond_broadcast(&pool->work_cond);
-    pthread_mutex_unlock(&pool->work_mutex);
-
     thread_pool_wait(pool);
 
     pthread_mutex_destroy(&pool->work_mutex);
@@ -172,25 +134,58 @@ void thread_pool_destroy(ThreadPool *pool)
     pthread_cond_destroy(&pool->working_cond);
 }
 
-ThreadJob* thread_pool_add_work(ThreadPool *pool, ThreadJob* job)
+PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
 {
-    if (pool == NULL || job == NULL) {
+    pthread_mutex_lock(&pool->work_mutex);
+    PoolWorker* temp_job = (PoolWorker *) ring_get_memory_nomove(&pool->work_queue, sizeof(PoolWorker), 64);
+    if (atomic_get(&temp_job->id) > 0) {
+        pthread_mutex_unlock(&pool->work_mutex);
+        ASSERT_SIMPLE(temp_job->id == 0);
+
         return NULL;
     }
 
-    pthread_mutex_lock(&pool->work_mutex);
-    if (pool->work_first == NULL) {
-        pool->work_first = job;
-        pool->work_last  = pool->work_first;
-    } else {
-        pool->work_last->next = job;
-        pool->work_last       = job;
+    memcpy(temp_job, job, sizeof(PoolWorker));
+    ring_move_pointer(&pool->work_queue, &pool->work_queue.head, sizeof(PoolWorker), 64);
+
+    if (temp_job->id == 0) {
+        temp_job->id = atomic_add_fetch(&pool->id_counter, 1);
     }
 
     pthread_cond_broadcast(&pool->work_cond);
     pthread_mutex_unlock(&pool->work_mutex);
 
-    return job;
+    return temp_job;
 }
+
+// This is basically the same as thread_pool_add_work but allows us to directly write into the memory in the caller
+// This makes it faster, since we can avoid a memcpy
+PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
+{
+    pthread_mutex_lock(&pool->work_mutex);
+
+    PoolWorker* temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue, sizeof(PoolWorker), 64);
+    if (atomic_get(&temp_job->id) > 0) {
+        pthread_mutex_unlock(&pool->work_mutex);
+        ASSERT_SIMPLE(temp_job->id == 0);
+
+        return NULL;
+    }
+
+    if (temp_job->id == 0) {
+        // +1 because otherwise the very first job would be id = 0 which is not a valid id
+        temp_job->id = atomic_add_fetch(&pool->id_counter, 1) + 1;
+    }
+
+    return temp_job;
+}
+
+void thread_pool_add_work_end(ThreadPool* pool)
+{
+    queue_enqueue_end(&pool->work_queue, sizeof(PoolWorker), 64);
+    pthread_cond_broadcast(&pool->work_cond);
+    pthread_mutex_unlock(&pool->work_mutex);
+}
+
 
 #endif

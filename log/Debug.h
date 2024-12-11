@@ -45,7 +45,7 @@ struct DebugContainer {
     LogMemory log_memory;
 
     // Used to log general int values (e.g. counter for draw calls etc.)
-    int32* counter;
+    int64* counter;
 
     #if _WIN32
         HANDLE log_fp;

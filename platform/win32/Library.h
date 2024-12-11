@@ -72,6 +72,7 @@ bool library_load(Library* lib)
         if (function) {
             lib->functions[c] = function;
         } else {
+            ASSERT_SIMPLE(false);
             lib->is_valid = false;
         }
     }

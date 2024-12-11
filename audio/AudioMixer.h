@@ -48,6 +48,8 @@ struct AudioInstance {
 
     uint32 audio_size;
     byte* audio_data;
+
+    uint32 sample_index;
 };
 
 struct AudioMixer {
@@ -71,6 +73,7 @@ struct AudioMixer {
     // do we need a condition or semaphore?
 };
 
+// @todo expand AudioLocationSetting so that it also includes audio effects, repeat etc.
 void audio_mixer_add(AudioMixer* mixer, int64 id, Audio* audio, AudioLocationSetting* origin)
 {
     int64 index = chunk_reserve(&mixer->audio_instances, 1);
@@ -90,7 +93,7 @@ void audio_mixer_add(AudioMixer* mixer, int64 id, Audio* audio, AudioLocationSet
 
 void audio_mixer_add_unique(AudioMixer* mixer, int64 id, Audio* audio, AudioLocationSetting* origin)
 {
-    for (int32 i = 0; i < mixer->audio_instances.count; ++i) {
+    for (uint32 i = 0; i < mixer->audio_instances.count; ++i) {
         // @performance We are not really utilizing chunk memory.
         // Maybe a simple array would be better
         // Or we need to use more chunk functions / maybe even create a chunk_iterate() function?
@@ -105,7 +108,7 @@ void audio_mixer_add_unique(AudioMixer* mixer, int64 id, Audio* audio, AudioLoca
 
 void audio_mixer_remove(AudioMixer* mixer, int64 id)
 {
-    for (int32 i = 0; i < mixer->audio_instances.count; ++i) {
+    for (uint32 i = 0; i < mixer->audio_instances.count; ++i) {
         AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
         if (instance->id == id) {
             instance->id = 0;
@@ -116,38 +119,38 @@ void audio_mixer_remove(AudioMixer* mixer, int64 id)
     }
 }
 
-void apply_echo(int16* buffer, uint16 buffer_size, f32 delay, f32 feedback, int32 sample_rate) {
+void apply_echo(int16* buffer, uint32 buffer_size, f32 delay, f32 feedback, int32 sample_rate) {
     int32 delay_samples = (int32) (delay * sample_rate);
-    for (int32 i = delay_samples; i < buffer_size; ++i) {
+    for (uint32 i = delay_samples; i < buffer_size; ++i) {
         buffer[i] += (int16) (buffer[i - delay_samples] * feedback);
     }
 }
 
-void apply_reverb(int16* buffer, uint16 buffer_size, f32 intensity) {
+void apply_reverb(int16* buffer, uint32 buffer_size, f32 intensity) {
     intensity *= 0.5f;
-    for (int32 i = 1; i < buffer_size; ++i) {
+    for (uint32 i = 1; i < buffer_size; ++i) {
         buffer[i] += (int16) (buffer[i - 1] * intensity); // Simple reverb with decay
     }
 }
 
-void apply_cave(int16* buffer, uint16 buffer_size, int32 sample_rate) {
+void apply_cave(int16* buffer, uint32 buffer_size, int32 sample_rate) {
     f32 echo_delay = 0.1f; // Echo delay in seconds
     f32 feedback = 0.3f;  // Echo feedback level
     apply_echo(buffer, buffer_size, echo_delay, feedback, sample_rate);
     apply_reverb(buffer, buffer_size, 0.4f); // Add mild reverb
 }
 
-void apply_underwater(int16* buffer, uint16 buffer_size) {
-    for (int32 i = 0; i < buffer_size; ++i) {
+void apply_underwater(int16* buffer, uint32 buffer_size) {
+    for (uint32 i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) sinf(buffer[i] * 0.5f); // Dampen + distortion
     }
 }
 
-void apply_flanger(int16* buffer, uint16 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
-    int32 delay_samples = (int32) (depth * sample_rate);
+void apply_flanger(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
+    f32 delay_samples = depth * sample_rate;
     f32 temp = OMS_TWO_PI * rate / sample_rate;
 
-    for (int32 i = 0; i < buffer_size; ++i) {
+    for (uint32 i = 0; i < buffer_size; ++i) {
         int32 delay = (int32) (delay_samples * (0.5f + 0.5f * sinf(i * temp)));
         if (i >= delay) {
             buffer[i] += (int16) (buffer[i - delay] * 0.5f);
@@ -155,27 +158,27 @@ void apply_flanger(int16* buffer, uint16 buffer_size, f32 rate, f32 depth, int32
     }
 }
 
-void apply_tremolo(int16* buffer, uint16 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
+void apply_tremolo(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
     f32 temp = OMS_TWO_PI * rate / sample_rate;
     f32 temp2 = (1.0f - depth) + depth;
 
-    for (int32 i = 0; i < buffer_size; ++i) {
+    for (uint32 i = 0; i < buffer_size; ++i) {
         f32 mod = temp2 * (0.5f + 0.5f * sinf(i * temp));
         buffer[i] = (int16) (buffer[i] * mod);
     }
 }
 
-void apply_distortion(int16* buffer, uint16 buffer_size, f32 gain) {
-    for (int32 i = 0; i < buffer_size; ++i) {
+void apply_distortion(int16* buffer, uint32 buffer_size, f32 gain) {
+    for (uint32 i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) tanh(buffer[i] * gain);
     }
 }
 
-void apply_chorus(int16* buffer, uint16 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
+void apply_chorus(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
     f32 temp = OMS_TWO_PI * rate / sample_rate;
 
     int32 max_delay = (int32) (depth * sample_rate);
-    for (int32 i = 0; i < buffer_size; ++i) {
+    for (uint32 i = 0; i < buffer_size; ++i) {
         int32 delay = (int32) (max_delay * (0.5f + 0.5f * sinf(i * temp)));
         if (i >= delay) {
             buffer[i] += (int16) (buffer[i - delay] * 0.5f);
@@ -183,26 +186,26 @@ void apply_chorus(int16* buffer, uint16 buffer_size, f32 rate, f32 depth, int32 
     }
 }
 
-void apply_pitch_shift(int16* buffer, uint16 buffer_size, f32 pitch_factor) {
-    for (int32 i = 0; i < buffer_size; ++i) {
+void apply_pitch_shift(int16* buffer, uint32 buffer_size, f32 pitch_factor) {
+    for (uint32 i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) (buffer[i] * pitch_factor);
     }
 }
 
-void apply_granular_delay(int16* buffer, uint16 buffer_size, f32 delay, f32 granularity, int32 sample_rate) {
+void apply_granular_delay(int16* buffer, uint32 buffer_size, f32 delay, f32 granularity, int32 sample_rate) {
     int32 delay_samples = (int32) (delay * sample_rate);
     int32 limit = (int32) (granularity * sample_rate);
 
-    for (int32 i = 0; i < buffer_size; ++i) {
+    for (uint32 i = 0; i < buffer_size; ++i) {
         if (i % limit == 0 && i >= delay_samples) {
             buffer[i] += (int16) (buffer[i - delay_samples] * 0.6f);
         }
     }
 }
 
-void apply_frequency_modulation(int16* buffer, uint16 buffer_size, f32 mod_freq, f32 mod_depth, int32 sample_rate) {
+void apply_frequency_modulation(int16* buffer, uint32 buffer_size, f32 mod_freq, f32 mod_depth, int32 sample_rate) {
     f32 temp = OMS_TWO_PI * mod_freq / sample_rate;
-    for (int32 i = 0; i < buffer_size; ++i) {
+    for (uint32 i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) (buffer[i] * sinf(i * temp) * mod_depth);
     }
 }
@@ -211,20 +214,20 @@ void apply_stereo_panning(int16* buffer, int32 buffer_size, f32 pan) {
     f32 left_gain = 1.0f - pan;
     f32 right_gain = pan;
 
-    for (int32 i = 0; i < buffer_size; ++i) {
+    for (uint32 i = 0; i < buffer_size; ++i) {
         buffer[i] = (int16) (buffer[i] * left_gain);
         buffer[i + 1] = (int16) (buffer[i + 1] * right_gain);
     }
 }
 
-void apply_highpass(int16* buffer, uint16 buffer_size, f32 cutoff, int32 sample_rate) {
+void apply_highpass(int16* buffer, uint32 buffer_size, f32 cutoff, int32 sample_rate) {
     f32 rc = 1.0f / (OMS_TWO_PI * cutoff);
     f32 dt = 1.0f / sample_rate;
     f32 alpha = rc / (rc + dt);
     f32 previous = buffer[0];
     f32 previous_output = buffer[0];
 
-    for (int32 i = 1; i < buffer_size; ++i) {
+    for (uint32 i = 1; i < buffer_size; ++i) {
         f32 current = buffer[i];
         buffer[i] = (int16) (alpha * (previous_output + current - previous));
         previous = current;
@@ -232,53 +235,89 @@ void apply_highpass(int16* buffer, uint16 buffer_size, f32 cutoff, int32 sample_
     }
 }
 
-
-void apply_lowpass(int16* buffer, uint16 buffer_size, f32 cutoff, int32 sample_rate) {
+void apply_lowpass(int16* buffer, uint32 buffer_size, f32 cutoff, int32 sample_rate) {
     f32 rc = 1.0f / (OMS_TWO_PI * cutoff);
     f32 dt = 1.0f / sample_rate;
     f32 alpha = dt / (rc + dt);
     f32 previous = buffer[0];
 
-    for (int32 i = 1; i < buffer_size; ++i) {
+    for (uint32 i = 1; i < buffer_size; ++i) {
         buffer[i] = (int16) (previous + alpha * (buffer[i] - previous));
         previous = buffer[i];
     }
 }
 
-void audio_mixer_mix(AudioMixer *mixer) {
-    uint16 limit = (uint16) (mixer->settings.sample_buffer_size / mixer->settings.sample_size);
+void audio_mixer_mix(AudioMixer* mixer) {
+    uint32 limit = OMS_MIN(
+        mixer->settings.sample_buffer_size / mixer->settings.sample_size,
+        mixer->settings.buffer_size / mixer->settings.sample_size
+    );
 
-    for (int32 i = 0; i < mixer->audio_instances.count; ++i) {
+    bool has_location = !is_empty((byte *) &mixer->camera.audio_location, sizeof(mixer->camera.audio_location));
+
+    f32 volume_scale = mixer->settings.master_volume * mixer->settings.master_volume;
+
+    for (uint32 i = 0; i < mixer->audio_instances.count; ++i) {
         AudioInstance* sound = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
         if (sound->id == 0) {
             continue;
         }
 
         // Compute the vector from the player to the sound's origin
-        v3_f32 to_sound;
-        vec3_sub(&to_sound, &sound->origin.audio_location, &mixer->camera.audio_location);
-        f32 distance = vec3_length(&to_sound);
-        f32 distance_attenuation = OMS_MAX(0.0f, 1.0f - (distance / 50.0f));
-        vec3_normalize(&to_sound);
-        f32 alignment = vec3_dot(&mixer->camera.audio_lookat, &to_sound);
-        f32 directional_attenuation = OMS_MAX(0.0f, alignment);
-        f32 total_attenuation = distance_attenuation * directional_attenuation;
+        v3_f32 to_sound = {};
+        f32 total_attenuation = 1.0f;
+        bool has_origin = !is_empty((byte *) &sound->origin.audio_location, sizeof(sound->origin.audio_location));
+
+        if (has_location && has_origin) {
+            vec3_sub(&to_sound, &sound->origin.audio_location, &mixer->camera.audio_location);
+
+            f32 distance = vec3_length(&to_sound);
+            if (distance) {
+                f32 distance_attenuation = OMS_MAX(0.0f, 1.0f - (distance / 50.0f));
+
+                vec3_normalize(&to_sound);
+                f32 alignment = vec3_dot(&mixer->camera.audio_lookat, &to_sound);
+                f32 directional_attenuation = OMS_MAX(0.0f, alignment);
+
+                total_attenuation = distance_attenuation * directional_attenuation;
+            }
+        }
+
+        uint32 sound_sample_count = sound->audio_size / mixer->settings.sample_size;
+        uint32 sound_sample_index = sound->sample_index;
+        int16* audio_data = (int16 *) sound->audio_data;
 
         // Temporary buffer for effects processing
         // @performance If there are situations where only one file exists in the mixer that should be played we could directly write to
         // the output buffer improving the performance. Some of those mixers are: music, cinematic, ui
         // Careful, NOT voice since we will probably manually layer them according to their position?
         for (int32 j = 0; j < limit; ++j) {
-            // @todo if repeat handle here
+            if (sound_sample_index >= sound_sample_count) {
+                // @todo if repeat we need to handle part of it here, else quit
 
-            mixer->buffer_temp[j] = (int16) (sound->audio_data[j * 2] * mixer->settings.master_volume * total_attenuation);
-            mixer->buffer_temp[j + 1] = (int16) (sound->audio_data[j * 2 + 2] * mixer->settings.master_volume * total_attenuation);
+                sound_sample_index = 0;
+
+                // @question why are we doing this?
+                mixer->settings.sample_index = 0;
+            }
+
+            mixer->buffer_temp[j * 2] = (int16) (audio_data[sound_sample_index * 2] * volume_scale * total_attenuation);
+            mixer->buffer_temp[j * 2 + 1] = (int16) (audio_data[sound_sample_index * 2 + 1] * volume_scale * total_attenuation);
+
+            ++sound_sample_index;
 
             // @performance Some adjustments could be made right here the question is if this is faster.
             // Probably depends on how likely the adjustment is to happen.
+
+            // @todo if end of file and no repeat -> remove from list
         }
 
+        // @question We also have to set setting->sample_index = sound_sample_index.
+        // But that currently happens in the sound api. Do we want to keep it there or move it here
+
         // Apply effects based on sound's effect type
+        // @performance Depending on how we implement effects we could even pull them out of this loop
+        // What I mean is effects could either be sound file dependent (current location correct) or mixer dependent
         if (mixer->effect) {
             if (mixer->effect & AUDIO_EFFECT_ECHO) {
                 apply_echo(mixer->buffer_temp, limit, 0.2f, 0.4f, mixer->settings.sample_rate);
@@ -337,8 +376,11 @@ void audio_mixer_mix(AudioMixer *mixer) {
             }
         }
 
+        // @bug the actual output "limit" could be smaller if sound files end earlier and no repeat is defined
+        // In that case we would also have to adjust mixer->settings.sample_buffer_size
+
         // Add the processed sound to the output buffer
-        for (int32 j = 0; j < limit; j++) {
+        for (uint32 j = 0; j < limit; j++) {
             mixer->settings.buffer[j] += mixer->buffer_temp[j];
         }
     }

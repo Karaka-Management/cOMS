@@ -13,6 +13,7 @@
 #include "../../memory/RingMemory.h"
 #include "../../utils/TestUtils.h"
 #include "../../object/Texture.h"
+#include "../../image/Image.cpp"
 #include "../../utils/StringUtils.h"
 #include "../../log/Log.h"
 
@@ -136,6 +137,8 @@ void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
     if (mipmap_level > -1) {
         glGenerateMipmap(GL_TEXTURE_2D);
     }
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, texture->image.pixel_count * image_pixel_size_from_type(texture->image.pixel_type));
 }
 
 inline
@@ -162,17 +165,19 @@ GLuint shader_make(GLenum type, const char *source, RingMemory* ring)
     GLint status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 
-    if (status == GL_FALSE) {
-        GLint length;
-        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+    #if DEBUG || INTERNAL
+        if (status == GL_FALSE) {
+            GLint length;
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
 
-        GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
+            GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
 
-        glGetShaderInfoLog(shader, length, NULL, info);
-        LOG(info, true, true);
+            glGetShaderInfoLog(shader, length, NULL, info);
+            LOG(info, true, true);
 
-        ASSERT_SIMPLE(false);
-    }
+            ASSERT_SIMPLE(false);
+        }
+    #endif
 
     return shader;
 }
@@ -222,17 +227,19 @@ GLuint program_make(
     GLint status;
     glGetProgramiv(program, GL_LINK_STATUS, &status);
 
-    if (status == GL_FALSE) {
-        GLint length;
-        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
+    #if DEBUG || INTERNAL
+        if (status == GL_FALSE) {
+            GLint length;
+            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
 
-        GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
+            GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
 
-        glGetProgramInfoLog(program, length, NULL, info);
-        LOG(info, true, true);
+            glGetProgramInfoLog(program, length, NULL, info);
+            LOG(info, true, true);
 
-        ASSERT_SIMPLE(false);
-    }
+            ASSERT_SIMPLE(false);
+        }
+    #endif
 
     // @question really?
     if (geometry_shader > -1) {
@@ -442,6 +449,8 @@ uint32 gpuapi_buffer_generate(int32 size, const void* data)
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
+
     return vbo;
 }
 
@@ -453,6 +462,8 @@ uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data)
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
 
     return vbo;
 }
@@ -473,6 +484,8 @@ void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
 }
 
 inline

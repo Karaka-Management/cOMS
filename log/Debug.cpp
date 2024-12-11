@@ -136,7 +136,12 @@ void update_timing_stat_end_continued(uint32 stat, const char* function)
 inline
 void update_timing_stat_reset(uint32 stat)
 {
-    atomic_set((int32 *) debug_container->perf_stats[stat].function, 0);
+    spinlock_start(&debug_container->perf_stats_spinlock);
+    TimingStat* timing_stat = &debug_container->perf_stats[stat];
+    timing_stat->function = NULL;
+    timing_stat->delta_tick = 0;
+    timing_stat->delta_time = 0;
+    spinlock_end(&debug_container->perf_stats_spinlock);
 }
 
 inline
@@ -146,13 +151,13 @@ void reset_counter(int32 id)
 }
 
 inline
-void log_increment(int32 id, int32 by = 1)
+void log_increment(int32 id, int64 by = 1)
 {
     atomic_add(&debug_container->counter[id], by);
 }
 
 inline
-void log_counter(int32 id, int32 value)
+void log_counter(int32 id, int64 value)
 {
     atomic_set(&debug_container->counter[id], value);
 }
@@ -215,11 +220,13 @@ void debug_memory_log(uint64 start, uint64 size, int32 type, const char* functio
         return;
     }
 
-    if (mem->action_idx == DEBUG_MEMORY_RANGE_MAX) {
-        mem->action_idx = 0;
+    uint64 idx = atomic_add_fetch(&mem->action_idx, 1);
+    if (idx >= ARRAY_COUNT(mem->last_action)) {
+        atomic_set(&mem->action_idx, 1);
+        idx %= ARRAY_COUNT(mem->last_action);
     }
 
-    DebugMemoryRange* dmr = &mem->last_action[mem->action_idx];
+    DebugMemoryRange* dmr = &mem->last_action[idx];
     dmr->type = type;
     dmr->start = start - mem->start;
     dmr->size = size;
@@ -227,8 +234,6 @@ void debug_memory_log(uint64 start, uint64 size, int32 type, const char* functio
     // We are using rdtsc since it is faster -> less debugging overhead than using time()
     dmr->time = __rdtsc();
     dmr->function_name = function;
-
-    ++mem->action_idx;
 
     if (type < 0 && mem->usage < size * -type) {
         mem->usage = 0;
@@ -248,11 +253,13 @@ void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* fun
         return;
     }
 
-    if (mem->reserve_action_idx == DEBUG_MEMORY_RANGE_MAX) {
-        mem->reserve_action_idx = 0;
+    uint64 idx = atomic_add_fetch(&mem->reserve_action_idx, 1);
+    if (idx >= ARRAY_COUNT(mem->reserve_action)) {
+        atomic_set(&mem->reserve_action_idx, 1);
+        idx %= ARRAY_COUNT(mem->last_action);
     }
 
-    DebugMemoryRange* dmr = &mem->reserve_action[mem->reserve_action_idx];
+    DebugMemoryRange* dmr = &mem->reserve_action[idx];
     dmr->type = type;
     dmr->start = start - mem->start;
     dmr->size = size;
@@ -260,10 +267,9 @@ void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* fun
     // We are using rdtsc since it is faster -> less debugging overhead than using time()
     dmr->time = __rdtsc();
     dmr->function_name = function;
-
-    ++mem->reserve_action_idx;
 }
 
+// @bug This probably requires thread safety
 inline
 void debug_memory_reset()
 {
@@ -271,7 +277,8 @@ void debug_memory_reset()
         return;
     }
 
-    uint64 time = __rdtsc() - 1000000000;
+    // We remove debug information that are "older" than 1GHz
+    uint64 time = __rdtsc() - 1 * GHZ;
 
     for (uint64 i = 0; i < debug_container->dmc.memory_element_idx; ++i) {
         for (int32 j = 0; j < DEBUG_MEMORY_RANGE_MAX; ++j) {
@@ -282,6 +289,7 @@ void debug_memory_reset()
     }
 }
 
+// @bug This probably requires thread safety
 byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
 {
     if (!debug_container) {

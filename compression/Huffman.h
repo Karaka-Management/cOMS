@@ -14,6 +14,7 @@
 
 #include "../stdlib/Types.h"
 #include "../utils/BitUtils.h"
+#include "../utils/MathUtils.h"
 #include "../utils/EndianUtils.h"
 
 struct HuffmanNode {
@@ -34,31 +35,37 @@ struct Huffman {
     char* code[256];   // Contains a pointer per ASCII character to the huffman code sequence
 };
 
+// We could combine this function with the one below but this would introduce a if != 0 check for the frequency
+// I would assume the current version is faster since we avoid a branch
+inline
 HuffmanNode* huffman_node_create(Huffman* hf, int32 frequency, byte character, HuffmanNode* left, HuffmanNode* right)
 {
     HuffmanNode* node = hf->pool + hf->node_count++;
-    if (frequency) {
-        node->character = character;
-        node->frequency = frequency;
-    } else {
-        node->left = left;
-        node->right = right;
-        node->frequency = left->frequency + right->frequency;
-    }
+    node->character = character;
+    node->frequency = frequency;
 
     return node;
 }
 
+// Same as other function but frequency = 0
+inline
+HuffmanNode* huffman_node_create(Huffman* hf, byte character, HuffmanNode* left, HuffmanNode* right)
+{
+    HuffmanNode* node = hf->pool + hf->node_count++;
+    node->left = left;
+    node->right = right;
+    node->frequency = left->frequency + right->frequency;
+
+    return node;
+}
+
+inline
 void huffman_node_insert(Huffman* hf, HuffmanNode* node)
 {
     int32 child_id;
     int32 parent_id = hf->pq_end++;
 
-    while ((child_id = parent_id / 2)) {
-        if (hf->pq[child_id]->frequency <= node->frequency) {
-            break;
-        }
-
+    while ((child_id = parent_id / 2) && hf->pq[child_id]->frequency <= node->frequency) {
         hf->pq[parent_id] = hf->pq[child_id];
         parent_id = child_id;
     }
@@ -111,13 +118,15 @@ int64 huffman_code_build(Huffman* hf, HuffmanNode* root, char* code, int32 lengt
 void huffman_init(Huffman* hf, const byte* in)
 {
     int32 frequency[256] = {0};
-    char temp_code[16];
     int32 buffer_position = 0;
+    char temp_code[16];
 
     // We artificially force the root element (usually the 0 element) to have the index 1.
     hf->pq = (HuffmanNode **) (hf->priority_queue - 1);
 
-    while (*in) frequency[(byte) *in++]++;
+    while (*in) {
+        ++frequency[(byte) *in++];
+    }
 
     for (int32 i = 0; i < 256; ++i) {
         if (frequency[i]) {
@@ -126,21 +135,20 @@ void huffman_init(Huffman* hf, const byte* in)
     }
 
     while (hf->pq_end > 2) {
-        huffman_node_insert(hf, huffman_node_create(hf, 0, 0, huffman_node_remove(hf), huffman_node_remove(hf)));
+        huffman_node_insert(hf, huffman_node_create(hf, 0, huffman_node_remove(hf), huffman_node_remove(hf)));
     }
 
     huffman_code_build(hf, hf->pq[1], temp_code, 0, hf->buffer, &buffer_position);
 }
 
+inline
 void huffman_dump(const Huffman* hf, byte* out)
 {
-    // dump the char -> code relations as relative indeces
+    // dump the char -> code relations as relative indices
     for (int32 i = 0; i < ARRAY_COUNT(hf->code); ++i) {
-        if (hf->code[i]) {
-            *((int64 *) out) = SWAP_ENDIAN_LITTLE(hf->code[i] - hf->buffer);
-        } else {
-            *((int64 *) out) = SWAP_ENDIAN_LITTLE(-1);
-        }
+        *((int64 *) out) = hf->code[i]
+            ? SWAP_ENDIAN_LITTLE(hf->code[i] - hf->buffer)
+            : SWAP_ENDIAN_LITTLE(-1);
 
         out += sizeof(int64);
     }
@@ -149,6 +157,7 @@ void huffman_dump(const Huffman* hf, byte* out)
     memcpy(out, hf->buffer, sizeof(char) * ARRAY_COUNT(hf->buffer));
 }
 
+inline
 void huffman_load(Huffman* hf, const byte* in)
 {
     // load the char -> code relations and convert relative indices to pointers
@@ -165,6 +174,7 @@ void huffman_load(Huffman* hf, const byte* in)
     memcpy(hf->buffer, in, sizeof(char) * ARRAY_COUNT(hf->buffer));
 }
 
+inline
 int64 huffman_encode(Huffman* hf, const byte* in, byte* out)
 {
     uint64 bit_length = 0;
@@ -180,11 +190,11 @@ int64 huffman_encode(Huffman* hf, const byte* in, byte* out)
 
             ++code;
             ++bit_length;
-            ++pos_bit;
 
-            if (pos_bit > 7) {
+            // Make sure it wraps around to 0 for pos_bit > 7
+            pos_bit = MODULO_2(++pos_bit, 8);
+            if (pos_bit == 0) {
                 ++out;
-                pos_bit = 0;
             }
         }
     }
@@ -192,29 +202,26 @@ int64 huffman_encode(Huffman* hf, const byte* in, byte* out)
     return bit_length;
 }
 
+inline
 int64 huffman_decode(Huffman* hf, const byte* in, byte* out, uint64 bit_length)
 {
     HuffmanNode* current = hf->pq[1];
     int32 pos_bit = 0;
-    int64 out_length = 0;
-
     byte* start = out;
 
     while (pos_bit < bit_length) {
-        if (BITS_GET_8_L2R(*in, pos_bit++, 1)) {
-            current = current->right;
-        } else {
-            current = current->left;
-        }
+        // Branchless version of checking if bit is set and then updating current
+        int32 bit = BITS_GET_8_L2R(*in, pos_bit, 1);
+        current = (HuffmanNode *) (((uintptr_t) current->left & ~bit) | ((uintptr_t) current->right & bit));
 
         if (current->character) {
             *out++ = current->character;
             current = hf->pq[1];
         }
 
-        if (pos_bit > 7) {
+        pos_bit = MODULO_2(++pos_bit, 8);
+        if (pos_bit == 0) {
             ++in;
-            pos_bit = 0;
         }
     }
 

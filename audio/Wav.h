@@ -46,29 +46,23 @@ struct WavHeader {
 struct Wav {
     WavHeader header;
 
-    byte* sample_data; // WARNING: This is not the owner of the data. The owner is the FileBody
+    byte* sample_data; // WARNING: This is not the owner of the data.
 
     uint32 size;
-    byte* data; // WARNING: This is not the owner of the data. The owner is the FileBody
+    byte* data; // Data owner
 };
 
-void generate_default_wav_references(const FileBody* file, Wav* wav)
+void generate_default_wav_references(const byte* data, uint32 size, Wav* wav)
 {
-    wav->size = (uint32) file->size;
-    wav->data = file->content;
-
-    if (wav->size < WAV_HEADER_SIZE) {
-        // This shouldn't happen
-        return;
-    }
+    wav->size = size;
+    ASSERT_SIMPLE(size >= WAV_HEADER_SIZE);
 
     // Check if we can copy memory directly
     // The struct layout and header size should match on x86, but we still check it
     if constexpr (sizeof(WavHeader) == WAV_HEADER_SIZE) {
-        memcpy(&wav->header, file->content, WAV_HEADER_SIZE);
+        memcpy(&wav->header, data, WAV_HEADER_SIZE);
 
         // swap endian if we are on big endian system
-        // @question Maybe this needs to be a runtime check?
         #if !_WIN32 && !__LITTLE_ENDIAN
             wav->header.size = SWAP_ENDIAN_LITTLE(wav->header.size);
             wav->header.bloc_size = SWAP_ENDIAN_LITTLE(wav->header.bloc_size);
@@ -121,33 +115,32 @@ void generate_default_wav_references(const FileBody* file, Wav* wav)
         wav->header.bits_per_sample = SWAP_ENDIAN_LITTLE(*((uint16 *) (wav->data + 34)));
 
         // Sample data header
-        wav->header.data_bloc_id[0] = *(wav->data + 36);
-        wav->header.data_bloc_id[1] = *(wav->data + 37);
-        wav->header.data_bloc_id[2] = *(wav->data + 38);
-        wav->header.data_bloc_id[3] = *(wav->data + 39);
+        memcpy(wav->header.data_bloc_id, wav->data + 36, 4);
 
-        wav->header.data_size = SWAP_ENDIAN_LITTLE(*((uint32 *) *(wav->data + 40)));
+        wav->header.data_size = SWAP_ENDIAN_LITTLE(*((uint32 *) *(wav->data + WAV_HEADER_SIZE - sizeof(wav->header.data_bloc_id))));
     }
 
     wav->sample_data = wav->data + WAV_HEADER_SIZE;
+    memcpy(wav->sample_data, data + WAV_HEADER_SIZE, wav->header.data_size);
 }
 
-void wav_audio_generate(const FileBody* src_data, Audio* audio)
+void wav_from_data(const byte* data, uint32 size, Audio* audio, RingMemory* ring)
 {
     // @performance We are generating the struct and then filling the data.
-    //      There is some asignment/copy overhead
+    //      There is some assignment/copy overhead
     Wav src = {};
-    generate_default_wav_references(src_data, &src);
+    src.data = ring_get_memory(ring, size, 4);
+    generate_default_wav_references(data, size, &src);
 
     if (!src.size) {
         return;
     }
 
-    audio->sample_rate = src.header.frequency;
-    audio->sample_size = (src.header.bits_per_sample / 8) * src.header.nbr_channels;
-    audio->channels = src.header.nbr_channels;
-    audio->byte_per_sec = src.header.byte_per_sec;
-    audio->bloc_size = src.header.bloc_size;
+    audio->sample_rate = (uint16) src.header.frequency;
+    audio->sample_size = (byte) ((src.header.bits_per_sample / 8) * src.header.nbr_channels);
+    audio->channels = (byte) src.header.nbr_channels;
+    audio->byte_per_sec = (uint32) src.header.byte_per_sec;
+    audio->bloc_size = (byte) src.header.bloc_size;
     audio->size = src.header.data_size;
 
     memcpy((void *) audio->data, src.sample_data, audio->size);

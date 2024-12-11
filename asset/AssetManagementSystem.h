@@ -34,9 +34,11 @@ struct AssetManagementSystem {
     // The indices of asset_memory and asset_data_memory are always linked
 
     // General asset memory
+    // Fixed chunk size of sizeof(Asset)
     ChunkMemory asset_memory;
 
     // Actual asset data
+    // Chunk size defined during initialization
     ChunkMemory asset_data_memory;
 
     // @performance Do we really need the linked list, the ChunkMemory should allow us to do some smart stuff
@@ -44,7 +46,11 @@ struct AssetManagementSystem {
     Asset* last;
 
     // @question do we want to create an extra threaded version? Or a combined one, like we have right now.
+    // @question Do we want to add a mutex to assets. This way we don't have to lock the entire ams.
     pthread_mutex_t mutex;
+
+    // @bug We probably also need a overhead value.
+    // In some cases we need more data than our normal data (see texture, it contains image + texture)
 };
 
 void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 chunk_size, int32 count)
@@ -201,9 +207,9 @@ Asset* ams_get_asset(AssetManagementSystem* ams, const char* key)
 }
 
 inline
-Asset* ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 index)
+Asset* ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 hash)
 {
-    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key, index);
+    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key, hash);
 
     // @bug entry->value seems to be an address outside of any known buffer, how?
     DEBUG_MEMORY_READ(
@@ -215,7 +221,7 @@ Asset* ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 index)
 }
 
 // @performance We could probably avoid locking by adding a atomic flag to indicate if the value is valid
-Asset* threaded_ams_get_asset(AssetManagementSystem* ams, uint64 element) {
+Asset* thrd_ams_get_asset(AssetManagementSystem* ams, uint64 element) {
     pthread_mutex_lock(&ams->mutex);
     Asset* asset = ams_get_asset(ams, element);
     pthread_mutex_unlock(&ams->mutex);
@@ -223,7 +229,7 @@ Asset* threaded_ams_get_asset(AssetManagementSystem* ams, uint64 element) {
     return asset;
 }
 
-Asset* threaded_ams_get_asset(AssetManagementSystem* ams, const char* key) {
+Asset* thrd_ams_get_asset(AssetManagementSystem* ams, const char* key) {
     pthread_mutex_lock(&ams->mutex);
     Asset* asset = ams_get_asset(ams, key);
     pthread_mutex_unlock(&ams->mutex);
@@ -231,9 +237,9 @@ Asset* threaded_ams_get_asset(AssetManagementSystem* ams, const char* key) {
     return asset;
 }
 
-Asset* threaded_ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 index) {
+Asset* thrd_ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 hash) {
     pthread_mutex_lock(&ams->mutex);
-    Asset* asset = ams_get_asset(ams, key, index);
+    Asset* asset = ams_get_asset(ams, key, hash);
     pthread_mutex_unlock(&ams->mutex);
 
     return asset;
@@ -307,6 +313,24 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 el
     ams->has_changed = true;
 
     return asset;
+}
+
+Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 elements = 1) {
+    pthread_mutex_lock(&ams->mutex);
+    Asset* asset = ams_reserve_asset(ams, name, elements);
+    pthread_mutex_unlock(&ams->mutex);
+
+    return asset;
+}
+
+Asset* thrd_ams_reserve_asset_start(AssetManagementSystem* ams, const char* name, uint32 elements = 1) {
+    pthread_mutex_lock(&ams->mutex);
+
+    return ams_reserve_asset(ams, name, elements);
+}
+
+void thrd_ams_reserve_asset_end(AssetManagementSystem* ams) {
+    pthread_mutex_unlock(&ams->mutex);
 }
 
 #endif

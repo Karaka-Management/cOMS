@@ -28,6 +28,7 @@ struct GlyphTextureCoords {
     f32 y2;
 };
 
+#define GLYPH_SIZE 40
 struct Glyph {
     uint32 codepoint;
     GlyphMetrics metrics;
@@ -55,7 +56,7 @@ void font_init(Font* font, byte* data, int count)
 inline
 Glyph* font_glyph_find(Font* font, uint32 codepoint)
 {
-    for (int i = 0; i < font->glyph_count; ++i) {
+    for (uint32 i = 0; i < font->glyph_count; ++i) {
         if (font->glyphs[i].codepoint == codepoint) {
             return &font->glyphs[i];
         }
@@ -66,10 +67,15 @@ Glyph* font_glyph_find(Font* font, uint32 codepoint)
 
 void font_from_file_txt(
     Font* font,
-    byte* data
+    const char* path,
+    RingMemory* ring
 )
 {
-    char* pos = (char *) data;
+    FileBody file;
+    file_read(path, &file, ring);
+    ASSERT_SIMPLE(file.size);
+
+    char* pos = (char *) file.content;
 
     bool start = true;
     char block_name[32];
@@ -147,25 +153,21 @@ void font_from_file_txt(
     }
 }
 
-// Calculates the required size for representing a font definition in memory
 inline
-uint64 font_size_from_file(const byte* data)
+int32 font_data_size(const Font* font)
 {
-    return SWAP_ENDIAN_LITTLE(*((uint32 *) data)) * sizeof(Glyph);
+    ASSERT_SIMPLE_CONST(sizeof(Glyph) == GLYPH_SIZE);
+    return font->glyph_count * sizeof(Glyph)
+        + sizeof(font->glyph_count)
+        + sizeof(font->texture_name)
+        + sizeof(font->size)
+        + sizeof(font->line_height);
 }
 
-inline
-uint64 font_size(const Font* font)
-{
-    // We have to remove the size of the pointer which will not be stored
-    return sizeof(font) - sizeof(Glyph*)
-        + font->glyph_count * sizeof(Glyph);
-}
-
-void font_from_file(
-    Font* font,
+int32 font_from_data(
     const byte* data,
-    int32 size = 8
+    Font* font,
+    int32 steps = 8
 )
 {
     const byte* pos = data;
@@ -190,7 +192,7 @@ void font_from_file(
 
     #if OPENGL
         // @todo Implement y-offset correction
-        for (int32 i = 0; i < font->glyph_count; ++i) {
+        for (uint32 i = 0; i < font->glyph_count; ++i) {
             float temp = font->glyphs[i].coords.y1;
             font->glyphs[i].coords.y1 = 1.0f - font->glyphs[i].coords.y2;
             font->glyphs[i].coords.y2 = 1.0f - temp;
@@ -203,26 +205,17 @@ void font_from_file(
         font->glyph_count * sizeof(Glyph) / 4, // everything in here is 4 bytes -> super easy to swap
         steps
     );
+
+    return font_data_size(font);
 }
 
-inline
-int64 font_size_from_font(Font* font)
-{
-    return font->glyph_count * sizeof(Glyph) + sizeof(Font);
-}
-
-void font_to_file(
-    RingMemory* ring,
-    const char* path,
+int32 font_to_data(
     const Font* font,
+    byte* data,
     int32 steps = 8
 )
 {
-    FileBody file;
-    file.size = font->glyph_count * sizeof(Glyph) + sizeof(Font);
-    file.content = ring_get_memory(ring, file.size, 64);
-
-    byte* pos = file.content;
+    byte* pos = data;
 
     // Glyph count
     *((uint32 *) pos) = font->glyph_count;
@@ -244,16 +237,16 @@ void font_to_file(
     memcpy(pos, font->glyphs, font->glyph_count * sizeof(Glyph));
     pos += font->glyph_count * sizeof(Glyph);
 
-    file.size = pos - file.content;
+    int32 size = (int32) (pos - data);
 
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) file.content,
         (int32 *) file.content,
-        file.size / 4, // everything in here is 4 bytes -> super easy to swap
+        size / 4, // everything in here is 4 bytes -> super easy to swap
         steps
     );
 
-    file_write(path, &file);
+    return font_data_size(font);
 }
 
 #endif

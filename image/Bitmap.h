@@ -271,7 +271,7 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap)
 void image_bmp_generate(const FileBody* src_data, Image* image)
 {
     // @performance We are generating the struct and then filling the data.
-    //      There is some asignment/copy overhead
+    //      There is some assignment/copy overhead
     Bitmap src = {};
     generate_default_bitmap_references(src_data, &src);
 
@@ -285,7 +285,13 @@ void image_bmp_generate(const FileBody* src_data, Image* image)
     uint32 pixel_bytes = src.dib_header.bits_per_pixel / 8;
     byte alpha_offset = pixel_bytes > 3;
 
-    image->has_alpha |= (bool) alpha_offset;
+    if (pixel_bytes == 4) {
+        image->pixel_type = (byte) PIXEL_TYPE_RGBA;
+    } else if (pixel_bytes == 3) {
+        image->pixel_type = (byte) PIXEL_TYPE_RGB;
+    } else {
+        ASSERT_SIMPLE(false);
+    }
 
     if (image->order_pixels == IMAGE_PIXEL_ORDER_BGRA
         && image->order_rows == IMAGE_ROW_ORDER_BOTTOM_TO_TOP
@@ -331,7 +337,7 @@ void image_bmp_generate(const FileBody* src_data, Image* image)
             // Add alpha channel at end of every RGB value
             if (alpha_offset > 0) {
                 image->pixels[row_pos1 + x * pixel_bytes + 3] = src.pixels[row_pos2 + x * pixel_bytes + pixel_bytes + 3];
-            } else if (image->has_alpha) {
+            } else if (image->pixel_type == PIXEL_TYPE_RGBA) {
                 image->pixels[row_pos1 + x * pixel_bytes + 3] = 0xFF;
             }
         }

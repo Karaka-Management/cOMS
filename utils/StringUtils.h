@@ -10,6 +10,7 @@
 #define TOS_UTILS_STRING_UTILS_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -430,7 +431,8 @@ void str_replace(const char* str, const char* __restrict search, const char* __r
         memcpy(result_ptr, replace, replace_len);
         result_ptr += replace_len;
 
-        str = current + search_len;
+        current += search_len;
+        str = current;
     }
 
     strcpy(result_ptr, str);
@@ -707,6 +709,18 @@ void hexstr_to_rgba(v4_f32* rgba, const char* hex)
     rgba->g = (f32) ((value >> 16) & 0xFF) / 255.0f;
     rgba->b = (f32) ((value >> 8) & 0xFF) / 255.0f;
     rgba->a = (f32) (value & 0xFF) / 255.0f;
+}
+
+inline constexpr
+void str_pad(const char* input, char* output, char pad, size_t len) {
+    size_t i = 0;
+    for (; i < len && input[i] != '\0'; ++i) {
+        output[i] = input[i];
+    }
+
+    for (; i < len; ++i) {
+        output[i] = pad;
+    }
 }
 
 #endif

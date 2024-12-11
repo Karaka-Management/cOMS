@@ -108,9 +108,14 @@ int compare_by_attribute_id(const void* a, const void* b) {
 // WARNING: theme needs to have memory already reserved and assigned to data
 void theme_from_file_txt(
     UIThemeStyle* theme,
-    byte* data
+    const char* path,
+    RingMemory* ring
 ) {
-    char* pos = (char *) data;
+    FileBody file;
+    file_read(path, &file, ring);
+    ASSERT_SIMPLE(file.size);
+
+    char* pos = (char *) file.content;
 
     // move past the version string
     pos += 8;
@@ -150,11 +155,11 @@ void theme_from_file_txt(
 
     UIAttributeGroup* temp_group = NULL;
 
-    pos = (char *) data;
+    pos = (char *) file.content;
     pos += 8; // move past version
 
     while (*pos != '\0') {
-        str_skip_empty(&pos);
+        str_skip_whitespace(&pos);
 
         if (*pos == '\n') {
             ++pos;
@@ -200,7 +205,7 @@ void theme_from_file_txt(
 
         str_copy_move_until(&pos, attribute_name, " :\n", sizeof(" :\n") - 1);
 
-        // Skip any white spaces or other delimeters
+        // Skip any white spaces or other delimeter
         str_skip_list(&pos, " \t:", sizeof(" \t:") - 1);
 
         ASSERT_SIMPLE((*pos != '\0' && *pos != '\n'));
@@ -394,9 +399,9 @@ void theme_from_file_txt(
 
 // The size of theme->data should be the file size.
 // Yes, this means we have a little too much data but not by a lot
-void theme_from_file(
-    UIThemeStyle* theme,
-    const byte* data
+int32 theme_from_data(
+    const byte* data,
+    UIThemeStyle* theme
 ) {
     const byte* pos = data;
 
@@ -445,13 +450,15 @@ void theme_from_file(
             entry = entry->next;
         }
     }
+
+    return (int32) (pos - data);
 }
 
 // Calculates the maximum theme size
 // Not every group has all the attributes (most likely only a small subset)
 // However, an accurate calculation is probably too slow and not needed most of the time
 inline
-int64 theme_size(const UIThemeStyle* theme)
+int64 theme_data_size(const UIThemeStyle* theme)
 {
     return hashmap_size(&theme->hash_map)
         + theme->hash_map.buf.count * UI_ATTRIBUTE_TYPE_SIZE * sizeof(UIAttribute);
@@ -472,20 +479,11 @@ int64 theme_size(const UIThemeStyle* theme)
 //      attributes ...
 //      attributes ...
 
-void theme_to_file(
-    RingMemory* ring,
-    const char* path,
-    const UIThemeStyle* theme
+int32 theme_to_data(
+    const UIThemeStyle* theme,
+    byte* data
 ) {
-    FileBody file;
-
-    // Temporary file size for buffer
-    // @todo This is a bad placeholder, The problem is we don't know how much we actually need without stepping through the elements
-    //      I also don't want to add a size variable to the theme as it is useless in all other cases
-    file.size = theme_size(theme);
-
-    file.content = ring_get_memory(ring, file.size, 64, true);
-    byte* pos = file.content;
+    byte* pos = data;
 
     // version
     *((int32 *) pos) = SWAP_ENDIAN_LITTLE(theme->version);
@@ -497,7 +495,7 @@ void theme_to_file(
 
     // theme data
     // Layout: first save the size of the group, then save the individual attributes
-    for (int32 i = 0; i < theme->hash_map.buf.count; ++i) {
+    for (uint32 i = 0; i < theme->hash_map.buf.count; ++i) {
         if (!theme->hash_map.table[i]) {
             continue;
         }
@@ -530,8 +528,7 @@ void theme_to_file(
         }
     }
 
-    file.size = pos - file.content;
-    file_write(path, &file);
+    return (int32) (pos - data);
 }
 
 #endif

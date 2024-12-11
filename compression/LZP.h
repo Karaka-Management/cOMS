@@ -92,10 +92,8 @@ uint32 lzp_decode(const byte* in, size_t length, byte* out)
             hash = (hash << 4) ^ c;
         }
 
-        if (j > 0) {
-            for (i = 0; i < j; ++i) {
-                out[out_pos++] = buf[i];
-            }
+        for (i = 0; i < j; ++i) {
+            out[out_pos++] = buf[i];
         }
     }
 
@@ -106,13 +104,14 @@ int32 find_longest_match(char *window, int32 window_start, char *buffer, int32 b
     int32 best_length = 0;
     int32 best_offset = 0;
 
-    for (int32 i = window_start; i < 4096   && i < buffer_size; ++i) {
+    for (int32 i = window_start; i < 4096 && i < buffer_size; ++i) {
         int32 length = 0;
 
-        while (length < 18 &&
-               i + length < 4096   &&
-               buffer[length] == window[i + length]) {
-            length++;
+        while (length < 18
+            && i + length < 4096
+            && buffer[length] == window[i + length]
+        ) {
+            ++length;
         }
 
         if (length > best_length) {
@@ -135,7 +134,12 @@ uint32 lzp3_encode(const byte* in, size_t length, byte* out) {
     size_t i = 0;
     while (i < length) {
         int32 match_position = 0;
-        int32 match_length = find_longest_match(window, window_start, (char *)&in[i], (int32) (length - i), &match_position);
+        int32 match_length = find_longest_match(
+            window,
+            window_start,
+            (char *) &in[i], (int32) (length - i),
+            &match_position
+        );
 
         if (match_length > 2) {
             out[out_size++] = 0xFF;
@@ -170,7 +174,7 @@ uint32 lzp3_decode(const byte* in, size_t length, byte* out) {
             int32 match_length = in[i + 2];
 
             for (int32 j = 0; j < match_length; j++) {
-                out[out_size++] = window[(match_position + j) % 4096];
+                out[out_size++] = window[MODULO_2(match_position + j, 4096)];
             }
 
             memmove(window, window + match_length, 4096 - match_length);

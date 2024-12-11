@@ -9,9 +9,9 @@
 #ifndef TOS_SOUND_XAUDIO2_H
 #define TOS_SOUND_XAUDIO2_H
 
-#include <xaudio2.h>
 #include <windows.h>
 #include <objbase.h>
+#include <xaudio2.h>
 
 #include "../../../stdlib/Types.h"
 #include "../../../audio/AudioSetting.h"

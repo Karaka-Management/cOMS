@@ -16,53 +16,53 @@
 #include "../memory/ChunkMemory.h"
 #include "../utils/StringUtils.h"
 
-#define MAX_KEY_LENGTH 32
+#define HASH_MAP_MAX_KEY_LENGTH 32
 
 struct HashEntryInt32 {
     int64 element_id;
-    char key[MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     HashEntryInt32* next;
     int32 value;
 };
 
 struct HashEntryInt64 {
     int64 element_id;
-    char key[MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     HashEntryInt64* next;
     int64 value;
 };
 
 struct HashEntryUIntPtr {
     int64 element_id;
-    char key[MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     HashEntryUIntPtr* next;
     uintptr_t value;
 };
 
 struct HashEntryVoidP {
     int64 element_id;
-    char key[MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     HashEntryVoidP* next;
     void* value;
 };
 
 struct HashEntryFloat {
     int64 element_id;
-    char key[MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     HashEntryFloat* next;
     f32 value;
 };
 
 struct HashEntryStr {
     int64 element_id;
-    char key[MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     HashEntryStr* next;
-    char value[MAX_KEY_LENGTH];
+    char value[HASH_MAP_MAX_KEY_LENGTH];
 };
 
 struct HashEntry {
     int64 element_id;
-    char key[MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     HashEntry* next;
     byte* value;
 };
@@ -128,8 +128,8 @@ void hashmap_insert(HashMap* hm, const char* key, int32 value) {
     HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    strncpy(entry->key, key, MAX_KEY_LENGTH);
-    entry->key[MAX_KEY_LENGTH - 1] = '\0';
+    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
     entry->next = NULL;
@@ -153,8 +153,8 @@ void hashmap_insert(HashMap* hm, const char* key, int64 value) {
     HashEntryInt64* entry = (HashEntryInt64 *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    strncpy(entry->key, key, MAX_KEY_LENGTH);
-    entry->key[MAX_KEY_LENGTH - 1] = '\0';
+    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
     entry->next = NULL;
@@ -178,8 +178,8 @@ void hashmap_insert(HashMap* hm, const char* key, uintptr_t value) {
     HashEntryUIntPtr* entry = (HashEntryUIntPtr *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    strncpy(entry->key, key, MAX_KEY_LENGTH);
-    entry->key[MAX_KEY_LENGTH - 1] = '\0';
+    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
     entry->next = NULL;
@@ -203,8 +203,8 @@ void hashmap_insert(HashMap* hm, const char* key, void* value) {
     HashEntryVoidP* entry = (HashEntryVoidP *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    strncpy(entry->key, key, MAX_KEY_LENGTH);
-    entry->key[MAX_KEY_LENGTH - 1] = '\0';
+    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
     entry->next = NULL;
@@ -228,8 +228,8 @@ void hashmap_insert(HashMap* hm, const char* key, f32 value) {
     HashEntryFloat* entry = (HashEntryFloat *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    strncpy(entry->key, key, MAX_KEY_LENGTH);
-    entry->key[MAX_KEY_LENGTH - 1] = '\0';
+    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
     entry->next = NULL;
@@ -253,11 +253,11 @@ void hashmap_insert(HashMap* hm, const char* key, const char* value) {
     HashEntryStr* entry = (HashEntryStr *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    strncpy(entry->key, key, MAX_KEY_LENGTH);
-    entry->key[MAX_KEY_LENGTH - 1] = '\0';
+    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
-    strncpy(entry->value, value, MAX_KEY_LENGTH);
-    entry->value[MAX_KEY_LENGTH - 1] = '\0';
+    strncpy(entry->value, value, HASH_MAP_MAX_KEY_LENGTH);
+    entry->value[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->next = NULL;
 
@@ -282,8 +282,8 @@ void hashmap_insert(HashMap* hm, const char* key, byte* value) {
 
     entry->value = (byte *) entry + sizeof(HashEntry);
 
-    strncpy(entry->key, key, MAX_KEY_LENGTH);
-    entry->key[MAX_KEY_LENGTH - 1] = '\0';
+    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     memcpy(entry->value, value, hm->buf.chunk_size - sizeof(HashEntry));
 
@@ -306,7 +306,7 @@ HashEntry* hashmap_get_entry(const HashMap* hm, const char* key) {
     HashEntry* entry = (HashEntry *) hm->table[index];
 
     while (entry != NULL) {
-        if (strncmp(entry->key, key, MAX_KEY_LENGTH) == 0) {
+        if (strncmp(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
             return entry;
         }
 
@@ -318,12 +318,12 @@ HashEntry* hashmap_get_entry(const HashMap* hm, const char* key) {
 
 // This function only saves one step (omission of the hash function)
 // The reason for this is in some cases we can use compile time hashing
-HashEntry* hashmap_get_entry(const HashMap* hm, const char* key, uint64 index) {
-    index %= hm->buf.count;
-    HashEntry* entry = (HashEntry *) hm->table[index];
+HashEntry* hashmap_get_entry(const HashMap* hm, const char* key, uint64 hash) {
+    hash %= hm->buf.count;
+    HashEntry* entry = (HashEntry *) hm->table[hash];
 
     while (entry != NULL) {
-        if (strncmp(entry->key, key, MAX_KEY_LENGTH) == 0) {
+        if (strncmp(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
             return entry;
         }
 
@@ -339,7 +339,7 @@ void hashmap_delete_entry(HashMap* hm, const char* key) {
     HashEntry* prev = NULL;
 
     while (entry != NULL) {
-        if (strncmp(entry->key, key, MAX_KEY_LENGTH) == 0) {
+        if (strncmp(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
             if (prev == NULL) {
                 hm->table[index] = entry->next;
             } else {
@@ -370,7 +370,7 @@ int64 hashmap_dump(const HashMap* hm, byte* data)
     }
     data += sizeof(uint64) * hm->buf.count;
 
-    int64 value_size = hm->buf.chunk_size - sizeof(uint64) - sizeof(char) * MAX_KEY_LENGTH - sizeof(uint64);
+    int64 value_size = hm->buf.chunk_size - sizeof(uint64) - sizeof(char) * HASH_MAP_MAX_KEY_LENGTH - sizeof(uint64);
 
     // Dumb hash map content = buffer memory
     int32 free_index = 0;
@@ -449,7 +449,7 @@ int64 hashmap_load(HashMap* hm, const byte* data)
     // @question don't we have to possibly endian swap check the free array as well?
     memcpy(hm->buf.free, data, sizeof(uint64) * CEIL_DIV(hm->buf.count, 64));
 
-    int64 value_size = hm->buf.chunk_size - sizeof(uint64) - sizeof(char) * MAX_KEY_LENGTH - sizeof(uint64);
+    int64 value_size = hm->buf.chunk_size - sizeof(uint64) - sizeof(char) * HASH_MAP_MAX_KEY_LENGTH - sizeof(uint64);
 
     // Switch endian AND turn offsets to pointers
     int32 free_index = 0;

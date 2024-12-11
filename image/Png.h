@@ -623,7 +623,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
         // essentially overwriting the **current** chunk header data, which doesn't matter since we already parsed it
         // then we reset the pos pointer backwards to where we want to start... gg
 
-        // https://www.ietf.org/rfc/rfc1951.txt - defalte
+        // https://www.ietf.org/rfc/rfc1951.txt - deflate
         // This data might be stored in the prvious IDAT chunk?!
         BFINAL = (uint8) BITS_GET_8_R2L(*stream.pos, stream.bit_pos, 1);
         bits_walk(&stream, 1);
@@ -783,7 +783,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
     image->width = src.ihdr.width;
     image->height = src.ihdr.height;
     image->pixel_count = image->width * image->height;
-    image->has_alpha = (src.ihdr.color_type == 6);
+    image->pixel_type = (byte) (src.ihdr.color_type == 6 ? PIXEL_TYPE_RGBA : PIXEL_TYPE_RGB);
     image->order_pixels = IMAGE_PIXEL_ORDER_RGBA;
     image->order_rows = IMAGE_ROW_ORDER_TOP_TO_BOTTOM;
 
