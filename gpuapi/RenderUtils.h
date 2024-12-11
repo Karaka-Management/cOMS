@@ -510,7 +510,7 @@ f32 vertex_text_create(
     f32 offset_x = x;
     for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
-        if (character == '\n') {
+        if (character == '\n' && i != 0) {
             y -= font->line_height * scale;
             offset_x = x;
 
@@ -654,7 +654,7 @@ f32 ui_text_create(
     for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text->value_str[i] : utf8_get_char_at(text->value_str, i);
 
-        if (character == '\n') {
+        if (character == '\n' && i != 0) {
             offset_y += theme->font.line_height * scale;
             offset_x = (f32) x->value_int;
 

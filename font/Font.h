@@ -237,7 +237,7 @@ int32 font_to_data(
     memcpy(pos, font->glyphs, font->glyph_count * sizeof(Glyph));
     pos += font->glyph_count * sizeof(Glyph);
 
-    int32 size = (int32) (pos - data);
+    int32 size = font_data_size(font);
 
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) file.content,
@@ -246,7 +246,12 @@ int32 font_to_data(
         steps
     );
 
-    return font_data_size(font);
+    return size;
+}
+
+f32 font_line_height(Font* font, f32 size)
+{
+    return font->line_height * size / font->size;
 }
 
 #endif
