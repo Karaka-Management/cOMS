@@ -12,9 +12,16 @@
 #include "../stdlib/Types.h"
 #include "Audio.h"
 #include "AudioSetting.h"
+#include "../utils/Utils.h"
 #include "../utils/MathUtils.h"
 #include "../memory/ChunkMemory.h"
 #include "../math/matrix/MatrixFloat32.h"
+
+#if _WIN32
+    #include "../platform/win32/threading/Atomic.h"
+#elif __linux__
+    #include "../platform/linux/threading/Atomic.h"
+#endif
 
 #if DIRECT_SOUND
     #include "../platform/win32/audio/DirectSound.h"
@@ -52,9 +59,17 @@ struct AudioInstance {
     uint32 sample_index;
 };
 
+enum AudioMixerState {
+    AUDIO_MIXER_STATE_UNINITIALIZED,
+    AUDIO_MIXER_STATE_INACTIVE,
+    AUDIO_MIXER_STATE_SHOULD_PLAY,
+    AUDIO_MIXER_STATE_ACTIVE,
+};
+
 struct AudioMixer {
     ChunkMemory audio_instances;
-    bool is_active;
+    AudioMixerState state_old;
+    AudioMixerState state_new;
 
     uint64 effect;
 
@@ -67,11 +82,42 @@ struct AudioMixer {
         XAudio2Setting api_setting;
     #endif
 
+    // @todo Replace HWND with our own typedef for linux
+    HWND window;
+
     int16* buffer_temp;
 
     // @todo add mutex for locking and create threaded functions
     // do we need a condition or semaphore?
 };
+
+bool audio_mixer_is_active(AudioMixer* mixer) {
+    if (mixer->state_new == AUDIO_MIXER_STATE_ACTIVE
+        && atomic_get((int32 *) &mixer->state_new) == AUDIO_MIXER_STATE_ACTIVE
+    ) {
+        return true;
+    }
+
+    AudioMixerState mixer_state;
+    if ((mixer_state = (AudioMixerState) atomic_get((int32 *) &mixer->state_new)) != mixer->state_old) {
+        if (mixer_state != AUDIO_MIXER_STATE_UNINITIALIZED) {
+            audio_load(
+                mixer->window,
+                &mixer->settings,
+                &mixer->api_setting
+            );
+
+            mixer_state = AUDIO_MIXER_STATE_INACTIVE;
+        }
+
+        if (mixer_state == AUDIO_MIXER_STATE_ACTIVE) {
+            audio_play(&mixer->settings, &mixer->api_setting);
+            mixer_state = AUDIO_MIXER_STATE_ACTIVE;
+        }
+    }
+
+    return (mixer->state_old = mixer_state) == AUDIO_MIXER_STATE_ACTIVE;
+}
 
 // @todo expand AudioLocationSetting so that it also includes audio effects, repeat etc.
 void audio_mixer_add(AudioMixer* mixer, int64 id, Audio* audio, AudioLocationSetting* origin)

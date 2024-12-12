@@ -152,8 +152,23 @@ void atomic_sub(volatile int64* value, int64 decrement) {
 }
 
 inline
+f32 atomic_compare_exchange_weak(volatile f32* value, f32* expected, f32 desired) {
+    return (f32) InterlockedCompareExchange((long *) value, (long) desired, (long) *expected);
+}
+
+inline
+f64 atomic_compare_exchange_weak(volatile f64* value, f64* expected, f64 desired) {
+    return (f64) InterlockedCompareExchange((long *) value, (long) desired, (long) *expected);
+}
+
+inline
 int32 atomic_compare_exchange_weak(volatile int32* value, int32* expected, int32 desired) {
     return (int32) InterlockedCompareExchange((long *) value, desired, *expected);
+}
+
+inline
+int64 atomic_compare_exchange_weak(volatile int64* value, int64* expected, int64 desired) {
+    return (int64) InterlockedCompareExchange((long *) value, (long) desired, (long) *expected);
 }
 
 inline
@@ -255,6 +270,11 @@ void atomic_sub(volatile uint64* value, uint64 decrement) {
 inline
 uint32 atomic_compare_exchange_weak(volatile uint32* value, uint32* expected, uint32 desired) {
     return (uint32) InterlockedCompareExchange((long *) value, desired, *expected);
+}
+
+inline
+uint64 atomic_compare_exchange_weak(volatile uint64* value, uint64* expected, uint64 desired) {
+    return (uint64) InterlockedCompareExchange((unsigned long long *) value, (unsigned long long) desired, (unsigned long long) *expected);
 }
 
 inline
