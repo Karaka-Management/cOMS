@@ -166,7 +166,7 @@ void wchar_to_char(const char* __restrict str, char* __restrict dest)
 }
 
 inline constexpr
-int32 str_to_int(const char *str)
+int32 str_to_int(const char* str)
 {
     int32 result = 0;
 
@@ -198,9 +198,7 @@ int32 int_to_str(int64 number, char *str, const char thousands = ',') {
     }
 
     while (number > 0) {
-        if (thousands != '\0'
-            && (digit_count == 3 || digit_count == 6 || digit_count == 9 || digit_count == 12 || digit_count == 15)
-        ) {
+        if (digit_count && digit_count % 3 == 0) {
             str[i++] = thousands;
         }
 
@@ -722,5 +720,132 @@ void str_pad(const char* input, char* output, char pad, size_t len) {
         output[i] = pad;
     }
 }
+
+void sprintf_fast(char *buffer, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    const char* ptr = format;
+    char *buf_ptr = buffer;
+
+    while (*ptr) {
+        if (*ptr != '%') {
+            *buf_ptr++ = *ptr;
+        } else if (*ptr == '\\' && *(ptr + 1) == '%') {
+            ++ptr;
+            *buf_ptr++ = *ptr;
+        } else {
+            ++ptr;
+
+            switch (*ptr) {
+                case 's': {
+                    const char* str = va_arg(args, const char*);
+                    while (*str) {
+                        *buf_ptr++ = *str++;
+                    }
+                } break;
+                case 'd': {
+                    int32 val = va_arg(args, int32);
+                    if (val < 0) {
+                        *buf_ptr++ = '-';
+                        val = -val;
+                    }
+
+                    char temp[20];
+                    int32 index = 0;
+
+                    do {
+                        temp[index++] = (val % 10) + '0';
+                        val /= 10;
+                    } while (val > 0);
+
+                    while (index > 0) {
+                        *buf_ptr++ = temp[--index];
+                    }
+                } break;
+                case 'l': {
+                    int64 val = va_arg(args, int64);
+                    if (val < 0) {
+                        *buf_ptr++ = '-';
+                        val = -val;
+                    }
+
+                    char temp[20];
+                    int64 index = 0;
+
+                    do {
+                        temp[index++] = (val % 10) + '0';
+                        val /= 10;
+                    } while (val > 0);
+
+                    while (index > 0) {
+                        *buf_ptr++ = temp[--index];
+                    }
+                } break;
+                case 'f': {
+                    f64 val = va_arg(args, f64);
+
+                    int32 precision = 6; // Default precision
+
+                    // @question Consider to implement rounding
+                    // Check for optional precision specifier
+                    const char* prec_ptr = ptr + 1;
+                    if (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                        precision = 0;
+                        while (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                            precision = precision * 10 + (*prec_ptr - '0');
+                            prec_ptr++;
+                        }
+
+                        ptr = prec_ptr - 1;
+                    }
+
+                    if (val < 0) {
+                        *buf_ptr++ = '-';
+                        val = -val;
+                    }
+
+                    // Handle integer part
+                    int32 int_part = (int32) val;
+                    f64 frac_part = val - int_part;
+
+                    char temp[20];
+                    int32 index = 0;
+
+                    do {
+                        temp[index++] = (int_part % 10) + '0';
+                        int_part /= 10;
+                    } while (int_part > 0);
+
+                    while (index > 0) {
+                        *buf_ptr++ = temp[--index];
+                    }
+
+                    // Handle fractional part
+                    if (precision > 0) {
+                        *buf_ptr++ = '.';
+                        while (precision--) {
+                            frac_part *= 10;
+                            int32 digit = (int32) frac_part;
+                            *buf_ptr++ = (char) (digit + '0');
+                            frac_part -= digit;
+                        }
+                    }
+                } break;
+                default: {
+                    // Handle unknown format specifiers
+                    *buf_ptr++ = '%';
+                } break;
+            }
+        }
+
+        ++ptr;
+    }
+
+    *buf_ptr = '\0';
+    va_end(args);
+}
+
+
 
 #endif

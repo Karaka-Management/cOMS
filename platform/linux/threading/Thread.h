@@ -98,7 +98,7 @@ int32 pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
 }
 
 int32 pthread_cond_signal(pthread_cond_t* cond) {
-    atomic_add_fetch(cond, 1);
+    atomic_fetch_add(cond, 1);
     syscall(SYS_futex, cond, FUTEX_WAKE, 1, NULL, NULL, 0);
 
     return 0;
@@ -114,7 +114,7 @@ int32 pthread_rwlock_init(pthread_rwlock_t* rwlock, const pthread_rwlockattr_t*)
 int32 pthread_rwlock_rdlock(pthread_rwlock_t* rwlock) {
     while (atomic_get(&rwlock->writer)) {}
 
-    atomic_add_fetch(&rwlock->readers, 1);
+    atomic_fetch_add(&rwlock->readers, 1);
 
     return 0;
 }
@@ -129,7 +129,7 @@ int32 pthread_rwlock_unlock(pthread_rwlock_t* rwlock) {
     if (atomic_get(&rwlock->writer)) {
         atomic_set(&rwlock->writer, 0);
     } else {
-        atomic_sub_fetch(&rwlock->readers, 1);
+        atomic_fetch_sub(&rwlock->readers, 1);
     }
 
     return 0;

@@ -115,22 +115,22 @@ int32 atomic_compare_exchange_weak(volatile int32* value, int32* expected, int32
 }
 
 inline
-int32 atomic_add_fetch(volatile int32* value, int32 operand) {
+int32 atomic_fetch_add(volatile int32* value, int32 operand) {
     return __atomic_add_fetch(value, operand, __ATOMIC_SEQ_CST);
 }
 
 inline
-int32 atomic_sub_fetch(volatile int32* value, int32 operand) {
+int32 atomic_fetch_sub(volatile int32* value, int32 operand) {
     return __atomic_sub_fetch(value, operand, __ATOMIC_SEQ_CST);
 }
 
 inline
-int64 atomic_add_fetch(volatile int64* value, int64 operand) {
+int64 atomic_fetch_add(volatile int64* value, int64 operand) {
     return __atomic_add_fetch(value, operand, __ATOMIC_SEQ_CST);
 }
 
 inline
-int64 atomic_sub_fetch(volatile int64* value, int64 operand) {
+int64 atomic_fetch_sub(volatile int64* value, int64 operand) {
     return __atomic_sub_fetch(value, operand, __ATOMIC_SEQ_CST);
 }
 
@@ -211,22 +211,22 @@ uint32 atomic_compare_exchange_weak(volatile uint32* value, uint32* expected, ui
 }
 
 inline
-uint32 atomic_add_fetch(volatile uint32* value, uint32 operand) {
+uint32 atomic_fetch_add(volatile uint32* value, uint32 operand) {
     return __atomic_add_fetch(value, operand, __ATOMIC_SEQ_CST);
 }
 
 inline
-uint32 atomic_sub_fetch(volatile uint32* value, uint32 operand) {
+uint32 atomic_fetch_sub(volatile uint32* value, uint32 operand) {
     return __atomic_sub_fetch(value, operand, __ATOMIC_SEQ_CST);
 }
 
 inline
-uint64 atomic_add_fetch(volatile uint64* value, uint64 operand) {
+uint64 atomic_fetch_add(volatile uint64* value, uint64 operand) {
     return __atomic_add_fetch(value, operand, __ATOMIC_SEQ_CST);
 }
 
 inline
-uint64 atomic_sub_fetch(volatile uint64* value, uint64 operand) {
+uint64 atomic_fetch_sub(volatile uint64* value, uint64 operand) {
     return __atomic_sub_fetch(value, operand, __ATOMIC_SEQ_CST);
 }
 

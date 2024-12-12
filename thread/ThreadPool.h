@@ -149,7 +149,7 @@ PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
     ring_move_pointer(&pool->work_queue, &pool->work_queue.head, sizeof(PoolWorker), 64);
 
     if (temp_job->id == 0) {
-        temp_job->id = atomic_add_fetch(&pool->id_counter, 1);
+        temp_job->id = atomic_fetch_add(&pool->id_counter, 1);
     }
 
     pthread_cond_broadcast(&pool->work_cond);
@@ -174,7 +174,7 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
 
     if (temp_job->id == 0) {
         // +1 because otherwise the very first job would be id = 0 which is not a valid id
-        temp_job->id = atomic_add_fetch(&pool->id_counter, 1) + 1;
+        temp_job->id = atomic_fetch_add(&pool->id_counter, 1) + 1;
     }
 
     return temp_job;

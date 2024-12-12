@@ -25,12 +25,12 @@
 inline
 void quaternion_unit(v4_f32* quat)
 {
-    f32 length = sqrtf(quat->w * quat->w + quat->x * quat->x + quat->y * quat->y + quat->z * quat->z);
+    f32 length = oms_rsqrt(quat->w * quat->w + quat->x * quat->x + quat->y * quat->y + quat->z * quat->z);
 
-    quat->w /= length;
-    quat->x /= length;
-    quat->y /= length;
-    quat->z /= length;
+    quat->w *= length;
+    quat->x *= length;
+    quat->y *= length;
+    quat->z *= length;
 }
 
 inline

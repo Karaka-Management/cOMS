@@ -13,10 +13,6 @@
 #include "../stdlib/Types.h"
 #include "Debug.h"
 
-#ifndef LOG_LEVEL
-    #define LOG_LEVEL 0
-#endif
-
 #ifndef MAX_LOG_LENGTH
     #define MAX_LOG_LENGTH 128
 #endif
@@ -39,7 +35,7 @@ void log(const char* format, LogDataType data_type, void* data, bool should_log,
 void log_increment(int32, int64);
 void log_counter(int32, int64);
 
-#if (LOG_LEVEL == 0)
+#if (!DEBUG && !INTERNAL)
     // Don't perform any logging at log level 0
     #define LOG(str, should_log, save) ((void) 0)
     #define LOG_FORMAT(format, data_type, data, should_log, save) ((void) 0)
@@ -49,8 +45,8 @@ void log_counter(int32, int64);
     #define LOG_COUNTER(a, b) ((void) 0)
     #define RESET_COUNTER(a) ((void) 0)
 #else
-    #define LOG(str, should_log, save) log((str), (should_log), (save), __FILE__, __func__, __LINE__)
-    #define LOG_FORMAT(format, data_type, data, should_log, save) log((format), (data_type), (data), (should_log), (save), __FILE__, __func__, __LINE__)
+    #define LOG(str, should_log, save) ((void) 0)
+    #define LOG_FORMAT(format, data_type, data, should_log, save) ((void) 0)
     #define LOG_TO_FILE() log_to_file()
     #define LOG_INCREMENT(a) log_increment((a), 1)
     #define LOG_INCREMENT_BY(a, b) log_increment((a), (b))

@@ -102,7 +102,9 @@ void update_timing_stat(uint32 stat, const char* function)
 inline
 void update_timing_stat_start(uint32 stat, const char*)
 {
-    atomic_set((int64 *) &debug_container->perf_stats[stat].old_tick_count, __rdtsc());
+    spinlock_start(&debug_container->perf_stats_spinlock);
+    debug_container->perf_stats[stat].old_tick_count = __rdtsc();
+    spinlock_end(&debug_container->perf_stats_spinlock);
 }
 
 inline
@@ -220,7 +222,7 @@ void debug_memory_log(uint64 start, uint64 size, int32 type, const char* functio
         return;
     }
 
-    uint64 idx = atomic_add_fetch(&mem->action_idx, 1);
+    uint64 idx = atomic_fetch_add(&mem->action_idx, 1);
     if (idx >= ARRAY_COUNT(mem->last_action)) {
         atomic_set(&mem->action_idx, 1);
         idx %= ARRAY_COUNT(mem->last_action);
@@ -253,7 +255,7 @@ void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* fun
         return;
     }
 
-    uint64 idx = atomic_add_fetch(&mem->reserve_action_idx, 1);
+    uint64 idx = atomic_fetch_add(&mem->reserve_action_idx, 1);
     if (idx >= ARRAY_COUNT(mem->reserve_action)) {
         atomic_set(&mem->reserve_action_idx, 1);
         idx %= ARRAY_COUNT(mem->last_action);

@@ -27,11 +27,6 @@
 
 void thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
 {
-    for (int32 i = 0; i < worker->mutex_size; ++i) {
-        pthread_mutex_init(&worker->mutex[i], NULL);
-    }
-
-    pthread_cond_init(&worker->condition, NULL);
     pthread_create(&worker->thread, NULL, routine, arg);
 }
 
@@ -39,11 +34,6 @@ void thread_stop(Worker* worker)
 {
     atomic_set(&worker->state, 0);
     pthread_join(worker->thread, NULL);
-    pthread_cond_destroy(&worker->condition);
-
-    for (int32 i = 0; i < worker->mutex_size; ++i) {
-        pthread_mutex_destroy(&worker->mutex[i]);
-    }
 }
 
 #endif

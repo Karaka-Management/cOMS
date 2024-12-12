@@ -34,11 +34,7 @@ struct PoolWorker {
 
 struct Worker {
     volatile int32 state;
-
     pthread_t thread;
-    pthread_cond_t condition;
-    int32 mutex_size;
-    pthread_mutex_t* mutex;
 };
 
 #endif

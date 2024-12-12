@@ -35,20 +35,10 @@ void vertex_degenerate_create(
     // They are alternating every loop BUT since we use references they look the same in code
     // WARNING: Before using we must make sure that the 0 index is defined
     //          The easiest way is to just define a "degenerate" starting point
-    vertices[*index].position.x = vertices[*index - 1].position.x;
-    vertices[*index].position.y = vertices[*index - 1].position.y;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = 0;
-    vertices[*index].tex_coord.y = 0;
-    vertices[*index].color = 0;
+    vertices[*index] = {{vertices[*index - 1].position.x, vertices[*index - 1].position.y, zindex}, {0, 0}, 0};
     ++(*index);
 
-    vertices[*index].position.x = x;
-    vertices[*index].position.y = y;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = 0;
-    vertices[*index].tex_coord.y = 0;
-    vertices[*index].color = 0;
+    vertices[*index] = {{x, y, zindex}, {0, 0}, 0};
     ++(*index);
 }
 
@@ -76,61 +66,24 @@ void vertex_line_create(
 
     f32 n1 = -(y2 - y1);
     f32 n2 = x2 - x1;
-    f32 n_ = sqrtf(n2 * n2 + n1 * n1);
-    f32 norm1 = n1 / n_;
-    f32 norm2 = n2 / n_;
-
-    // @todo Currently we always use p1 and never p2
-    //      This is wrong and depends on the Alignment, no? Maybe not
-    // Calculate both parallel points to the start position
-    f32 p1_x1 = x1 + thickness * norm1;
-    f32 p1_y1 = y1 + thickness * norm2;
-
-    // f32 p2_x1 = x1 - thickness * norm1;
-    // f32 p2_y1 = y1 - thickness * norm2;
-
-    // Calculate both parallel points to the end position
-    f32 p1_x2 = x2 + thickness * norm1;
-    f32 p1_y2 = y2 + thickness * norm2;
-
-    // f32 p2_x2 = x2 - thickness * norm1;
-    // f32 p2_y2 = y2 - thickness * norm2;
+    f32 n_ = oms_rsqrt(n2 * n2 + n1 * n1);
+    f32 norm1 = n1 * n_;
+    f32 norm2 = n2 * n_;
 
     vertex_degenerate_create(vertices, index, zindex, x1, y1);
 
-    vertices[*index].position.x = x1;
-    vertices[*index].position.y = y1;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x1;
-    vertices[*index].tex_coord.y = tex_y1;
-    vertices[*index].color = color_index;
-    ++(*index);
+    int32 idx = *index;
 
-    vertices[*index].position.x = p1_x1;
-    vertices[*index].position.y = p1_y1;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x1;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
+    vertices[idx++] = {{x1, y1, zindex}, {tex_x1, tex_y1}, color_index};
+    vertices[idx++] = {{x1 + thickness * norm1, y1 + thickness * norm2, zindex}, {tex_x1, tex_y2}, color_index};
+    vertices[idx++] = {{x2, y2, zindex}, {tex_x2, tex_y1}, color_index};
+    vertices[idx++] = {{x2 + thickness * norm1, y2 + thickness * norm2, zindex}, {tex_x2, tex_y2}, color_index};
 
-    vertices[*index].position.x = x2;
-    vertices[*index].position.y = y2;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y1;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    vertices[*index].position.x = p1_x2;
-    vertices[*index].position.y = p1_y2;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
+    *index = idx;
 }
 
+// @performance Do we really want to create the UI as one continuous mesh?
+// Individual meshes without degenerates might be faster
 inline
 void vertex_rect_create(
     Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
@@ -155,37 +108,14 @@ void vertex_rect_create(
     f32 x_width = x + width;
 
     // Rectangle
-    vertices[*index].position.x = x;
-    vertices[*index].position.y = y;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x1;
-    vertices[*index].tex_coord.y = tex_y1;
-    vertices[*index].color = color_index;
-    ++(*index);
+    int32 idx = *index;
 
-    vertices[*index].position.x = x;
-    vertices[*index].position.y = y_height;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x1;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
+    vertices[idx++] = {{x, y, zindex}, {tex_x1, tex_y1}, color_index};
+    vertices[idx++] = {{x, y_height, zindex}, {tex_x1, tex_y2}, color_index};
+    vertices[idx++] = {{x_width, y, zindex}, {tex_x2, tex_y1}, color_index};
+    vertices[idx++] = {{x_width, y_height, zindex}, {tex_x2, tex_y2}, color_index};
 
-    vertices[*index].position.x = x_width;
-    vertices[*index].position.y = y;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y1;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    vertices[*index].position.x = x_width;
-    vertices[*index].position.y = y_height;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
+    *index = idx;
 }
 
 inline
@@ -479,7 +409,7 @@ f32 vertex_text_create(
     const Font* __restrict font, const char* __restrict text, f32 size, f32 color_index = 0
 ) {
     int32 length = utf8_strlen(text);
-    bool is_ascii = strlen(text) == length;
+    bool is_ascii = (int32) strlen(text) == length;
     f32 scale = size / font->size;
 
     // If we do a different alignment we need to pre-calculate the width and height
@@ -507,10 +437,12 @@ f32 vertex_text_create(
 
     uint32 first_glyph = font->glyphs[0].codepoint;
 
+    int32 first_char = is_ascii ? text[0] : utf8_get_char_at(text, 0);
+
     f32 offset_x = x;
-    for (int32 i = 0; i < length; ++i) {
+    for (int32 i = (first_char == '\n' ? 1 : 0); i < length; ++i) {
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
-        if (character == '\n' && i != 0) {
+        if (character == '\n') {
             y -= font->line_height * scale;
             offset_x = x;
 
@@ -527,7 +459,7 @@ f32 vertex_text_create(
             glyph = &font->glyphs[perfect_glyph_pos];
         } else {
             // @performance consider to do binary search
-            for (int32 j = 0; j <= perfect_glyph_pos && j < font->glyph_count; ++j) {
+            for (uint32 j = 0; j <= perfect_glyph_pos && j < font->glyph_count; ++j) {
                 if (font->glyphs[j].codepoint == character) {
                     glyph = &font->glyphs[j];
 
@@ -651,10 +583,12 @@ f32 ui_text_create(
     int32 start = *index;
     f32 offset_x = (f32) x->value_int;
     f32 offset_y = (f32) y->value_int;
-    for (int32 i = 0; i < length; ++i) {
+
+    int32 first_char = is_ascii ? text->value_str[0] : utf8_get_char_at(text->value_str, 0);
+    for (int32 i = (first_char == '\n' ? 1 : 0); i < length; ++i) {
         int32 character = is_ascii ? text->value_str[i] : utf8_get_char_at(text->value_str, i);
 
-        if (character == '\n' && i != 0) {
+        if (character == '\n') {
             offset_y += theme->font.line_height * scale;
             offset_x = (f32) x->value_int;
 
