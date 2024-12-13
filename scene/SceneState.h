@@ -18,6 +18,7 @@ enum SceneState : byte {
     SCENE_STATE_STARTED_SETUP = 4,
     SCENE_STATE_WAITING_SETUP = 8,
     SCENE_STATE_READY = 16,
+    SCENE_STATE_STATIC_CHANGES = 32,
 };
 
 #endif

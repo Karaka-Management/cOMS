@@ -62,8 +62,12 @@ void log_to_file()
     #if _WIN32
         DWORD written;
         if (!WriteFile(
-            debug_container->log_fp, (char *) debug_container->log_memory.memory, (uint32) debug_container->log_memory.pos - 1, &written, NULL)
-        ) {
+            debug_container->log_fp,
+            (char *) debug_container->log_memory.memory,
+            (uint32) debug_container->log_memory.pos - 1,
+            &written,
+            NULL
+        )) {
             CloseHandle(debug_container->log_fp);
         }
     #else
@@ -71,7 +75,11 @@ void log_to_file()
             return;
         }
 
-        if (!write(debug_container->log_fp, (char *) debug_container->log_memory.memory, (uint32) debug_container->log_memory.pos - 1)) {
+        if (!write(
+            debug_container->log_fp,
+            (char *) debug_container->log_memory.memory,
+            (uint32) debug_container->log_memory.pos - 1
+        )) {
             close(debug_container->log_fp);
         }
     #endif
@@ -90,8 +98,9 @@ void update_timing_stat(uint32 stat, const char* function)
 {
     uint64 new_tick_count = __rdtsc();
 
-    spinlock_start(&debug_container->perf_stats_spinlock);
     TimingStat* timing_stat = &debug_container->perf_stats[stat];
+
+    spinlock_start(&debug_container->perf_stats_spinlock);
     timing_stat->function = function;
     timing_stat->delta_tick = new_tick_count - timing_stat->old_tick_count;
     timing_stat->delta_time = (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
@@ -112,8 +121,9 @@ void update_timing_stat_end(uint32 stat, const char* function)
 {
     uint64 new_tick_count = __rdtsc();
 
-    spinlock_start(&debug_container->perf_stats_spinlock);
     TimingStat* timing_stat = &debug_container->perf_stats[stat];
+
+    spinlock_start(&debug_container->perf_stats_spinlock);
     timing_stat->function = function;
     timing_stat->delta_tick = new_tick_count - timing_stat->old_tick_count;
     timing_stat->delta_time = (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
@@ -126,8 +136,9 @@ void update_timing_stat_end_continued(uint32 stat, const char* function)
 {
     uint64 new_tick_count = __rdtsc();
 
-    spinlock_start(&debug_container->perf_stats_spinlock);
     TimingStat* timing_stat = &debug_container->perf_stats[stat];
+
+    spinlock_start(&debug_container->perf_stats_spinlock);
     timing_stat->function = function;
     timing_stat->delta_tick = timing_stat->delta_tick + new_tick_count - timing_stat->old_tick_count;
     timing_stat->delta_time = timing_stat->delta_time + (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
@@ -138,8 +149,9 @@ void update_timing_stat_end_continued(uint32 stat, const char* function)
 inline
 void update_timing_stat_reset(uint32 stat)
 {
-    spinlock_start(&debug_container->perf_stats_spinlock);
     TimingStat* timing_stat = &debug_container->perf_stats[stat];
+
+    spinlock_start(&debug_container->perf_stats_spinlock);
     timing_stat->function = NULL;
     timing_stat->delta_tick = 0;
     timing_stat->delta_time = 0;
@@ -233,7 +245,6 @@ void debug_memory_log(uint64 start, uint64 size, int32 type, const char* functio
     dmr->start = start - mem->start;
     dmr->size = size;
 
-    // We are using rdtsc since it is faster -> less debugging overhead than using time()
     dmr->time = __rdtsc();
     dmr->function_name = function;
 
@@ -266,7 +277,6 @@ void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* fun
     dmr->start = start - mem->start;
     dmr->size = size;
 
-    // We are using rdtsc since it is faster -> less debugging overhead than using time()
     dmr->time = __rdtsc();
     dmr->function_name = function;
 }

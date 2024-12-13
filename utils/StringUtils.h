@@ -846,6 +846,44 @@ void sprintf_fast(char *buffer, const char* format, ...) {
     va_end(args);
 }
 
+inline
+void format_time_hh_mm_ss(char* time_str, int32 hours, int32 minutes, int32 secs) {
+    time_str[0] = (char) ('0' + (hours / 10));
+    time_str[1] = (char) ('0' + (hours % 10));
+    time_str[2] = ':';
+    time_str[3] = (char) ('0' + (minutes / 10));
+    time_str[4] = (char) ('0' + (minutes % 10));
+    time_str[5] = ':';
+    time_str[6] = (char) ('0' + (secs / 10));
+    time_str[7] = (char) ('0' + (secs % 10));
+    time_str[8] = '\0';
+}
 
+inline
+void format_time_hh_mm_ss(char* time_str, int32 time) {
+    int32 hours = (time / 3600) % 24;
+    int32 minutes = (time / 60) % 60;
+    int32 secs = time % 60;
+
+    format_time_hh_mm_ss(time_str, hours, minutes, secs);
+}
+
+inline
+void format_time_hh_mm(char* time_str, int32 hours, int32 minutes) {
+    time_str[0] = (char) ('0' + (hours / 10));
+    time_str[1] = (char) ('0' + (hours % 10));
+    time_str[2] = ':';
+    time_str[3] = (char) ('0' + (minutes / 10));
+    time_str[4] = (char) ('0' + (minutes % 10));
+    time_str[5] = '\0';
+}
+
+inline
+void format_time_hh_mm(char* time_str, int32 time) {
+    int32 hours = (time / 3600) % 24;
+    int32 minutes = (time / 60) % 60;
+
+    format_time_hh_mm(time_str, hours, minutes);
+}
 
 #endif

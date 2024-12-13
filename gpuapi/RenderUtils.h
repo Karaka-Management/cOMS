@@ -276,7 +276,6 @@ void vertex_input(Vertex3DTextureColorIndex* __restrict vertices, uint32* __rest
 
 static inline
 f32 text_calculate_dimensions_height(
-    f32 height,
     const Font* __restrict font, const char* __restrict text, f32 scale, int32 length
 ) {
     f32 line_height = font->line_height * scale;
@@ -295,7 +294,6 @@ f32 text_calculate_dimensions_height(
 
 static inline
 f32 text_calculate_dimensions_width(
-    f32 width,
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
 ) {
     f32 x = 0;
@@ -316,7 +314,7 @@ f32 text_calculate_dimensions_width(
         }
 
         Glyph* glyph = NULL;
-        // We try to jump t othe correct glyph based on the glyph codepoint
+        // We try to jump to the correct glyph based on the glyph codepoint
         // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
         int32 perfect_glyph_pos = character - first_glyph;
         if (font->glyph_count > perfect_glyph_pos
@@ -372,7 +370,7 @@ void text_calculate_dimensions(
         }
 
         Glyph* glyph = NULL;
-        // We try to jump t othe correct glyph based on the glyph codepoint
+        // We try to jump to the correct glyph based on the glyph codepoint
         // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
         int32 perfect_glyph_pos = character - first_glyph;
         if (font->glyph_count > perfect_glyph_pos
@@ -417,9 +415,9 @@ f32 vertex_text_create(
         if (align_h != 0 && align_v != 0) {
             text_calculate_dimensions(&width, &height, font, text, is_ascii, scale, length);
         } else if (align_h != 0) {
-            width = text_calculate_dimensions_width(width, font, text, is_ascii, scale, length);
+            width = text_calculate_dimensions_width(font, text, is_ascii, scale, length);
         } else {
-            height = text_calculate_dimensions_height(height, font, text, scale, length);
+            height = text_calculate_dimensions_height(font, text, scale, length);
         }
 
         if (align_h == UI_ALIGN_H_RIGHT) {
@@ -450,7 +448,7 @@ f32 vertex_text_create(
         }
 
         Glyph* glyph = NULL;
-        // We try to jump t othe correct glyph based on the glyph codepoint
+        // We try to jump to the correct glyph based on the glyph codepoint
         // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
         int32 perfect_glyph_pos = character - first_glyph;
         if (font->glyph_count > perfect_glyph_pos
@@ -475,6 +473,7 @@ f32 vertex_text_create(
         f32 offset_y = y + glyph->metrics.offset_y * scale;
         offset_x += glyph->metrics.offset_x * scale;
 
+        // @performance Consider to handle whitespaces just by offsetting
         vertex_rect_create(
             vertices, index, zindex,
             offset_x, offset_y, glyph->metrics.width * scale, glyph->metrics.height * scale, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
@@ -560,9 +559,9 @@ f32 ui_text_create(
         if (align_h != NULL && align_v != NULL) {
             text_calculate_dimensions(&tmp_width, &tmp_height, &theme->font, text->value_str, is_ascii, scale, length);
         } else if (align_h != NULL) {
-            tmp_width = text_calculate_dimensions_width(tmp_width, &theme->font, text->value_str, is_ascii, scale, length);
+            tmp_width = text_calculate_dimensions_width(&theme->font, text->value_str, is_ascii, scale, length);
         } else {
-            tmp_height = text_calculate_dimensions_height(tmp_height, &theme->font, text->value_str, scale, length);
+            tmp_height = text_calculate_dimensions_height(&theme->font, text->value_str, scale, length);
         }
 
         if (align_h->value_int == UI_ALIGN_H_RIGHT) {
@@ -596,7 +595,7 @@ f32 ui_text_create(
         }
 
         Glyph* glyph = NULL;
-        // We try to jump t othe correct glyph based on the glyph codepoint
+        // We try to jump to the correct glyph based on the glyph codepoint
         // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
         int32 perfect_glyph_pos = character - first_glyph;
         if (theme->font.glyph_count > perfect_glyph_pos
@@ -621,6 +620,7 @@ f32 ui_text_create(
         f32 offset_y2 = offset_y + glyph->metrics.offset_y * scale;
         offset_x += glyph->metrics.offset_x * scale;
 
+        // @performance Consider to handle whitespaces just by offsetting
         vertex_rect_create(
             vertices, index, zindex,
             offset_x, offset_y2, glyph->metrics.width * scale, glyph->metrics.height * scale, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,

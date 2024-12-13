@@ -489,6 +489,15 @@ void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data)
 }
 
 inline
+void gpuapi_buffer_update_sub(uint32 vbo, int32 offset, int32 size, const void* data)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
+}
+
+inline
 uint32 gpuapi_shaderbuffer_generate(int32 size, const void* data)
 {
     uint32 sbo;

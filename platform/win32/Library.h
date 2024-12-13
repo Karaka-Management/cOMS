@@ -53,8 +53,7 @@ bool library_load(Library* lib)
         }
 
         int32 i = 0;
-        while (GetModuleHandleA((LPCSTR) dst) && i < 10) {
-            ++i;
+        while (GetModuleHandleA((LPCSTR) dst) && i++ < 10) {
             Sleep(100);
         }
     }

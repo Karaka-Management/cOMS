@@ -27,6 +27,9 @@ struct UILayout {
 
     int32 vertex_size;
     Asset* ui_asset;
+
+    // Defines the length of the static vertex array
+    int32 vertex_size_static;
 };
 
 inline
