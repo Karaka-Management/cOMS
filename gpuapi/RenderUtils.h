@@ -624,7 +624,7 @@ f32 ui_text_create(
         vertex_rect_create(
             vertices, index, zindex,
             offset_x, offset_y2, glyph->metrics.width * scale, glyph->metrics.height * scale, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
-            color_index->value_int, glyph->coords.x1, glyph->coords.y1, glyph->coords.x2, glyph->coords.y2
+            color_index->value_float, glyph->coords.x1, glyph->coords.y1, glyph->coords.x2, glyph->coords.y2
         );
 
         offset_x += (glyph->metrics.width + glyph->metrics.advance_x) * scale;
@@ -707,13 +707,13 @@ void ui_button_create(
 
     vertex_rect_border_create(
         vertices, index, zindex,
-        x->value_int, y->value_int, width->value_int, height->value_int, 1, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
+        x->value_float, y->value_float, width->value_float, height->value_float, 1, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
         12, 0.0f, 0.0f
     );
 
     vertex_rect_create(
         vertices, index, zindex,
-        x->value_int + 1, y->value_int + 1, width->value_int - 2, height->value_int - 2, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
+        x->value_float + 1, y->value_float + 1, width->value_float - 2, height->value_float - 2, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
         14, 0.0f, 0.0f
     );
 
@@ -721,8 +721,8 @@ void ui_button_create(
 
     vertex_text_create(
         vertices, index, zindex,
-        x->value_int, y->value_int, width->value_int, height->value_int, align_h->value_int, align_v->value_int,
-        &theme->font, text->value_str, size->value_int, color_index->value_int
+        x->value_float, y->value_float, width->value_float, height->value_float, align_h->value_float, align_v->value_float,
+        &theme->font, text->value_str, size->value_float, color_index->value_float
     );
 
     element->vertex_count = *index - start;

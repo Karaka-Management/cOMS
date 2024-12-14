@@ -59,10 +59,10 @@ void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 chunk_size,
     hashmap_create(&ams->hash_map, count, sizeof(HashEntryInt64), buf);
 
     // setup asset_memory
-    chunk_init(&ams->asset_memory, buf, count, sizeof(Asset), 1);
+    chunk_init(&ams->asset_memory, buf, count, sizeof(Asset), 64);
 
     // setup asset_data_memory
-    chunk_init(&ams->asset_data_memory, buf, count, chunk_size, 1);
+    chunk_init(&ams->asset_data_memory, buf, count, chunk_size, 64);
 
     ams->first = NULL;
     ams->last = NULL;
@@ -71,7 +71,7 @@ void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 chunk_size,
 }
 
 // WARNING: buf size see ams_get_buffer_size
-void ams_create(AssetManagementSystem* ams, byte* buf, int chunk_size, int count)
+void ams_create(AssetManagementSystem* ams, byte* buf, int32 chunk_size, int32 count)
 {
     ASSERT_SIMPLE(chunk_size);
 
@@ -82,7 +82,7 @@ void ams_create(AssetManagementSystem* ams, byte* buf, int chunk_size, int count
     ams->asset_memory.count = count;
     ams->asset_memory.chunk_size = sizeof(Asset);
     ams->asset_memory.last_pos = -1;
-    ams->asset_memory.alignment = 1;
+    ams->asset_memory.alignment = 64;
     ams->asset_memory.memory = buf;
     ams->asset_memory.free = (uint64 *) (ams->asset_memory.memory + ams->asset_memory.chunk_size * count);
 
@@ -90,7 +90,7 @@ void ams_create(AssetManagementSystem* ams, byte* buf, int chunk_size, int count
     ams->asset_data_memory.count = count;
     ams->asset_data_memory.chunk_size = chunk_size;
     ams->asset_data_memory.last_pos = -1;
-    ams->asset_data_memory.alignment = 1;
+    ams->asset_data_memory.alignment = 64;
     ams->asset_data_memory.memory = (byte *) (ams->asset_memory.free + CEIL_DIV(count, 64));
     ams->asset_data_memory.free = (uint64 *) (ams->asset_data_memory.memory + ams->asset_data_memory.chunk_size * count);
 
@@ -112,7 +112,7 @@ int32 ams_calculate_chunks(const AssetManagementSystem* ams, int32 byte_size)
 }
 
 inline
-int64 ams_get_buffer_size(int count, int chunk_size)
+int64 ams_get_buffer_size(int32 count, int32 chunk_size)
 {
     return hashmap_size(count, sizeof(HashEntryInt64)) // hash map
         + sizeof(Asset) * count + CEIL_DIV(count, 64) * sizeof(uint64) // asset_memory

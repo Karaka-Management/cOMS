@@ -81,9 +81,12 @@
         if constexpr (!(a)) {                            \
             *(volatile int *) 0 = 0;                     \
         }
+
+    #define ASSERT_GPU_API() gpuapi_error()
 #else
     #define ASSERT_SIMPLE(a) ((void) 0)
     #define ASSERT_SIMPLE_CONST(a) ((void) 0)
+    #define ASSERT_GPU_API() ((void) 0)
 #endif
 
 #define ASSERT_TRUE(a)                                   \

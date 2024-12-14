@@ -480,6 +480,17 @@ uint32 gpuapi_framebuffer_generate()
 }
 
 inline
+uint32 gpuapi_renderbuffer_generate()
+{
+    uint32 rbo;
+
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+
+    return rbo;
+}
+
+inline
 void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -593,6 +604,14 @@ int get_gpu_free_memory()
     glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &available);
 
     return available;
+}
+
+void gpuapi_error()
+{
+    GLenum err;
+    while ((err = glGetError()) != GL_NO_ERROR) {
+        ASSERT_SIMPLE(err == GL_NO_ERROR);
+    }
 }
 
 /*

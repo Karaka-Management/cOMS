@@ -66,6 +66,8 @@ void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignm
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
 
+    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
+
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64))
         : (byte *) platform_alloc_aligned(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64), alignment);
@@ -101,7 +103,8 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint64 count, uint64 chunk
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
 
-    // @bug what if an alignment is defined?
+    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
+
     buf->memory = buffer_get_memory(data, count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64));
 
     buf->count = count;
@@ -124,6 +127,8 @@ void chunk_init(ChunkMemory* buf, byte* data, uint64 count, uint64 chunk_size, i
 {
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
+
+    chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
     // @bug what if an alignment is defined?
     buf->memory = data;
