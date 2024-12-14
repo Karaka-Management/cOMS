@@ -532,6 +532,9 @@ static type_glBindRenderbuffer* glBindRenderbuffer;
 typedef void WINAPI type_glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
 static type_glRenderbufferStorage* glRenderbufferStorage;
 
+typedef void WINAPI type_glRenderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
+static type_glRenderbufferStorageMultisample* glRenderbufferStorageMultisample;
+
 typedef void WINAPI type_glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
 static type_glFramebufferRenderbuffer* glFramebufferRenderbuffer;
 
@@ -811,6 +814,7 @@ void opengl_init_gl()
     glGenRenderbuffers = (type_glGenRenderbuffers *) wglGetProcAddress("glGenRenderbuffers");
     glBindRenderbuffer = (type_glBindRenderbuffer *) wglGetProcAddress("glBindRenderbuffer");
     glRenderbufferStorage = (type_glRenderbufferStorage *) wglGetProcAddress("glRenderbufferStorage");
+    glRenderbufferStorageMultisample = (type_glRenderbufferStorageMultisample *) wglGetProcAddress("glRenderbufferStorageMultisample");
     glFramebufferRenderbuffer = (type_glFramebufferRenderbuffer *) wglGetProcAddress("glFramebufferRenderbuffer");
     glBufferData = (type_glBufferData *) wglGetProcAddress("glBufferData");
     glActiveTexture = (type_glActiveTexture *) wglGetProcAddress("glActiveTexture");
