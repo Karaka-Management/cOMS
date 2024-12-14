@@ -401,7 +401,7 @@ void text_calculate_dimensions(
 
 // @todo implement shadow (offset + angle + diffuse) or should this be a shader only thing? if so this would be a problem for us since we are handling text in the same shader as simple shapes
 // we might want to implement distance field font atlas
-f32 vertex_text_create(
+v2_f32 vertex_text_create(
     Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
     const Font* __restrict font, const char* __restrict text, f32 size, f32 color_index = 0
@@ -438,7 +438,7 @@ f32 vertex_text_create(
     int32 first_char = is_ascii ? text[0] : utf8_get_char_at(text, 0);
 
     f32 offset_x = x;
-    for (int32 i = (first_char == '\n' ? 1 : 0); i < length; ++i) {
+    for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {
             y -= font->line_height * scale;
@@ -489,7 +489,7 @@ f32 vertex_text_create(
     //      This way we can ensure no overflow easily
     // @todo implement line alignment, currently only total alignment is considered
 
-    return offset_x;
+    return {offset_x, y};
 }
 
 // @todo implement shadow (offset + angle + diffuse) or should this be a shader only thing? if so this would be a problem for us since we are handling text in the same shader as simple shapes
