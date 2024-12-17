@@ -12,8 +12,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "../../stdlib/Types.h"
-#include "../../stdlib/simd/SIMD_Helper.h"
-#include "../SystemInfo.h"
+#include "../../system/SystemInfo.h"
 
 #include <psapi.h>
 #include <winsock2.h>
@@ -26,6 +25,12 @@
 #include <comdef.h>
 #include <winnls.h>
 #include <hidsdi.h>
+
+#if __aarch64__
+    #include "../../stdlib/sve/SVE_Helper.h"
+#else
+    #include "../../stdlib/simd/SIMD_Helper.h"
+#endif
 
 // @performance Do we really need all these libs, can't we simplify that?!
 #include <intrin.h>

@@ -282,6 +282,42 @@ str_concat(
     return len_total + len;
 }
 
+inline void
+str_add(char* base, const char* src)
+{
+    while (*base) {
+        ++base;
+    }
+
+    strcpy(base, src);
+}
+
+inline void
+str_add(char* base, const char* src, size_t src_length)
+{
+    while (*base) {
+        ++base;
+    }
+
+    memcpy(base, src, src_length);
+    base[src_length] = '\0';
+}
+
+inline int64
+str_add(char* base, size_t base_length, const char* src, size_t src_length)
+{
+    memcpy(&base[base_length], src, src_length);
+    base[base_length + src_length] = '\0';
+
+    return base_length + src_length;
+}
+
+inline void
+str_add(char* base, size_t base_length, const char* src)
+{
+    strcpy(&base[base_length], src);
+}
+
 inline int64
 str_concat(
     const char* src1, size_t src1_length,

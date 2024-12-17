@@ -19,9 +19,14 @@
 #endif
 
 #include "../memory/RingMemory.h"
-#include "../stdlib/simd/SIMD_I32.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/StringUtils.h"
+
+#if __aarch64__
+    #include "../../../GameEngine/stdlib/sve/SVE_I32.h"
+#else
+    #include "../../../GameEngine/stdlib/simd/SIMD_I32.h"
+#endif
 
 #define MESH_VERSION 1
 
@@ -378,6 +383,9 @@ void mesh_from_file_txt(
                     }
                     text[i] = '\0';
                 } break;
+            default: {
+                UNREACHABLE();
+            }
         }
     }
 

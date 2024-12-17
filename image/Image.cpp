@@ -87,7 +87,7 @@ int32 image_pixel_size_from_type(byte type)
             return 4;
         } break;
         default: {
-            return 0;
+            UNREACHABLE();
         }
     }
 }

@@ -16,7 +16,7 @@
 #include "../../stdlib/Types.h"
 #include "FileUtils.cpp"
 #include "../../utils/StringUtils.h"
-#include "../Library.h"
+#include "../../system/Library.h"
 
 // @todo Rename file to Library.cpp
 

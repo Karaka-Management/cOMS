@@ -48,9 +48,12 @@ struct ThreadedQueue {
     sem_t full;
 };
 
+// @question Consider to add the element size into the Queue struct -> we don't need to pass it after initialization as parameter
+
 inline
 void thrd_queue_alloc(ThreadedQueue* queue, uint32 element_count, uint64 element_size, int32 alignment = 64)
 {
+    // @bug The alignment needs to be included in EVERY element
     ring_alloc((RingMemory *) queue, element_count * element_size, alignment);
 
     pthread_mutex_init(&queue->mutex, NULL);
@@ -63,6 +66,7 @@ void thrd_queue_alloc(ThreadedQueue* queue, uint32 element_count, uint64 element
 inline
 void thrd_queue_init(ThreadedQueue* queue, BufferMemory* buf, uint32 element_count, uint64 element_size, int32 alignment = 64)
 {
+    // @bug The alignment needs to be included in EVERY element
     ring_init((RingMemory *) queue, buf, element_count * element_size, alignment);
 
     pthread_mutex_init(&queue->mutex, NULL);
@@ -75,6 +79,7 @@ void thrd_queue_init(ThreadedQueue* queue, BufferMemory* buf, uint32 element_cou
 inline
 void thrd_queue_init(ThreadedQueue* queue, byte* buf, uint32 element_count, uint64 element_size, int32 alignment = 64)
 {
+    // @bug The alignment needs to be included in EVERY element
     ring_init((RingMemory *) queue, buf, element_count * element_size, alignment);
 
     pthread_mutex_init(&queue->mutex, NULL);

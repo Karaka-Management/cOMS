@@ -14,21 +14,26 @@
 
 typedef RingMemory Queue;
 
+// @question Consider to add the element size into the Queue struct -> we don't need to pass it after initialization as parameter
+
 inline
 void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, int32 alignment = 64)
 {
+    // @bug The alignment needs to be included in EVERY element
     ring_alloc(queue, element_count * element_size, alignment);
 }
 
 inline
 void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 element_size, int32 alignment = 64)
 {
+    // @bug The alignment needs to be included in EVERY element
     ring_init(queue, buf, element_count * element_size, alignment);
 }
 
 inline
 void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_size, int32 alignment = 64)
 {
+    // @bug The alignment needs to be included in EVERY element
     ring_init(queue, buf, element_count * element_size, alignment);
 }
 

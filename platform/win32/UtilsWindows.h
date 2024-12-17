@@ -85,12 +85,15 @@ void window_create(Window* __restrict window, void* proc)
 
     WNDPROC wndproc = (WNDPROC) proc;
     WNDCLASSEXA wc = {};
-    HINSTANCE hinstance = GetModuleHandle(0);
+
+    if (!window->hInstance) {
+        window->hInstance = GetModuleHandle(0);
+    }
 
     wc.cbSize = sizeof(WNDCLASSEXA);
     wc.style = CS_OWNDC;
     wc.lpfnWndProc = wndproc;
-    wc.hInstance = hinstance;
+    wc.hInstance = window->hInstance;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.lpszClassName = (LPCSTR) window->name;
 
@@ -123,7 +126,7 @@ void window_create(Window* __restrict window, void* proc)
         window->x, window->y,
         window->width,
         window->height,
-        NULL, NULL, hinstance, window
+        NULL, NULL, window->hInstance, window
     );
 
     ASSERT_SIMPLE(window->hwnd);

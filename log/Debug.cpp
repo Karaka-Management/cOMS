@@ -411,7 +411,9 @@ void log(const char* format, LogDataType data_type, void* data, bool should_log,
         case LOG_DATA_FLOAT64: {
             sprintf(temp, format, *((f64 *) data));
         } break;
-        default: {}
+        default: {
+            UNREACHABLE();
+        }
     }
 
     if (save || debug_container->log_memory.size - debug_container->log_memory.pos < MAX_LOG_LENGTH) {

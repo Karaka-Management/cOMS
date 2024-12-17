@@ -12,11 +12,16 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "../../stdlib/Types.h"
-#include "../../stdlib/simd/SIMD_Helper.h"
-#include "../SystemInfo.h"
+#include "../../system/SystemInfo.h"
 
 #include <locale.h>
 #include <cpuid.h>
+
+#if __aarch64__
+    #include "../../stdlib/simd/SIMD_Helper.h"
+#else
+    #include "../../stdlib/sve/SVE_Helper.h"
+#endif
 
 // @todo implement for arm?
 

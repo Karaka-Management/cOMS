@@ -197,9 +197,7 @@ int rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* r
                         }
                     }
                 } break;
-            default: {
-
-            }
+            default: {}
         }
     }
 

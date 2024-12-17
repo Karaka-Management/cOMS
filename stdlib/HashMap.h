@@ -72,6 +72,10 @@ struct HashMap {
     ChunkMemory buf;
 };
 
+// @performance Implement more like gperf, our implementation is slow. However, keep it around since it is very general purpose
+// Alternatively, also create a version that creates perfect hashes (input requires a hash function and a seed for that hash function)
+// Both would be saved in the hash impl.
+
 // WARNING: element_size = element size + remaining HashEntry data size
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring)
 {

@@ -11,24 +11,9 @@
 
 #include <windows.h>
 #include "../../stdlib/Types.h"
+#include "../../system/Window.h"
 
-struct WindowState {
-    uint16 width;
-    uint16 height;
-
-    uint16 x;
-    uint16 y;
-    uint64 style;
-};
-
-enum WindowStateChanges : byte {
-    WINDOW_STATE_CHANGE_NONE = 0,
-    WINDOW_STATE_CHANGE_SIZE = 1,
-    WINDOW_STATE_CHANGE_POS = 2,
-    WINDOW_STATE_CHANGE_FOCUS = 4,
-    WINDOW_STATE_CHANGE_FULLSCREEN = 8,
-    WINDOW_STATE_CHANGE_ALL = 16,
-};
+typedef HINSTANCE WindowInstance;
 
 struct Window {
     uint16 width;
@@ -48,6 +33,7 @@ struct Window {
     HWND hwnd;
     HDC hdc;
     HGLRC openGLRC;
+    HINSTANCE hInstance;
 
     char name[32];
     WindowState state_old;

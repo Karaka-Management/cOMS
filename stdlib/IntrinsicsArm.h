@@ -67,20 +67,4 @@ inline float oms_ceil(float a) {
     return svget1_f32(result);
 }
 
-inline void atomic_increment(int32_t* a, int32_t b) {
-    __atomic_add_fetch(a, b, __ATOMIC_SEQ_CST);
-}
-
-inline void atomic_increment(int64_t* a, int64_t b) {
-    __atomic_add_fetch(a, b, __ATOMIC_SEQ_CST);
-}
-
-inline void atomic_decrement(int32_t* a, int32_t b) {
-    __atomic_sub_fetch(a, b, __ATOMIC_SEQ_CST);
-}
-
-inline void atomic_decrement(int64_t* a, int64_t b) {
-    __atomic_sub_fetch(a, b, __ATOMIC_SEQ_CST);
-}
-
 #endif

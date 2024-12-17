@@ -5,7 +5,12 @@
 #include "../memory/BufferMemory.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/Utils.h"
-#include "../stdlib/simd/SIMD_I32.h"
+
+#if __aarch64__
+    #include "../stdlib/sve/SVE_I32.h"
+#else
+    #include "../stdlib/simd/SIMD_I32.h"
+#endif
 
 #if _WIN32
     #include "../platform/win32/FileUtils.cpp"

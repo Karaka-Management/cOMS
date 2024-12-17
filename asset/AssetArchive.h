@@ -13,7 +13,6 @@
 #include "../utils/StringUtils.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/Utils.h"
-#include "../stdlib/simd/SIMD_I32.h"
 #include "../memory/RingMemory.h"
 #include "../memory/BufferMemory.h"
 #include "../image/Image.cpp"
@@ -24,6 +23,12 @@
 #include "../localization/Language.h"
 #include "../ui/UITheme.h"
 #include "AssetManagementSystem.h"
+
+#if __aarch64__
+    #include "../stdlib/sve/SVE_I32.h"
+#else
+    #include "../stdlib/simd/SIMD_I32.h"
+#endif
 
 #if _WIN32
     #include <windows.h>
@@ -277,6 +282,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
                 theme_from_data(file.content, theme);
             } break;
             default: {
+                UNREACHABLE();
             }
         }
     }

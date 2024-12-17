@@ -20,8 +20,8 @@
 #include "../ui/UIElement.h"
 #include "../ui/UIAlignment.h"
 
-// @performance Create improved vertice generation for components (input + button, chat, ...) where we don't use as many
-//      degenerate triangled
+// @performance Create improved vertex generation for components (input + button, chat, ...) where we don't use as many
+//      degenerate triangle
 
 // @todo in many places we use ->value_int. We should load it as a value_float and also define it as float in the theme.
 // This way we wouldn't have to convert the value

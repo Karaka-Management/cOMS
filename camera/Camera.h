@@ -144,7 +144,9 @@ void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool rela
                 case CAMERA_MOVEMENT_ZOOM_OUT: {
                         camera->zoom -= velocity;
                     } break;
-                default: {}
+                default: {
+                    UNREACHABLE();
+                }
             }
         }
     } else {
@@ -215,7 +217,9 @@ void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool rela
                 case CAMERA_MOVEMENT_ZOOM_OUT: {
                         camera->zoom -= velocity;
                     } break;
-                default: {}
+                default: {
+                    UNREACHABLE();
+                }
             }
         }
     }

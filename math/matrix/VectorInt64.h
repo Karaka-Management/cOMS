@@ -13,7 +13,12 @@
 #include <xmmintrin.h>
 
 #include "../../utils/MathUtils.h"
-#include "../../stdlib/simd/SIMD_I64.h"
+
+#if __aarch64__
+    #include "../../../GameEngine/stdlib/sve/SVE_I64.h"
+#else
+    #include "../../../GameEngine/stdlib/simd/SIMD_I64.h"
+#endif
 
 struct v3_int64_2 {
     union {

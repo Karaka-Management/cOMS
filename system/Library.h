@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LIBRARY_H
-#define TOS_PLATFORM_LIBRARY_H
+#ifndef TOS_SYSTEM_LIBRARY_H
+#define TOS_SYSTEM_LIBRARY_H
 
 #include "../stdlib/Types.h"
 

@@ -17,9 +17,13 @@
     #define PACKED_STRUCT  __pragma(pack(push, 1))
     #define UNPACKED_STRUCT __pragma(pack(pop))
     typedef SSIZE_T ssize_t;
+
+    #define UNREACHABLE() __assume(0)
 #else
     #define PACKED_STRUCT  __attribute__((__packed__))
     #define UNPACKED_STRUCT ((void) 0)
+
+    #define UNREACHABLE() __builtin_unreachable()
 #endif
 
 #define ARRAY_COUNT(a) (sizeof(a) / sizeof((a)[0]))
