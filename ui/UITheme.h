@@ -31,6 +31,7 @@ struct UIThemeStyle {
 
     // A theme may have N named styles
     // The hashmap contains the offset where the respective style can be found
+    // @performance Switch to perfect hash map
     HashMap hash_map;
 };
 

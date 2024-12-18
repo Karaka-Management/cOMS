@@ -12,35 +12,57 @@
 #include "../stdlib/Types.h"
 #include "RingMemory.h"
 
-typedef RingMemory Queue;
+// WARNING: Structure needs to be the same as RingMemory
+struct Queue {
+    byte* memory;
+    byte* end;
 
-// @question Consider to add the element size into the Queue struct -> we don't need to pass it after initialization as parameter
+    byte* head;
+
+    // This variable is usually only used by single producer/consumer code mostly found in threads.
+    // One thread inserts elements -> updates head
+    // The other thread reads elements -> updates tail
+    // This code itself doesn't change this variable
+    byte* tail;
+
+    uint64 size;
+    uint32 alignment;
+
+    // The ring memory ends here
+    uint32 element_size;
+};
 
 inline
-void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, int32 alignment = 64)
+void queue_alloc(Queue* queue, uint64 element_count, uint32 element_size, uint32 alignment = 64)
 {
-    // @bug The alignment needs to be included in EVERY element
-    ring_alloc(queue, element_count * element_size, alignment);
+    element_size = ROUND_TO_NEAREST(element_size, alignment);
+
+    ring_alloc((RingMemory *) queue, element_count * element_size, alignment);
+    queue->element_size = element_size;
 }
 
 inline
-void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 element_size, int32 alignment = 64)
+void queue_init(Queue* queue, BufferMemory* buf, uint64 element_count, uint32 element_size, uint32 alignment = 64)
 {
-    // @bug The alignment needs to be included in EVERY element
-    ring_init(queue, buf, element_count * element_size, alignment);
+    element_size = ROUND_TO_NEAREST(element_size, alignment);
+
+    ring_init((RingMemory *) queue, buf, element_count * element_size, alignment);
+    queue->element_size = element_size;
 }
 
 inline
-void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_size, int32 alignment = 64)
+void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_size, uint32 alignment = 64)
 {
-    // @bug The alignment needs to be included in EVERY element
-    ring_init(queue, buf, element_count * element_size, alignment);
+    element_size = ROUND_TO_NEAREST(element_size, alignment);
+
+    ring_init((RingMemory *) queue, buf, element_count * element_size, alignment);
+    queue->element_size = element_size;
 }
 
 inline
 void queue_free(Queue* queue)
 {
-    ring_free(queue);
+    ring_free((RingMemory *) queue);
 }
 
 inline
@@ -54,60 +76,145 @@ bool queue_set_empty(Queue* queue) {
 }
 
 inline
-bool queue_is_full(Queue* queue, uint64 size, byte aligned = 0) {
-    return !ring_commit_safe((RingMemory *) queue, size, aligned);
+bool queue_is_full(Queue* queue) {
+    return !ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment);
 }
 
-// Conditional Lock
 inline
-byte* queue_enqueue(Queue* queue, byte* data, uint64 size, byte aligned = 0)
+void queue_enqueue_unique(ThreadedQueue* queue, const byte* data)
 {
-    byte* mem = ring_get_memory_nomove(queue, size, aligned);
-    memcpy(mem, data, size);
-    ring_move_pointer(queue, &queue->head, size, aligned);
+    ASSERT_SIMPLE((uint64_t) data % 4 == 0);
+
+    byte* tail = queue->tail;
+    while (tail != queue->tail) {
+        ASSERT_SIMPLE((uint64_t) tail % 4 == 0);
+
+        // @performance we could probably make this faster since we don't need to compare the entire range
+        if (is_equal_aligned(tail, data, queue->element_size) == 0) {
+            return;
+        }
+
+        ring_move_pointer((RingMemory *) queue, &tail, queue->element_size, queue->alignment);
+    }
+
+    if (!ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment)) {
+        return;
+    }
+
+    byte* mem = ring_get_memory((RingMemory *) queue, queue->element_size, queue->alignment);
+    memcpy(mem, data, queue->element_size);
+}
+
+inline
+byte* queue_enqueue(Queue* queue, byte* data)
+{
+    byte* mem = ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
+    memcpy(mem, data, queue->element_size);
+    ring_move_pointer((RingMemory *) queue, &queue->head, queue->element_size, queue->alignment);
 
     return mem;
 }
 
 inline
-byte* queue_enqueue_start(Queue* queue, uint64 size, byte aligned = 0)
+byte* queue_enqueue_safe(Queue* queue, byte* data)
 {
-    return ring_get_memory_nomove(queue, size, aligned);
+    if(queue_is_full(queue)) {
+        return NULL;
+    }
+
+    byte* mem = ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
+    memcpy(mem, data, queue->element_size);
+    ring_move_pointer((RingMemory *) queue, &queue->head, queue->element_size, queue->alignment);
+
+    return mem;
+}
+
+// WARNING: Only useful for single producer single consumer
+inline
+byte* queue_enqueue_wait_atomic(Queue* queue, byte* data)
+{
+    while (!ring_commit_safe_atomic((RingMemory *) queue, queue->alignment)) {}
+
+    byte* mem = ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
+    memcpy(mem, data, queue->element_size);
+    ring_move_pointer((RingMemory *) queue, &queue->head, queue->element_size, queue->alignment);
+
+    return mem;
+}
+
+// WARNING: Only useful for single producer single consumer
+inline
+byte* queue_enqueue_safe_atomic(Queue* queue, byte* data)
+{
+    if (!ring_commit_safe_atomic((RingMemory *) queue, queue->alignment)) {
+        return NULL;
+    }
+
+    byte* mem = ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
+    memcpy(mem, data, queue->element_size);
+    ring_move_pointer((RingMemory *) queue, &queue->head, queue->element_size, queue->alignment);
+
+    return mem;
 }
 
 inline
-void queue_enqueue_end(Queue* queue, uint64 size, byte aligned = 0)
+byte* queue_enqueue_start(Queue* queue)
 {
-    ring_move_pointer(queue, &queue->head, size, aligned);
+    return ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
 }
 
 inline
-bool queue_dequeue(Queue* queue, byte* data, uint64 size, byte aligned = 0)
+void queue_enqueue_end(Queue* queue)
+{
+    ring_move_pointer((RingMemory *) queue, &queue->head, queue->element_size, queue->alignment);
+}
+
+inline
+bool queue_dequeue(Queue* queue, byte* data)
 {
     if (queue->head == queue->tail) {
         return false;
     }
 
-    if (size == 4) {
+    if (queue->element_size == 4) {
         *((int32 *) data) = *((int32 *) queue->tail);
     } else {
-        memcpy(data, queue->tail, size);
+        memcpy(data, queue->tail, queue->element_size);
     }
 
-    ring_move_pointer(queue, &queue->tail, size, aligned);
+    ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
+
+    return true;
+}
+
+// WARNING: Only useful for single producer single consumer
+inline
+bool queue_dequeue_atomic(Queue* queue, byte* data)
+{
+    if (atomic_get_relaxed((uint64 *) &queue->head) == (uint64) queue->tail) {
+        return false;
+    }
+
+    if (queue->element_size == 4) {
+        *((int32 *) data) = *((int32 *) queue->tail);
+    } else {
+        memcpy(data, queue->tail, queue->element_size);
+    }
+
+    ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 
     return true;
 }
 
 inline
-byte* queue_dequeue_keep(Queue* queue, uint64 size, byte aligned = 0)
+byte* queue_dequeue_keep(Queue* queue)
 {
     if (queue->head == queue->tail) {
         return NULL;
     }
 
     byte* data = queue->tail;
-    ring_move_pointer(queue, &queue->tail, size, aligned);
+    ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 
     return data;
 }
@@ -119,9 +226,9 @@ byte* queue_dequeue_start(Queue* queue)
 }
 
 inline
-void queue_dequeue_end(Queue* queue, uint64 size, byte aligned = 0)
+void queue_dequeue_end(Queue* queue)
 {
-    ring_move_pointer(queue, &queue->tail, size, aligned);
+    ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 }
 
 #endif

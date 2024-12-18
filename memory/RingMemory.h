@@ -24,12 +24,16 @@
     #include "../platform/win32/Allocator.h"
     #include "../platform/win32/threading/ThreadDefines.h"
     #include "../platform/win32/threading/Semaphore.h"
+    #include "../platform/win32/threading/Atomic.h"
 #elif __linux__
     #include "../platform/linux/Allocator.h"
     #include "../platform/linux/threading/ThreadDefines.h"
     #include "../platform/linux/threading/Semaphore.h"
+    #include "../platform/linux/threading/Atomic.h"
 #endif
 
+// WARNING: Changing this structure has effects on other data structures (e.g. Queue)
+// When chaning make sure you understand what you are doing
 struct RingMemory {
     byte* memory;
     byte* end;
@@ -43,14 +47,11 @@ struct RingMemory {
     byte* tail;
 
     uint64 size;
-    int32 alignment;
-    int32 element_alignment;
+    uint32 alignment;
 };
 
-// @bug alignment should also include the end point, not just the start
-
 inline
-void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
+void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
 
@@ -63,7 +64,6 @@ void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
     ring->tail = ring->memory;
     ring->size = size;
     ring->alignment = alignment;
-    ring->element_alignment = 0;
 
     memset(ring->memory, 0, ring->size);
 
@@ -71,7 +71,7 @@ void ring_alloc(RingMemory* ring, uint64 size, int32 alignment = 64)
 }
 
 inline
-void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment = 64)
+void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, uint32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
 
@@ -82,26 +82,23 @@ void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment
     ring->tail = ring->memory;
     ring->size = size;
     ring->alignment = alignment;
-    ring->element_alignment = 0;
 
     DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
     DEBUG_MEMORY_RESERVE((uint64) ring->memory, ring->size, 187);
 }
 
 inline
-void ring_init(RingMemory* ring, byte* buf, uint64 size, int32 alignment = 64)
+void ring_init(RingMemory* ring, byte* buf, uint64 size, uint32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
 
-    // @bug what if an alignment is defined?
-    ring->memory = buf;
+    ring->memory = (byte *) ROUND_TO_NEAREST((uintptr_t) buf, alignment);
 
     ring->end = ring->memory + size;
     ring->head = ring->memory;
     ring->tail = ring->memory;
     ring->size = size;
     ring->alignment = alignment;
-    ring->element_alignment = 0;
 
     memset(ring->memory, 0, ring->size);
 
@@ -122,10 +119,6 @@ void ring_free(RingMemory* ring)
 inline
 byte* ring_calculate_position(const RingMemory* ring, uint64 size, byte aligned = 0)
 {
-    if (aligned == 0) {
-        aligned = (byte) OMS_MAX(ring->element_alignment, 1);
-    }
-
     byte* head = ring->head;
 
     if (aligned > 1) {
@@ -158,9 +151,9 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, byte aligned =
 {
     ASSERT_SIMPLE(size <= ring->size);
 
-    if (aligned == 0) {
-        aligned = (byte) OMS_MAX(ring->element_alignment, 1);
-    }
+    // Actually, we cannot be sure that this is a read, it could also be a write.
+    // However, we better do it once here than manually in every place that uses this function
+    DEBUG_MEMORY_READ((uint64) *pos, size);
 
     if (aligned > 1) {
         uintptr_t address = (uintptr_t) *pos;
@@ -183,10 +176,6 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, byte aligned =
 byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zeroed = false)
 {
     ASSERT_SIMPLE(size <= ring->size);
-
-    if (aligned == 0) {
-        aligned = (byte) OMS_MAX(ring->element_alignment, 1);
-    }
 
     if (aligned > 1) {
         uintptr_t address = (uintptr_t) ring->head;
@@ -221,10 +210,6 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zero
 byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, byte aligned = 0, bool zeroed = false)
 {
     ASSERT_SIMPLE(size <= ring->size);
-
-    if (aligned == 0) {
-        aligned = (byte) OMS_MAX(ring->element_alignment, 1);
-    }
 
     byte* pos = ring->head;
 
@@ -286,6 +271,27 @@ bool ring_commit_safe(const RingMemory* ring, uint64 size, byte aligned = 0)
 }
 
 inline
+bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, byte aligned = 0)
+{
+    // aligned * 2 since that should be the maximum overhead for an element
+    // @bug could this result in a case where the ring is considered empty/full (false positive/negative)?
+    // The "correct" version would probably to use ring_move_pointer in some form
+    uint64 max_mem_required = size + aligned * 2;
+
+    uint64 tail = atomic_get_relaxed((uint64 *) &ring->tail);
+    uint64 head = atomic_get_relaxed((uint64 *) &ring->head);
+
+    if (tail < head) {
+        return ((uint64) (ring->end - head)) > max_mem_required
+            || ((uint64) (tail - (uint64) ring->memory)) > max_mem_required;
+    } else if (tail > head) {
+        return ((uint64) (tail - head)) > max_mem_required;
+    } else {
+        return true;
+    }
+}
+
+inline
 void ring_force_head_update(const RingMemory* ring)
 {
     _mm_clflush(ring->head);
@@ -313,9 +319,6 @@ int64 ring_dump(const RingMemory* ring, byte* data)
     // Alignment
     *((int32 *) data) = SWAP_ENDIAN_LITTLE(ring->alignment);
     data += sizeof(ring->alignment);
-
-    *((int32 *) data) = SWAP_ENDIAN_LITTLE(ring->element_alignment);
-    data += sizeof(ring->element_alignment);
 
     // tail/End
     *((uint64 *) data) = SWAP_ENDIAN_LITTLE((uint64) (ring->tail - ring->memory));

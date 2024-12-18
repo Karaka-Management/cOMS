@@ -43,23 +43,6 @@ struct ChunkMemory {
     uint64* free;
 };
 
-struct ThreadedChunkMemory {
-    byte* memory;
-
-    uint64 count;
-    uint64 size;
-    uint64 chunk_size;
-    int64 last_pos;
-    int32 alignment;
-
-    // length = count
-    // free describes which locations are used and which are free
-    uint64* free;
-
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-};
-
 inline
 void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignment = 64)
 {
@@ -69,11 +52,11 @@ void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignm
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
     buf->memory = alignment < 2
-        ? (byte *) platform_alloc(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64))
-        : (byte *) platform_alloc_aligned(count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64), alignment);
+        ? (byte *) platform_alloc(count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64))
+        : (byte *) platform_alloc_aligned(count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64), alignment);
 
     buf->count = count;
-    buf->size = count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64);
+    buf->size = count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64);
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
@@ -87,17 +70,6 @@ void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignm
 }
 
 inline
-void chunk_free(ChunkMemory* buf)
-{
-    DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->size);
-    if (buf->alignment < 2) {
-        platform_free((void **) &buf->memory);
-    } else {
-        platform_aligned_free((void **) &buf->memory);
-    }
-}
-
-inline
 void chunk_init(ChunkMemory* buf, BufferMemory* data, uint64 count, uint64 chunk_size, int32 alignment = 64)
 {
     ASSERT_SIMPLE(chunk_size);
@@ -105,10 +77,10 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint64 count, uint64 chunk
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
-    buf->memory = buffer_get_memory(data, count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64));
+    buf->memory = buffer_get_memory(data, count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64));
 
     buf->count = count;
-    buf->size = count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64);
+    buf->size = count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64);
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
@@ -134,7 +106,7 @@ void chunk_init(ChunkMemory* buf, byte* data, uint64 count, uint64 chunk_size, i
     buf->memory = data;
 
     buf->count = count;
-    buf->size = count * chunk_size + sizeof(buf->free) * CEIL_DIV(count, 64);
+    buf->size = count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64);
     buf->chunk_size = chunk_size;
     buf->last_pos = -1;
     buf->alignment = alignment;
@@ -149,17 +121,27 @@ void chunk_init(ChunkMemory* buf, byte* data, uint64 count, uint64 chunk_size, i
 }
 
 inline
+void chunk_free(ChunkMemory* buf)
+{
+    DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->size);
+    if (buf->alignment < 2) {
+        platform_free((void **) &buf->memory);
+    } else {
+        platform_aligned_free((void **) &buf->memory);
+    }
+}
+
+inline
 byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false)
 {
     byte* offset = buf->memory + element * buf->chunk_size;
+    ASSERT_SIMPLE(offset);
 
     if (zeroed) {
         memset((void *) offset, 0, buf->chunk_size);
     }
 
     DEBUG_MEMORY_READ((uint64) offset, buf->chunk_size);
-
-    ASSERT_SIMPLE(offset);
 
     return offset;
 }

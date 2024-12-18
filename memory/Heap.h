@@ -132,6 +132,8 @@ void heap_pop(Heap* heap, void* out) {
         return;
     }
 
+    DEBUG_MEMORY_READ((uint64) heap->elements, heap->element_size);
+
     memcpy(out, heap->elements, heap->element_size);
     void* last_element = heap->elements + ((heap->size - 1) * heap->element_size);
     memcpy(heap->elements, last_element, heap->element_size);
@@ -141,6 +143,8 @@ void heap_pop(Heap* heap, void* out) {
 
 inline
 void* heap_peek(Heap* heap) {
+    DEBUG_MEMORY_READ((uint64) heap->elements, heap->element_size);
+
     return heap->elements;
 }
 

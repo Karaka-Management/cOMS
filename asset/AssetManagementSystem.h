@@ -22,6 +22,7 @@
 // @question Asset component systems could be created per region -> easy to simulate a specific region
 // @bug This means players might not be able to transition from one area to another?!
 
+// @performance There is a huge performance flaw. We CANNOT have an asset only in vram because it always also allocates the ram (asset_data_memory)
 struct AssetManagementSystem {
     // @question is this even necessary or could we integrate this directly into the system here?
     HashMap hash_map;
@@ -29,6 +30,7 @@ struct AssetManagementSystem {
     uint64 ram_size;
     uint64 vram_size;
     uint64 asset_count;
+    int32 overhead;
     bool has_changed;
 
     // The indices of asset_memory and asset_data_memory are always linked
@@ -48,15 +50,14 @@ struct AssetManagementSystem {
     // @question do we want to create an extra threaded version? Or a combined one, like we have right now.
     // @question Do we want to add a mutex to assets. This way we don't have to lock the entire ams.
     pthread_mutex_t mutex;
-
-    // @bug We probably also need a overhead value.
-    // In some cases we need more data than our normal data (see texture, it contains image + texture)
 };
 
-void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 chunk_size, int32 count)
+void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 chunk_size, int32 count, int32 overhead = 0)
 {
     // setup hash_map
     hashmap_create(&ams->hash_map, count, sizeof(HashEntryInt64), buf);
+
+    ams->overhead = overhead;
 
     // setup asset_memory
     chunk_init(&ams->asset_memory, buf, count, sizeof(Asset), 64);
@@ -71,12 +72,14 @@ void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 chunk_size,
 }
 
 // WARNING: buf size see ams_get_buffer_size
-void ams_create(AssetManagementSystem* ams, byte* buf, int32 chunk_size, int32 count)
+void ams_create(AssetManagementSystem* ams, byte* buf, int32 chunk_size, int32 count, int32 overhead = 0)
 {
     ASSERT_SIMPLE(chunk_size);
 
     // setup hash_map
     hashmap_create(&ams->hash_map, count, sizeof(HashEntryInt64), buf);
+
+    ams->overhead = overhead;
 
     // setup asset_memory
     ams->asset_memory.count = count;
@@ -108,7 +111,7 @@ void ams_free(AssetManagementSystem* ams)
 inline
 int32 ams_calculate_chunks(const AssetManagementSystem* ams, int32 byte_size)
 {
-    return (int32) CEIL_DIV(byte_size, ams->asset_data_memory.chunk_size);
+    return (int32) CEIL_DIV(byte_size + ams->overhead, ams->asset_data_memory.chunk_size);
 }
 
 inline
@@ -122,8 +125,6 @@ int64 ams_get_buffer_size(int32 count, int32 chunk_size)
 inline
 void ams_update_stats(AssetManagementSystem* ams)
 {
-    // @bug We should check the hash map or the memory status, we could still have old values in here
-
     ams->vram_size = 0;
     ams->ram_size = 0;
     ams->asset_count = 0;
@@ -197,10 +198,14 @@ Asset* ams_get_asset(AssetManagementSystem* ams, const char* key)
 {
     HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
 
-    // @bug entry->value seems to be an address outside of any known buffer, how?
     DEBUG_MEMORY_READ(
         (uint64) (entry ? (Asset *) entry->value : 0),
-        entry ? ((Asset *) entry->value)->ram_size + sizeof(Asset) : 0
+        entry ? sizeof(Asset) : 0
+    );
+
+    DEBUG_MEMORY_READ(
+        (uint64) (entry ? (Asset *) entry->value : 0),
+        entry ? ((Asset *) entry->value)->self + ((Asset *) entry->value)->ram_size : 0
     );
 
     return entry ? (Asset *) entry->value : NULL;
@@ -211,10 +216,14 @@ Asset* ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 hash)
 {
     HashEntry* entry = hashmap_get_entry(&ams->hash_map, key, hash);
 
-    // @bug entry->value seems to be an address outside of any known buffer, how?
     DEBUG_MEMORY_READ(
         (uint64) (entry ? (Asset *) entry->value : 0),
-        entry ? ((Asset *) entry->value)->ram_size + sizeof(Asset) : 0
+        entry ? sizeof(Asset) : 0
+    );
+
+    DEBUG_MEMORY_READ(
+        (uint64) (entry ? (Asset *) entry->value : 0),
+        entry ? ((Asset *) entry->value)->self + ((Asset *) entry->value)->ram_size : 0
     );
 
     return entry ? (Asset *) entry->value : NULL;
@@ -248,6 +257,7 @@ Asset* thrd_ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 ha
 // @todo implement defragment command to optimize memory layout since the memory layout will become fragmented over time
 
 // @performance This function is VERY important, check if we can optimize it
+// We could probably optimize the threaded version by adding a atomic_set_release(asset->is_loaded, true);
 Asset* ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 elements = 1)
 {
     int64 free_asset = chunk_reserve(&ams->asset_memory, elements, true);
@@ -313,6 +323,48 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 el
     ams->has_changed = true;
 
     return asset;
+}
+
+void ams_garbage_collect(AssetManagementSystem* ams, uint64 time, uint64 dt)
+{
+    Asset* asset = ams->first;
+
+    while (asset) {
+        // @performance We cannot just remove ram and keep vram. This is a huge flaw
+        if (asset->can_garbage_collect_ram && asset->can_garbage_collect_vram && time - asset->last_access <= dt) {
+            ams_free_asset(ams, asset);
+        }
+
+        asset = asset->next;
+    }
+}
+
+void ams_garbage_collect(AssetManagementSystem* ams)
+{
+    Asset* asset = ams->first;
+
+    while (asset) {
+        // @performance We cannot just remove ram and keep vram. This is a huge flaw
+        if (asset->can_garbage_collect_ram && asset->can_garbage_collect_vram) {
+            ams_free_asset(ams, asset);
+        }
+
+        asset = asset->next;
+    }
+}
+
+void thrd_ams_garbage_collect(AssetManagementSystem* ams, uint64 time, uint64 dt)
+{
+    pthread_mutex_lock(&ams->mutex);
+    ams_garbage_collect(ams, time, dt);
+    pthread_mutex_unlock(&ams->mutex);
+}
+
+void thrd_ams_garbage_collect(AssetManagementSystem* ams)
+{
+    pthread_mutex_lock(&ams->mutex);
+    ams_garbage_collect(ams);
+    pthread_mutex_unlock(&ams->mutex);
 }
 
 Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 elements = 1) {

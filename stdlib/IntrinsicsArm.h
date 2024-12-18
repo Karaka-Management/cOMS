@@ -10,6 +10,7 @@
 #define TOS_STDLIB_INTRINSICS_ARM_H
 
 #include <arm_sve.h>
+#include <arm_acle.h>
 
 inline float oms_sqrt(float a) {
     svfloat32_t input = svdup_f32(a);
@@ -65,6 +66,27 @@ inline float oms_ceil(float a) {
     svfloat32_t result = svceil_f32(input);
 
     return svget1_f32(result);
+}
+
+inline void oms_fence_memory()
+{
+    __dmb(0xF);
+}
+
+inline void oms_fence_write()
+{
+    __dmb(0xB);
+}
+
+inline void oms_fence_load()
+{
+    __dmb(0x7);
+}
+
+inline
+void oms_invalidate_cache(void* address)
+{
+    asm volatile("dc ivac, %0" : : "r"(address) : "memory");
 }
 
 #endif

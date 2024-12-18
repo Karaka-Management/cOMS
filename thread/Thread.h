@@ -32,7 +32,7 @@ void thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
 
 void thread_stop(Worker* worker)
 {
-    atomic_set(&worker->state, 0);
+    atomic_set_acquire(&worker->state, 0);
     pthread_join(worker->thread, NULL);
 }
 

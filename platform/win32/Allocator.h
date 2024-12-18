@@ -26,6 +26,8 @@ void* platform_alloc(size_t size)
 inline
 void* platform_alloc_aligned(size_t size, int32 alignment)
 {
+    size = ROUND_TO_NEAREST(size, alignment);
+
     void* ptr = VirtualAlloc(NULL, size + alignment + sizeof(void*), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     ASSERT_SIMPLE(ptr);
 

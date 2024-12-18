@@ -60,32 +60,32 @@ static THREAD_RETURN thread_pool_worker(void* arg)
             break;
         }
 
-        work = (PoolWorker *) queue_dequeue_keep(&pool->work_queue, sizeof(PoolWorker), 64);
+        work = (PoolWorker *) queue_dequeue_keep(&pool->work_queue);
         pthread_mutex_unlock(&pool->work_mutex);
 
         if (!work) {
             continue;
         }
 
-        atomic_increment(&pool->working_cnt);
-        atomic_set(&work->state, 2);
+        atomic_increment_relaxed(&pool->working_cnt);
+        atomic_set_release(&work->state, 2);
         work->func(work);
-        atomic_set(&work->state, 1);
+        atomic_set_release(&work->state, 1);
 
         // Job gets marked after completion -> can be overwritten now
-        if (atomic_get(&work->id) == -1) {
-            atomic_set(&work->id, 0);
+        if (atomic_get_relaxed(&work->id) == -1) {
+            atomic_set_release(&work->id, 0);
         }
 
-        atomic_decrement(&pool->working_cnt);
+        atomic_decrement_relaxed(&pool->working_cnt);
 
-        if (atomic_get(&pool->state) == 0 && atomic_get(&pool->working_cnt) == 0) {
+        if (atomic_get_relaxed(&pool->state) == 0 && atomic_get_relaxed(&pool->working_cnt) == 0) {
             pthread_cond_signal(&pool->working_cond);
         }
     }
 
     pthread_cond_signal(&pool->working_cond);
-    atomic_decrement(&pool->thread_cnt);
+    atomic_decrement_relaxed(&pool->thread_cnt);
 
     return NULL;
 }
@@ -121,10 +121,10 @@ void thread_pool_wait(ThreadPool* pool)
 void thread_pool_destroy(ThreadPool* pool)
 {
     // This sets the queue to empty
-    atomic_set((void **) &pool->work_queue.tail, (void **) &pool->work_queue.head);
+    atomic_set_acquire((void **) &pool->work_queue.tail, (void **) &pool->work_queue.head);
 
     // This sets the state to "shutdown"
-    atomic_set(&pool->state, 1);
+    atomic_set_release(&pool->state, 1);
 
     pthread_cond_broadcast(&pool->work_cond);
     thread_pool_wait(pool);
@@ -137,8 +137,8 @@ void thread_pool_destroy(ThreadPool* pool)
 PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
 {
     pthread_mutex_lock(&pool->work_mutex);
-    PoolWorker* temp_job = (PoolWorker *) ring_get_memory_nomove(&pool->work_queue, sizeof(PoolWorker), 64);
-    if (atomic_get(&temp_job->id) > 0) {
+    PoolWorker* temp_job = (PoolWorker *) ring_get_memory_nomove((RingMemory *) &pool->work_queue, sizeof(PoolWorker), 64);
+    if (atomic_get_relaxed(&temp_job->id) > 0) {
         pthread_mutex_unlock(&pool->work_mutex);
         ASSERT_SIMPLE(temp_job->id == 0);
 
@@ -146,10 +146,10 @@ PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
     }
 
     memcpy(temp_job, job, sizeof(PoolWorker));
-    ring_move_pointer(&pool->work_queue, &pool->work_queue.head, sizeof(PoolWorker), 64);
+    ring_move_pointer((RingMemory *) &pool->work_queue, &pool->work_queue.head, sizeof(PoolWorker), 64);
 
     if (temp_job->id == 0) {
-        temp_job->id = atomic_fetch_add(&pool->id_counter, 1);
+        temp_job->id = atomic_fetch_add_acquire(&pool->id_counter, 1);
     }
 
     pthread_cond_broadcast(&pool->work_cond);
@@ -164,8 +164,8 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
 {
     pthread_mutex_lock(&pool->work_mutex);
 
-    PoolWorker* temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue, sizeof(PoolWorker), 64);
-    if (atomic_get(&temp_job->id) > 0) {
+    PoolWorker* temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
+    if (atomic_get_relaxed(&temp_job->id) > 0) {
         pthread_mutex_unlock(&pool->work_mutex);
         ASSERT_SIMPLE(temp_job->id == 0);
 
@@ -174,7 +174,7 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
 
     if (temp_job->id == 0) {
         // +1 because otherwise the very first job would be id = 0 which is not a valid id
-        temp_job->id = atomic_fetch_add(&pool->id_counter, 1) + 1;
+        temp_job->id = atomic_fetch_add_acquire(&pool->id_counter, 1) + 1;
     }
 
     return temp_job;
@@ -182,7 +182,7 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
 
 void thread_pool_add_work_end(ThreadPool* pool)
 {
-    queue_enqueue_end(&pool->work_queue, sizeof(PoolWorker), 64);
+    queue_enqueue_end(&pool->work_queue);
     pthread_cond_broadcast(&pool->work_cond);
     pthread_mutex_unlock(&pool->work_mutex);
 }

@@ -161,19 +161,19 @@ void update_timing_stat_reset(uint32 stat)
 inline
 void reset_counter(int32 id)
 {
-    atomic_set(&debug_container->counter[id], 0);
+    atomic_set_acquire(&debug_container->counter[id], 0);
 }
 
 inline
 void log_increment(int32 id, int64 by = 1)
 {
-    atomic_add(&debug_container->counter[id], by);
+    atomic_add_acquire(&debug_container->counter[id], by);
 }
 
 inline
 void log_counter(int32 id, int64 value)
 {
-    atomic_set(&debug_container->counter[id], value);
+    atomic_set_acquire(&debug_container->counter[id], value);
 }
 
 // @todo don't use a pointer to this should be in a global together with other logging data (see Log.h)
@@ -234,9 +234,9 @@ void debug_memory_log(uint64 start, uint64 size, int32 type, const char* functio
         return;
     }
 
-    uint64 idx = atomic_fetch_add(&mem->action_idx, 1);
+    uint64 idx = atomic_fetch_add_relaxed(&mem->action_idx, 1);
     if (idx >= ARRAY_COUNT(mem->last_action)) {
-        atomic_set(&mem->action_idx, 1);
+        atomic_set_acquire(&mem->action_idx, 1);
         idx %= ARRAY_COUNT(mem->last_action);
     }
 
@@ -266,9 +266,9 @@ void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* fun
         return;
     }
 
-    uint64 idx = atomic_fetch_add(&mem->reserve_action_idx, 1);
+    uint64 idx = atomic_fetch_add_relaxed(&mem->reserve_action_idx, 1);
     if (idx >= ARRAY_COUNT(mem->reserve_action)) {
-        atomic_set(&mem->reserve_action_idx, 1);
+        atomic_set_acquire(&mem->reserve_action_idx, 1);
         idx %= ARRAY_COUNT(mem->last_action);
     }
 

@@ -89,17 +89,18 @@ struct AudioMixer {
 
     // @todo add mutex for locking and create threaded functions
     // do we need a condition or semaphore?
+    // Wait, why do we even need threading? Isn't the threading handled by the file loading
 };
 
 bool audio_mixer_is_active(AudioMixer* mixer) {
     if (mixer->state_new == AUDIO_MIXER_STATE_ACTIVE
-        && atomic_get((int32 *) &mixer->state_new) == AUDIO_MIXER_STATE_ACTIVE
+        && atomic_get_relaxed((int32 *) &mixer->state_new) == AUDIO_MIXER_STATE_ACTIVE
     ) {
         return true;
     }
 
     AudioMixerState mixer_state;
-    if ((mixer_state = (AudioMixerState) atomic_get((int32 *) &mixer->state_new)) != mixer->state_old) {
+    if ((mixer_state = (AudioMixerState) atomic_get_relaxed((int32 *) &mixer->state_new)) != mixer->state_old) {
         if (mixer_state != AUDIO_MIXER_STATE_UNINITIALIZED) {
             audio_load(
                 mixer->window,

@@ -170,9 +170,6 @@ int64 buffer_load(BufferMemory* buf, const byte* data)
     buf->alignment = SWAP_ENDIAN_LITTLE(*((int32 *) data));
     data += sizeof(buf->alignment);
 
-    buf->element_alignment = SWAP_ENDIAN_LITTLE(*((int32 *) data));
-    data += sizeof(buf->element_alignment);
-
     // End
     buf->end = buf->memory + SWAP_ENDIAN_LITTLE(*((uint64 *) data));
     data += sizeof(uint64);

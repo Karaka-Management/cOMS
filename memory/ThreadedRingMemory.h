@@ -33,8 +33,8 @@ struct ThreadedRingMemory {
 
     uint64 size;
     int32 alignment;
-    int32 element_alignment;
 
+    // The ring memory ends here
     pthread_mutex_t mutex;
 };
 

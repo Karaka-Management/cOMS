@@ -45,7 +45,8 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
         alignment = page_size;
     }
 
-    size += alignment - 1 + sizeof(void *) + sizeof(size_t);
+    size = ROUND_TO_NEAREST(size, alignment);
+    size += alignment + sizeof(void *) + sizeof(size_t);
 
     void* ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     ASSERT_SIMPLE(ptr != MAP_FAILED);

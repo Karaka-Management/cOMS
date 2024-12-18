@@ -22,6 +22,8 @@ struct Asset {
     // Could be 0 if there is no official id
     uint64 official_id;
 
+    // @performance This is bad, this uses the same name as the hashmap
+    // We effectively store the asset name twice which shouldn't be the case
     char name[MAX_ASSET_NAME_LENGTH];
 
     AssetType type;
@@ -32,12 +34,16 @@ struct Asset {
 
     // Describes how much ram/vram the asset uses
     // E.g. vram_size = 0 but ram_size > 0 means that it never uses any gpu memory
-    uint64 ram_size;
-    uint64 vram_size;
+    uint32 ram_size;
+    uint32 vram_size;
+    uint64 last_access;
 
     // Usually 1 but in some cases an ams may hold entities of variable chunk length
     // For textures for example a 128x128 is of size 1 but 256x256 is of size 4
     uint32 size;
+
+    // Variable used for thread safety
+    bool is_loaded;
 
     // Describes if the memory is currently available in ram/vram
     // E.g. an asset might be uploaded to the gpu and no longer held in ram (or the other way around)
@@ -48,10 +54,6 @@ struct Asset {
     // This however only happens if space is needed
     bool can_garbage_collect_ram;
     bool can_garbage_collect_vram;
-
-    // Describes if the asset should be removed/garbage collected during CPU/GPU down time
-    bool should_garbage_collect_ram;
-    bool should_garbage_collect_vram;
 
     Asset* next;
     Asset* prev;

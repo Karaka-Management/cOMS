@@ -72,10 +72,6 @@ struct HashMap {
     ChunkMemory buf;
 };
 
-// @performance Implement more like gperf, our implementation is slow. However, keep it around since it is very general purpose
-// Alternatively, also create a version that creates perfect hashes (input requires a hash function and a seed for that hash function)
-// Both would be saved in the hash impl.
-
 // WARNING: element_size = element size + remaining HashEntry data size
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring)
 {
@@ -132,6 +128,7 @@ void hashmap_insert(HashMap* hm, const char* key, int32 value) {
     HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
+    // @performance Do we really need strncpy? Either use memcpy or strcpy?! Same goes for all the other cases below
     strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
@@ -364,7 +361,7 @@ inline
 int64 hashmap_dump(const HashMap* hm, byte* data)
 {
     *((uint64 *) data) = SWAP_ENDIAN_LITTLE(hm->buf.count);
-    data += sizeof(uint64);
+    data += sizeof(hm->buf.count);
 
     // Dump the table content where the elements are relative indices/pointers
     for (int32 i = 0; i < hm->buf.count; ++i) {

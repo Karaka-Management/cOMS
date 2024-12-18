@@ -61,7 +61,7 @@ int32 pthread_join(pthread_t thread, void** retval) {
 }
 
 int32 pthread_mutex_init(pthread_mutex_t* mutex, pthread_mutexattr_t*) {
-    atomic_set(mutex, 0);
+    atomic_set_acquire(mutex, 0);
 
     return 0;
 }
@@ -77,44 +77,43 @@ int32 pthread_mutex_lock(pthread_mutex_t* mutex) {
 }
 
 int32 pthread_mutex_unlock(pthread_mutex_t* mutex) {
-    atomic_set(mutex, 0);
+    atomic_set_release(mutex, 0);
     syscall(SYS_futex, mutex, FUTEX_WAKE, 1, NULL, NULL, 0);
 
     return 0;
 }
 
 int32 pthread_cond_init(pthread_cond_t* cond, pthread_condattr_t*) {
-    atomic_set(cond, 0);
+    atomic_set_release(cond, 0);
 
     return 0;
 }
 
 int32 pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
     pthread_mutex_unlock(mutex);
-    syscall(SYS_futex, cond, FUTEX_WAIT, atomic_get(cond), NULL, NULL, 0);
+    syscall(SYS_futex, cond, FUTEX_WAIT, atomic_get_acquire(cond), NULL, NULL, 0);
     pthread_mutex_lock(mutex);
 
     return 0;
 }
 
 int32 pthread_cond_signal(pthread_cond_t* cond) {
-    atomic_fetch_add(cond, 1);
+    atomic_fetch_add_acquire(cond, 1);
     syscall(SYS_futex, cond, FUTEX_WAKE, 1, NULL, NULL, 0);
 
     return 0;
 }
 
 int32 pthread_rwlock_init(pthread_rwlock_t* rwlock, const pthread_rwlockattr_t*) {
-    atomic_set((int64 *) &rwlock->readers, 0);
-    //atomic_set(&rwlock->writer, 0);
+    atomic_set_release((int64 *) &rwlock->readers, 0);
 
     return 0;
 }
 
 int32 pthread_rwlock_rdlock(pthread_rwlock_t* rwlock) {
-    while (atomic_get(&rwlock->writer)) {}
+    while (atomic_get_acquire_release(&rwlock->writer)) {}
 
-    atomic_fetch_add(&rwlock->readers, 1);
+    atomic_fetch_add_acquire(&rwlock->readers, 1);
 
     return 0;
 }
@@ -126,10 +125,10 @@ int32 pthread_rwlock_wrlock(pthread_rwlock_t* rwlock) {
 }
 
 int32 pthread_rwlock_unlock(pthread_rwlock_t* rwlock) {
-    if (atomic_get(&rwlock->writer)) {
-        atomic_set(&rwlock->writer, 0);
+    if (atomic_get_acquire(&rwlock->writer)) {
+        atomic_set_release(&rwlock->writer, 0);
     } else {
-        atomic_fetch_sub(&rwlock->readers, 1);
+        atomic_fetch_sub_acquire(&rwlock->readers, 1);
     }
 
     return 0;
