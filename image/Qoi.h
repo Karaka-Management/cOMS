@@ -10,8 +10,8 @@
 #define TOS_IMAGE_QOI_H
 
 #include "../stdlib/Types.h"
-#include "../memory/RingMemory.h"
-#include "Image.h"
+#include <string.h>
+#include "Image.cpp"
 
 #define QOI_OP_INDEX  0b00000000
 #define QOI_OP_DIFF   0b01000000
@@ -23,28 +23,10 @@
 
 #define QOI_COLOR_HASH(color) (color.r * 3 + color.g * 5 + color.b * 7 + color.a * 11)
 #define QOI_COLOR_HASH_2(color) ((((uint32)(color)) * 0x9E3779B1U) >> 26)
-#define QOI_HEADER_SIZE 9
 
-// @question Do we really ever need int32 for width/height?
-struct QoiDescription {
-    uint32 width;
-    uint32 height;
-    byte channels;
-    byte colorspace;
-};
-
-uint32 qoi_encode_size(QoiDescription* desc)
+int32 qoi_encode(const Image* image, byte* data)
 {
-    return desc->width * desc->height * (desc->channels + 1) + QOI_HEADER_SIZE;
-}
-
-int32 qoi_encode(const Image* image, byte* output) {
-	int32 p = 0;
-    *((uint32 *) output[p]) = SWAP_ENDIAN_LITTLE(desc->width); p += 4;
-    *((uint32 *) output[p]) = SWAP_ENDIAN_LITTLE(desc->height); p += 4;
-
-    // Channel count 1-4 requires 3 bits, colorspace requires 1 bit
-	output[p++] = ((desc->channels - 1) << 1) | (desc->colorspace & 0x01);;
+    int32 p = image_header_to_data(image, data);
 
     v4_byte index[64];
 	memset(index, 0, sizeof(index));
@@ -52,31 +34,34 @@ int32 qoi_encode(const Image* image, byte* output) {
     v4_byte px_prev = {0, 0, 0, 255};
 	v4_byte px = px_prev;
 
-	int32 px_len = desc->width * desc->height * desc->channels;
-	int32 px_end = px_len - desc->channels;
-	int32 channels = desc->channels;
+	int32 channels = (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT);
+
+    // Only works with 1 byte channel size -> we don't have to multiply channel count with channel size
+	int32 px_len = image->width * image->height * channels;
+	int32 px_end = px_len - channels;
 
     int32 run = 0;
 	for (int32 px_pos = 0; px_pos < px_len; px_pos += channels) {
-        memcpy(&px, &data[px_pos], channels * sizeof(byte));
+        // @performance could We just use int32 type cast? The problem would be the last pixel which would be out of bounds by 1 byte
+        memcpy(&px, &image->pixels[px_pos], channels * sizeof(byte));
 
-		if (px.v == px_prev.v) {
+		if (px.val == px_prev.val) {
 			++run;
 			if (run == 62 || px_pos == px_end) {
-				output[p++] = QOI_OP_RUN | (run - 1);
+				data[p++] = (byte) (QOI_OP_RUN | (run - 1));
 				run = 0;
 			}
 		} else {
 			if (run) {
-				output[p++] = QOI_OP_RUN | (run - 1);
+				data[p++] = (byte) (QOI_OP_RUN | (run - 1));
 				run = 0;
 			}
 
 			int32 index_pos = QOI_COLOR_HASH(px) % 64;
 			//int32 index_pos = QOI_COLOR_HASH_2(px);
 
-			if (index[index_pos].v == px.v) {
-				output[p++] = QOI_OP_INDEX | index_pos;
+			if (index[index_pos].val == px.val) {
+				data[p++] = (byte) (QOI_OP_INDEX | index_pos);
 			} else {
 				index[index_pos] = px;
 
@@ -92,22 +77,22 @@ int32 qoi_encode(const Image* image, byte* output) {
 						&& vg > -3 && vg < 2
 						&& vb > -3 && vb < 2
 					) {
-						output[p++] = QOI_OP_DIFF | (vr + 2) << 4 | (vg + 2) << 2 | (vb + 2);
+						data[p++] = QOI_OP_DIFF | (vr + 2) << 4 | (vg + 2) << 2 | (vb + 2);
 					} else if (vg_r > -9 && vg_r < 8
 						&& vg > -33 && vg < 32
 						&& vg_b > -9 && vg_b < 8
 					) {
-						output[p++] = QOI_OP_LUMA | (vg + 32);
-						output[p++] = (vg_r + 8) << 4 | (vg_b +  8);
+						data[p++] = QOI_OP_LUMA | (vg + 32);
+						data[p++] = (vg_r + 8) << 4 | (vg_b +  8);
 					} else {
-						output[p++] = QOI_OP_RGB;
-						output[p++] = px.r;
-						output[p++] = px.g;
-						output[p++] = px.b;
+						data[p++] = QOI_OP_RGB;
+						data[p++] = px.r;
+						data[p++] = px.g;
+						data[p++] = px.b;
 					}
 				} else {
-					output[p++] = QOI_OP_RGBA;
-                    *((uint32 *) &output[p]) = SWAP_ENDIAN_LITTLE(px.val);
+					data[p++] = QOI_OP_RGBA;
+                    *((uint32 *) &data[p]) = SWAP_ENDIAN_LITTLE(px.val);
                     p += 4;
 				}
 			}
@@ -119,22 +104,13 @@ int32 qoi_encode(const Image* image, byte* output) {
 	return p;
 }
 
-uint32 qoi_decode_size(QoiDescription* desc, int32 channels)
+int32 qoi_decode(const byte* data, Image* image, int32 steps = 8)
 {
-    return desc->width * desc->height * channels;
-}
+    int32 header_length = image_header_from_data(data, image);
+    int32 p = header_length;
 
-void qoi_decode(const byte* data, Image* image, int32 steps = 8)
-{
-    int32 p = 0;
-	uint32 width = SWAP_ENDIAN_LITTLE(*((uint32 *) &data[p])); p += 4;
-	uint32 height = SWAP_ENDIAN_LITTLE(*((uint32 *) &data[p])); p += 4;
-
-    // Channel count 1-4 requires 3 bits, colorspace requires 1 bit
-	int32 colorspace = data[p] & 0x01;
-	uint32 channels = ((data[p] > 1) & 0x07) + 1;
-
-	uint32 px_len = width * height * channels;
+    int32 channels = (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT);
+	uint32 px_len = image->width * image->height * channels;
 
     v4_byte px = {0, 0, 0, 255};
 
@@ -161,7 +137,7 @@ void qoi_decode(const byte* data, Image* image, int32 steps = 8)
             px.b += ( b1 & 0x03) - 2;
         } else if ((b1 & QOI_MASK_2) == QOI_OP_LUMA) {
             int32 b2 = data[p++];
-            int32 vg = (b1 & 0x3f) - 32;
+            byte vg = (b1 & 0x3f) - 32;
             px.r += vg - 8 + ((b2 >> 4) & 0x0f);
             px.g += vg;
             px.b += vg - 8 + (b2 & 0x0f);
@@ -173,35 +149,39 @@ void qoi_decode(const byte* data, Image* image, int32 steps = 8)
                 int32 pixel_step_size = steps * 4;
                 int32 i = 0;
 
-                if (steps == 16) {
-                    __m512i simd_value = _mm512_set1_epi32(px_little_endian);
-                    for(; i <= run - steps; i += steps, px_pos += pixel_step_size) {
-                        _mm512_storeu_si512((__m512i *) &output[px_pos], simd_value);
+                // @performance Implement for ARM
+                #if ARM
+                #else
+                    if (steps == 16) {
+                        __m512i simd_value = _mm512_set1_epi32(px_little_endian);
+                        for(; i <= run - steps; i += steps, px_pos += pixel_step_size) {
+                            _mm512_storeu_si512((__m512i *) &image->pixels[px_pos], simd_value);
+                        }
+                    } else if (steps >= 8) {
+                        __m256i simd_value = _mm256_set1_epi32(px_little_endian);
+                        for (; i <= run - steps; i += steps, px_pos += pixel_step_size) {
+                            _mm256_storeu_si256((__m256i *) &image->pixels[px_pos], simd_value);
+                        }
+                    } else if (steps >= 4) {
+                        __m128i simd_value = _mm_set1_epi32(px_little_endian);
+                        for(; i <= run - steps; i += steps, px_pos += pixel_step_size) {
+                            _mm_storeu_si128((__m128i *) &image->pixels[px_pos], simd_value);
+                        }
                     }
-                } else if (steps >= 8) {
-                    __m256i simd_value = _mm256_set1_epi32(px_little_endian);
-                    for (; i <= run - steps; i += steps, px_pos += pixel_step_size) {
-                        _mm256_storeu_si256((__m256i *) &output[px_pos], simd_value);
-                    }
-                } else if (steps >= 4) {
-                    __m128i simd_value = _mm_set1_epi32(px_little_endian);
-                    for(; i <= run - steps; i += steps, px_pos += pixel_step_size) {
-                        _mm_storeu_si128((__m128i *) &output[px_pos], simd_value);
-                    }
-                }
+                #endif
 
                 for (; i < run; ++i) {
-                    output[px_pos] = px_little_endian;
+                    *((uint32 *) &image->pixels[px_pos]) = px_little_endian;
                     px_pos += channels;
                 }
             } else if (channels == 3) {
                 for (int32 i = 0; i < run; ++i) {
-                    output[px_pos++] = px.r;
-                    output[px_pos++] = px.g;
-                    output[px_pos++] = px.b;
+                    image->pixels[px_pos++] = px.r;
+                    image->pixels[px_pos++] = px.g;
+                    image->pixels[px_pos++] = px.b;
                 }
             } else if (channels == 1) {
-                memset(&output[px_pos], px.r, run * sizeof(byte));
+                memset(&image->pixels[px_pos], px.r, run * sizeof(byte));
                 px_pos += run;
             }
 
@@ -217,8 +197,10 @@ void qoi_decode(const byte* data, Image* image, int32 steps = 8)
         index[QOI_COLOR_HASH(px) % 64] = px;
         //index[QOI_COLOR_HASH_2(px)] = px;
 
-        memcpy(&output[px_pos], &px, channels * sizeof(byte));
+        memcpy(&image->pixels[px_pos], &px, channels * sizeof(byte));
 	}
+
+    return header_length + px_len;
 }
 
 #endif

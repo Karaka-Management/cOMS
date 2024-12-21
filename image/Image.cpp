@@ -73,7 +73,15 @@ int32 image_pixel_size_from_type(byte type)
     return channel_size * channel_count;
 }
 
-int32 image_from_data(const byte* data, Image* image)
+inline
+int32 image_data_size(const Image* image)
+{
+    return image->pixel_count * image_pixel_size_from_type(image->image_settings)
+        + sizeof(image->width) + sizeof(image->height)
+        + sizeof(image->image_settings);
+}
+
+int32 image_header_from_data(const byte* data, Image* image)
 {
     const byte* pos = data;
 
@@ -88,6 +96,14 @@ int32 image_from_data(const byte* data, Image* image)
     image->image_settings = *pos;
     pos += sizeof(image->image_settings);
 
+    return (int32) (pos - data);
+}
+
+int32 image_from_data(const byte* data, Image* image)
+{
+    const byte* pos = data;
+    pos += image_header_from_data(data, image);
+
     int32 image_size;
     memcpy(image->pixels, pos, image_size = (image_pixel_size_from_type(image->image_settings) * image->pixel_count));
     pos += image_size;
@@ -95,7 +111,8 @@ int32 image_from_data(const byte* data, Image* image)
     return (int32) (pos - data);
 }
 
-int32 image_to_data(const Image* image, byte* data)
+inline
+int32 image_header_to_data(const Image* image, byte* data)
 {
     byte* pos = data;
 
@@ -107,6 +124,14 @@ int32 image_to_data(const Image* image, byte* data)
 
     *pos = image->image_settings;
     pos += sizeof(image->image_settings);
+
+    return (int32) (pos - data);
+}
+
+int32 image_to_data(const Image* image, byte* data)
+{
+    byte* pos = data;
+    pos += image_header_to_data(image, data);
 
     int32 image_size;
     memcpy(pos, image->pixels, image_size = (image_pixel_size_from_type(image->image_settings) * image->pixel_count));

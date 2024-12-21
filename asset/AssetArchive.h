@@ -16,6 +16,7 @@
 #include "../memory/RingMemory.h"
 #include "../memory/BufferMemory.h"
 #include "../image/Image.cpp"
+#include "../image/Qoi.h"
 #include "../object/Mesh.h"
 #include "../object/Texture.h"
 #include "../audio/Audio.cpp"
@@ -44,6 +45,7 @@ struct AssetArchiveElement {
 
     uint32 start;
     uint32 length;
+    uint32 uncompressed;
 
     uint32 dependency_start; // actual index for asset_dependencies
     uint32 dependency_count;
@@ -205,10 +207,12 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     }
 
     if (element->type == 0) {
-        asset = ams_reserve_asset(ams, id_str, ams_calculate_chunks(ams, element->length));
+        asset = ams_reserve_asset(ams, id_str, ams_calculate_chunks(ams, element->uncompressed));
 
         FileBody file = {};
         file.content = asset->self;
+
+        // @performance Consider to implement gzip here
 
         // We are directly reading into the correct destination
         file_read(archive->fd, &file, element->start, element->length);
@@ -224,7 +228,8 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
         file_read_async(archive->fd_async, &file, element->start, element->length, ring);
 
         // This happens while the file system loads the data
-        asset = ams_reserve_asset(ams, id_str, ams_calculate_chunks(ams, element->length));
+        // The important part is to reserve the uncompressed file size, not the compressed one
+        asset = ams_reserve_asset(ams, id_str, ams_calculate_chunks(ams, element->uncompressed));
         asset->is_ram = true;
 
         file_async_wait(archive->fd_async, &file.ov, true);
@@ -236,7 +241,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
                 texture->image.pixels = (byte *) (texture + 1);
 
                 // @todo implement qoi encoding
-                image_from_data(file.content, &texture->image);
+                qoi_decode(file.content, &texture->image);
 
                 asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
                 asset->ram_size = asset->vram_size + sizeof(Texture);
