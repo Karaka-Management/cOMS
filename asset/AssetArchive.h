@@ -238,12 +238,14 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
                 // @todo implement qoi encoding
                 image_from_data(file.content, &texture->image);
 
-                asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.pixel_type);
+                asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
                 asset->ram_size = asset->vram_size + sizeof(Texture);
 
                 #if OPENGL
-                    image_flip_vertical(ring, &texture->image);
-                    texture->image.order_rows = IMAGE_ROW_ORDER_BOTTOM_TO_TOP;
+                    // If opengl, we always flip
+                    if (!(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)) {
+                        image_flip_vertical(ring, &texture->image);
+                    }
                 #endif
             } break;
             case ASSET_TYPE_AUDIO: {

@@ -10,7 +10,8 @@
 #define TOS_GPUAPI_OPENGL_SHADER_UTILS_H
 
 #include "../../stdlib/Types.h"
-#include "../../math/matrix/MatrixFloat32.h"
+#include "../../memory/RingMemory.h"
+#include "../../log/Log.h"
 #include "Opengl.h"
 
 // Set value based on shader uniform name
@@ -242,6 +243,100 @@ int32 shader_program_optimize(const char* input, char* output)
 
     // -1 to remove \0 from length, same as strlen
     return (int32) (write_ptr - output);
+}
+
+GLuint shader_make(GLenum type, const char* source, RingMemory* ring)
+{
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, (GLchar **) &source, NULL);
+    glCompileShader(shader);
+
+    GLint status;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+
+    #if DEBUG || INTERNAL
+        if (status == GL_FALSE) {
+            GLint length;
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+
+            GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
+
+            glGetShaderInfoLog(shader, length, NULL, info);
+            LOG(info, true, true);
+
+            ASSERT_SIMPLE(false);
+        }
+    #endif
+
+    return shader;
+}
+
+inline
+int32 program_get_size(uint32 program)
+{
+    int32 size;
+    glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &size);
+
+    return size;
+}
+
+GLuint program_make(
+    GLuint vertex_shader,
+    GLuint fragment_shader,
+    GLint geometry_shader,
+    RingMemory* ring
+) {
+    GLuint program = glCreateProgram();
+
+    if (geometry_shader > -1) {
+        glAttachShader(program, geometry_shader);
+    }
+
+    glAttachShader(program, vertex_shader);
+    glAttachShader(program, fragment_shader);
+    glProgramParameteri(program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
+    glLinkProgram(program);
+
+    GLint status;
+    glGetProgramiv(program, GL_LINK_STATUS, &status);
+
+    #if DEBUG || INTERNAL
+        if (status == GL_FALSE) {
+            GLint length;
+            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
+
+            GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
+
+            glGetProgramInfoLog(program, length, NULL, info);
+            LOG(info, true, true);
+
+            ASSERT_SIMPLE(false);
+        }
+    #endif
+
+    // @question really?
+    if (geometry_shader > -1) {
+        glDetachShader(program, geometry_shader);
+    }
+
+    glDetachShader(program, vertex_shader);
+    glDetachShader(program, fragment_shader);
+
+    // @question really?
+    if (geometry_shader > -1) {
+        glDeleteShader(geometry_shader);
+    }
+
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+
+    return program;
+}
+
+inline
+void pipeline_use(uint32 id)
+{
+    glUseProgram(id);
 }
 
 #endif

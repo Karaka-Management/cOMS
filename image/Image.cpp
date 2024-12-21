@@ -61,35 +61,16 @@ void image_flip_vertical(RingMemory* ring, Image* image)
     }
     */
 
-    image->order_rows = (byte) (!((bool) image->order_rows));
+    image->image_settings ^= IMAGE_SETTING_BOTTOM_TO_TOP;
 }
 
 inline
 int32 image_pixel_size_from_type(byte type)
 {
-    switch (type) {
-        case PIXEL_TYPE_RGBA: {
-            return 4;
-        } break;
-        case PIXEL_TYPE_RGB: {
-            return 3;
-        } break;
-        case PIXEL_TYPE_MONO: {
-            return 1;
-        } break;
-        case PIXEL_TYPE_RGBA_F: {
-            return 16;
-        } break;
-        case PIXEL_TYPE_RGB_F: {
-            return 12;
-        } break;
-        case PIXEL_TYPE_MONO_F: {
-            return 4;
-        } break;
-        default: {
-            UNREACHABLE();
-        }
-    }
+    int32 channel_size = type & IMAGE_SETTING_CHANNEL_4_SIZE ? 4 : 1;
+    int32 channel_count = type & IMAGE_SETTING_CHANNEL_COUNT;
+
+    return channel_size * channel_count;
 }
 
 int32 image_from_data(const byte* data, Image* image)
@@ -102,20 +83,13 @@ int32 image_from_data(const byte* data, Image* image)
     image->height = SWAP_ENDIAN_LITTLE(*((uint32 *) pos));
     pos += sizeof(image->height);
 
-    image->pixel_count = SWAP_ENDIAN_LITTLE(*((uint32 *) pos));
-    pos += sizeof(image->pixel_count);
+    image->pixel_count = image->width * image->height;
 
-    image->order_pixels = *pos;
-    pos += sizeof(image->order_pixels);
-
-    image->order_rows = *pos;
-    pos += sizeof(image->order_rows);
-
-    image->pixel_type = *pos;
-    pos += sizeof(image->pixel_type);
+    image->image_settings = *pos;
+    pos += sizeof(image->image_settings);
 
     int32 image_size;
-    memcpy(image->pixels, pos, image_size = (image_pixel_size_from_type(image->pixel_type) * image->pixel_count));
+    memcpy(image->pixels, pos, image_size = (image_pixel_size_from_type(image->image_settings) * image->pixel_count));
     pos += image_size;
 
     return (int32) (pos - data);
@@ -131,20 +105,11 @@ int32 image_to_data(const Image* image, byte* data)
     *((uint32 *) pos) = SWAP_ENDIAN_LITTLE(image->height);
     pos += sizeof(image->height);
 
-    *((uint32 *) pos) = SWAP_ENDIAN_LITTLE(image->pixel_count);
-    pos += sizeof(image->pixel_count);
-
-    *pos = image->order_pixels;
-    pos += sizeof(image->order_pixels);
-
-    *pos = image->order_rows;
-    pos += sizeof(image->order_rows);
-
-    *pos = image->pixel_type;
-    pos += sizeof(image->pixel_type);
+    *pos = image->image_settings;
+    pos += sizeof(image->image_settings);
 
     int32 image_size;
-    memcpy(pos, image->pixels, image_size = (image_pixel_size_from_type(image->pixel_type) * image->pixel_count));
+    memcpy(pos, image->pixels, image_size = (image_pixel_size_from_type(image->image_settings) * image->pixel_count));
     pos += image_size;
 
     return (int32) (pos - data);

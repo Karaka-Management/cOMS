@@ -38,10 +38,8 @@ int32 audio_data_size(const Audio* audio)
 {
     return (int32) (audio->size
         + sizeof(audio->sample_rate)
-        + sizeof(audio->sample_size)
         + sizeof(audio->channels)
         + sizeof(audio->bloc_size)
-        + sizeof(audio->byte_per_sec)
         + sizeof(audio->size)
     );
 }
@@ -51,17 +49,13 @@ int32 audio_from_data(const byte* data, Audio* audio)
     audio->sample_rate = SWAP_ENDIAN_LITTLE(*((uint16 *) data));
     data += sizeof(audio->sample_rate);
 
-    audio->sample_size = *data;
-    data += sizeof(audio->sample_size);
+    audio->channels = (*data >> 4) & 0x0F;
+    audio->bloc_size = *data & 0x0F;
+    data += sizeof(byte);
 
-    audio->channels = *data;
-    data += sizeof(audio->channels);
+    audio->sample_size = audio->channels * audio->bloc_size;
 
-    audio->bloc_size = *data;
-    data += sizeof(audio->bloc_size);
-
-    audio->byte_per_sec = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
-    data += sizeof(audio->byte_per_sec);
+    audio->byte_per_sec = audio->sample_rate * audio->sample_size;
 
     audio->size = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
     data += sizeof(audio->size);
@@ -77,17 +71,9 @@ int32 audio_to_data(const Audio* audio, byte* data)
     *((uint16 *) data) = SWAP_ENDIAN_LITTLE(audio->sample_rate);
     data += sizeof(audio->sample_rate);
 
-    *data = audio->sample_size;
-    data += sizeof(audio->sample_size);
-
-    *data = audio->channels;
-    data += sizeof(audio->channels);
-
-    *data = audio->bloc_size;
-    data += sizeof(audio->bloc_size);
-
-    *((uint32 *) data) = SWAP_ENDIAN_LITTLE(audio->byte_per_sec);
-    data += sizeof(audio->byte_per_sec);
+    // Reducing data footprint through bit fiddling
+    *data = ((audio->channels & 0x0F) << 4) | (audio->bloc_size & 0x0F);
+    data += sizeof(byte);
 
     *((uint32 *) data) = SWAP_ENDIAN_LITTLE(audio->size);
     data += sizeof(audio->size);

@@ -11,21 +11,11 @@
 
 #include "../stdlib/Types.h"
 
-#define IMAGE_PIXEL_ORDER_RGBA 0
-#define IMAGE_PIXEL_ORDER_BGRA 1
-
-#define IMAGE_ROW_ORDER_TOP_TO_BOTTOM 0
-#define IMAGE_ROW_ORDER_BOTTOM_TO_TOP 1
-
-enum PixelType
-{
-    PIXEL_TYPE_RGBA, // 4 bytes
-    PIXEL_TYPE_RGB, // 3 bytes
-    PIXEL_TYPE_MONO, // 1 byte
-    PIXEL_TYPE_RGBA_F, // 16 bytes
-    PIXEL_TYPE_RGB_F, // 12 bytes
-    PIXEL_TYPE_MONO_F, // 4 bytes
-};
+#define IMAGE_SETTING_PIXEL_BGR       0b10000000 // 0 = rgba, 1 = bgra
+#define IMAGE_SETTING_BOTTOM_TO_TOP   0b01000000 // 0 = ttb, 1 = btt
+#define IMAGE_SETTING_COLOR_MODE_SRGB 0b00100000 // 0 = rgb, 1 = srgb
+#define IMAGE_SETTING_CHANNEL_4_SIZE  0b00010000 // 0 = 1 byte, 1 = 4 byte (usually float)
+#define IMAGE_SETTING_CHANNEL_COUNT   0b00001111
 
 // This struct also functions as a setting on how to load the image data
 //      has_alpha is defined it forces an alpha channel even for bitmaps
@@ -35,12 +25,9 @@ enum PixelType
 struct Image {
     uint32 width;
     uint32 height;
-    uint32 pixel_count; // @question Do we even need this?
+    uint32 pixel_count;
 
-    // Image settings
-    byte order_pixels; // RGBA vs BGRA
-    byte order_rows; // top-to-bottom vs bottom-to-top
-    byte pixel_type; // Usually 4 or 3 bytes unless monochrome data
+    byte image_settings;
 
     byte* pixels; // owner of data
 };

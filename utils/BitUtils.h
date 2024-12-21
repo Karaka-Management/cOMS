@@ -16,7 +16,7 @@
 //      This file can remain but the callers should get adjusted
 //      Obviously we would have to check at runtime if ABM is supported
 
-// Left to right
+// Left to right (big endian)
 #define IS_BIT_SET_L2R(num, pos, bits) ((bool) ((num) & (1 << ((bits - 1) - (pos)))))
 #define BIT_SET_L2R(num, pos, bits) ((num) | ((uint32) 1 << ((bits - 1) - (pos))))
 #define BIT_UNSET_L2R(num, pos, bits) ((num) & ~((uint32) 1 << ((bits - 1) - (pos))))
@@ -27,11 +27,13 @@
 #define BITS_GET_32_L2R(num, pos, to_read) (((num) >> (32 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
 #define BITS_GET_64_L2R(num, pos, to_read) (((num) >> (64 - (pos) - (to_read))) & ((1ULL << (to_read)) - 1))
 
-#define BYTES_MERGE_2_L2R(num) (((num)[0] << 8) | (num)[1])
-#define BYTES_MERGE_4_L2R(num) (((num)[0] << 24) | ((num)[1] << 16) | ((num)[2] << 8) | (num)[3])
-#define BYTES_MERGE_8_L2R(num) (((uint64_t)(num)[0] << 56) | ((uint64_t)(num)[1] << 48) | ((uint64_t)(num)[2] << 40) | ((uint64_t)(num)[3] << 32) | ((uint64_t)(num)[4] << 24) | ((uint64_t)(num)[5] << 16) | ((uint64_t)(num)[6] << 8)  | ((uint64_t)(num)[7]))
+// Merges an array of bytes as an int value (16bit, 32bit, 64bit)
+// Depending on the endianness of the system you could simply cast the array
+#define BYTES_MERGE_2_L2R(arr) (((arr)[0] << 8) | (arr)[1])
+#define BYTES_MERGE_4_L2R(arr) (((arr)[0] << 24) | ((arr)[1] << 16) | ((arr)[2] << 8) | (arr)[3])
+#define BYTES_MERGE_8_L2R(arr) (((uint64_t)(arr)[0] << 56) | ((uint64_t)(arr)[1] << 48) | ((uint64_t)(arr)[2] << 40) | ((uint64_t)(arr)[3] << 32) | ((uint64_t)(arr)[4] << 24) | ((uint64_t)(arr)[5] << 16) | ((uint64_t)(arr)[6] << 8)  | ((uint64_t)(arr)[7]))
 
-// Right to left
+// Right to left (little endian)
 #define IS_BIT_SET_R2L(num, pos) ((bool) ((num) & (1 << (pos))))
 #define BIT_SET_R2L(num, pos) ((num) | ((uint32) 1 << (pos)))
 #define BIT_UNSET_R2L(num, pos) ((num) & ~((uint32) 1 << (pos)))
@@ -43,9 +45,11 @@
 #define BITS_GET_32_R2L(num, pos, to_read) (((num) >> (pos)) & ((1U << (to_read)) - 1))
 #define BITS_GET_64_R2L(num, pos, to_read) (((num) >> (pos)) & ((1ULL << (to_read)) - 1))
 
-#define BYTES_MERGE_2_R2L(num) (((num)[1] << 8) | (num)[0])
-#define BYTES_MERGE_4_R2L(num) (((num)[3] << 24) | ((num)[2] << 16) | ((num)[1] << 8) | (num)[0])
-#define BYTES_MERGE_8_R2L(num) (((uint64_t)(num)[7] << 56) | ((uint64_t)(num)[6] << 48) | ((uint64_t)(num)[5] << 40) | ((uint64_t)(num)[4] << 32) | ((uint64_t)(num)[3] << 24) | ((uint64_t)(num)[2] << 16) | ((uint64_t)(num)[1] << 8)  | ((uint64_t)(num)[0]))
+// Merges an array of bytes as an int value (16bit, 32bit, 64bit)
+// Depending on the endianness of the system you could simply cast the array
+#define BYTES_MERGE_2_R2L(arr) (((arr)[1] << 8) | (arr)[0])
+#define BYTES_MERGE_4_R2L(arr) (((arr)[3] << 24) | ((arr)[2] << 16) | ((arr)[1] << 8) | (arr)[0])
+#define BYTES_MERGE_8_R2L(arr) (((uint64_t)(arr)[7] << 56) | ((uint64_t)(arr)[6] << 48) | ((uint64_t)(arr)[5] << 40) | ((uint64_t)(arr)[4] << 32) | ((uint64_t)(arr)[3] << 24) | ((uint64_t)(arr)[2] << 16) | ((uint64_t)(arr)[1] << 8)  | ((uint64_t)(arr)[0]))
 
 struct BitWalk {
     byte* pos;
@@ -278,37 +282,6 @@ void bits_flush(BitWalk* stream)
 //     return bits;
 // }
 
-inline
-uint32 bytes_merge(byte b0, byte b1, byte b2, byte b3) {
-    uint32 result = 0;
-
-    result |= ((uint32) b0 << 24);
-    result |= ((uint32) b1 << 16);
-    result |= ((uint32) b2 << 8);
-    result |= (uint32) b3;
-
-    return result;
-}
-
-inline
-uint64 bytes_merge(
-    byte b0, byte b1, byte b2, byte b3,
-    byte b4, byte b5, byte b6, byte b7
-) {
-    uint64 result = 0;
-
-    result |= ((uint64) b0 << 56);
-    result |= ((uint64) b1 << 48);
-    result |= ((uint64) b2 << 40);
-    result |= ((uint64) b3 << 32);
-    result |= ((uint64) b4 << 24);
-    result |= ((uint64) b5 << 16);
-    result |= ((uint64) b6 << 8);
-    result |= (uint64) b7;
-
-    return result;
-}
-
 static
 inline int32 find_first_set_bit(int32 value) {
     if (value == 0) {
@@ -350,7 +323,7 @@ uint32 bits_reverse(uint32 data, uint32 count)
     return reversed;
 }
 
-const int32 BIT_COUNT_LOOKUP_TABLE[256] = {
+static const int32 BIT_COUNT_LOOKUP_TABLE[256] = {
     0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
     1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
     1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,

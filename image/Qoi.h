@@ -11,6 +11,7 @@
 
 #include "../stdlib/Types.h"
 #include "../memory/RingMemory.h"
+#include "Image.h"
 
 #define QOI_OP_INDEX  0b00000000
 #define QOI_OP_DIFF   0b01000000
@@ -37,14 +38,7 @@ uint32 qoi_encode_size(QoiDescription* desc)
     return desc->width * desc->height * (desc->channels + 1) + QOI_HEADER_SIZE;
 }
 
-int32 qoi_encode(const byte* data, byte* output, const QoiDescription* desc) {
-	if (desc->width == 0 || desc->height == 0 ||
-		desc->channels < 3 || desc->channels > 4 ||
-		desc->colorspace > 1
-	) {
-		return;
-	}
-
+int32 qoi_encode(const Image* image, byte* output) {
 	int32 p = 0;
     *((uint32 *) output[p]) = SWAP_ENDIAN_LITTLE(desc->width); p += 4;
     *((uint32 *) output[p]) = SWAP_ENDIAN_LITTLE(desc->height); p += 4;
@@ -130,7 +124,7 @@ uint32 qoi_decode_size(QoiDescription* desc, int32 channels)
     return desc->width * desc->height * channels;
 }
 
-void qoi_decode(const byte* data, byte* output, int32 steps = 8)
+void qoi_decode(const byte* data, Image* image, int32 steps = 8)
 {
     int32 p = 0;
 	uint32 width = SWAP_ENDIAN_LITTLE(*((uint32 *) &data[p])); p += 4;

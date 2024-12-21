@@ -17,17 +17,18 @@ struct Audio {
     // usually 48000 or 44100
     uint16 sample_rate;
 
-    // bytes per bloc
-    // channel count * bit
-    // usually 2 * 16 = 4
-    byte sample_size;
-
     // audio channels
     // usually 2
     byte channels;
 
     // usually 16 = 2
     byte bloc_size;
+
+    // bytes per bloc
+    // channel count * bit
+    // usually 2 * 16 = 4
+    // channels * bloc_size
+    byte sample_size;
 
     // sample_rate * sample_size
     uint32 byte_per_sec;

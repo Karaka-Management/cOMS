@@ -783,9 +783,7 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
     image->width = src.ihdr.width;
     image->height = src.ihdr.height;
     image->pixel_count = image->width * image->height;
-    image->pixel_type = (byte) (src.ihdr.color_type == 6 ? PIXEL_TYPE_RGBA : PIXEL_TYPE_RGB);
-    image->order_pixels = IMAGE_PIXEL_ORDER_RGBA;
-    image->order_rows = IMAGE_ROW_ORDER_TOP_TO_BOTTOM;
+    image->image_settings |= src.ihdr.color_type == 6 ? 4 : 3;
 
     png_filter_reconstruct(src.ihdr.width, src.ihdr.height, src.ihdr.color_type, decompressed, finalized, steps);
 

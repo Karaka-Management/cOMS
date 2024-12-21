@@ -138,7 +138,7 @@ void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
         glGenerateMipmap(GL_TEXTURE_2D);
     }
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, texture->image.pixel_count * image_pixel_size_from_type(texture->image.pixel_type));
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings));
 }
 
 inline
@@ -154,135 +154,6 @@ void texture_use_1D(const Texture* texture, uint32 texture_unit)
 {
     glActiveTexture(GL_TEXTURE0 + texture->sample_id);
     glBindTexture(GL_TEXTURE_1D, (GLuint) texture->id);
-}
-
-GLuint shader_make(GLenum type, const char* source, RingMemory* ring)
-{
-    GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, (GLchar **) &source, NULL);
-    glCompileShader(shader);
-
-    GLint status;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-
-    #if DEBUG || INTERNAL
-        if (status == GL_FALSE) {
-            GLint length;
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-
-            GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
-
-            glGetShaderInfoLog(shader, length, NULL, info);
-            LOG(info, true, true);
-
-            ASSERT_SIMPLE(false);
-        }
-    #endif
-
-    return shader;
-}
-
-inline
-GLuint shader_load(GLenum type, const char* path, RingMemory* ring) {
-    byte* temp = ring->head;
-
-    FileBody file;
-
-    // @todo consider to accept file as parameter and load file before
-    file_read(path, &file, ring);
-    GLuint result = shader_make(type, (const char *) file.content, ring);
-
-    // We can immediately dispose of it we can also reset our ring memory position
-    ring->head = temp;
-
-    return result;
-}
-
-inline
-int32 program_get_size(uint32 program)
-{
-    int32 size;
-    glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &size);
-
-    return size;
-}
-
-GLuint program_make(
-    GLuint vertex_shader,
-    GLuint fragment_shader,
-    GLint geometry_shader,
-    RingMemory* ring
-) {
-    GLuint program = glCreateProgram();
-
-    if (geometry_shader > -1) {
-        glAttachShader(program, geometry_shader);
-    }
-
-    glAttachShader(program, vertex_shader);
-    glAttachShader(program, fragment_shader);
-    glProgramParameteri(program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
-    glLinkProgram(program);
-
-    GLint status;
-    glGetProgramiv(program, GL_LINK_STATUS, &status);
-
-    #if DEBUG || INTERNAL
-        if (status == GL_FALSE) {
-            GLint length;
-            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
-
-            GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
-
-            glGetProgramInfoLog(program, length, NULL, info);
-            LOG(info, true, true);
-
-            ASSERT_SIMPLE(false);
-        }
-    #endif
-
-    // @question really?
-    if (geometry_shader > -1) {
-        glDetachShader(program, geometry_shader);
-    }
-
-    glDetachShader(program, vertex_shader);
-    glDetachShader(program, fragment_shader);
-
-    // @question really?
-    if (geometry_shader > -1) {
-        glDeleteShader(geometry_shader);
-    }
-
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
-
-    return program;
-}
-
-GLuint program_load(
-    const char* path1,
-    const char* path2,
-    const char* path3,
-    RingMemory* ring
-) {
-    GLuint vertex_shader = shader_load(GL_VERTEX_SHADER, path1, ring);
-    GLuint fragment_shader = shader_load(GL_FRAGMENT_SHADER, path2, ring);
-
-    GLint geometry_shader = -1;
-    if (path3) {
-        geometry_shader = shader_load(GL_GEOMETRY_SHADER, path3, ring);
-    }
-
-    GLuint program = program_make(vertex_shader, fragment_shader, geometry_shader, ring);
-
-    return program;
-}
-
-inline
-void shader_use(uint32 id)
-{
-    glUseProgram(id);
 }
 
 inline

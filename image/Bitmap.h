@@ -285,16 +285,12 @@ void image_bmp_generate(const FileBody* src_data, Image* image)
     uint32 pixel_bytes = src.dib_header.bits_per_pixel / 8;
     byte alpha_offset = pixel_bytes > 3;
 
-    if (pixel_bytes == 4) {
-        image->pixel_type = (byte) PIXEL_TYPE_RGBA;
-    } else if (pixel_bytes == 3) {
-        image->pixel_type = (byte) PIXEL_TYPE_RGB;
-    } else {
-        ASSERT_SIMPLE(false);
-    }
+    image->image_settings |= (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT) == 0
+        ? pixel_bytes
+        : image->image_settings & IMAGE_SETTING_CHANNEL_COUNT;
 
-    if (image->order_pixels == IMAGE_PIXEL_ORDER_BGRA
-        && image->order_rows == IMAGE_ROW_ORDER_BOTTOM_TO_TOP
+    if ((image->image_settings & IMAGE_SETTING_PIXEL_BGR)
+        && (image->image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
         // @bug This doesn't consider the situation where we want alpha as a setting but the img doesn't have it
         // @bug This also copies possible padding which will corrupt the image
@@ -308,13 +304,9 @@ void image_bmp_generate(const FileBody* src_data, Image* image)
 
     for (uint32 y = 0; y < src.dib_header.height; ++y) {
         uint32 row_pos1 = y * width_pixel_bytes;
-
-        uint32 row_pos2;
-        if (image->order_rows == IMAGE_ROW_ORDER_TOP_TO_BOTTOM) {
-            row_pos2 = (src.dib_header.height - y - 1) * width_pixel_bytes;
-        } else {
-            row_pos2 = y * width_pixel_bytes;
-        }
+        uint32 row_pos2 = image->image_settings & IMAGE_SETTING_BOTTOM_TO_TOP
+            ? y * width_pixel_bytes
+            : (src.dib_header.height - y - 1) * width_pixel_bytes;
 
         for (uint32 x = 0; x < width; ++x) {
             if (x >= image->width) {
@@ -324,20 +316,20 @@ void image_bmp_generate(const FileBody* src_data, Image* image)
             }
 
             // Invert byte order
-            if (image->order_pixels == IMAGE_PIXEL_ORDER_RGBA) {
-                for (uint32 i = 0; i < pixel_rgb_bytes; ++i) {
-                    image->pixels[row_pos1 + x * pixel_bytes + i] = src.pixels[row_pos2 + x * pixel_bytes + pixel_rgb_bytes - i];
-                }
-            } else {
+            if (image->image_settings & IMAGE_SETTING_PIXEL_BGR) {
                 for (uint32 i = 0; i < pixel_rgb_bytes; ++i) {
                     image->pixels[row_pos1 + x * pixel_bytes + i] = src.pixels[row_pos2 + x * pixel_bytes + i];
                 }
+            } else {
+                for (uint32 i = 0; i < pixel_rgb_bytes; ++i) {
+                    image->pixels[row_pos1 + x * pixel_bytes + i] = src.pixels[row_pos2 + x * pixel_bytes + pixel_rgb_bytes - i];
+                }
             }
 
-            // Add alpha channel at end of every RGB value
+            // Add alpha channel at end of every RGB value (either the image already contains it or we have to add it manually)
             if (alpha_offset > 0) {
                 image->pixels[row_pos1 + x * pixel_bytes + 3] = src.pixels[row_pos2 + x * pixel_bytes + pixel_bytes + 3];
-            } else if (image->pixel_type == PIXEL_TYPE_RGBA) {
+            } else if ((image->image_settings & IMAGE_SETTING_CHANNEL_COUNT) == 4) {
                 image->pixels[row_pos1 + x * pixel_bytes + 3] = 0xFF;
             }
         }
