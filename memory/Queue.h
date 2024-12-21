@@ -10,6 +10,7 @@
 #define TOS_MEMORY_QUEUE_H
 
 #include "../stdlib/Types.h"
+#include "../utils/Utils.h"
 #include "RingMemory.h"
 
 // WARNING: Structure needs to be the same as RingMemory
@@ -81,7 +82,7 @@ bool queue_is_full(Queue* queue) {
 }
 
 inline
-void queue_enqueue_unique(ThreadedQueue* queue, const byte* data)
+void queue_enqueue_unique(Queue* queue, const byte* data)
 {
     ASSERT_SIMPLE((uint64_t) data % 4 == 0);
 
@@ -191,7 +192,7 @@ bool queue_dequeue(Queue* queue, byte* data)
 inline
 bool queue_dequeue_atomic(Queue* queue, byte* data)
 {
-    if (atomic_get_relaxed((uint64 *) &queue->head) == (uint64) queue->tail) {
+    if (atomic_get_acquire_release((volatile uint64 *) &queue->head) == (uint64) queue->tail) {
         return false;
     }
 

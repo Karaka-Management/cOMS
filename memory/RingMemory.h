@@ -92,7 +92,7 @@ void ring_init(RingMemory* ring, byte* buf, uint64 size, uint32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
 
-    ring->memory = (byte *) ROUND_TO_NEAREST((uintptr_t) buf, alignment);
+    ring->memory = (byte *) ROUND_TO_NEAREST((uintptr_t) buf, (uint64) alignment);
 
     ring->end = ring->memory + size;
     ring->head = ring->memory;
@@ -117,7 +117,7 @@ void ring_free(RingMemory* ring)
 }
 
 inline
-byte* ring_calculate_position(const RingMemory* ring, uint64 size, byte aligned = 0)
+byte* ring_calculate_position(const RingMemory* ring, uint64 size, uint32 aligned = 4)
 {
     byte* head = ring->head;
 
@@ -126,7 +126,7 @@ byte* ring_calculate_position(const RingMemory* ring, uint64 size, byte aligned 
         head += (aligned - (address & (aligned - 1))) % aligned;
     }
 
-    size = ROUND_TO_NEAREST(size, aligned);
+    size = ROUND_TO_NEAREST(size, (uint64) aligned);
     if (head + size > ring->end) {
         head = ring->memory;
 
@@ -147,7 +147,7 @@ void ring_reset(RingMemory* ring)
 }
 
 // Moves a pointer based on the size you want to consume (new position = after consuming size)
-void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, byte aligned = 0)
+void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint32 aligned = 4)
 {
     ASSERT_SIMPLE(size <= ring->size);
 
@@ -160,7 +160,7 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, byte aligned =
         *pos += (aligned - (address& (aligned - 1))) % aligned;
     }
 
-    size = ROUND_TO_NEAREST(size, aligned);
+    size = ROUND_TO_NEAREST(size, (uint64) aligned);
     if (*pos + size > ring->end) {
         *pos = ring->memory;
 
@@ -173,7 +173,7 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, byte aligned =
     *pos += size;
 }
 
-byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zeroed = false)
+byte* ring_get_memory(RingMemory* ring, uint64 size, uint32 aligned = 4, bool zeroed = false)
 {
     ASSERT_SIMPLE(size <= ring->size);
 
@@ -182,7 +182,7 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zero
         ring->head += (aligned - (address& (aligned - 1))) % aligned;
     }
 
-    size = ROUND_TO_NEAREST(size, aligned);
+    size = ROUND_TO_NEAREST(size, (uint64) aligned);
     if (ring->head + size > ring->end) {
         ring_reset(ring);
 
@@ -207,7 +207,7 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, byte aligned = 0, bool zero
 }
 
 // Same as ring_get_memory but DOESN'T move the head
-byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, byte aligned = 0, bool zeroed = false)
+byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint32 aligned = 4, bool zeroed = false)
 {
     ASSERT_SIMPLE(size <= ring->size);
 
@@ -218,7 +218,7 @@ byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, byte aligned = 0, bo
         pos += (aligned - (address& (aligned - 1))) % aligned;
     }
 
-    size = ROUND_TO_NEAREST(size, aligned);
+    size = ROUND_TO_NEAREST(size, (uint64) aligned);
     if (pos + size > ring->end) {
         ring_reset(ring);
 
@@ -253,11 +253,10 @@ byte* ring_get_element(const RingMemory* ring, uint64 element_count, uint64 elem
  * Checks if one additional element can be inserted without overwriting the tail index
  */
 inline
-bool ring_commit_safe(const RingMemory* ring, uint64 size, byte aligned = 0)
+bool ring_commit_safe(const RingMemory* ring, uint64 size, uint32 aligned = 4)
 {
     // aligned * 2 since that should be the maximum overhead for an element
-    // @bug could this result in a case where the ring is considered empty/full (false positive/negative)?
-    // The "correct" version would probably to use ring_move_pointer in some form
+    // This is not 100% correct BUT it is way faster than any correct version I can come up with
     uint64 max_mem_required = size + aligned * 2;
 
     if (ring->tail < ring->head) {
@@ -271,15 +270,17 @@ bool ring_commit_safe(const RingMemory* ring, uint64 size, byte aligned = 0)
 }
 
 inline
-bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, byte aligned = 0)
+bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, uint32 aligned = 4)
 {
     // aligned * 2 since that should be the maximum overhead for an element
-    // @bug could this result in a case where the ring is considered empty/full (false positive/negative)?
-    // The "correct" version would probably to use ring_move_pointer in some form
+    // This is not 100% correct BUT it is way faster than any correct version I can come up with
     uint64 max_mem_required = size + aligned * 2;
 
+    // @todo consider to switch to uintptr_t
     uint64 tail = atomic_get_relaxed((uint64 *) &ring->tail);
-    uint64 head = atomic_get_relaxed((uint64 *) &ring->head);
+
+    // This doesn't have to be atomic since we assume single producer/consumer and a commit is performed by the consumer
+    uint64 head = (uint64) ring->head;
 
     if (tail < head) {
         return ((uint64) (ring->end - head)) > max_mem_required
@@ -289,18 +290,6 @@ bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, byte aligned =
     } else {
         return true;
     }
-}
-
-inline
-void ring_force_head_update(const RingMemory* ring)
-{
-    _mm_clflush(ring->head);
-}
-
-inline
-void ring_force_tail_update(const RingMemory* ring)
-{
-    _mm_clflush(ring->tail);
 }
 
 inline

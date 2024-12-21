@@ -109,7 +109,6 @@ struct v4_byte {
     };
 };
 
-
 struct v2_int32 {
     union {
         struct {

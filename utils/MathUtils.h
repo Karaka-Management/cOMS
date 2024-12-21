@@ -26,6 +26,8 @@
 #define ROUND_TO_NEAREST(a, b) (((a) + ((b) - 1)) & ~((b) - 1))
 #define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
 #define OMS_CEIL(x) ((x) == (int)(x) ? (int)(x) : ((x) > 0 ? (int)(x) + 1 : (int)(x)))
+#define OMS_ROUND(x) (((x) >= 0) ? ((int)((x) + 0.5f)) : ((int)((x) - 0.5f)))
+#define OMS_ROUND_POSITIVE(x) ((int)((x) + 0.5f))
 
 // Modulo function when b is a power of 2
 #define MODULO_2(a, b) ((a) & (b - 1))

@@ -84,7 +84,7 @@ void ams_create(AssetManagementSystem* ams, byte* buf, int32 chunk_size, int32 c
     // setup asset_memory
     ams->asset_memory.count = count;
     ams->asset_memory.chunk_size = sizeof(Asset);
-    ams->asset_memory.last_pos = -1;
+    ams->asset_memory.last_pos = 0;
     ams->asset_memory.alignment = 64;
     ams->asset_memory.memory = buf;
     ams->asset_memory.free = (uint64 *) (ams->asset_memory.memory + ams->asset_memory.chunk_size * count);
@@ -92,7 +92,7 @@ void ams_create(AssetManagementSystem* ams, byte* buf, int32 chunk_size, int32 c
     // setup asset_data_memory
     ams->asset_data_memory.count = count;
     ams->asset_data_memory.chunk_size = chunk_size;
-    ams->asset_data_memory.last_pos = -1;
+    ams->asset_data_memory.last_pos = 0;
     ams->asset_data_memory.alignment = 64;
     ams->asset_data_memory.memory = (byte *) (ams->asset_memory.free + CEIL_DIV(count, 64));
     ams->asset_data_memory.free = (uint64 *) (ams->asset_data_memory.memory + ams->asset_data_memory.chunk_size * count);
@@ -204,8 +204,8 @@ Asset* ams_get_asset(AssetManagementSystem* ams, const char* key)
     );
 
     DEBUG_MEMORY_READ(
-        (uint64) (entry ? (Asset *) entry->value : 0),
-        entry ? ((Asset *) entry->value)->self + ((Asset *) entry->value)->ram_size : 0
+        (uint64) (entry ? ((Asset *) entry->value)->self : 0),
+        entry ? ((Asset *) entry->value)->ram_size : 0
     );
 
     return entry ? (Asset *) entry->value : NULL;
@@ -222,8 +222,8 @@ Asset* ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 hash)
     );
 
     DEBUG_MEMORY_READ(
-        (uint64) (entry ? (Asset *) entry->value : 0),
-        entry ? ((Asset *) entry->value)->self + ((Asset *) entry->value)->ram_size : 0
+        (uint64) (entry ? ((Asset *) entry->value)->self : 0),
+        entry ? ((Asset *) entry->value)->ram_size : 0
     );
 
     return entry ? (Asset *) entry->value : NULL;

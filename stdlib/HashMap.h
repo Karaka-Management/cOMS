@@ -376,7 +376,7 @@ int64 hashmap_dump(const HashMap* hm, byte* data)
     // Dumb hash map content = buffer memory
     int32 free_index = 0;
     int32 bit_index = 0;
-    for (int32 i = 0; i < hm->buf.count; ++i) {
+    for (uint32 i = 0; i < hm->buf.count; ++i) {
         if ((hm->buf.free[free_index] & (1ULL << bit_index)) > 0) {
             HashEntry* entry = (HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, i);
 
@@ -434,7 +434,7 @@ int64 hashmap_load(HashMap* hm, const byte* data)
     data += sizeof(uint64);
 
     // Load the table content
-    for (int i = 0; i < count; ++i) {
+    for (uint32 i = 0; i < count; ++i) {
         uint64 offset =  SWAP_ENDIAN_LITTLE(*((uint64 *) data));
         data += sizeof(offset);
 
@@ -455,7 +455,7 @@ int64 hashmap_load(HashMap* hm, const byte* data)
     // Switch endian AND turn offsets to pointers
     int32 free_index = 0;
     int32 bit_index = 0;
-    for (int32 i = 0; i < hm->buf.count; ++i) {
+    for (uint32 i = 0; i < hm->buf.count; ++i) {
         if ((hm->buf.free[free_index] & (1ULL << bit_index)) > 0) {
             HashEntry* entry = (HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, i);
 

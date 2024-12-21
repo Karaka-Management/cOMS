@@ -156,7 +156,7 @@ void texture_use_1D(const Texture* texture, uint32 texture_unit)
     glBindTexture(GL_TEXTURE_1D, (GLuint) texture->id);
 }
 
-GLuint shader_make(GLenum type, const char *source, RingMemory* ring)
+GLuint shader_make(GLenum type, const char* source, RingMemory* ring)
 {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, (GLchar **) &source, NULL);

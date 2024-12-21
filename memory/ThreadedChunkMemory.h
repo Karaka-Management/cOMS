@@ -23,8 +23,8 @@ struct ThreadedChunkMemory {
 
     uint64 count;
     uint64 size;
-    uint64 chunk_size;
     int64 last_pos;
+    uint32 chunk_size;
     int32 alignment;
 
     // length = count

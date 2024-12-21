@@ -69,7 +69,7 @@ void thrd_ring_free(ThreadedRingMemory* ring)
 }
 
 inline
-byte* thrd_ring_calculate_position(ThreadedRingMemory* ring, uint64 size, byte aligned = 0)
+byte* thrd_ring_calculate_position(ThreadedRingMemory* ring, uint64 size, byte aligned = 4)
 {
     pthread_mutex_lock(&ring->mutex);
     byte* result = ring_calculate_position((RingMemory *) ring, size, aligned);
@@ -87,14 +87,14 @@ void thrd_ring_reset(ThreadedRingMemory* ring)
 }
 
 // Moves a pointer based on the size you want to consume (new position = after consuming size)
-void thrd_ring_move_pointer(ThreadedRingMemory* ring, byte** pos, uint64 size, byte aligned = 0)
+void thrd_ring_move_pointer(ThreadedRingMemory* ring, byte** pos, uint64 size, byte aligned = 4)
 {
     pthread_mutex_lock(&ring->mutex);
     ring_move_pointer((RingMemory *) ring, pos, size, aligned);
     pthread_mutex_unlock(&ring->mutex);
 }
 
-byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned = 0, bool zeroed = false)
+byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned = 4, bool zeroed = false)
 {
     pthread_mutex_lock(&ring->mutex);
     byte* result = ring_get_memory((RingMemory *) ring, size, aligned, zeroed);
@@ -104,7 +104,7 @@ byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned =
 }
 
 // Same as ring_get_memory but DOESN'T move the head
-byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* ring, uint64 size, byte aligned = 0, bool zeroed = false)
+byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* ring, uint64 size, byte aligned = 4, bool zeroed = false)
 {
     pthread_mutex_lock(&ring->mutex);
     byte* result = ring_get_memory_nomove((RingMemory *) ring, size, aligned, zeroed);
@@ -129,7 +129,7 @@ byte* thrd_ring_get_element(ThreadedRingMemory* ring, uint64 element_count, uint
  * Checks if one additional element can be inserted without overwriting the tail index
  */
 inline
-bool thrd_ring_commit_safe(ThreadedRingMemory* ring, uint64 size, byte aligned = 0)
+bool thrd_ring_commit_safe(ThreadedRingMemory* ring, uint64 size, byte aligned = 4)
 {
     pthread_mutex_lock(&ring->mutex);
     bool result = ring_commit_safe((RingMemory *) ring, size, aligned);

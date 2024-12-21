@@ -16,10 +16,6 @@
 #define SOUND_API_XAUDIO2 1
 
 struct AudioSetting {
-    // position in the audio data
-    // WARNING: not the byte position, but the index based on the sample size
-    uint32 sample_index;
-
     f32 master_volume;
 
     // bits per sample

@@ -23,9 +23,9 @@
 #include "../utils/StringUtils.h"
 
 #if __aarch64__
-    #include "../../../GameEngine/stdlib/sve/SVE_I32.h"
+    #include "../stdlib/sve/SVE_I32.h"
 #else
-    #include "../../../GameEngine/stdlib/simd/SIMD_I32.h"
+    #include "../stdlib/simd/SIMD_I32.h"
 #endif
 
 #define MESH_VERSION 1
@@ -178,7 +178,7 @@ void mesh_from_file_txt(
             continue;
         }
 
-        // NOTE: we always load a file in the format: POSITON + NORMAL + TEXTURE + COLOR
+        // NOTE: we always load a file in the format: POSITION + NORMAL + TEXTURE + COLOR
         //      EVEN if some of the data is missing. This is necessary to keep the memory kinda in line.
         //      The actual binary file later will have the minimized layout.
 
@@ -558,7 +558,7 @@ int32 mesh_data_size(const Mesh* mesh)
 int32 mesh_to_data(
     const Mesh* mesh,
     byte* data,
-    int32 vertex_save_format = VERTEX_TYPE_ALL,
+    uint32 vertex_save_format = VERTEX_TYPE_ALL,
     int32 steps = 8
 )
 {

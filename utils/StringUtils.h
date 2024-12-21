@@ -15,6 +15,7 @@
 #include <ctype.h>
 
 #include "../stdlib/Types.h"
+#include "MathUtils.h"
 
 inline
 int32 utf8_encode(uint32 codepoint, char* out)
@@ -821,9 +822,9 @@ void sprintf_fast(char *buffer, const char* format, ...) {
                 case 'f': {
                     f64 val = va_arg(args, f64);
 
-                    int32 precision = 6; // Default precision
+                    // Default precision
+                    int32 precision = 5;
 
-                    // @question Consider to implement rounding
                     // Check for optional precision specifier
                     const char* prec_ptr = ptr + 1;
                     if (*prec_ptr >= '0' && *prec_ptr <= '9') {
@@ -839,6 +840,15 @@ void sprintf_fast(char *buffer, const char* format, ...) {
                     if (val < 0) {
                         *buf_ptr++ = '-';
                         val = -val;
+                    }
+
+                    if (precision < 6) {
+                        static const float powers_of_ten[] = {
+                            1.0f, 10.0f, 100.0f, 1000.0f, 10000.0f, 100000.0f
+                        };
+
+                        f32 scale = powers_of_ten[precision];
+                        val = OMS_ROUND_POSITIVE(val * scale) / scale;
                     }
 
                     // Handle integer part
@@ -896,7 +906,7 @@ void format_time_hh_mm_ss(char* time_str, int32 hours, int32 minutes, int32 secs
 }
 
 inline
-void format_time_hh_mm_ss(char* time_str, int32 time) {
+void format_time_hh_mm_ss(char* time_str, uint64 time) {
     int32 hours = (time / 3600) % 24;
     int32 minutes = (time / 60) % 60;
     int32 secs = time % 60;
@@ -915,7 +925,7 @@ void format_time_hh_mm(char* time_str, int32 hours, int32 minutes) {
 }
 
 inline
-void format_time_hh_mm(char* time_str, int32 time) {
+void format_time_hh_mm(char* time_str, uint64 time) {
     int32 hours = (time / 3600) % 24;
     int32 minutes = (time / 60) % 60;
 

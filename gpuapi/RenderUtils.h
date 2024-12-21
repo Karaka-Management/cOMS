@@ -299,8 +299,6 @@ f32 text_calculate_dimensions_width(
     f32 x = 0;
     f32 offset_x = 0;
 
-    uint32 first_glyph = font->glyphs[0].codepoint;
-
     // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
 
     for (int32 i = 0; i < length; ++i) {
@@ -313,25 +311,7 @@ f32 text_calculate_dimensions_width(
             continue;
         }
 
-        Glyph* glyph = NULL;
-        // We try to jump to the correct glyph based on the glyph codepoint
-        // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
-        int32 perfect_glyph_pos = character - first_glyph;
-        if (font->glyph_count > perfect_glyph_pos
-            && font->glyphs[perfect_glyph_pos].codepoint == character
-        ) {
-            glyph = &font->glyphs[perfect_glyph_pos];
-        } else {
-            // @performance consider to do binary search
-            for (int32 j = 0; j <= perfect_glyph_pos && j < font->glyph_count; ++j) {
-                if (font->glyphs[j].codepoint == character) {
-                    glyph = &font->glyphs[j];
-
-                    break;
-                }
-            }
-        }
-
+        Glyph* glyph = font_glyph_find(font, character);
         if (!glyph) {
             continue;
         }
@@ -353,8 +333,6 @@ void text_calculate_dimensions(
 
     f32 offset_x = 0;
 
-    uint32 first_glyph = font->glyphs[0].codepoint;
-
     // @todo remember to restrict to width/height if value > 0 -> force width to remain below certain value
 
     for (int32 i = 0; i < length; ++i) {
@@ -369,25 +347,7 @@ void text_calculate_dimensions(
             continue;
         }
 
-        Glyph* glyph = NULL;
-        // We try to jump to the correct glyph based on the glyph codepoint
-        // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
-        int32 perfect_glyph_pos = character - first_glyph;
-        if (font->glyph_count > perfect_glyph_pos
-            && font->glyphs[perfect_glyph_pos].codepoint == character
-        ) {
-            glyph = &font->glyphs[perfect_glyph_pos];
-        } else {
-            // @performance consider to do binary search
-            for (int32 j = 0; j <= perfect_glyph_pos && j < font->glyph_count; ++j) {
-                if (font->glyphs[j].codepoint == character) {
-                    glyph = &font->glyphs[j];
-
-                    break;
-                }
-            }
-        }
-
+        Glyph* glyph = font_glyph_find(font, character);
         if (!glyph) {
             continue;
         }
@@ -433,10 +393,6 @@ v2_f32 vertex_text_create(
         }
     }
 
-    uint32 first_glyph = font->glyphs[0].codepoint;
-
-    int32 first_char = is_ascii ? text[0] : utf8_get_char_at(text, 0);
-
     f32 offset_x = x;
     for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
@@ -447,25 +403,7 @@ v2_f32 vertex_text_create(
             continue;
         }
 
-        Glyph* glyph = NULL;
-        // We try to jump to the correct glyph based on the glyph codepoint
-        // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
-        int32 perfect_glyph_pos = character - first_glyph;
-        if (font->glyph_count > perfect_glyph_pos
-            && font->glyphs[perfect_glyph_pos].codepoint == character
-        ) {
-            glyph = &font->glyphs[perfect_glyph_pos];
-        } else {
-            // @performance consider to do binary search
-            for (uint32 j = 0; j <= perfect_glyph_pos && j < font->glyph_count; ++j) {
-                if (font->glyphs[j].codepoint == character) {
-                    glyph = &font->glyphs[j];
-
-                    break;
-                }
-            }
-        }
-
+        Glyph* glyph = font_glyph_find(font, character);
         if (!glyph) {
             continue;
         }
@@ -577,8 +515,6 @@ f32 ui_text_create(
         }
     }
 
-    uint32 first_glyph = theme->font.glyphs[0].codepoint;
-
     int32 start = *index;
     f32 offset_x = (f32) x->value_int;
     f32 offset_y = (f32) y->value_int;
@@ -594,25 +530,7 @@ f32 ui_text_create(
             continue;
         }
 
-        Glyph* glyph = NULL;
-        // We try to jump to the correct glyph based on the glyph codepoint
-        // If that doesn't work we iterate the glyph list BUT only until the last possible match (glyphs must be sorted ascending)
-        int32 perfect_glyph_pos = character - first_glyph;
-        if (theme->font.glyph_count > perfect_glyph_pos
-            && theme->font.glyphs[perfect_glyph_pos].codepoint == character
-        ) {
-            glyph = &theme->font.glyphs[perfect_glyph_pos];
-        } else {
-            // @performance consider to do binary search
-            for (int32 j = 0; j <= perfect_glyph_pos && j < theme->font.glyph_count; ++j) {
-                if (theme->font.glyphs[j].codepoint == character) {
-                    glyph = &theme->font.glyphs[j];
-
-                    break;
-                }
-            }
-        }
-
+        Glyph* glyph = font_glyph_find(&theme->font, character);
         if (!glyph) {
             continue;
         }
@@ -721,7 +639,7 @@ void ui_button_create(
 
     vertex_text_create(
         vertices, index, zindex,
-        x->value_float, y->value_float, width->value_float, height->value_float, align_h->value_float, align_v->value_float,
+        x->value_float, y->value_float, width->value_float, height->value_float, align_h->value_int, align_v->value_int,
         &theme->font, text->value_str, size->value_float, color_index->value_float
     );
 

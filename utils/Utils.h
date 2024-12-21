@@ -18,6 +18,7 @@ struct FileBody {
 };
 
 // @question Do we want to make the size comparison a step variable?
+inline
 bool is_equal_aligned(const byte* region1, const byte* region2, uint64 size)
 {
     while (size > 4) {

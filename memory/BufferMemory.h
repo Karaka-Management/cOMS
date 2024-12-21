@@ -92,7 +92,7 @@ void buffer_reset(BufferMemory* buf)
 }
 
 inline
-byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 0, bool zeroed = false)
+byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4, bool zeroed = false)
 {
     ASSERT_SIMPLE(size <= buf->size);
 

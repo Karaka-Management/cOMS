@@ -59,11 +59,28 @@ void font_init(Font* font, byte* data, int count)
 }
 
 inline
-Glyph* font_glyph_find(Font* font, uint32 codepoint)
+Glyph* font_glyph_find(const Font* font, uint32 codepoint)
 {
-    for (uint32 i = 0; i < font->glyph_count; ++i) {
-        if (font->glyphs[i].codepoint == codepoint) {
-            return &font->glyphs[i];
+    int32 perfect_glyph_pos = codepoint - font->glyphs[0].codepoint;
+    int32 limit = OMS_MIN(perfect_glyph_pos, font->glyph_count - 1);
+
+    // We try to jump to the correct glyph based on the glyph codepoint
+    if (font->glyphs[limit].codepoint == codepoint) {
+        return &font->glyphs[limit];
+    }
+
+    // If that doesn't work we iterate the glyph list BUT only until the last possible match.
+    // Glyphs must be sorted ascending.
+    int32 low = 0;
+    int32 high = limit;
+    while (low <= high) {
+        int32 mid = low + (high - low) / 2;
+        if (font->glyphs[mid].codepoint == codepoint) {
+            return &font->glyphs[mid];
+        } else if (font->glyphs[mid].codepoint < codepoint) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
         }
     }
 
@@ -254,9 +271,21 @@ int32 font_to_data(
     return size;
 }
 
+inline
 f32 font_line_height(Font* font, f32 size)
 {
     return font->line_height * size / font->size;
+}
+
+inline
+void font_invert_coordinates(Font* font)
+{
+    // @todo Implement y-offset correction
+    for (uint32 i = 0; i < font->glyph_count; ++i) {
+        float temp = font->glyphs[i].coords.y1;
+        font->glyphs[i].coords.y1 = 1.0f - font->glyphs[i].coords.y2;
+        font->glyphs[i].coords.y2 = 1.0f - temp;
+    }
 }
 
 #endif

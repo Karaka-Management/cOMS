@@ -31,6 +31,7 @@ enum PixelType
 //      has_alpha is defined it forces an alpha channel even for bitmaps
 //      order_pixels defines how the pixels should be ordered
 //      order_rows defines how the rows should be ordered
+// @question Do we really ever need int32 for width/height?
 struct Image {
     uint32 width;
     uint32 height;

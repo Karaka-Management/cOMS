@@ -36,7 +36,7 @@
 #include "../image/Image.h"
 
 struct Texture {
-    uint64 id;
+    uint32 id;
     byte sample_id;
 
     // @question Should the texture hold the texture unit?

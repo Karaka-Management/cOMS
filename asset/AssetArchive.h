@@ -73,6 +73,8 @@ struct AssetArchive {
     // If not remove
     MMFHandle mmf;
 
+    // This is used to tell the asset archive in which AssetManagementSystem (AMS) which asset type is located.
+    // Remember, many AMS only contain one asset type (e.g. image, audio, ...)
     int32 asset_type_map[ASSET_TYPE_SIZE];
 };
 
@@ -182,24 +184,19 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
 {
     // @todo add calculation from element->type to ams index
 
-    AssetArchiveElement* element = &archive->header.asset_element[id];
+    // We have to mask 0x00FFFFFF since the highest bits define the archive id, not the element id
+    AssetArchiveElement* element = &archive->header.asset_element[id & 0x00FFFFFF];
     AssetManagementSystem* ams = &ams_array[archive->asset_type_map[element->type]];
 
     // @todo This is a little bit stupid, reconsider
-    char id_str[5];
-    id_str[4] = '\0';
-    *((int32 *) id_str) = id;
-
-    uint64 hash = hash_djb2(id_str);
+    char id_str[32];
+    _itoa(id, id_str, 16);
 
     Asset* asset;
 
     // @performance I think we could optimize the ams_reserver_asset in a way so we don't have to lock it the entire time
     pthread_mutex_lock(&ams->mutex);
-    // @bug If we have multiple archive files the ids also repeat, which is not possible for the hash map
-    // Possible solution: also store a string name for every asset. This would add HASH_MAP_MAX_KEY_LENGTH bytes of data to every asset though (see hash map key size = 32)
-
-    asset = ams_get_asset(ams, id_str, hash);
+    asset = ams_get_asset(ams, id_str);
     if (asset) {
         // Asset already loaded
         pthread_mutex_unlock(&ams->mutex);
@@ -238,17 +235,15 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
                 Texture* texture = (Texture *) asset->self;
                 texture->image.pixels = (byte *) (texture + 1);
 
+                // @todo implement qoi encoding
                 image_from_data(file.content, &texture->image);
 
                 asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.pixel_type);
                 asset->ram_size = asset->vram_size + sizeof(Texture);
 
                 #if OPENGL
-                    // @bug I think order_rows has the wrong value
-                    if (texture->image.order_rows == IMAGE_ROW_ORDER_TOP_TO_BOTTOM) {
-                        image_flip_vertical(ring, &texture->image);
-                        texture->image.order_rows = IMAGE_ROW_ORDER_BOTTOM_TO_TOP;
-                    }
+                    image_flip_vertical(ring, &texture->image);
+                    texture->image.order_rows = IMAGE_ROW_ORDER_BOTTOM_TO_TOP;
                 #endif
             } break;
             case ASSET_TYPE_AUDIO: {
@@ -289,6 +284,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     pthread_mutex_unlock(&ams->mutex);
 
     // @performance maybe do in worker threads? This just feels very slow
+    // @question dependencies might be stored in different archives?
     for (uint32 i = 0; i < element->dependency_count; ++i) {
         asset_archive_asset_load(archive, id, ams, ring);
     }

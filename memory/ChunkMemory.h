@@ -34,9 +34,9 @@ struct ChunkMemory {
 
     uint64 count;
     uint64 size;
-    uint64 chunk_size;
-    int64 last_pos;
-    int32 alignment;
+    uint64 last_pos;
+    uint32 chunk_size;
+    uint32 alignment;
 
     // length = count
     // free describes which locations are used and which are free
@@ -44,7 +44,7 @@ struct ChunkMemory {
 };
 
 inline
-void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignment = 64)
+void chunk_alloc(ChunkMemory* buf, uint64 count, uint32 chunk_size, int32 alignment = 64)
 {
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
@@ -58,7 +58,7 @@ void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignm
     buf->count = count;
     buf->size = count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64);
     buf->chunk_size = chunk_size;
-    buf->last_pos = -1;
+    buf->last_pos = 0;
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
@@ -70,7 +70,7 @@ void chunk_alloc(ChunkMemory* buf, uint64 count, uint64 chunk_size, int32 alignm
 }
 
 inline
-void chunk_init(ChunkMemory* buf, BufferMemory* data, uint64 count, uint64 chunk_size, int32 alignment = 64)
+void chunk_init(ChunkMemory* buf, BufferMemory* data, uint64 count, uint32 chunk_size, int32 alignment = 64)
 {
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
@@ -82,7 +82,7 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint64 count, uint64 chunk
     buf->count = count;
     buf->size = count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64);
     buf->chunk_size = chunk_size;
-    buf->last_pos = -1;
+    buf->last_pos = 0;
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
@@ -95,7 +95,7 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint64 count, uint64 chunk
 }
 
 inline
-void chunk_init(ChunkMemory* buf, byte* data, uint64 count, uint64 chunk_size, int32 alignment = 64)
+void chunk_init(ChunkMemory* buf, byte* data, uint64 count, uint32 chunk_size, int32 alignment = 64)
 {
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
@@ -108,7 +108,7 @@ void chunk_init(ChunkMemory* buf, byte* data, uint64 count, uint64 chunk_size, i
     buf->count = count;
     buf->size = count * chunk_size + sizeof(uint64) * CEIL_DIV(count, 64);
     buf->chunk_size = chunk_size;
-    buf->last_pos = -1;
+    buf->last_pos = 0;
     buf->alignment = alignment;
 
     // @question Could it be beneficial to have this before the element data?
@@ -320,15 +320,15 @@ int64 chunk_dump(const ChunkMemory* buf, byte* data)
     data += sizeof(buf->size);
 
     // Chunk Size
-    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(buf->chunk_size);
+    *((uint32 *) data) = SWAP_ENDIAN_LITTLE(buf->chunk_size);
     data += sizeof(buf->chunk_size);
 
     // Last pos
-    *((int64 *) data) = SWAP_ENDIAN_LITTLE(buf->last_pos);
+    *((uint64 *) data) = SWAP_ENDIAN_LITTLE(buf->last_pos);
     data += sizeof(buf->last_pos);
 
     // Alignment
-    *((int32 *) data) = SWAP_ENDIAN_LITTLE(buf->alignment);
+    *((uint32 *) data) = SWAP_ENDIAN_LITTLE(buf->alignment);
     data += sizeof(buf->alignment);
 
     // All memory is handled in the buffer -> simply copy the buffer
@@ -351,15 +351,15 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
     data += sizeof(buf->size);
 
     // Chunk Size
-    buf->chunk_size = SWAP_ENDIAN_LITTLE(*((uint64 *) data));
+    buf->chunk_size = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
     data += sizeof(buf->chunk_size);
 
     // Last pos
-    buf->last_pos = SWAP_ENDIAN_LITTLE(*((int64 *) data));
+    buf->last_pos = SWAP_ENDIAN_LITTLE(*((uint64 *) data));
     data += sizeof(buf->last_pos);
 
     // Alignment
-    buf->alignment = SWAP_ENDIAN_LITTLE(*((int32 *) data));
+    buf->alignment = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
     data += sizeof(buf->alignment);
 
     memcpy(buf->memory, data, buf->size);

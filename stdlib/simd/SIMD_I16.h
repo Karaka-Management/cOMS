@@ -438,7 +438,8 @@ inline int16_16 operator<=(int16_16 a, int16_16 b)
 inline int16_32 operator<=(int16_32 a, int16_32 b)
 {
     int16_32 simd;
-    simd.s = _mm512_mask_blend_epi16(_mm512_knot(_mm512_cmpgt_epi16_mask(b.s, a.s)), b.s, a.s);
+    __mmask32 mask = _mm512_cmp_epi16_mask(a.s, b.s, _MM_CMPINT_LE);
+    simd.s = _mm512_mask_blend_epi16(mask, b.s, a.s);
 
     return simd;
 }
@@ -716,25 +717,19 @@ inline int16_32 clamp(int16_32 min_value, int16_32 a, int16_32 max_value)
     return simd_min(simd_max(a, min_value), max_value);
 }
 
-inline int16 which_true(int16_8 a)
+inline int32 which_true(int16_8 a)
 {
-    int16 which_true = _mm_movemask_epi8(a.s);
-
-    return which_true;
+    return _mm_movemask_epi8(a.s);
 }
 
-inline int16 which_true(int16_16 a)
+inline int32 which_true(int16_16 a)
 {
-    int16 which_true = _mm256_movemask_epi8(a.s);
-
-    return which_true;
+    return _mm256_movemask_epi8(a.s);
 }
 
-inline int16 which_true(int16_32 a)
+inline int32 which_true(int16_32 a)
 {
-    int16 which_true = _mm512_movepi16_mask(a.s);
-
-    return which_true;
+    return _mm512_movepi16_mask(a.s);
 }
 
 inline bool any_true(int16_8 a)
