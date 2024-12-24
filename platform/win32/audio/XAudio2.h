@@ -115,7 +115,6 @@ void audio_play(AudioSetting* setting, XAudio2Setting* api_setting) {
     }
 
     api_setting->source_voice->Start(0, XAUDIO2_COMMIT_NOW);
-    setting->sample_index = 0;
 }
 
 inline
@@ -194,9 +193,6 @@ void audio_play_buffer(AudioSetting* setting, XAudio2Setting* api_setting) {
     }
 
     ++setting->sample_output;
-
-    // @performance Why do I even need this?
-    //setting->sample_index += setting->sample_buffer_size / setting->sample_size;
     setting->sample_buffer_size = 0;
 }
 

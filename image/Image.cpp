@@ -81,25 +81,26 @@ int32 image_data_size(const Image* image)
         + sizeof(image->image_settings);
 }
 
-int32 image_header_from_data(const byte* data, Image* image)
+inline
+uint32 image_header_from_data(const byte* data, Image* image)
 {
-    const byte* pos = data;
+    const byte* start = data;
 
-    image->width = SWAP_ENDIAN_LITTLE(*((uint32 *) pos));
-    pos += sizeof(image->width);
+    image->width = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
+    data += sizeof(image->width);
 
-    image->height = SWAP_ENDIAN_LITTLE(*((uint32 *) pos));
-    pos += sizeof(image->height);
+    image->height = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
+    data += sizeof(image->height);
 
     image->pixel_count = image->width * image->height;
 
-    image->image_settings = *pos;
-    pos += sizeof(image->image_settings);
+    image->image_settings = *data;
+    data += sizeof(image->image_settings);
 
-    return (int32) (pos - data);
+    return (int32) (data - start);
 }
 
-int32 image_from_data(const byte* data, Image* image)
+uint32 image_from_data(const byte* data, Image* image)
 {
     const byte* pos = data;
     pos += image_header_from_data(data, image);
@@ -112,23 +113,23 @@ int32 image_from_data(const byte* data, Image* image)
 }
 
 inline
-int32 image_header_to_data(const Image* image, byte* data)
+uint32 image_header_to_data(const Image* image, byte* data)
 {
-    byte* pos = data;
+    byte* start = data;
 
-    *((uint32 *) pos) = SWAP_ENDIAN_LITTLE(image->width);
-    pos += sizeof(image->width);
+    *((uint32 *) data) = SWAP_ENDIAN_LITTLE(image->width);
+    data += sizeof(image->width);
 
-    *((uint32 *) pos) = SWAP_ENDIAN_LITTLE(image->height);
-    pos += sizeof(image->height);
+    *((uint32 *) data) = SWAP_ENDIAN_LITTLE(image->height);
+    data += sizeof(image->height);
 
-    *pos = image->image_settings;
-    pos += sizeof(image->image_settings);
+    *data = image->image_settings;
+    data += sizeof(image->image_settings);
 
-    return (int32) (pos - data);
+    return (int32) (data - start);
 }
 
-int32 image_to_data(const Image* image, byte* data)
+uint32 image_to_data(const Image* image, byte* data)
 {
     byte* pos = data;
     pos += image_header_to_data(image, data);

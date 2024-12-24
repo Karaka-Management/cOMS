@@ -69,7 +69,6 @@ struct AudioInstance {
 enum AudioMixerState {
     AUDIO_MIXER_STATE_UNINITIALIZED,
     AUDIO_MIXER_STATE_INACTIVE,
-    AUDIO_MIXER_STATE_SHOULD_PLAY,
     AUDIO_MIXER_STATE_ACTIVE,
 };
 
@@ -100,7 +99,7 @@ struct AudioMixer {
 };
 
 bool audio_mixer_is_active(AudioMixer* mixer) {
-    if (mixer->state_new == AUDIO_MIXER_STATE_ACTIVE
+    if (mixer->state_old == AUDIO_MIXER_STATE_ACTIVE
         && atomic_get_relaxed((int32 *) &mixer->state_new) == AUDIO_MIXER_STATE_ACTIVE
     ) {
         return true;
@@ -108,14 +107,14 @@ bool audio_mixer_is_active(AudioMixer* mixer) {
 
     AudioMixerState mixer_state;
     if ((mixer_state = (AudioMixerState) atomic_get_relaxed((int32 *) &mixer->state_new)) != mixer->state_old) {
-        if (mixer_state != AUDIO_MIXER_STATE_UNINITIALIZED) {
+        if (mixer->state_old == AUDIO_MIXER_STATE_UNINITIALIZED) {
             audio_load(
                 mixer->window,
                 &mixer->settings,
                 &mixer->api_setting
             );
 
-            mixer_state = AUDIO_MIXER_STATE_INACTIVE;
+            mixer->state_old = AUDIO_MIXER_STATE_INACTIVE;
         }
 
         if (mixer_state == AUDIO_MIXER_STATE_ACTIVE) {

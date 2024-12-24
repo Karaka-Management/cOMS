@@ -44,8 +44,11 @@ int32 audio_data_size(const Audio* audio)
     );
 }
 
-int32 audio_from_data(const byte* data, Audio* audio)
+inline
+uint32 audio_header_from_data(const byte* data, Audio* audio)
 {
+    const byte* start = data;
+
     audio->sample_rate = SWAP_ENDIAN_LITTLE(*((uint16 *) data));
     data += sizeof(audio->sample_rate);
 
@@ -60,14 +63,14 @@ int32 audio_from_data(const byte* data, Audio* audio)
     audio->size = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
     data += sizeof(audio->size);
 
-    memcpy(audio->data, data, audio->size);
-    data += audio->size;
-
-    return audio_data_size(audio);
+    return (int32) (data - start);
 }
 
-int32 audio_to_data(const Audio* audio, byte* data)
+inline
+uint32 audio_header_to_data(const Audio* audio, byte* data)
 {
+    byte* start = data;
+
     *((uint16 *) data) = SWAP_ENDIAN_LITTLE(audio->sample_rate);
     data += sizeof(audio->sample_rate);
 
@@ -77,6 +80,23 @@ int32 audio_to_data(const Audio* audio, byte* data)
 
     *((uint32 *) data) = SWAP_ENDIAN_LITTLE(audio->size);
     data += sizeof(audio->size);
+
+    return (int32) (data - start);
+}
+
+uint32 audio_from_data(const byte* data, Audio* audio)
+{
+    data += audio_header_from_data(data, audio);
+
+    memcpy(audio->data, data, audio->size);
+    data += audio->size;
+
+    return audio_data_size(audio);
+}
+
+uint32 audio_to_data(const Audio* audio, byte* data)
+{
+    data += audio_header_to_data(audio, data);
 
     memcpy(data, audio->data, audio->size);
     data += audio->size;

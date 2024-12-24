@@ -22,6 +22,9 @@ struct AudioSetting {
     // usually 48000 or 44100
     uint16 sample_rate;
 
+    // This sample index is used to calculate the position in a ring buffer
+    uint16 sample_index;
+
     // bytes per bloc
     // channel count * bit
     // usually 2 * 16 = 4

@@ -148,7 +148,7 @@ uint32 audio_buffer_fillable(const AudioSetting* setting, const DirectSoundSetti
         return 0;
     }
 
-    DWORD bytes_to_lock = setting->sample_buffer_size;
+    DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
     DWORD bytes_to_write = 0;
 
     DWORD target_cursor = (player_cursor + (setting->latency * setting->sample_size)) % setting->buffer_size;
@@ -180,7 +180,7 @@ void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting)
     void* region2;
     DWORD region2_size;
 
-    DWORD bytes_to_lock = setting->sample_buffer_size;
+    DWORD bytes_to_lock = (setting->sample_index * setting->sample_size) % setting->buffer_size;
 
     api_setting->secondary_buffer->Lock(
         bytes_to_lock, setting->sample_buffer_size,
@@ -204,7 +204,7 @@ void audio_play_buffer(AudioSetting* setting, DirectSoundSetting* api_setting)
     }
 
     api_setting->secondary_buffer->Unlock(region1, region1_size, region2, region2_size);
-
+    setting->sample_index += (uint16) (setting->sample_buffer_size / setting->sample_size);
     setting->sample_buffer_size = 0;
 }
 
