@@ -27,7 +27,7 @@ struct XAudio2Setting {
 };
 
 // BEGIN: Dynamically load XAudio2
-typedef HRESULT WINAPI audio_create(IXAudio2**, UINT32, XAUDIO2_PROCESSOR);
+typedef HRESULT WINAPI XAudio2Create_t(IXAudio2**, UINT32, XAUDIO2_PROCESSOR);
 HRESULT WINAPI XAudio2CreateStub(IXAudio2**, UINT32, XAUDIO2_PROCESSOR) {
     return 0;
 }
@@ -48,7 +48,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
         return;
     }
 
-    audio_create* XAudio2Create = (audio_create *) GetProcAddress(lib, "XAudio2Create");
+    XAudio2Create_t* XAudio2Create = (XAudio2Create_t *) GetProcAddress(lib, "XAudio2Create");
     if (!XAudio2Create || !SUCCEEDED(XAudio2Create(&api_setting->audio_handle, 0, XAUDIO2_DEFAULT_PROCESSOR))) {
         LOG("Xaudio2: XAudio2Create failed\n", true, true);
 

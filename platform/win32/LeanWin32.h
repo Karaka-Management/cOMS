@@ -13,7 +13,7 @@
     #define WIN32_LEAN_AND_MEAN 1
     #define NOGDICAPMASKS 1
     #define NOVIRTUALKEYCODES 1
-    #define NOWINMESSAGES 1
+    //#define NOWINMESSAGES 0
     #define NOWINSTYLES 1
     #define NOSYSMETRICS 1
     #define NOMENUS 1
@@ -30,20 +30,20 @@
     #define NODRAWTEXT 1
     #define NOGDI 1
     #define NOKERNEL 1
-    #define NOUSER 1
+    //#define NOUSER 0
     #define NONLS 1
     #define NOMB 1
     #define NOMEMMGR 1
     #define NOMETAFILE 1
     #define NOMINMAX 1
-    #define NOMSG 1
+    //#define NOMSG 0
     #define NOOPENFILE 1
     #define NOSCROLL 1
     #define NOSERVICE 1
     #define NOSOUND 1
     #define NOTEXTMETRIC 1
-    #define NOWH 1
-    #define NOWINOFFSETS 1
+    //#define NOWH 0
+    //#define NOWINOFFSETS 0
     #define NOCOMM 1
     #define NOKANJI 1
     #define NOHELP 1

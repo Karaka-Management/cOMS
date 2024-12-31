@@ -27,6 +27,8 @@
     #include "../platform/win32/audio/DirectSound.h"
 #elif XAUDIO2
     #include "../platform/win32/audio/XAudio2.h"
+#elif WASAPI
+    #include "../platform/win32/audio/Wasapi.h"
 #endif
 
 enum AudioEffect {
@@ -86,6 +88,8 @@ struct AudioMixer {
         DirectSoundSetting api_setting;
     #elif XAUDIO2
         XAudio2Setting api_setting;
+    #elif WASAPI
+        WasapiSetting api_setting;
     #endif
 
     // @todo Replace HWND with our own typedef for linux

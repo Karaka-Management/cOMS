@@ -12,26 +12,12 @@
 #include <windows.h>
 #include "../../platform/win32/Window.h"
 #include "../../stdlib/Types.h"
+#include "OpenglDefines.h"
 
-#ifdef _MSC_VER
-    #pragma comment(lib, "OpenGL32.Lib")
-#endif
+#pragma comment(lib, "OpenGL32.Lib")
 
-typedef unsigned int GLenum;
-typedef unsigned char GLboolean;
-typedef unsigned int GLbitfield;
-typedef signed char GLbyte;
-typedef short GLshort;
-typedef int GLint;
-typedef int GLsizei;
-typedef unsigned char GLubyte;
-typedef unsigned short GLushort;
-typedef unsigned int GLuint;
-typedef float GLfloat;
-typedef float GLclampf;
-typedef double GLdouble;
-typedef double GLclampd;
-typedef void GLvoid;
+typedef ptrdiff_t GLsizeiptr;
+typedef ptrdiff_t GLintptr;
 
 extern "C" {
     WINGDIAPI void APIENTRY glAccum (GLenum op, GLfloat value);
@@ -403,6 +389,15 @@ extern "C" {
 typedef void WINAPI type_glTexImage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations);
 static type_glTexImage2DMultisample* glTexImage2DMultisample;
 
+typedef GLsync WINAPI type_glFenceSync(GLenum condition, GLbitfield flags);
+static type_glFenceSync* glFenceSync;
+
+typedef GLenum WINAPI type_glClientWaitSync(GLsync GLsync, GLbitfield flags, GLuint64 timeout);
+static type_glClientWaitSync* glClientWaitSync;
+
+typedef void WINAPI type_glDeleteSync(GLsync GLsync);
+static type_glDeleteSync* glDeleteSync;
+
 typedef void WINAPI type_glBindFramebuffer(GLenum target, GLuint framebuffer);
 static type_glBindFramebuffer* glBindFramebuffer;
 
@@ -598,6 +593,10 @@ static type_glDrawElementsInstanced* glDrawElementsInstanced;
 typedef void WINAPI type_glProgramParameteri(GLuint program, GLenum pname, GLint value);
 static type_glProgramParameteri* glProgramParameteri;
 
+typedef void WINAPI gl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
+typedef void WINAPI type_glDebugMessageCallback(gl_debug_callback* callback, const void* userParam);
+static type_glDebugMessageCallback* glDebugMessageCallback;
+
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
 #define WGL_CONTEXT_LAYER_PLANE_ARB 0x2093
@@ -661,8 +660,6 @@ void set_pixel_format(HDC hdc, int32 multisampling = 0)
             WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
             WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
             WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, GL_TRUE,
-            WGL_SAMPLE_BUFFERS_ARB, (int32) (multisampling > 0),
-            WGL_SAMPLES_ARB, multisampling, // MSAA
             0,
         };
 
@@ -771,6 +768,9 @@ void opengl_init_wgl()
 void opengl_init_gl()
 {
     glTexImage2DMultisample = (type_glTexImage2DMultisample *) wglGetProcAddress("glTexImage2DMultisample");
+    glFenceSync = (type_glFenceSync *) wglGetProcAddress("glFenceSync");
+    glClientWaitSync = (type_glClientWaitSync *) wglGetProcAddress("glClientWaitSync");
+    glDeleteSync = (type_glDeleteSync *) wglGetProcAddress("glDeleteSync");
     glBindFramebuffer = (type_glBindFramebuffer *) wglGetProcAddress("glBindFramebuffer");
     glGenFramebuffers = (type_glGenFramebuffers *) wglGetProcAddress("glGenFramebuffers");
     glFramebufferTexture2D = (type_glFramebufferTexture2D *) wglGetProcAddress("glFramebufferTexture2D");
@@ -836,6 +836,7 @@ void opengl_init_gl()
     glDrawArraysInstanced = (type_glDrawArraysInstanced *) wglGetProcAddress("glDrawArraysInstanced");
     glDrawElementsInstanced = (type_glDrawElementsInstanced *) wglGetProcAddress("glDrawElementsInstanced");
     glProgramParameteri = (type_glProgramParameteri *) wglGetProcAddress("glProgramParameteri");
+    glDebugMessageCallback = (type_glDebugMessageCallback *) wglGetProcAddress("glDebugMessageCallback");
 }
 
 void opengl_destroy(Window* window)

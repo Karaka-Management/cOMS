@@ -19,7 +19,7 @@
 
 #define OMS_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define OMS_MIN(a, b) ((a) > (b) ? (b) : (a))
-#define OMS_CLAMP(a, b, c) (OMS_MAX(OMS_MIN((a), (b)), (c)))
+#define OMS_CLAMP(val, high, low) (OMS_MAX(OMS_MIN((val), (high)), (low)))
 #define OMS_ABS(a) ((a) > 0 ? (a) : -(a))
 #define OMS_DEG2RAD(angle) ((angle) * OMS_PI / 180.0f)
 #define OMS_RAD2DEG(angle) ((angle) * 180.0f / OMS_PI)

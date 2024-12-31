@@ -283,6 +283,7 @@ str_concat(
     return len_total + len;
 }
 
+// @question Why is this called str_add instead of str_concat like the other functions?
 inline void
 str_add(char* base, const char* src)
 {
@@ -570,6 +571,7 @@ bool str_is_comment(char* str)
     return (*str == '/' && str[1] == '/') || (*str == '/' && str[1] == '*');
 }
 
+// @question Isn't that basically like move_to? Consider to unify
 inline
 void str_skip(char** str, char delim)
 {
@@ -621,13 +623,16 @@ void str_skip_list(char** __restrict str, const char* __restrict delim, int32 le
 }
 
 inline
-void str_skip_until_list(char** __restrict str, const char* __restrict delim, int32 len)
+void str_skip_until_list(char** __restrict str, const char* __restrict delim)
 {
     while (**str != '\0') {
-        for (int32 i = 0; i < len; ++i) {
-            if (**str == delim[i]) {
+        const char* delim_temp = delim;
+        while (*delim_temp) {
+            if (**str == *delim_temp) {
                 return;
             }
+
+            ++delim_temp;
         }
 
         ++(*str);

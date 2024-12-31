@@ -26,7 +26,7 @@ struct DirectSoundSetting {
 };
 
 // BEGIN: Dynamically load DirectSound
-typedef HRESULT WINAPI audio_create(LPCGUID, LPDIRECTSOUND8*, LPUNKNOWN);
+typedef HRESULT WINAPI DirectSoundCreate8_t(LPCGUID, LPDIRECTSOUND8*, LPUNKNOWN);
 HRESULT WINAPI DirectSoundCreate8Stub(LPCGUID, LPDIRECTSOUND8*, LPUNKNOWN) {
     return 0;
 }
@@ -40,7 +40,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_settin
         return;
     }
 
-    audio_create* DirectSoundCreate8 = (audio_create *) GetProcAddress(lib, "DirectSoundCreate8");
+    DirectSoundCreate8_t* DirectSoundCreate8 = (DirectSoundCreate8_t *) GetProcAddress(lib, "DirectSoundCreate8");
 
     if (!DirectSoundCreate8 || !SUCCEEDED(DirectSoundCreate8(0, &api_setting->audio_handle, 0))) {
         LOG("DirectSound: DirectSoundCreate8 failed\n", true, true);

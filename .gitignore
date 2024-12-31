@@ -3,4 +3,5 @@ data/*
 bin/*
 *.obj
 *.log
+*.spv
 *.res

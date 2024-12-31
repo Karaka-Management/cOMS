@@ -81,12 +81,9 @@
         if constexpr (!(a)) {                            \
             *(volatile int *) 0 = 0;                     \
         }
-
-    #define ASSERT_GPU_API() gpuapi_error()
 #else
     #define ASSERT_SIMPLE(a) ((void) 0)
     #define ASSERT_SIMPLE_CONST(a) ((void) 0)
-    #define ASSERT_GPU_API() ((void) 0)
 #endif
 
 #define ASSERT_TRUE(a)                                   \
@@ -118,5 +115,15 @@
             return 0;                                    \
         }                                                \
     })
+
+#define ASSERT_PERFORMANCE_START(time_start)             \
+({                                                       \
+    time_start = __rdtsc();                              \
+})
+
+#define ASSERT_PERFORMANCE_END(time_start, max_duration)        \
+({                                                              \
+    ASSERT_TRUE(__rdtsc() - (time_start) <= (max_duration));    \
+})
 
 #endif

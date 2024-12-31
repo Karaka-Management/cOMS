@@ -24,6 +24,7 @@
 #include <wbemidl.h>
 #include <comdef.h>
 #include <winnls.h>
+#include <wingdi.h>
 #include <hidsdi.h>
 
 #if __aarch64__

@@ -12,8 +12,11 @@
 #include "../stdlib/Types.h"
 #include "../math/matrix/MatrixFloat32.h"
 
-#define SOUND_API_DIRECT_SOUND 0
-#define SOUND_API_XAUDIO2 1
+enum SoundApiType : byte {
+    SOUND_API_TYPE_DIRECT_SOUND,
+    SOUND_API_TYPE_XAUDIO2,
+    SOUND_API_TYPE_WASAPI,
+};
 
 struct AudioSetting {
     f32 master_volume;
@@ -30,7 +33,7 @@ struct AudioSetting {
     // usually 2 * 16 = 4
     byte sample_size;
 
-    // how often has the audio_play been called (required for xaudio)
+    // how often has the audio_play been called (required for xaudio to switch between 2 buffers)
     byte sample_output;
 
     // max buffer content/size
@@ -41,10 +44,8 @@ struct AudioSetting {
     uint32 sample_buffer_size;
     int16* buffer;
 
-    byte type = SOUND_API_DIRECT_SOUND;
+    SoundApiType type;
     byte latency;
-
-    // @todo add more settings e.g. repeat etc
 };
 
 struct AudioLocationSetting {

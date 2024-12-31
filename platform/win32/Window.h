@@ -16,6 +16,7 @@
 typedef HINSTANCE WindowInstance;
 
 struct Window {
+    // @question Should we implement a virtual width/height (e.g. I think apple has that where physical resolution < virtual resolution?!)
     uint16 width;
     uint16 height;
 
@@ -32,8 +33,11 @@ struct Window {
 
     HWND hwnd;
     HDC hdc;
-    HGLRC openGLRC;
     HINSTANCE hInstance;
+
+    // @bug This should only be available on opengl.
+    // The problem is the main program doesn't know which gpuapi we are using, so maybe a void pointer?
+    HGLRC openGLRC;
 
     char name[32];
     WindowState state_old;

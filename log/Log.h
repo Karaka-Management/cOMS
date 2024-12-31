@@ -14,7 +14,7 @@
 #include "Debug.h"
 
 #ifndef MAX_LOG_LENGTH
-    #define MAX_LOG_LENGTH 128
+    #define MAX_LOG_LENGTH 256
 #endif
 
 enum LogDataType {
@@ -34,6 +34,16 @@ void log(const char* str, bool should_log, bool save, const char* file, const ch
 void log(const char* format, LogDataType data_type, void* data, bool should_log, bool save, const char* file, const char* function, int32 line);
 void log_increment(int32, int64);
 void log_counter(int32, int64);
+
+#define LOG_PERFORMANCE_START(time_start)       \
+({                                              \
+    time_start = __rdtsc();                     \
+})
+
+#define LOG_PERFORMANCE_END(time_start)         \
+({                                              \
+    printf("%ld\n", __rdtsc() - (time_start));  \
+})
 
 #if (!DEBUG && !INTERNAL)
     // Don't perform any logging at log level 0

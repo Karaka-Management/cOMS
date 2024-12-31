@@ -29,10 +29,32 @@
     #include "../../platform/linux/Window.h"
 #endif
 
-inline
-void change_viewport(Window* w, int32 offset_x = 0, int32 offset_y = 0)
+struct OpenglFrameData {
+    uint32 framebuffer;
+    uint32 renderbuffer;
+    Texture* texture;
+
+    // msaa data
+    uint32 framebuffer_msaa;
+    uint32 colorbuffer_msaa;
+    uint32 depthbuffer_msaa;
+    Texture* texture_msaa;
+};
+
+void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
-    glViewport(offset_x, offset_y, w->width, w->height);
+    if (severity < GL_DEBUG_SEVERITY_LOW) {
+        return;
+    }
+
+    LOG(message, true, true);
+    ASSERT_SIMPLE(false);
+}
+
+inline
+void change_viewport(int16 width, int16 height, int32 offset_x = 0, int32 offset_y = 0)
+{
+    glViewport(offset_x, offset_y, width, height);
 }
 
 inline
@@ -44,11 +66,7 @@ void vsync_set(int32 on)
 inline
 void wireframe_mode(bool on)
 {
-    if (on) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    } else {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
+    glPolygonMode(GL_FRONT_AND_BACK, on ? GL_LINE : GL_FILL);
 }
 
 struct OpenglInfo {
@@ -144,16 +162,10 @@ void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
 inline
 void texture_use(const Texture* texture)
 {
-    glActiveTexture(GL_TEXTURE0 + texture->sample_id);
-    glBindTexture(GL_TEXTURE_2D, (GLuint) texture->id);
-}
+    uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
 
-// @todo should be texture_use, the Texture holds information that should make it possible to determine 1D or 2D
-inline
-void texture_use_1D(const Texture* texture, uint32 texture_unit)
-{
     glActiveTexture(GL_TEXTURE0 + texture->sample_id);
-    glBindTexture(GL_TEXTURE_1D, (GLuint) texture->id);
+    glBindTexture(texture_data_type, (GLuint) texture->id);
 }
 
 inline
@@ -484,6 +496,12 @@ void gpuapi_error()
         ASSERT_SIMPLE(err == GL_NO_ERROR);
     }
 }
+
+#if DEBUG
+    #define ASSERT_GPU_API() gpuapi_error()
+#else
+    #define ASSERT_GPU_API() ((void) 0)
+#endif
 
 /*
 void render_9_patch(GLuint texture,
