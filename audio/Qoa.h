@@ -214,6 +214,8 @@ uint32 qoa_encode_frame(const int16* sample_data, int32 channels, uint32 frame_s
 	E.g. for stereo: (ch-0, slice 0), (ch 1, slice 0), (ch 0, slice 1), ...
     */
 	for (uint32 sample_index = 0; sample_index < frame_samples; sample_index += QOA_SLICE_LEN) {
+		QoaLms best_lms = {};
+
         // @performance SIMDable
 		for (uint32 c = 0; c < channels; ++c) {
 			int32 slice_len = qoa_clamp(QOA_SLICE_LEN, 0, frame_samples - sample_index);
@@ -225,9 +227,8 @@ uint32 qoa_encode_frame(const int16* sample_data, int32 channels, uint32 frame_s
 			16 scalefactors, encode all samples for the current slice and
 			meassure the total squared error.
             */
-			uint64 best_rank = -1;
+			uint64 best_rank = 0;
 			uint64 best_slice = 0;
-			QoaLms best_lms;
 			int32 best_scalefactor = 0;
 
 			for (int32 sfi = 0; sfi < 16; ++sfi) {
@@ -351,7 +352,7 @@ uint32 qoa_encode(const Audio* audio, byte* data) {
 	return (uint32) (data - start);
 }
 
-uint32 qoa_decode_frame(const byte* bytes, int32 channels, QoaLms* lms, byte* sample_data)
+uint32 qoa_decode_frame(const byte* bytes, int32 channels, QoaLms* lms, int16* sample_data)
 {
     const byte* start = bytes;
 
@@ -400,7 +401,7 @@ uint32 qoa_decode_frame(const byte* bytes, int32 channels, QoaLms* lms, byte* sa
 				int32 dequantized = qoa_dequant_tab[scalefactor][quantized];
 				int32 reconstructed = qoa_clamp_s16(predicted + dequantized);
 
-				sample_data[si] = reconstructed;
+				sample_data[si] = (int16) reconstructed;
 				slice <<= 3;
 
 				qoa_lms_update(&lms[c], reconstructed, dequantized);
@@ -424,7 +425,7 @@ uint32 qoa_decode(const byte* data, Audio* audio)
     uint32 limit = 4 + QOA_LMS_LEN * 4 * audio->channels;
 
 	do {
-		frame_size = qoa_decode_frame(data + p, audio->channels, lms, sample_ptr);
+		frame_size = qoa_decode_frame(data + p, audio->channels, lms, (int16 *) sample_ptr);
         sample_ptr += frame_size;
 		p += frame_size;
 	} while (frame_size && p < audio->size && audio->size - p >= limit);

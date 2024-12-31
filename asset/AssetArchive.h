@@ -20,6 +20,7 @@
 #include "../object/Mesh.h"
 #include "../object/Texture.h"
 #include "../audio/Audio.cpp"
+#include "../audio/Qoa.h"
 #include "../font/Font.h"
 #include "../localization/Language.h"
 #include "../ui/UITheme.h"
@@ -240,7 +241,6 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
                 Texture* texture = (Texture *) asset->self;
                 texture->image.pixels = (byte *) (texture + 1);
 
-                // @todo implement qoi encoding
                 qoi_decode(file.content, &texture->image);
 
                 asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
@@ -257,7 +257,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
                 Audio* audio = (Audio *) asset->self;
                 audio->data = (byte *) (audio + 1);
 
-                audio_from_data(file.content, audio);
+                qoa_decode(file.content, audio);
             } break;
             case ASSET_TYPE_OBJ: {
                 Mesh* mesh = (Mesh *) asset->self;

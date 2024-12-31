@@ -660,6 +660,8 @@ void set_pixel_format(HDC hdc, int32 multisampling = 0)
             WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
             WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
             WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, GL_TRUE,
+            multisampling > 0 ? WGL_SAMPLE_BUFFERS_ARB : 0, (int32) (multisampling > 0),
+            WGL_SAMPLES_ARB, multisampling, // MSAA
             0,
         };
 

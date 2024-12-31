@@ -16,6 +16,7 @@ struct GpuApiContainer {
     uint32 frames_in_flight;
     uint32 framebuffer_idx;
     OpenglFrameData* framebuffers;
+    GLsync framebuffer_sync;
 };
 
 #endif

@@ -39,7 +39,7 @@ int32 audio_data_size(const Audio* audio)
     return (int32) (audio->size
         + sizeof(audio->sample_rate)
         + sizeof(audio->channels)
-        + sizeof(audio->bloc_size)
+        // + sizeof(audio->bloc_size) bit fiddling
         + sizeof(audio->size)
     );
 }
