@@ -14,7 +14,7 @@
 #include "Debug.h"
 
 #ifndef MAX_LOG_LENGTH
-    #define MAX_LOG_LENGTH 256
+    #define MAX_LOG_LENGTH 1024
 #endif
 
 enum LogDataType {

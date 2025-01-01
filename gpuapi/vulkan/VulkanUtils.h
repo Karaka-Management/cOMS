@@ -54,15 +54,14 @@ void change_viewport(Window* w, int32 offset_x = 0, int32 offset_y = 0)
     // @todo implement
 }
 
-// @todo Implement logging of if() conditions
-bool vulkan_check_validation_layer_support(const char** validation_layers, uint32 validation_layer_count, RingMemory* ring) {
+int32 vulkan_check_validation_layer_support(const char** validation_layers, uint32 validation_layer_count, RingMemory* ring) {
     uint32 layer_count;
     vkEnumerateInstanceLayerProperties(&layer_count, NULL);
 
     VkLayerProperties* available_layers = (VkLayerProperties *) ring_get_memory(ring, layer_count * sizeof(VkLayerProperties));
     vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
 
-    for (uint32 i = 0; i < validation_layer_count; ++i) {
+    for (int32 i = 0; i < validation_layer_count; ++i) {
         bool layerFound = false;
 
         for (uint32 j = 0; j < layer_count; ++j) {
@@ -73,20 +72,47 @@ bool vulkan_check_validation_layer_support(const char** validation_layers, uint3
         }
 
         if (!layerFound) {
-            LOG_FORMAT("Vulkan ValidationLayer: %s\n", LOG_DATA_CHAR_STR, &validation_layers[i], true, true);
-            return false;
+            return -(i + 1);
         }
     }
 
-    return true;
+    return 0;
+}
+
+int32 vulkan_check_extension_support(const char** extensions, uint32 extension_count, RingMemory* ring) {
+    uint32 ext_count;
+    vkEnumerateInstanceExtensionProperties(NULL, &ext_count, NULL);
+
+    VkExtensionProperties* available_extensions = (VkExtensionProperties *) ring_get_memory(ring, ext_count * sizeof(VkExtensionProperties));
+    vkEnumerateInstanceExtensionProperties(NULL, &ext_count, available_extensions);
+
+    for (int32 i = 0; i < extension_count; ++i) {
+        bool layerFound = false;
+
+        for (uint32 j = 0; j < ext_count; ++j) {
+            if (strcmp(extensions[i], available_extensions[j].extensionName) == 0) {
+                layerFound = true;
+                break;
+            }
+        }
+
+        if (!layerFound) {
+            return -(i + 1);
+        }
+    }
+
+    return 0;
 }
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
+    VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT,
     const VkDebugUtilsMessengerCallbackDataEXT* debug_callback_data, void*
 ) {
-    LOG(debug_callback_data->pMessage, true, true);
-    ASSERT_SIMPLE(false);
+    if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        || (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    ) {
+        LOG(debug_callback_data->pMessage, true, true);
+    }
 
     return VK_FALSE;
 }
@@ -128,9 +154,18 @@ void vulkan_instance_create(
     const char** validation_layers = NULL, uint32 validation_layer_count = 0,
     RingMemory* ring = NULL
 ) {
+    int32 err;
     if (validation_layer_count
-        && !vulkan_check_validation_layer_support(validation_layers, validation_layer_count, ring)
+        && (err = vulkan_check_validation_layer_support(validation_layers, validation_layer_count, ring))
     ) {
+        LOG_FORMAT("Vulkan validation_layer missing: %d\n", LOG_DATA_CHAR_STR, (void *) validation_layers[-err - 1], true, true);
+        ASSERT_SIMPLE(false);
+    }
+
+    if (extension_count
+        && (err = vulkan_check_extension_support(extensions, extension_count, ring))
+    ) {
+        LOG_FORMAT("Vulkan extension missing: %d\n", LOG_DATA_CHAR_STR, (void *) extensions[-err - 1], true, true);
         ASSERT_SIMPLE(false);
     }
 
@@ -145,7 +180,7 @@ void vulkan_instance_create(
     VkInstanceCreateInfo create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &app_info;
-
+    //create_info.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     create_info.enabledExtensionCount = extension_count;
     create_info.ppEnabledExtensionNames = extensions;
 
@@ -199,12 +234,29 @@ bool vulkan_device_supports_extensions(VkPhysicalDevice device, const char** dev
         }
 
         if (!found) {
-            LOG_FORMAT("Vulkan DeviceExtensions: %s\n", LOG_DATA_CHAR_STR, &device_extensions[i], true, true);
             return false;
         }
     }
 
     return true;
+}
+
+// @todo Allow to fill array
+void vulkan_available_layers(RingMemory* ring) {
+    uint32 layer_count;
+    vkEnumerateInstanceLayerProperties(&layer_count, NULL);
+
+    VkLayerProperties* available_layers = (VkLayerProperties *) ring_get_memory(ring, layer_count * sizeof(VkLayerProperties));
+    vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
+}
+
+// @todo Allow to fill array
+void vulkan_available_extensions(RingMemory* ring) {
+    uint32 extension_count;
+    vkEnumerateInstanceExtensionProperties(NULL, &extension_count, NULL);
+
+    VkExtensionProperties* available_extensions = (VkExtensionProperties *) ring_get_memory(ring, extension_count * sizeof(VkExtensionProperties));
+    vkEnumerateInstanceExtensionProperties(NULL, &extension_count, available_extensions);
 }
 
 VulkanQueueFamilyIndices vulkan_find_queue_families(VkPhysicalDevice physical_device, VkSurfaceKHR surface, RingMemory* ring)
@@ -350,10 +402,10 @@ void gpuapi_create_logical_device(
 
 // WARNING: swapchain_images needs to already have reserved enough memory
 // @todo How can we ensure swapchain_images has enough but not too much space?
+// @question Do we need to handle old swapchains?
 void vulkan_swap_chain_create(
     VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface,
-    VkSwapchainKHR* swapchain, VkImage* swapchain_images, uint32* swapchain_image_count,
-    VkFormat* swapchain_image_format, VkExtent2D* swapchain_extent,
+    VkSwapchainKHR* swapchain, VkFormat* swapchain_image_format, VkExtent2D* swapchain_extent,
     Window* window, RingMemory* ring
 ) {
     VulkanSwapChainSupportDetails swap_chain_support = vulkan_query_swap_chain_support(physical_device, surface, ring);
@@ -364,13 +416,16 @@ void vulkan_swap_chain_create(
             && swap_chain_support.formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
         ) {
             surface_format = &swap_chain_support.formats[i];
+            break;
         }
     }
 
+    // @todo switch from VK_PRESENT_MODE_MAILBOX_KHR to VK_PRESENT_MODE_FIFO_KHR
     VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
     for (int32 i = 0; i < swap_chain_support.present_mode_size; ++i) {
         if (swap_chain_support.present_modes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
             present_mode = swap_chain_support.present_modes[i];
+            break;
         }
     }
 
@@ -398,6 +453,8 @@ void vulkan_swap_chain_create(
     }
 
     VkSwapchainCreateInfoKHR create_info = {};
+    create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    create_info.surface = surface;
     create_info.minImageCount = image_count;
     create_info.imageFormat = surface_format->format;
     create_info.imageColorSpace = surface_format->colorSpace;
@@ -427,10 +484,19 @@ void vulkan_swap_chain_create(
         ASSERT_SIMPLE(false);
     }
 
-    vkGetSwapchainImagesKHR(device, *swapchain, swapchain_image_count, NULL);
-    vkGetSwapchainImagesKHR(device, *swapchain, swapchain_image_count, swapchain_images);
-
     memcpy(swapchain_image_format, &surface_format->format, sizeof(VkFormat));
+}
+
+void vulkan_swap_chain_images_create(
+    VkDevice device, VkSwapchainKHR swapchain,
+    VkImage** swapchain_images, uint32* swapchain_image_count,
+    BufferMemory* buf
+) {
+    vkGetSwapchainImagesKHR(device, swapchain, swapchain_image_count, NULL);
+    // @question Do we really want to allocate in here or should that be done by the caller
+    *swapchain_images = (VkImage *) buffer_get_memory(buf, *swapchain_image_count * sizeof(VkImage), 4);
+
+    vkGetSwapchainImagesKHR(device, swapchain, swapchain_image_count, *swapchain_images);
 }
 
 void vulkan_image_views_create(

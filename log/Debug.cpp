@@ -343,7 +343,7 @@ void log(const char* str, bool should_log, bool save, const char* file, const ch
         return;
     }
 
-    size_t str_len = strlen(str);
+    size_t str_len = OMS_MIN(strlen(str), MAX_LOG_LENGTH - 128);
     size_t file_len = strlen(file);
     size_t function_len = strlen(function);
 
@@ -370,8 +370,6 @@ void log(const char* str, bool should_log, bool save, const char* file, const ch
     if (save || debug_container->log_memory.size - debug_container->log_memory.pos < MAX_LOG_LENGTH) {
         log_to_file();
     }
-
-    ASSERT_SIMPLE(false);
 }
 
 void log(const char* format, LogDataType data_type, void* data, bool should_log, bool save, const char* file, const char* function, int32 line)
