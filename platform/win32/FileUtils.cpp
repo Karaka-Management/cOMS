@@ -293,8 +293,8 @@ void file_read(FileHandle fp, FileBody* file, uint64 offset = 0, uint64 length =
 {
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
-        CloseHandle(fp);
         file->content = NULL;
+        ASSERT_SIMPLE(false);
 
         return;
     }
@@ -304,7 +304,7 @@ void file_read(FileHandle fp, FileBody* file, uint64 offset = 0, uint64 length =
     if (offset >= file_size) {
         file->size = 0;
         file->content = NULL;
-        CloseHandle(fp);
+        ASSERT_SIMPLE(false);
 
         return;
     }
@@ -320,16 +320,16 @@ void file_read(FileHandle fp, FileBody* file, uint64 offset = 0, uint64 length =
     LARGE_INTEGER li;
     li.QuadPart = offset;
     if (SetFilePointerEx(fp, li, NULL, FILE_BEGIN) == 0) {
-        CloseHandle(fp);
         file->content = NULL;
+        ASSERT_SIMPLE(false);
 
         return;
     }
 
     DWORD bytes;
     if (!ReadFile(fp, file->content, (uint32) read_length, &bytes, NULL)) {
-        CloseHandle(fp);
         file->content = NULL;
+        ASSERT_SIMPLE(false);
 
         return;
     }
@@ -554,8 +554,8 @@ bool file_read_async(
 ) {
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
-        CloseHandle(fp);
         file->content = NULL;
+        ASSERT_SIMPLE(false);
 
         return false;
     }
@@ -565,7 +565,7 @@ bool file_read_async(
     if (offset >= file_size) {
         file->size = 0;
         file->content = NULL;
-        CloseHandle(fp);
+        ASSERT_SIMPLE(false);
 
         return false;
     }
@@ -579,7 +579,7 @@ bool file_read_async(
     }
 
     if (!file->content) {
-        CloseHandle(fp);
+        ASSERT_SIMPLE(false);
 
         return false;
     }
@@ -594,10 +594,9 @@ bool file_read_async(
     if (!ReadFile(fp, file->content, (DWORD) read_length, &bytes_read, &file->ov)) {
         DWORD error = GetLastError();
         if (error != ERROR_IO_PENDING) {
-            CloseHandle(fp);
             free(file->content);
             file->content = NULL;
-            CloseHandle(&file->ov.hEvent);
+            ASSERT_SIMPLE(false);
 
             return false;
         }
@@ -733,13 +732,14 @@ inline bool
 file_append(FileHandle fp, const char* file)
 {
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_SIMPLE(false);
         return false;
     }
 
     DWORD written;
     DWORD length = (DWORD) strlen(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
-        CloseHandle(fp);
+        ASSERT_SIMPLE(false);
         return false;
     }
 
@@ -752,12 +752,13 @@ inline bool
 file_append(FileHandle fp, const char* file, size_t length)
 {
     if (fp == INVALID_HANDLE_VALUE) {
+        ASSERT_SIMPLE(false);
         return false;
     }
 
     DWORD written;
     if (!WriteFile(fp, file, (uint32) length, &written, NULL)) {
-        CloseHandle(fp);
+        ASSERT_SIMPLE(false);
         return false;
     }
 

@@ -173,10 +173,8 @@ void chunk_reserve_index(ChunkMemory* buf, int64 index, int64 elements = 1, bool
 int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
 {
     int64 free_index = (buf->last_pos + 1) / 64;
-    int32 bit_index;
-
+    int32 bit_index = buf->last_pos - free_index * 64;
     int64 free_element = -1;
-    int64 mask;
 
     int32 i = 0;
     int64 max_bytes = (buf->count + 7) / 64;
@@ -195,7 +193,7 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
         }
 
         // @performance There is some redundancy happening down below, we should ++free_index in certain conditions?
-        for (bit_index = 0; bit_index < 64; ++bit_index) {
+        for (; bit_index < 64; ++bit_index) {
             int32 consecutive_free_bits = 0;
 
             // Check if there are 'elements' consecutive free bits
@@ -209,7 +207,7 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
                 uint64 current_free_index = free_index + (bit_index + j) / 64;
                 int32 current_bit_index = (bit_index + j) % 64;
 
-                mask = 1LL << current_bit_index;
+                int64 mask = 1LL << current_bit_index;
                 if ((buf->free[current_free_index] & mask) == 0) {
                     ++consecutive_free_bits;
                 } else {
@@ -230,6 +228,8 @@ int64 chunk_reserve(ChunkMemory* buf, uint64 elements = 1, bool zeroed = false)
                 break;
             }
         }
+
+        bit_index = 0;
 
         ++i;
         ++free_index;

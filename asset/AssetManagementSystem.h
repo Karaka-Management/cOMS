@@ -35,6 +35,14 @@ struct AssetManagementSystem {
 
     // The indices of asset_memory and asset_data_memory are always linked
 
+    // @question Wouldn't it make much more sense to have a general AMS for this data
+    // In that case we would only need one AMS which holds the Asset information. All others would only need the data_memory
+    // We could probably dramatically simplify the AMS that holds the actual data. We might only need the ChunkMemory?
+
+    // @question Even further, why would we want to split stats and DATA at all? we are talking about assets which most likely don't fit into a single L1 cache line
+    // BUT they may fit in L2 or L3 and therefore require less pointer chasing
+    // Sure collecting data is faster with split memory (ram/vram usage)
+
     // General asset memory
     // Fixed chunk size of sizeof(Asset)
     ChunkMemory asset_memory;

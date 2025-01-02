@@ -26,6 +26,12 @@
     #define UNREACHABLE() __builtin_unreachable()
 #endif
 
+#if _WIN32
+    #define EXPORT_LIB extern "C" __declspec(dllexport)
+#elif __linux__
+    #define EXPORT_LIB extern "C" __attribute__((visibility("default")))
+#endif
+
 #define ARRAY_COUNT(a) (sizeof(a) / sizeof((a)[0]))
 
 typedef int8_t int8;

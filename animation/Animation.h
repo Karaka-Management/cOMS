@@ -10,6 +10,7 @@
 #ifndef TOS_ANIMATION_H
 #define TOS_ANIMATION_H
 
+#include "../stdlib/Types.h"
 #include "../utils/MathUtils.h"
 
 #include "AnimationEaseType.h"
@@ -26,6 +27,9 @@ f32 smoothstep(f32 t) {
 
 f32 anim_ease(f32 t, AnimationEaseType type) {
     switch(type) {
+        case ANIMATION_EASE_DISCRETE: {
+                return anim_discrete(t);
+            };
         case ANIMATION_EASE_IN_SINE: {
                 return anim_ease_in_sine(t);
             };
@@ -119,6 +123,11 @@ f32 anim_ease(f32 t, AnimationEaseType type) {
         default:
             return t;
     }
+}
+
+inline
+f32 anim_discrete(f32 t) {
+    return t >= 1.0f ? 1.0f : 0.0f;
 }
 
 inline
@@ -217,7 +226,8 @@ f32 anim_ease_in_out_quint(f32 t) {
 inline
 f32 anim_ease_in_expo(f32 t) {
     return t == 0
-        ? 0 : pow(2, 10 * t - 10);
+        ? 0
+        : pow(2, 10 * t - 10);
 }
 
 inline
@@ -240,19 +250,19 @@ f32 anim_ease_in_out_expo(f32 t) {
 
 inline
 f32 anim_ease_in_circ(f32 t) {
-    return 1 - sqrt(1 - pow(t, 2));
+    return 1 - sqrtf(1 - pow(t, 2));
 }
 
 inline
 f32 anim_ease_out_circ(f32 t) {
-    return sqrt(1 - pow(t - 1, 2));
+    return sqrtf(1 - pow(t - 1, 2));
 }
 
 inline
 f32 anim_ease_in_out_circ(f32 t) {
     return t < 0.5
-        ? (1 - sqrt(1 - pow(2 * t, 2))) / 2
-        : (sqrt(1 - pow(-2 * t + 2, 2)) + 1) / 2;
+        ? (1 - sqrtf(1 - pow(2 * t, 2))) / 2
+        : (sqrtf(1 - pow(-2 * t + 2, 2)) + 1) / 2;
 }
 
 inline

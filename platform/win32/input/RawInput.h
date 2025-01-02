@@ -20,14 +20,6 @@
 #include "../../../memory/RingMemory.h"
 #include <winDNS.h>
 
-#define INPUT_MOUSE_BUTTON_1 1
-#define INPUT_MOUSE_BUTTON_2 2
-#define INPUT_MOUSE_BUTTON_3 3
-#define INPUT_MOUSE_BUTTON_4 4
-#define INPUT_MOUSE_BUTTON_5 5
-#define INPUT_MOUSE_BUTTON_WHEEL 6
-#define INPUT_MOUSE_BUTTON_HWHEEL 7
-
 // IMPORTANT:
 // Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions required
 // aligned memory. So far we only figured out that 4 bytes works, maybe this needs to be 8 in the future?!

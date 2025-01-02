@@ -118,6 +118,8 @@ void vertex_rect_create(
     *index = idx;
 }
 
+// @todo also allow background -> we can benefit from reduced vertex count
+// All we have to do is add 3 more vertices (= inside vertices)
 inline
 void vertex_rect_border_create(
     Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,

@@ -10,8 +10,11 @@
 #ifndef TOS_ANIMATION_EASE_TYPE_H
 #define TOS_ANIMATION_EASE_TYPE_H
 
-enum AnimationEaseType {
+#include "../stdlib/Types.h"
+
+enum AnimationEaseType : byte {
     ANIMATION_LINEAR,
+    ANIMATION_EASE_DISCRETE,
     ANIMATION_EASE_IN_SINE,
     ANIMATION_EASE_OUT_SINE,
     ANIMATION_EASE_IN_OUT_SINE,

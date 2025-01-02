@@ -15,6 +15,14 @@
 #include "ControllerInput.h"
 #include "InputConnectionType.h"
 
+#define INPUT_MOUSE_BUTTON_1 1
+#define INPUT_MOUSE_BUTTON_2 2
+#define INPUT_MOUSE_BUTTON_3 3
+#define INPUT_MOUSE_BUTTON_4 4
+#define INPUT_MOUSE_BUTTON_5 5
+#define INPUT_MOUSE_BUTTON_WHEEL 6
+#define INPUT_MOUSE_BUTTON_HWHEEL 7
+
 // How many concurrent mouse/secondary input device presses to we recognize
 #define MAX_MOUSE_PRESSES 3
 
@@ -28,7 +36,7 @@
 
 #define MIN_INPUT_DEVICES 2
 
-// How often can a key be asigned to a different hotkey
+// How often can a key be assigned to a different hotkey
 #define MAX_KEY_TO_HOTKEY 5
 #define MEX_KEY_LENGTH ((MAX_MOUSE_KEYS + MAX_KEYBOARD_KEYS + MAX_CONTROLLER_KEYS) * MAX_KEY_TO_HOTKEY)
 
@@ -38,12 +46,15 @@
 // These values are used as bit flags to hint32 if a "key" is a keyboard/primary or mouse/secondary input
 // When adding a keybind the "key" can only be uint8 but we expand it to an int and set the first bit accordingly
 #define INPUT_MOUSE_PREFIX 0
-#define INPUT_KEYBOARD_PREFIX 8192
-#define INPUT_CONTROLLER_PREFIX 16384
+#define INPUT_KEYBOARD_PREFIX 1 << 13
+#define INPUT_CONTROLLER_PREFIX 1 << 14
 
-#define INPUT_TYPE_MOUSE_KEYBOARD 0x01
-#define INPUT_TYPE_CONTROLLER 0x02
-#define INPUT_TYPE_OTHER 0x03
+enum InputType {
+    INPUT_TYPE_NONE = 0,
+    INPUT_TYPE_MOUSE_KEYBOARD = 1 << 0,
+    INPUT_TYPE_CONTROLLER = 1 << 2,
+    INPUT_TYPE_OTHER = 1 << 3,
+};
 
 #define MIN_CONTROLLER_DEVICES 4
 
