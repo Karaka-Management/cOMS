@@ -16,16 +16,13 @@
 #include "../../image/Image.cpp"
 #include "../../utils/StringUtils.h"
 #include "../../log/Log.h"
-
+#include "../../system/FileUtils.cpp"
 #include "../RenderUtils.h"
 #include "Opengl.h"
 
 #if _WIN32
-    #include <windows.h>
-    #include "../../platform/win32/FileUtils.cpp"
     #include "../../platform/win32/Window.h"
 #elif __linux__
-    #include "../../platform/linux/FileUtils.cpp"
     #include "../../platform/linux/Window.h"
 #endif
 
@@ -85,10 +82,10 @@ void opengl_info(OpenglInfo* info)
 
     for (char *at = version; *at; ++at) {
         if (*at == '.') {
-            info->major = str_to_int(version);
+            info->major = (int32) str_to_int(version);
 
             ++at;
-            info->minor = str_to_int(at);
+            info->minor = (int32) str_to_int(at);
             break;
         }
     }

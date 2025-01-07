@@ -30,7 +30,7 @@
 #if __aarch64__
     #include "../../stdlib/sve/SVE_Helper.h"
 #else
-    #include "../../stdlib/simd/SIMD_Helper.h"
+    #include "../../stdlib/SIMD_Helper.h"
 #endif
 
 // @performance Do we really need all these libs, can't we simplify that?!
@@ -451,7 +451,7 @@ void display_info_get_primary(DisplayInfo* info) {
         mode.dmSize = sizeof(mode);
 
         if (EnumDisplaySettingsA(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
-            strcpy(info->name, device.DeviceName);
+            str_copy_short(info->name, device.DeviceName);
             info->width = mode.dmPelsWidth;
             info->height = mode.dmPelsHeight;
             info->hz = mode.dmDisplayFrequency;
@@ -473,7 +473,7 @@ uint32 display_info_get(DisplayInfo* info) {
         mode.dmSize = sizeof(mode);
 
         if (EnumDisplaySettingsA(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
-            strcpy(info[i].name, device.DeviceName);
+            str_copy_short(info[i].name, device.DeviceName);
             info[i].width = mode.dmPelsWidth;
             info[i].height = mode.dmPelsHeight;
             info[i].hz = mode.dmDisplayFrequency;

@@ -13,7 +13,7 @@
 #include "../stdlib/Types.h"
 #include "../utils/EndianUtils.h"
 #include "../audio/Audio.cpp"
-#include "../stdlib/simd/SIMD_I32.h"
+#include "../stdlib/Simd.h"
 
 #define QOA_SLICE_LEN 20
 #define QOA_SLICES_PER_FRAME 256

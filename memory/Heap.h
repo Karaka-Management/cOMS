@@ -14,12 +14,7 @@
 #include "../stdlib/Types.h"
 #include "../log/DebugMemory.h"
 #include "BufferMemory.h"
-
-#if _WIN32
-    #include "../platform/win32/Allocator.h"
-#elif __linux__
-    #include "../platform/linux/Allocator.h"
-#endif
+#include "../system/Allocator.h"
 
 struct Heap {
     byte* elements;

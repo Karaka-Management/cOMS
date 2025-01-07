@@ -45,7 +45,7 @@ void log_counter(int32, int64);
     printf("%ld\n", __rdtsc() - (time_start));  \
 })
 
-#if (!DEBUG && !INTERNAL)
+#if (!DEBUG && !INTERNAL) || RELEASE
     // Don't perform any logging at log level 0
     #define LOG(str, should_log, save) log((str), (should_log), (save), __FILE__, __func__, __LINE__)
     #define LOG_FORMAT(format, data_type, data, should_log, save) log((format), (data_type), (data), (should_log), (save), __FILE__, __func__, __LINE__)

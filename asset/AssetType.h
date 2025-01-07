@@ -9,7 +9,7 @@
 #ifndef TOS_ASSET_TYPE_H
 #define TOS_ASSET_TYPE_H
 
-enum AssetType {
+enum AssetType : byte {
     ASSET_TYPE_GENERAL,
     ASSET_TYPE_OBJ,
     ASSET_TYPE_AUDIO,

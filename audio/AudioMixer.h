@@ -16,12 +16,7 @@
 #include "../utils/MathUtils.h"
 #include "../memory/ChunkMemory.h"
 #include "../math/matrix/MatrixFloat32.h"
-
-#if _WIN32
-    #include "../platform/win32/threading/Atomic.h"
-#elif __linux__
-    #include "../platform/linux/threading/Atomic.h"
-#endif
+#include "../thread/Atomic.h"
 
 #if DIRECT_SOUND
     #include "../platform/win32/audio/DirectSound.h"
@@ -50,10 +45,11 @@ enum AudioEffect {
     AUDIO_EFFECT_EASE_IN = 1 << 14,
     AUDIO_EFFECT_EASE_OUT = 1 << 15,
     AUDIO_EFFECT_SPEED = 1 << 16,
+    AUDIO_EFFECT_REPEAT = 1 << 17,
 };
 
 struct AudioInstance {
-    int64 id;
+    int32 id;
     AudioLocationSetting origin;
 
     uint32 audio_size;
@@ -62,7 +58,6 @@ struct AudioInstance {
     uint64 effect;
     uint32 sample_index;
     byte channels;
-    bool repeat;
 
     // @todo How to implement audio that is only supposed to be played after a certain other sound file is finished
     // e.g. queueing soundtracks/ambient noise
@@ -130,28 +125,37 @@ bool audio_mixer_is_active(AudioMixer* mixer) {
     return (mixer->state_old = mixer_state) == AUDIO_MIXER_STATE_ACTIVE;
 }
 
-// @todo expand AudioLocationSetting so that it also includes audio effects, repeat etc.
-void audio_mixer_add(AudioMixer* mixer, int64 id, Audio* audio, AudioLocationSetting* origin)
+void audio_mixer_play(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* settings = NULL)
 {
-    int64 index = chunk_reserve(&mixer->audio_instances, 1);
+    int32 index = chunk_reserve(&mixer->audio_instances, 1);
     if (index < 0) {
         return;
     }
 
-    // @question Do I really want to use audio instance? wouldn't Audio* be sufficient?
-    // Well AudioInstance is a little bit smaller but is this really worth it, probably yes?!
     AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, index);
     instance->id = id;
     instance->audio_size = audio->size;
     instance->audio_data = audio->data;
     instance->channels = audio->channels;
 
-    if (origin) {
-        memcpy(&instance->origin, origin, sizeof(AudioLocationSetting));
+    if (settings) {
+        memcpy(&instance->origin, &settings->origin, sizeof(AudioLocationSetting));
+        instance->effect = settings->effect;
     }
 }
 
-void audio_mixer_add_unique(AudioMixer* mixer, int64 id, Audio* audio, AudioLocationSetting* origin)
+void audio_mixer_play(AudioMixer* mixer, AudioInstance* settings)
+{
+    int32 index = chunk_reserve(&mixer->audio_instances, 1);
+    if (index < 0) {
+        return;
+    }
+
+    AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, index);
+    memcpy(instance, settings, sizeof(AudioInstance));
+}
+
+void audio_mixer_play_unique(AudioMixer* mixer, int32 id, Audio* audio, AudioInstance* settings = NULL)
 {
     for (uint32 i = 0; i < mixer->audio_instances.count; ++i) {
         // @performance We are not really utilizing chunk memory.
@@ -163,16 +167,31 @@ void audio_mixer_add_unique(AudioMixer* mixer, int64 id, Audio* audio, AudioLoca
         }
     }
 
-    audio_mixer_add(mixer, id, audio, origin);
+    audio_mixer_play(mixer, id, audio, settings);
 }
 
-void audio_mixer_remove(AudioMixer* mixer, int64 id)
+void audio_mixer_play_unique(AudioMixer* mixer, AudioInstance* settings)
+{
+    for (uint32 i = 0; i < mixer->audio_instances.count; ++i) {
+        // @performance We are not really utilizing chunk memory.
+        // Maybe a simple array would be better
+        // Or we need to use more chunk functions / maybe even create a chunk_iterate() function?
+        AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
+        if (instance->id == settings->id) {
+            return;
+        }
+    }
+
+    audio_mixer_play(mixer, settings);
+}
+
+void audio_mixer_remove(AudioMixer* mixer, int32 id)
 {
     for (uint32 i = 0; i < mixer->audio_instances.count; ++i) {
         AudioInstance* instance = (AudioInstance *) chunk_get_element(&mixer->audio_instances, i);
         if (instance->id == id) {
             instance->id = 0;
-            chunk_free_element(&mixer->audio_instances, i);
+            chunk_free_elements(&mixer->audio_instances, i);
 
             // No return, since we want to remove all instances
         }
@@ -475,7 +494,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) {
             // We make it stereo
             for (int32 j = 0; j < limit; ++j) {
                 if (sound_sample_index >= sound_sample_count) {
-                    if (!sound->repeat) {
+                    if (!(sound->effect & AUDIO_EFFECT_REPEAT)) {
                         limit = j;
                         break;
                     }
@@ -494,7 +513,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) {
             }
 
             // Apply effects based on sound's effect type
-            if (sound->effect) {
+            if (sound->effect && sound->effect != AUDIO_EFFECT_REPEAT) {
                 int32 sample_adjustment = mixer_effects_mono(mixer, sound->effect, sound_sample_index);
                 sound_sample_index += sample_adjustment;
                 limit += sample_adjustment;
@@ -502,7 +521,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) {
         } else {
             for (int32 j = 0; j < limit; ++j) {
                 if (sound_sample_index >= sound_sample_count) {
-                    if (!sound->repeat) {
+                    if (!(sound->effect & AUDIO_EFFECT_REPEAT)) {
                         limit = j;
                         break;
                     }
@@ -520,7 +539,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) {
             }
 
             // Apply effects based on sound's effect type
-            if (sound->effect) {
+            if (sound->effect && sound->effect != AUDIO_EFFECT_REPEAT) {
                 int32 sample_adjustment = mixer_effects_stereo() / 2;;
                 sound_sample_index += sample_adjustment;
                 limit += sample_adjustment;

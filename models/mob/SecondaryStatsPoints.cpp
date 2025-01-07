@@ -9,7 +9,7 @@
 #ifndef TOS_MODELS_MOB_SECONDARY_STATS_POINTS_C
 #define TOS_MODELS_MOB_SECONDARY_STATS_POINTS_C
 
-#include "../../stdlib/simd/SIMD_I8.h"
+#include "../../stdlib/Simd.h"
 #include "SecondaryStatsPoints.h"
 
 void calculate_primary_values(const SecondaryStatsPoints* points, SecondaryStatsValues* values, int step = 8)

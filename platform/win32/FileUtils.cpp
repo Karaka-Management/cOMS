@@ -82,7 +82,7 @@ void relative_to_absolute(const char* rel, char* path)
     ++self_path_length;
 
     memcpy(path, self_path, self_path_length);
-    strcpy(path + self_path_length, temp);
+    str_copy_short(path + self_path_length, temp);
 }
 
 inline uint64

@@ -28,6 +28,8 @@ struct UILayout {
     int32 vertex_size;
     Asset* ui_asset;
 
+    // @question Should we maybe also hold the font atlas asset here AND the color palette?
+
     // Defines the length of the static vertex array
     int32 vertex_size_static;
 };

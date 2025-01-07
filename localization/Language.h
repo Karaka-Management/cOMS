@@ -3,12 +3,7 @@
 
 #include "../stdlib/Types.h"
 #include "../memory/RingMemory.h"
-
-#if _WIN32
-    #include "../platform/win32/FileUtils.cpp"
-#else
-    #include "../platform/linux/FileUtils.cpp"
-#endif
+#include "../system/FileUtils.cpp"
 
 #define LANGUAGE_VERSION 1
 

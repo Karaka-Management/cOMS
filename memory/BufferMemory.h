@@ -15,12 +15,7 @@
 #include "../utils/EndianUtils.h"
 #include "../utils/TestUtils.h"
 #include "../log/DebugMemory.h"
-
-#if _WIN32
-    #include "../platform/win32/Allocator.h"
-#elif __linux__
-    #include "../platform/linux/Allocator.h"
-#endif
+#include "../system/Allocator.h"
 
 // @question Consider to use element_alignment to automatically align/pad elements
 

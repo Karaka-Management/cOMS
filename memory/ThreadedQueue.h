@@ -14,14 +14,8 @@
 #include "../stdlib/Types.h"
 #include "../utils/Utils.h"
 #include "RingMemory.h"
-
-#if _WIN32
-    #include "../platform/win32/threading/Thread.h"
-    #include "../platform/win32/threading/Semaphore.h"
-#elif __linux__
-    #include "../platform/linux/threading/Thread.h"
-    #include "../platform/linux/threading/Semaphore.h"
-#endif
+#include "../thread/Thread.h"
+#include "../thread/Semaphore.h"
 
 struct ThreadedQueue {
     byte* memory;

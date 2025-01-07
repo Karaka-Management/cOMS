@@ -10,6 +10,7 @@
 #define TOS_PLATFORM_WIN32_THREADING_SPINLOCK_C
 
 #include <windows.h>
+#include "../../../stdlib/Types.h"
 #include "../TimeUtils.h"
 #include "Spinlock.h"
 

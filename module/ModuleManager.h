@@ -3,12 +3,11 @@
 
 #include "Module.h"
 #include "../memory/RingMemory.h"
+#include "../system/FileUtils.cpp"
 
 #if _WIN32
-    #include "../platform/win32/FileUtils.cpp"
     #include "../platform/win32/UtilsWin32.h"
 #elif __linux__
-    #include "../platform/linux/FileUtils.cpp"
 #endif
 
 struct ModuleManager {

@@ -7,15 +7,10 @@
 #include "../utils/StringUtils.h"
 #include "../stdlib/HashMap.h"
 #include "../font/Font.h"
+#include "../system/FileUtils.cpp"
 
 #include "UIAttribute.h"
 #include "UIElementType.h"
-
-#if _WIN32
-    #include "../platform/win32/FileUtils.cpp"
-#else
-    #include "../platform/linux/FileUtils.cpp"
-#endif
 
 #define UI_THEME_VERSION 1
 
@@ -26,8 +21,6 @@
 //          This allows us to cast between both
 struct UIThemeStyle {
     byte* data;
-
-    int32 version;
 
     // A theme may have N named styles
     // The hashmap contains the offset where the respective style can be found
@@ -121,7 +114,8 @@ void theme_from_file_txt(
     // move past the version string
     pos += 8;
 
-    theme->version = strtol(pos, &pos, 10); ++pos;
+    // Use version for different handling
+    int32 version = strtol(pos, &pos, 10); ++pos;
 
     bool block_open = false;
     char block_name[32];
@@ -157,7 +151,9 @@ void theme_from_file_txt(
     UIAttributeGroup* temp_group = NULL;
 
     pos = (char *) file.content;
-    pos += 8; // move past version
+
+    // move past version string
+    str_move_past(&pos, '\n');
 
     while (*pos != '\0') {
         str_skip_whitespace(&pos);
@@ -213,14 +209,14 @@ void theme_from_file_txt(
 
         // Handle different attribute types
         UIAttribute attribute = {};
-        if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_TYPE), attribute_name) == 0) {
+        if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_TYPE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TYPE;
 
             char str[32];
             str_copy_move_until(&pos, str, '\n');
 
             for (int32 j = 0; j < UI_ELEMENT_TYPE_SIZE; ++j) {
-                if (strcmp(str, ui_element_type_to_string_const((UIElementType) j)) == 0) {
+                if (strcmp(str, ui_element_type_to_string((UIElementType) j)) == 0) {
 
                     attribute.value_int = j;
                     break;
@@ -228,135 +224,135 @@ void theme_from_file_txt(
             }
 
             ++pos;
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_STYLE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_STYLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_STYLE;
 
             str_copy_move_until(&pos, attribute.value_str, '\n');
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_COLOR;
             hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_SIZE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_SIZE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_SIZE;
             attribute.value_float = strtof(pos, &pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_WEIGHT), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_WEIGHT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_WEIGHT;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT;
             attribute.value_float = strtof(pos, &pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_ALIGN_H), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_ALIGN_H), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_ALIGN_H;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_ALIGN_V), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_ALIGN_V), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_ALIGN_V;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_ZINDEX), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_ZINDEX), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_ZINDEX;
             attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos));
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR;
             hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG;
 
             str_copy_move_until(&pos, attribute.value_str, '\n');
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY;
             attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos));
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_V), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_V), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_V;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_COLOR;
             hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_WIDTH), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR;
             hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR;
             hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR;
             hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR;
             hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_TOP), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_TOP), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_TOP;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_RIGHT), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_RIGHT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_RIGHT;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_BOTTOM), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_BOTTOM), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_BOTTOM;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_PADDING_LEFT), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_LEFT), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_LEFT;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR;
             hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE;
             attribute.value_float = strtof(pos, &pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR), attribute_name) == 0) {
             ++pos; // Skip '#'
 
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR;
             hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE;
             attribute.value_float = strtof(pos, &pos);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION;
             attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string_const(UI_ATTRIBUTE_TYPE_TRANSITION_DURATION), attribute_name) == 0) {
+        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_TRANSITION_DURATION), attribute_name) == 0) {
             attribute.attribute_id = UI_ATTRIBUTE_TYPE_TRANSITION_DURATION;
             attribute.value_float = strtof(pos, &pos);
         } else {
@@ -406,8 +402,8 @@ int32 theme_from_data(
 ) {
     const byte* pos = data;
 
-    theme->version = *((int32 *) pos);
-    pos += sizeof(theme->version);
+    int32 version = *((int32 *) pos);
+    pos += sizeof(version);
 
     // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
     // Of course we still need to populate the data using hashmap_load()
@@ -487,8 +483,8 @@ int32 theme_to_data(
     byte* pos = data;
 
     // version
-    *((int32 *) pos) = SWAP_ENDIAN_LITTLE(theme->version);
-    pos += sizeof(theme->version);
+    *((int32 *) pos) = SWAP_ENDIAN_LITTLE(UI_THEME_VERSION);
+    pos += sizeof(int32);
 
     // hashmap
     byte* start = pos;

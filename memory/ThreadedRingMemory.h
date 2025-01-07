@@ -10,12 +10,7 @@
 #define TOS_MEMORY_THREADED_RING_MEMORY_H
 
 #include "RingMemory.h"
-
-#if _WIN32
-    #include "../platform/win32/threading/Thread.h"
-#elif __linux__
-    #include "../platform/linux/threading/Thread.h"
-#endif
+#include "../thread/Thread.h"
 
 // @todo This is a horrible implementation. Please implement a lock free solution
 

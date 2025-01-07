@@ -198,7 +198,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, int32 value) {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_size;
     PerfectHashEntryInt32* entry = (PerfectHashEntryInt32 *) (hm->hash_entries + hm->entry_size * index);
     entry->element_id = index;
-    strcpy(entry->key, key);
+    str_copy_short(entry->key, key);
     entry->value = value;
 }
 
@@ -207,7 +207,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, int64 value) {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_size;
     PerfectHashEntryInt64* entry = (PerfectHashEntryInt64 *) (hm->hash_entries + hm->entry_size * index);
     entry->element_id = index;
-    strcpy(entry->key, key);
+    str_copy_short(entry->key, key);
     entry->value = value;
 }
 
@@ -216,7 +216,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, uintptr_t value
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_size;
     PerfectHashEntryUIntPtr* entry = (PerfectHashEntryUIntPtr *) (hm->hash_entries + hm->entry_size * index);
     entry->element_id = index;
-    strcpy(entry->key, key);
+    str_copy_short(entry->key, key);
     entry->value = value;
 }
 
@@ -225,7 +225,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, void* value) {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_size;
     PerfectHashEntryVoidP* entry = (PerfectHashEntryVoidP *) (hm->hash_entries + hm->entry_size * index);
     entry->element_id = index;
-    strcpy(entry->key, key);
+    str_copy_short(entry->key, key);
     entry->value = value;
 }
 
@@ -234,7 +234,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, f32 value) {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_size;
     PerfectHashEntryFloat* entry = (PerfectHashEntryFloat *) (hm->hash_entries + hm->entry_size * index);
     entry->element_id = index;
-    strcpy(entry->key, key);
+    str_copy_short(entry->key, key);
     entry->value = value;
 }
 
@@ -243,7 +243,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, const char* val
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_size;
     PerfectHashEntryStr* entry = (PerfectHashEntryStr *) (hm->hash_entries + hm->entry_size * index);
     entry->element_id = index;
-    strcpy(entry->key, key);
+    str_copy_short(entry->key, key);
     memcpy(entry->value, value, PERFECT_HASH_MAP_MAX_KEY_LENGTH);
 }
 
@@ -252,7 +252,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, byte* value) {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_size;
     PerfectHashEntryStr* entry = (PerfectHashEntryStr *) (hm->hash_entries + hm->entry_size * index);
     entry->element_id = index;
-    strcpy(entry->key, key);
+    str_copy_short(entry->key, key);
     memcpy(entry->value, value, hm->entry_size - sizeof(PerfectHashEntry));
 }
 

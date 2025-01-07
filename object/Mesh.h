@@ -11,22 +11,11 @@
 
 #include "Vertex.h"
 #include "../stdlib/Types.h"
-
-#if _WIN32
-    #include "../platform/win32/FileUtils.cpp"
-#else
-    #include "../platform/linux/FileUtils.cpp"
-#endif
-
+#include "../system/FileUtils.cpp"
 #include "../memory/RingMemory.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/StringUtils.h"
-
-#if __aarch64__
-    #include "../stdlib/sve/SVE_I32.h"
-#else
-    #include "../stdlib/simd/SIMD_I32.h"
-#endif
+#include "../stdlib/Simd.h"
 
 #define MESH_VERSION 1
 
@@ -36,8 +25,6 @@
 struct Mesh {
     byte* data; // memory owner that subdivides into the pointers below
 
-    // @todo Implement the version into the file, currently not implemented
-    int32 version;
     uint32 object;
 
     uint32 group_count;
@@ -90,7 +77,8 @@ void mesh_from_file_txt(
     // move past the version string
     pos += 8;
 
-    mesh->version = strtol(pos, &pos, 10); ++pos;
+    // @todo us version for different handling
+    int32 version = strtol(pos, &pos, 10); ++pos;
 
     int32 object_index = 0;
     int32 group_index = 0;
@@ -480,9 +468,9 @@ int32 mesh_from_data(
 {
     const byte* pos = data;
 
-    // Read version
-    mesh->version = *((int32 *) pos);
-    pos += sizeof(mesh->version);
+    // Read version, use to handle different versions differently
+    int32 version = *((int32 *) pos);
+    pos += sizeof(version);
 
     // Read base data
     mesh->vertex_type = *((int32 *) pos);
@@ -549,7 +537,7 @@ int32 mesh_from_data(
 // We would have to check the vertex format to calculate the actual size
 int32 mesh_data_size(const Mesh* mesh)
 {
-    return sizeof(mesh->version)
+    return sizeof(int32)
         + sizeof(mesh->vertex_type)
         + sizeof(mesh->vertex_count)
         + 12 * sizeof(f32) * mesh->vertex_count; // 12 is the maximum value
@@ -565,8 +553,8 @@ int32 mesh_to_data(
     byte* pos = data;
 
     // version
-    memcpy(pos, &mesh->version, sizeof(mesh->version));
-    pos += sizeof(mesh->version);
+    *((int32 *) pos) = MESH_VERSION;
+    pos += sizeof(int32);
 
     // vertices
     if (vertex_save_format == VERTEX_TYPE_ALL) {

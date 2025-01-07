@@ -119,7 +119,7 @@ UIAttribute* ui_attribute_from_group(UIAttributeGroup* group, UIAttributeType ty
     return NULL;
 }
 
-constexpr const char* ui_attribute_type_to_string_const(UIAttributeType e)
+constexpr const char* ui_attribute_type_to_string(UIAttributeType e)
 {
     switch (e) {
         case UI_ATTRIBUTE_TYPE_TYPE:

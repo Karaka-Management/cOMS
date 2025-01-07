@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_VULKAN_GPU_API_CONTAINER
-#define TOS_GPUAPI_VULKAN_GPU_API_CONTAINER
+#ifndef TOS_GPUAPI_VULKAN_GPU_API_CONTAINER_H
+#define TOS_GPUAPI_VULKAN_GPU_API_CONTAINER_H
 
 #include "../../stdlib/Types.h"
 #include <vulkan/vulkan.h>

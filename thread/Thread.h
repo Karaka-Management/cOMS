@@ -13,13 +13,12 @@
 #include <stdlib.h>
 
 #include "../stdlib/Types.h"
+#include "Atomic.h"
 
 #if _WIN32
     #include "../platform/win32/threading/Thread.h"
-    #include "../platform/win32/threading/Atomic.h"
 #elif __linux__
     #include "../platform/linux/threading/Thread.h"
-    #include "../platform/linux/threading/Atomic.h"
 #endif
 
 #include "ThreadJob.h"

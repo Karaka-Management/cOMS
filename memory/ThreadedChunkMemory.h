@@ -11,19 +11,14 @@
 
 #include <string.h>
 #include "../stdlib/Types.h"
-
-#if _WIN32
-    #include "../platform/win32/threading/Thread.h"
-#elif __linux__
-    #include "../platform/linux/threading/Thread.h"
-#endif
+#include "../thread/Thread.h"
 
 struct ThreadedChunkMemory {
     byte* memory;
 
-    uint64 count;
     uint64 size;
-    int64 last_pos;
+    uint32 last_pos;
+    uint32 count;
     uint32 chunk_size;
     int32 alignment;
 

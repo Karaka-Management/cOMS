@@ -17,7 +17,6 @@
 #include "../../utils/TestUtils.h"
 
 // @todo Currently alignment only effects the starting position, but it should also effect the ending/size
-// @todo Consider to rename file to Allocator.h
 
 // @question Since we store at least the size of the memory in the beginning,
 // does this have a negative impact on caching?

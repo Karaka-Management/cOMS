@@ -28,6 +28,7 @@
 #define OMS_CEIL(x) ((x) == (int)(x) ? (int)(x) : ((x) > 0 ? (int)(x) + 1 : (int)(x)))
 #define OMS_ROUND(x) (((x) >= 0) ? ((int)((x) + 0.5f)) : ((int)((x) - 0.5f)))
 #define OMS_ROUND_POSITIVE(x) ((int)((x) + 0.5f))
+#define FLOAT_CAST_EPS 0.001953125
 
 // Modulo function when b is a power of 2
 #define MODULO_2(a, b) ((a) & (b - 1))

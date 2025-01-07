@@ -42,7 +42,7 @@ inline void shader_set_value(VkDevice device, VkCommandBuffer commandBuffer, VkD
     descriptorWrite.descriptorCount = 1;
     descriptorWrite.pBufferInfo = &bufferInfo;
 
-    vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+    vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, NULL);
 }
 
 VkShaderModule shader_make(VkDevice device, const char* source, int32 source_size)

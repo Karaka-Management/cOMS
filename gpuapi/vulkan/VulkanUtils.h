@@ -743,7 +743,7 @@ void vulkan_command_pool_create(
 
 void vulkan_command_buffer_create(VkDevice device, VkCommandBuffer* command_buffer, VkCommandPool command_pool)
 {
-    VkCommandBufferAllocateInfo allocInfo{};
+    VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = command_pool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;

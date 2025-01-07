@@ -2,10 +2,7 @@
 #define TOS_MODULE_H
 
 #include "../stdlib/Types.h"
-
-#ifdef _WIN32
-    #include "../../GameEngine/platform/win32/Library.h"
-#endif
+#include "../../GameEngine/system/Library.h"
 
 enum ModuleType {
     MODULE_TYPE_HUD,

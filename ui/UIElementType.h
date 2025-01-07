@@ -21,7 +21,7 @@ enum UIElementType {
     UI_ELEMENT_TYPE_SIZE,
 };
 
-constexpr const char* ui_element_type_to_string_const(UIElementType e)
+constexpr const char* ui_element_type_to_string(UIElementType e)
 {
     switch (e) {
         case UI_ELEMENT_TYPE_BUTTON:

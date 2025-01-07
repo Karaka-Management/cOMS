@@ -11,12 +11,7 @@
 
 #include "../utils/StringUtils.h"
 #include "../memory/RingMemory.h"
-
-#if _WIN32
-    #include "../platform/win32/FileUtils.cpp"
-#else
-    #include "../platform/linux/FileUtils.cpp"
-#endif
+#include "../system/FileUtils.cpp"
 
 #include "Image.h"
 #include "Tga.h"
@@ -49,17 +44,6 @@ void image_flip_vertical(RingMemory* ring, Image* image)
     for (uint32 y = 0; y < image->height; ++y) {
         memcpy(image->pixels + y * stride, end - y * stride, stride);
     }
-
-    /* Flipping with small temp row
-    byte* temp_row = ring_get_memory(ring, stride);
-
-    for (int y = 0; y < image->height / 2; ++y) {
-        memcpy(temp_row, image->pixels + y * stride, stride);
-
-        memcpy(image->pixels + y * stride, image->pixels - y * stride, stride);
-        memcpy(image->pixels - y * stride, temp_row, stride);
-    }
-    */
 
     image->image_settings ^= IMAGE_SETTING_BOTTOM_TO_TOP;
 }

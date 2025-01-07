@@ -10,7 +10,7 @@
 #define TOS_MODELS_MOB_STATS_C
 
 #include "MobStats.h"
-#include "../../stdlib/simd/SIMD_I32.h"
+#include "../../stdlib/Simd.h"
 
 // Calculate whenever character points or items change
 // 1. combine primary Item points with character points

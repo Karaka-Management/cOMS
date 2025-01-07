@@ -25,19 +25,8 @@
 #include "../localization/Language.h"
 #include "../ui/UITheme.h"
 #include "AssetManagementSystem.h"
-
-#if __aarch64__
-    #include "../stdlib/sve/SVE_I32.h"
-#else
-    #include "../stdlib/simd/SIMD_I32.h"
-#endif
-
-#if _WIN32
-    #include <windows.h>
-    #include "../platform/win32/FileUtils.cpp"
-#elif __linux__
-    #include "../platform/win32/FileUtils.cpp"
-#endif
+#include "../system/FileUtils.cpp"
+#include "../stdlib/Simd.h"
 
 #define ASSET_ARCHIVE_VERSION 1
 
@@ -78,7 +67,7 @@ struct AssetArchive {
 
     // This is used to tell the asset archive in which AssetManagementSystem (AMS) which asset type is located.
     // Remember, many AMS only contain one asset type (e.g. image, audio, ...)
-    int32 asset_type_map[ASSET_TYPE_SIZE];
+    byte asset_type_map[ASSET_TYPE_SIZE];
 };
 
 // Calculates how large the header memory has to be to hold all its information
@@ -183,37 +172,47 @@ void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* b
 // Maybe we could just accept a int value which we set atomically as a flag that the asset is complete?
 // this way we can check much faster if we can work with this data from the caller?!
 // The only problem is that we need to pass the pointer to this int in the thrd_queue since we queue the files to load there
-Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetManagementSystem* ams_array, RingMemory* ring)
+Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetManagementSystem* ams, RingMemory* ring)
 {
-    // @todo add calculation from element->type to ams index
+    // @todo add calculation from element->type to ams index. Probably requires an app specific conversion function
 
     // We have to mask 0x00FFFFFF since the highest bits define the archive id, not the element id
     AssetArchiveElement* element = &archive->header.asset_element[id & 0x00FFFFFF];
-    AssetManagementSystem* ams = &ams_array[archive->asset_type_map[element->type]];
 
-    // @todo This is a little bit stupid, reconsider
-    char id_str[32];
-    _itoa(id, id_str, 16);
+    byte component_id = archive->asset_type_map[element->type];
+    AssetComponent* ac = &ams->asset_components[component_id];
 
-    Asset* asset;
+    // Create a string representation from the asset id
+    // We can't just use the asset id, since an int can have a \0 between high byte and low byte
+    // @question We maybe can switch the AMS to work with ints as keys.
+    // We would then have to also create an application specific enum for general assets,
+    // that are not stored in the asset archive (e.g. color palette, which is generated at runtime).
+    char id_str[9];
+    int_to_hex(id, id_str);
 
-    // @performance I think we could optimize the ams_reserver_asset in a way so we don't have to lock it the entire time
-    pthread_mutex_lock(&ams->mutex);
-    asset = ams_get_asset(ams, id_str);
+    Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
+
     if (asset) {
-        // Asset already loaded
-        pthread_mutex_unlock(&ams->mutex);
+        // Prevent garbage collection
+        asset->state &= ~ASSET_STATE_RAM_GC;
+        asset->state &= ~ASSET_STATE_VRAM_GC;
 
         return asset;
     }
 
+    // @bug Couldn't the asset become available from thrd_ams_get_asset_wait to here?
+    // This would mean we are overwriting it
+    // A solution could be a function called thrd_ams_get_reserve_wait() that reserves, if not available
+    // However, that function would have to lock the ams during that entire time
+
     if (element->type == 0) {
-        asset = ams_reserve_asset(ams, id_str, ams_calculate_chunks(ams, element->uncompressed));
+        asset = thrd_ams_reserve_asset(ams, (byte) component_id, id_str, element->uncompressed);
+        asset->official_id = id;
 
         FileBody file = {};
         file.content = asset->self;
 
-        // @performance Consider to implement gzip here
+        // @performance Consider to implement general purpose fast compression algorithm
 
         // We are directly reading into the correct destination
         file_read(archive->fd, &file, element->start, element->length);
@@ -230,8 +229,10 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
 
         // This happens while the file system loads the data
         // The important part is to reserve the uncompressed file size, not the compressed one
-        asset = ams_reserve_asset(ams, id_str, ams_calculate_chunks(ams, element->uncompressed));
-        asset->is_ram = true;
+        asset = thrd_ams_reserve_asset(ams, (byte) component_id, id_str, element->uncompressed);
+        asset->official_id = id;
+
+        asset->state |= ASSET_STATE_IN_RAM;
 
         file_async_wait(archive->fd_async, &file.ov, true);
         switch (element->type) {
@@ -288,10 +289,13 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
             }
         }
     }
-    pthread_mutex_unlock(&ams->mutex);
+
+    // Even though dependencies are still being loaded
+    // the main program should still be able to do some work if possible
+    thrd_ams_set_loaded(asset);
 
     // @performance maybe do in worker threads? This just feels very slow
-    // @question dependencies might be stored in different archives?
+    // @bug dependencies might be stored in different archives?
     for (uint32 i = 0; i < element->dependency_count; ++i) {
         asset_archive_asset_load(archive, id, ams, ring);
     }

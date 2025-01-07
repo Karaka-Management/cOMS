@@ -12,12 +12,10 @@
 #include "../stdlib/Types.h"
 #include "DebugMemory.h"
 #include "TimingStat.h"
+#include "../thread/Spinlock.h"
 
 #if _WIN32
     #include <windows.h>
-    #include "../platform/win32/threading/Spinlock.h"
-#elif __linux__
-    #include "../platform/linux/threading/Spinlock.h"
 #endif
 
 struct LogMemory {
@@ -26,7 +24,7 @@ struct LogMemory {
     uint32 id;
     uint64 size;
     uint64 pos;
-    int32 alignment;
+    uint32 alignment;
     uint64 start;
     uint64 end;
 };

@@ -14,12 +14,7 @@
 
 #include "../stdlib/Types.h"
 #include "../memory/ThreadedRingMemory.h"
-
-#if _WIN32
-    #include "../platform/win32/threading/ThreadDefines.h"
-#elif __linux__
-    #include "../platform/linux/threading/ThreadDefines.h"
-#endif
+#include "../thread/ThreadDefines.h"
 
 typedef void (*ThreadPoolJobFunc)(void*);
 

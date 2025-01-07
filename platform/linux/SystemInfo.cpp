@@ -18,7 +18,7 @@
 #include <cpuid.h>
 
 #if __aarch64__
-    #include "../../stdlib/simd/SIMD_Helper.h"
+    #include "../../stdlib/SIMD_Helper.h"
 #else
     #include "../../stdlib/sve/SVE_Helper.h"
 #endif
@@ -358,7 +358,7 @@ uint32 display_info_get(DisplayInfo* info) {
         mode.dmSize = sizeof(mode);
 
         if (EnumDisplaySettingsA(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
-            strcpy(info[i].name, device.DeviceName);
+            str_copy_short(info[i].name, device.DeviceName);
             info[i].width = mode.dmPelsWidth;
             info[i].height = mode.dmPelsHeight;
             info[i].hz = mode.dmDisplayFrequency;

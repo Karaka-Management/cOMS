@@ -73,9 +73,11 @@ typedef intptr_t smm;
 #define MIN_INT32 0x80000000
 #define MIN_INT64 0x8000000000000000
 
+#define MIN_MILLI 60000
 #define SEC_MILLI 1000
-#define MILLI_MICRO 1000
+#define MIN_MICRO 60000000
 #define SEC_MICRO 1000000
+#define MILLI_MICRO 1000
 
 #define MHZ 1000000
 #define GHZ 1000000000

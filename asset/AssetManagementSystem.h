@@ -14,220 +14,106 @@
 #include "Asset.h"
 #include "../memory/ChunkMemory.h"
 #include "../utils/TestUtils.h"
+#include "../utils/BitUtils.h"
 #include "../stdlib/HashMap.h"
 #include "../log/DebugMemory.h"
+#include "../thread/Atomic.h"
 
 // The major asset types should have their own asset component system
 // All other entities are grouped together in one asset component system
-// @question Asset component systems could be created per region -> easy to simulate a specific region
-// @bug This means players might not be able to transition from one area to another?!
-
-// @performance There is a huge performance flaw. We CANNOT have an asset only in vram because it always also allocates the ram (asset_data_memory)
-struct AssetManagementSystem {
-    // @question is this even necessary or could we integrate this directly into the system here?
-    HashMap hash_map;
+struct AssetComponent {
+    ChunkMemory asset_memory;
 
     uint64 ram_size;
     uint64 vram_size;
     uint64 asset_count;
-    int32 overhead;
-    bool has_changed;
 
-    // The indices of asset_memory and asset_data_memory are always linked
-
-    // @question Wouldn't it make much more sense to have a general AMS for this data
-    // In that case we would only need one AMS which holds the Asset information. All others would only need the data_memory
-    // We could probably dramatically simplify the AMS that holds the actual data. We might only need the ChunkMemory?
-
-    // @question Even further, why would we want to split stats and DATA at all? we are talking about assets which most likely don't fit into a single L1 cache line
-    // BUT they may fit in L2 or L3 and therefore require less pointer chasing
-    // Sure collecting data is faster with split memory (ram/vram usage)
-
-    // General asset memory
-    // Fixed chunk size of sizeof(Asset)
-    ChunkMemory asset_memory;
-
-    // Actual asset data
-    // Chunk size defined during initialization
-    ChunkMemory asset_data_memory;
-
-    // @performance Do we really need the linked list, the ChunkMemory should allow us to do some smart stuff
-    Asset* first;
-    Asset* last;
-
-    // @question do we want to create an extra threaded version? Or a combined one, like we have right now.
     // @question Do we want to add a mutex to assets. This way we don't have to lock the entire ams.
     pthread_mutex_t mutex;
 };
 
-void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 chunk_size, int32 count, int32 overhead = 0)
+struct AssetManagementSystem {
+    HashMap hash_map;
+
+    int32 asset_component_count;
+    AssetComponent* asset_components;
+};
+
+inline
+void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 asset_component_count, int32 count)
 {
-    // setup hash_map
-    hashmap_create(&ams->hash_map, count, sizeof(HashEntryInt64), buf);
-
-    ams->overhead = overhead;
-
-    // setup asset_memory
-    chunk_init(&ams->asset_memory, buf, count, sizeof(Asset), 64);
-
-    // setup asset_data_memory
-    chunk_init(&ams->asset_data_memory, buf, count, chunk_size, 64);
-
-    ams->first = NULL;
-    ams->last = NULL;
-
-    pthread_mutex_init(&ams->mutex, NULL);
+    hashmap_create(&ams->hash_map, count, sizeof(HashEntry) + sizeof(Asset), buf);
+    ams->asset_component_count = asset_component_count;
+    ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), 64, true);
 }
 
-// WARNING: buf size see ams_get_buffer_size
-void ams_create(AssetManagementSystem* ams, byte* buf, int32 chunk_size, int32 count, int32 overhead = 0)
+inline
+void ams_component_create(AssetComponent* ac, BufferMemory* buf, int32 chunk_size, int32 count)
 {
     ASSERT_SIMPLE(chunk_size);
 
-    // setup hash_map
-    hashmap_create(&ams->hash_map, count, sizeof(HashEntryInt64), buf);
-
-    ams->overhead = overhead;
-
-    // setup asset_memory
-    ams->asset_memory.count = count;
-    ams->asset_memory.chunk_size = sizeof(Asset);
-    ams->asset_memory.last_pos = 0;
-    ams->asset_memory.alignment = 64;
-    ams->asset_memory.memory = buf;
-    ams->asset_memory.free = (uint64 *) (ams->asset_memory.memory + ams->asset_memory.chunk_size * count);
-
-    // setup asset_data_memory
-    ams->asset_data_memory.count = count;
-    ams->asset_data_memory.chunk_size = chunk_size;
-    ams->asset_data_memory.last_pos = 0;
-    ams->asset_data_memory.alignment = 64;
-    ams->asset_data_memory.memory = (byte *) (ams->asset_memory.free + CEIL_DIV(count, 64));
-    ams->asset_data_memory.free = (uint64 *) (ams->asset_data_memory.memory + ams->asset_data_memory.chunk_size * count);
-
-    ams->first = NULL;
-    ams->last = NULL;
-
-    pthread_mutex_init(&ams->mutex, NULL);
+    chunk_init(&ac->asset_memory, buf, count, chunk_size, 64);
+    pthread_mutex_init(&ac->mutex, NULL);
 }
 
+inline
+void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32 count)
+{
+    ASSERT_SIMPLE(chunk_size);
+
+    ac->asset_memory.count = count;
+    ac->asset_memory.chunk_size = chunk_size;
+    ac->asset_memory.last_pos = 0;
+    ac->asset_memory.alignment = 64;
+    ac->asset_memory.memory = buf;
+    ac->asset_memory.free = (uint64 *) (ac->asset_memory.memory + ac->asset_memory.chunk_size * count);
+
+    pthread_mutex_init(&ac->mutex, NULL);
+}
+
+inline
+void ams_component_free(AssetComponent* ac)
+{
+    pthread_mutex_destroy(&ac->mutex);
+}
+
+inline
 void ams_free(AssetManagementSystem* ams)
 {
-    pthread_mutex_destroy(&ams->mutex);
-}
-
-inline
-int32 ams_calculate_chunks(const AssetManagementSystem* ams, int32 byte_size)
-{
-    return (int32) CEIL_DIV(byte_size + ams->overhead, ams->asset_data_memory.chunk_size);
-}
-
-inline
-int64 ams_get_buffer_size(int32 count, int32 chunk_size)
-{
-    return hashmap_size(count, sizeof(HashEntryInt64)) // hash map
-        + sizeof(Asset) * count + CEIL_DIV(count, 64) * sizeof(uint64) // asset_memory
-        + chunk_size * count + CEIL_DIV(count, 64) * sizeof(uint64); // asset_data_memory
-}
-
-inline
-void ams_update_stats(AssetManagementSystem* ams)
-{
-    ams->vram_size = 0;
-    ams->ram_size = 0;
-    ams->asset_count = 0;
-
-    Asset* temp_asset = ams->first;
-
-    while (temp_asset) {
-        ams->vram_size += temp_asset->vram_size;
-        ams->ram_size += temp_asset->ram_size;
-        ++ams->asset_count;
-
-        temp_asset = temp_asset->next;
+    for (int32 i = 0; i < ams->asset_component_count; ++i) {
+        ams_component_free(&ams->asset_components[i]);
     }
-
-    ams->has_changed = false;
 }
 
 inline
-uint64 ams_get_asset_count(AssetManagementSystem* ams)
+uint16 ams_calculate_chunks(const AssetComponent* ac, int32 byte_size, int32 overhead)
 {
-    if (ams->has_changed) {
-        ams_update_stats(ams);
-    }
-
-    return ams->asset_count;
+    return (uint16) CEIL_DIV(byte_size + overhead, ac->asset_memory.chunk_size);
 }
 
 inline
-uint64 ams_get_vram_usage(AssetManagementSystem* ams)
+void thrd_ams_set_loaded(Asset* asset)
 {
-    if (ams->has_changed) {
-        ams_update_stats(ams);
-    }
-
-    return ams->vram_size;
+    atomic_set_release(&asset->is_loaded, 1);
 }
 
 inline
-uint64 ams_get_ram_usage(AssetManagementSystem* ams)
+bool thrd_ams_is_loaded(Asset* asset)
 {
-    if (ams->has_changed) {
-        ams_update_stats(ams);
-    }
-
-    return ams->ram_size;
-}
-
-void ams_free_asset(AssetManagementSystem* ams, Asset* asset)
-{
-    asset->prev->next = asset->next;
-    asset->next->prev = asset->prev;
-
-    hashmap_delete_entry(&ams->hash_map, asset->name);
-
-    for (uint32 i = 0; i < asset->size; ++i) {
-        chunk_free_element(&ams->asset_memory, asset->internal_id + i);
-        chunk_free_element(&ams->asset_data_memory, asset->internal_id + i);
-    }
-
-    ams->has_changed = true;
+    return asset && atomic_get_acquire(&asset->is_loaded) > 0;
 }
 
 inline
-Asset* ams_get_asset(AssetManagementSystem* ams, uint64 element)
+bool thrd_ams_is_in_vram(Asset* asset)
 {
-    return (Asset *) chunk_get_element(&ams->asset_memory, element, false);
+    return asset && atomic_get_acquire(&asset->is_loaded)
+        && (asset->state & ASSET_STATE_IN_VRAM);
 }
 
 inline
 Asset* ams_get_asset(AssetManagementSystem* ams, const char* key)
 {
     HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
-
-    DEBUG_MEMORY_READ(
-        (uint64) (entry ? (Asset *) entry->value : 0),
-        entry ? sizeof(Asset) : 0
-    );
-
-    DEBUG_MEMORY_READ(
-        (uint64) (entry ? ((Asset *) entry->value)->self : 0),
-        entry ? ((Asset *) entry->value)->ram_size : 0
-    );
-
-    return entry ? (Asset *) entry->value : NULL;
-}
-
-inline
-Asset* ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 hash)
-{
-    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key, hash);
-
-    DEBUG_MEMORY_READ(
-        (uint64) (entry ? (Asset *) entry->value : 0),
-        entry ? sizeof(Asset) : 0
-    );
 
     DEBUG_MEMORY_READ(
         (uint64) (entry ? ((Asset *) entry->value)->self : 0),
@@ -238,159 +124,417 @@ Asset* ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 hash)
 }
 
 // @performance We could probably avoid locking by adding a atomic flag to indicate if the value is valid
-Asset* thrd_ams_get_asset(AssetManagementSystem* ams, uint64 element) {
-    pthread_mutex_lock(&ams->mutex);
-    Asset* asset = ams_get_asset(ams, element);
-    pthread_mutex_unlock(&ams->mutex);
-
-    return asset;
-}
-
+inline
 Asset* thrd_ams_get_asset(AssetManagementSystem* ams, const char* key) {
-    pthread_mutex_lock(&ams->mutex);
-    Asset* asset = ams_get_asset(ams, key);
-    pthread_mutex_unlock(&ams->mutex);
+    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
+
+    if (!entry || atomic_get_acquire(&((Asset *) entry->value)->is_loaded) <= 0) {
+        return NULL;
+    }
+
+    DEBUG_MEMORY_READ(
+        (uint64) (entry ? ((Asset *) entry->value)->self : 0),
+        entry ? ((Asset *) entry->value)->ram_size : 0
+    );
+
+    return (Asset *) entry->value;
+}
+
+inline
+Asset* thrd_ams_get_asset_wait(AssetManagementSystem* ams, const char* key) {
+    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key);
+
+    if (!entry) {
+        return NULL;
+    }
+
+    int32 state = 0;
+    while (!(state = atomic_get_acquire(&((Asset *) entry->value)->is_loaded))) {}
+    if (state < 0) {
+        // Marked for removal
+        return NULL;
+    }
+
+    DEBUG_MEMORY_READ(
+        (uint64) (entry ? ((Asset *) entry->value)->self : 0),
+        entry ? ((Asset *) entry->value)->ram_size : 0
+    );
+
+    return (Asset *) entry->value;
+}
+
+inline
+Asset* thrd_ams_get_asset_wait(AssetManagementSystem* ams, const char* key, uint64 hash) {
+    HashEntry* entry = hashmap_get_entry(&ams->hash_map, key, hash);
+
+    if (!entry) {
+        return NULL;
+    }
+
+    int32 state = 0;
+    while (!(state = atomic_get_acquire(&((Asset *) entry->value)->is_loaded))) {}
+    if (state < 0) {
+        // Marked for removal
+        return NULL;
+    }
+
+    DEBUG_MEMORY_READ(
+        (uint64) (entry ? ((Asset *) entry->value)->self : 0),
+        entry ? ((Asset *) entry->value)->ram_size : 0
+    );
+
+    return (Asset *) entry->value;
+}
+
+inline
+Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* ams, byte type, const char* name, uint32 size, uint32 overhead = 0)
+{
+    // @bug Isn't hashmap_get_reserve unsafe for threading?
+    HashEntry* entry = hashmap_get_reserve(&ams->hash_map, name);
+    Asset* asset = (Asset *) entry->value;
+
+    if (asset->self) {
+        int32 state = 0;
+        while (!(state = atomic_get_acquire(&((Asset *) entry->value)->is_loaded))) {}
+        if (state > 0) {
+            return asset;
+        }
+    }
+
+    AssetComponent* ac = &ams->asset_components[type];
+    uint16 elements = ams_calculate_chunks(ac, size, overhead);
+    int32 free_data = chunk_reserve(&ac->asset_memory, elements);
+
+    byte* data = chunk_get_element(&ac->asset_memory, free_data, true);
+
+    asset->component_id = type;
+    asset->self = data;
+    asset->size = elements; // Crucial for freeing
+    asset->ram_size = ac->asset_memory.chunk_size * elements;
+
+    ac->vram_size += asset->vram_size;
+    ac->ram_size += asset->ram_size;
+    ++ac->asset_count;
+
+    DEBUG_MEMORY_RESERVE((uint64) asset, asset->ram_size, 180);
 
     return asset;
 }
 
-Asset* thrd_ams_get_asset(AssetManagementSystem* ams, const char* key, uint64 hash) {
-    pthread_mutex_lock(&ams->mutex);
-    Asset* asset = ams_get_asset(ams, key, hash);
-    pthread_mutex_unlock(&ams->mutex);
+inline
+void ams_remove_asset(AssetManagementSystem* ams, AssetComponent* ac, Asset* asset, const char* name)
+{
+    // @todo remove from vram
 
-    return asset;
+    asset->is_loaded = 0;
+    ac->vram_size -= asset->vram_size;
+    ac->ram_size -= asset->ram_size;
+    --ac->asset_count;
+
+    hashmap_remove(&ams->hash_map, name);
+    chunk_free_elements(
+        &ac->asset_memory,
+        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        asset->size
+    );
+}
+
+inline
+void ams_remove_asset_ram(AssetManagementSystem* ams, AssetComponent* ac, Asset* asset)
+{
+    ac->ram_size -= asset->ram_size;
+    chunk_free_elements(
+        &ac->asset_memory,
+        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        asset->size
+    );
+}
+
+// @todo It would be nice if we could remove the asset by passing it as a parameter instead of the name
+// The problem is there is no correlation between asset data (e.g. internal_id) and global hashmap (e.g. element_id)
+// This means we would have to iterate all hashmap entries and remove it this way, which is very slow
+inline
+void ams_remove_asset(AssetManagementSystem* ams, const char* name)
+{
+    // @todo remove from vram
+
+    Asset* asset = ams_get_asset(ams, name);
+    AssetComponent* ac = &ams->asset_components[asset->component_id];
+
+    asset->is_loaded = 0;
+    ac->vram_size -= asset->vram_size;
+    ac->ram_size -= asset->ram_size;
+    --ac->asset_count;
+
+    hashmap_remove(&ams->hash_map, name);
+    chunk_free_elements(
+        &ac->asset_memory,
+        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        asset->size
+    );
+}
+
+inline
+void ams_remove_asset(AssetManagementSystem* ams, Asset* asset, const char* name)
+{
+    // @todo remove from vram
+
+    AssetComponent* ac = &ams->asset_components[asset->component_id];
+
+    asset->is_loaded = 0;
+    ac->vram_size -= asset->vram_size;
+    ac->ram_size -= asset->ram_size;
+    --ac->asset_count;
+
+    hashmap_remove(&ams->hash_map, name);
+    chunk_free_elements(
+        &ac->asset_memory,
+        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        asset->size
+    );
+}
+
+inline
+void ams_remove_asset_ram(AssetManagementSystem* ams, Asset* asset)
+{
+    AssetComponent* ac = &ams->asset_components[asset->component_id];
+    ac->ram_size -= asset->ram_size;
+
+    chunk_free_elements(
+        &ac->asset_memory,
+        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        asset->size
+    );
+}
+
+inline
+void thrd_ams_remove_asset(AssetManagementSystem* ams, AssetComponent* ac, Asset* asset, const char* name)
+{
+    // @todo remove from vram
+
+    asset->is_loaded = 0;
+    ac->vram_size -= asset->vram_size;
+    ac->ram_size -= asset->ram_size;
+    --ac->asset_count;
+
+    atomic_set_release(&asset->is_loaded, 0);
+    hashmap_remove(&ams->hash_map, name);
+    chunk_free_elements(
+        &ac->asset_memory,
+        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        asset->size
+    );
+}
+
+void thrd_ams_remove_asset(AssetManagementSystem* ams, const char* name)
+{
+    HashEntry* entry = hashmap_get_entry(&ams->hash_map, name);
+    Asset* asset = (Asset *) entry->value;
+    atomic_set_release(&asset->is_loaded, -1);
+    hashmap_remove(&ams->hash_map, name);
+
+    AssetComponent* ac = &ams->asset_components[asset->component_id];
+    chunk_free_elements(
+        &ac->asset_memory,
+        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        asset->size
+    );
+
+    ac->vram_size -= asset->vram_size;
+    ac->ram_size -= asset->ram_size;
+    --ac->asset_count;
+}
+
+void thrd_ams_remove_asset(AssetManagementSystem* ams, const char* name, Asset* asset)
+{
+    atomic_set_release(&asset->is_loaded, -1);
+    hashmap_remove(&ams->hash_map, name);
+
+    AssetComponent* ac = &ams->asset_components[asset->component_id];
+    chunk_free_elements(
+        &ac->asset_memory,
+        chunk_id_from_memory(&ac->asset_memory, asset->self),
+        asset->size
+    );
+
+    ac->vram_size -= asset->vram_size;
+    ac->ram_size -= asset->ram_size;
+    --ac->asset_count;
 }
 
 // @todo implement defragment command to optimize memory layout since the memory layout will become fragmented over time
 
-// @performance This function is VERY important, check if we can optimize it
-// We could probably optimize the threaded version by adding a atomic_set_release(asset->is_loaded, true);
-Asset* ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 elements = 1)
+Asset* ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name, uint32 size, uint32 overhead = 0)
 {
-    int64 free_asset = chunk_reserve(&ams->asset_memory, elements, true);
-    if (free_asset < 0) {
-        ASSERT_SIMPLE(free_asset >= 0);
+    ASSERT_SIMPLE(strlen(name) < HASH_MAP_MAX_KEY_LENGTH - 1);
+
+    AssetComponent* ac = &ams->asset_components[type];
+    uint16 elements = ams_calculate_chunks(ac, size, overhead);
+
+    int32 free_data = chunk_reserve(&ac->asset_memory, elements);
+    if (free_data < 0) {
+        ASSERT_SIMPLE(free_data >= 0);
         return NULL;
     }
 
-    size_t name_length = strlen(name);
-    ASSERT_SIMPLE(name_length < MAX_ASSET_NAME_LENGTH - 1);
+    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data, true);
+    Asset* asset = (Asset *) hashmap_reserve(&ams->hash_map, name)->value;
 
-    Asset* asset = (Asset *) chunk_get_element(&ams->asset_memory, free_asset);
-    asset->internal_id = free_asset;
-
-    strncpy(asset->name, name, name_length);
-    asset->name[name_length] = '\0';
-
-    hashmap_insert(&ams->hash_map, name, (uintptr_t) asset);
-
-    chunk_reserve_index(&ams->asset_data_memory, free_asset, elements, true);
-    asset->self = chunk_get_element(&ams->asset_data_memory, free_asset);
+    asset->component_id = type;
+    asset->self = asset_data;
     asset->size = elements; // Crucial for freeing
-    asset->ram_size = (ams->asset_memory.chunk_size + ams->asset_data_memory.chunk_size) * elements;
+    asset->ram_size = ac->asset_memory.chunk_size * elements;
 
-    DEBUG_MEMORY_RESERVE((uint64) asset->self, elements * ams->asset_data_memory.chunk_size, 180);
+    ac->vram_size += asset->vram_size;
+    ac->ram_size += asset->ram_size;
+    ++ac->asset_count;
 
-    // @performance Do we really want a double linked list. Are we really using this feature or is the free_index enough?
-    if (free_asset > 0 && free_asset < ams->asset_memory.count - 1) {
-        Asset* next = ams->first;
-        while (next->next != NULL
-            && next->next->internal_id < asset->internal_id
-            && next->internal_id < ams->asset_memory.count
-        ) {
-            next = next->next;
-        }
-
-        asset->prev = next;
-        asset->next = asset->prev->next;
-
-        if (asset->next) {
-            asset->next->prev = asset;
-        } else {
-            ams->last = asset;
-        }
-
-        asset->prev->next = asset;
-    } else if (free_asset == 0) {
-        asset->next = ams->first;
-
-        if (ams->first) {
-            ams->first->prev = asset;
-        }
-
-        ams->first = asset;
-    } else if (free_asset == ams->asset_memory.count - 1) {
-        asset->prev = ams->last;
-
-        // WARNING: no if here because we assume there is no ECS with just a size of 1
-        ams->last->next = asset;
-        ams->last = asset;
-    }
-
-    ams->has_changed = true;
+    DEBUG_MEMORY_RESERVE((uint64) asset, asset->ram_size, 180);
 
     return asset;
 }
 
-void ams_garbage_collect(AssetManagementSystem* ams, uint64 time, uint64 dt)
-{
-    Asset* asset = ams->first;
+inline
+Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name, uint32 size, uint32 overhead = 0) {
+    AssetComponent* ac = &ams->asset_components[type];
+    uint16 elements = ams_calculate_chunks(ac, size, overhead);
 
-    while (asset) {
-        // @performance We cannot just remove ram and keep vram. This is a huge flaw
-        if (asset->can_garbage_collect_ram && asset->can_garbage_collect_vram && time - asset->last_access <= dt) {
-            ams_free_asset(ams, asset);
+    pthread_mutex_lock(&ams->asset_components[type].mutex);
+    int32 free_data = chunk_reserve(&ac->asset_memory, elements);
+    if (free_data < 0) {
+        pthread_mutex_unlock(&ams->asset_components[type].mutex);
+        ASSERT_SIMPLE(free_data >= 0);
+
+        return NULL;
+    }
+    pthread_mutex_unlock(&ams->asset_components[type].mutex);
+
+    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data, true);
+
+    Asset asset = {};
+
+    asset.component_id = type;
+    asset.self = asset_data;
+    asset.size = elements; // Crucial for freeing
+    asset.ram_size = ac->asset_memory.chunk_size * elements;
+
+    ac->vram_size += asset.vram_size;
+    ac->ram_size += asset.ram_size;
+    ++ac->asset_count;
+
+    DEBUG_MEMORY_RESERVE((uint64) asset_data, asset.ram_size, 180);
+
+    ASSERT_SIMPLE(strlen(name) < HASH_MAP_MAX_KEY_LENGTH - 1);
+
+    return (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) &asset)->value;
+}
+
+// @todo Find a way to handle manual ram/vram changes
+// Either implement a ams_update(AssetManagementSystem* ams, Asset* asset) function
+// Or set .has_changed = true (even if garbage collection gets set) and call this func somewhere (maybe thread?)
+// Perform general ams update (stats and garbage collection)
+// We perform multiple things in one iteration to reduce the iteration costs
+// @todo don't use uint64 for time, use uint32 and use relative time to start of program
+void thrd_ams_update(AssetManagementSystem* ams, uint64 time, uint64 dt)
+{
+    for (int32 i = 0; i < ams->asset_component_count; ++i) {
+        ams->asset_components[i].vram_size = 0;
+        ams->asset_components[i].ram_size = 0;
+        ams->asset_components[i].asset_count = 0;
+    }
+
+    // Iterate the hash map to find all assets
+    int32 chunk_id = 0;
+    chunk_iterate_start(&ams->hash_map.buf, chunk_id)
+        HashEntry* entry = (HashEntry *) chunk_get_element(&ams->hash_map.buf, chunk_id);
+        Asset* asset = (Asset *) entry->value;
+
+        if (!thrd_ams_is_loaded(asset)) {
+            continue;
         }
 
-        asset = asset->next;
-    }
-}
+        ams->asset_components[asset->component_id].vram_size += asset->vram_size;
+        ams->asset_components[asset->component_id].ram_size += asset->ram_size;
+        ++ams->asset_components[asset->component_id].asset_count;
 
-void ams_garbage_collect(AssetManagementSystem* ams)
-{
-    Asset* asset = ams->first;
-
-    while (asset) {
-        // @performance We cannot just remove ram and keep vram. This is a huge flaw
-        if (asset->can_garbage_collect_ram && asset->can_garbage_collect_vram) {
-            ams_free_asset(ams, asset);
+        if ((asset->state & ASSET_STATE_RAM_GC) || (asset->state & ASSET_STATE_VRAM_GC)) {
+            if ((asset->state & ASSET_STATE_RAM_GC)
+                && (asset->state & ASSET_STATE_VRAM_GC)
+                && time - asset->last_access <= dt
+            ) {
+                // @performance Ideally we would like to pass the entry to delete
+                // The problem is the hashmap_delete function can't work with entries directly since it is not a doubly linked list
+                thrd_ams_remove_asset(ams, &ams->asset_components[asset->component_id], asset, entry->key);
+            } else if ((asset->state & ASSET_STATE_RAM_GC)
+                && time - asset->last_access <= dt
+            ) {
+                ams_remove_asset_ram(ams, &ams->asset_components[asset->component_id], asset);
+            } else if ((asset->state & ASSET_STATE_VRAM_GC)
+                && time - asset->last_access <= dt
+            ) {
+                ams->asset_components[asset->component_id].vram_size -= asset->vram_size;
+            }
         }
+    chunk_iterate_end;
+}
 
-        asset = asset->next;
+Asset* ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, const char* name)
+{
+    AssetComponent* ac = &ams->asset_components[asset_temp->component_id];
+
+    int32 free_data = chunk_reserve(&ac->asset_memory, asset_temp->size);
+    if (free_data < 0) {
+        ASSERT_SIMPLE(free_data >= 0);
+        return NULL;
     }
-}
 
-void thrd_ams_garbage_collect(AssetManagementSystem* ams, uint64 time, uint64 dt)
-{
-    pthread_mutex_lock(&ams->mutex);
-    ams_garbage_collect(ams, time, dt);
-    pthread_mutex_unlock(&ams->mutex);
-}
+    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data);
 
-void thrd_ams_garbage_collect(AssetManagementSystem* ams)
-{
-    pthread_mutex_lock(&ams->mutex);
-    ams_garbage_collect(ams);
-    pthread_mutex_unlock(&ams->mutex);
-}
+    asset_temp->self = asset_data;
+    asset_temp->size = asset_temp->size; // Crucial for freeing
+    asset_temp->ram_size = ac->asset_memory.chunk_size * asset_temp->size;
 
-Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, const char* name, uint32 elements = 1) {
-    pthread_mutex_lock(&ams->mutex);
-    Asset* asset = ams_reserve_asset(ams, name, elements);
-    pthread_mutex_unlock(&ams->mutex);
+    ac->vram_size += asset_temp->vram_size;
+    ac->ram_size += asset_temp->ram_size;
+    ++ac->asset_count;
+
+    Asset* asset = (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) asset_temp)->value;
+    DEBUG_MEMORY_RESERVE((uint64) asset->self, asset->ram_size, 180);
 
     return asset;
 }
 
-Asset* thrd_ams_reserve_asset_start(AssetManagementSystem* ams, const char* name, uint32 elements = 1) {
-    pthread_mutex_lock(&ams->mutex);
+inline
+Asset* thrd_ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, const char* name)
+{
+    AssetComponent* ac = &ams->asset_components[asset_temp->component_id];
 
-    return ams_reserve_asset(ams, name, elements);
-}
+    pthread_mutex_lock(&ams->asset_components[asset_temp->component_id].mutex);
+    int32 free_data = chunk_reserve(&ac->asset_memory, asset_temp->size);
+    if (free_data < 0) {
+        pthread_mutex_unlock(&ams->asset_components[asset_temp->component_id].mutex);
+        ASSERT_SIMPLE(free_data >= 0);
 
-void thrd_ams_reserve_asset_end(AssetManagementSystem* ams) {
-    pthread_mutex_unlock(&ams->mutex);
+        return NULL;
+    }
+    pthread_mutex_unlock(&ams->asset_components[asset_temp->component_id].mutex);
+
+    byte* asset_data = chunk_get_element(&ac->asset_memory, free_data);
+    memcpy(asset_data, asset_temp->self, sizeof(Asset));
+
+    asset_temp->self = asset_data;
+    asset_temp->ram_size = ac->asset_memory.chunk_size * asset_temp->size;
+
+    ac->vram_size += asset_temp->vram_size;
+    ac->ram_size += asset_temp->ram_size;
+    ++ac->asset_count;
+
+    Asset* asset = (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) asset_temp)->value;
+    DEBUG_MEMORY_RESERVE((uint64) asset->self, asset->ram_size, 180);
+
+    atomic_set_release(&asset->is_loaded, 1);
+
+    return asset;
 }
 
 #endif

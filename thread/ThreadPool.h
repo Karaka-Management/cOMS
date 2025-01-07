@@ -15,15 +15,9 @@
 #include "../stdlib/Types.h"
 #include "../memory/Queue.h"
 #include "../memory/BufferMemory.h"
-
-#ifdef _WIN32
-    #include "../platform/win32/threading/Thread.h"
-    #include "../platform/win32/threading/Atomic.h"
-#elif __linux__
-    #include "../platform/linux/threading/Thread.h"
-    #include "../platform/linux/threading/Atomic.h"
-#endif
-
+#include "../log/DebugMemory.h"
+#include "Thread.h"
+#include "Atomic.h"
 #include "ThreadJob.h"
 
 struct ThreadPool {
@@ -70,6 +64,8 @@ static THREAD_RETURN thread_pool_worker(void* arg)
         atomic_increment_relaxed(&pool->working_cnt);
         atomic_set_release(&work->state, 2);
         work->func(work);
+        // At the end of a thread the ring memory automatically is considered freed
+        DEBUG_MEMORY_FREE((uint64) work->ring.memory, work->ring.size);
         atomic_set_release(&work->state, 1);
 
         // Job gets marked after completion -> can be overwritten now

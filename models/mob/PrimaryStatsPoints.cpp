@@ -9,7 +9,7 @@
 #ifndef TOS_MODELS_MOB_PRIMARY_STATS_POINTS_C
 #define TOS_MODELS_MOB_PRIMARY_STATS_POINTS_C
 
-#include "../../stdlib/simd/SIMD_I8.h"
+#include "../../stdlib/Simd.h"
 #include "PrimaryStatsPoints.h"
 
 void calculate_primary_values(const PrimaryStatsPoints* points, PrimaryStatsValues* values, int step = 8)

@@ -13,6 +13,19 @@
 #include "../../memory/RingMemory.h"
 #include "../../log/Log.h"
 #include "Opengl.h"
+#include "../ShaderType.h"
+
+int32 shader_type_index(ShaderType type)
+{
+    switch (type) {
+        case SHADER_TYPE_VERTEX:
+            return GL_VERTEX_SHADER;
+        case SHADER_TYPE_FRAGMENT:
+            return GL_FRAGMENT_SHADER;
+        default:
+            return 0;
+    }
+}
 
 // Set value based on shader uniform name
 inline
@@ -333,6 +346,7 @@ GLuint program_make(
     return program;
 }
 
+// @question Depending on how the different gpu apis work we may want to pass Shader* to have a uniform structure
 inline
 void pipeline_use(uint32 id)
 {

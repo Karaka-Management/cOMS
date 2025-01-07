@@ -19,18 +19,10 @@
 
 #include "BufferMemory.h"
 #include "../log/DebugMemory.h"
-
-#if _WIN32
-    #include "../platform/win32/Allocator.h"
-    #include "../platform/win32/threading/ThreadDefines.h"
-    #include "../platform/win32/threading/Semaphore.h"
-    #include "../platform/win32/threading/Atomic.h"
-#elif __linux__
-    #include "../platform/linux/Allocator.h"
-    #include "../platform/linux/threading/ThreadDefines.h"
-    #include "../platform/linux/threading/Semaphore.h"
-    #include "../platform/linux/threading/Atomic.h"
-#endif
+#include "../thread/Atomic.h"
+#include "../thread/Semaphore.h"
+#include "../thread/ThreadDefines.h"
+#include "../system/Allocator.h"
 
 // WARNING: Changing this structure has effects on other data structures (e.g. Queue)
 // When chaning make sure you understand what you are doing

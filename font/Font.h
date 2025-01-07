@@ -5,18 +5,8 @@
 #include "../memory/BufferMemory.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/Utils.h"
-
-#if __aarch64__
-    #include "../stdlib/sve/SVE_I32.h"
-#else
-    #include "../stdlib/simd/SIMD_I32.h"
-#endif
-
-#if _WIN32
-    #include "../platform/win32/FileUtils.cpp"
-#else
-    #include "../platform/linux/FileUtils.cpp"
-#endif
+#include "../stdlib/Simd.h"
+#include "../system/FileUtils.cpp"
 
 struct GlyphMetrics {
     f32 width;     // Width of the glyph
@@ -211,15 +201,6 @@ int32 font_from_data(
     pos += sizeof(font->line_height);
 
     memcpy(font->glyphs, pos, font->glyph_count * sizeof(Glyph));
-
-    #if OPENGL
-        // @todo Implement y-offset correction
-        for (uint32 i = 0; i < font->glyph_count; ++i) {
-            float temp = font->glyphs[i].coords.y1;
-            font->glyphs[i].coords.y1 = 1.0f - font->glyphs[i].coords.y2;
-            font->glyphs[i].coords.y2 = 1.0f - temp;
-        }
-    #endif
 
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) font->glyphs,

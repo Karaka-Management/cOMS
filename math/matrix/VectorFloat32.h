@@ -10,12 +10,7 @@
 #define TOS_MATH_MATRIX_VECTOR_FLOAT32_H
 
 #include "../../utils/MathUtils.h"
-
-#if __aarch64__
-    #include "../../../GameEngine/stdlib/sve/SVE_F32.h"
-#else
-    #include "../../../GameEngine/stdlib/simd/SIMD_F32.h"
-#endif
+#include "../../stdlib/Simd.h"
 
 struct v3_f32_4 {
     union {

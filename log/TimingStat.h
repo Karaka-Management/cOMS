@@ -22,8 +22,8 @@
 struct TimingStat {
     const char* function;
     uint64 old_tick_count;
-    uint64 delta_tick;
-    double delta_time;
+    f64 delta_time;
+    uint32 delta_tick;
 };
 
 // Sometimes we want to only do logging in debug mode.

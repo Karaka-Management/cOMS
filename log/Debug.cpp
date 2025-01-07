@@ -9,13 +9,23 @@
 #include "../utils/StringUtils.h"
 #include "../utils/TestUtils.h"
 #include "../utils/MathUtils.h"
+#include "../thread/Atomic.h"
+
+// Required for rdtsc();
+#if _WIN32
+    #include <intrin.h>
+#else
+    #include <x86intrin.h>
+#endif
 
 global_persist DebugContainer* debug_container = NULL;
 
+// WARNING: Spinlock uses TimeUtils which uses performance counter, which is part of DebugContainer
+// @todo The explanation above is insane. We did this so we only have to set the performance counter once but it is biting us now
+#include "../thread/Spinlock.cpp"
+
 #if _WIN32
     #include <windows.h>
-    #include "../platform/win32/threading/Atomic.h"
-    #include "../platform/win32/threading/Spinlock.cpp"
     void setup_performance_count() {
         if (!debug_container) {
             return;
@@ -26,8 +36,6 @@ global_persist DebugContainer* debug_container = NULL;
         debug_container->performance_count_frequency = perf_counter.QuadPart;
     }
 #elif __linux__
-#include "../platform/linux/threading/Atomic.h"
-#include "../platform/linux/threading/Spinlock.cpp"
     void setup_performance_count() {
         if (!debug_container) {
             return;
@@ -102,8 +110,8 @@ void update_timing_stat(uint32 stat, const char* function)
 
     spinlock_start(&debug_container->perf_stats_spinlock);
     timing_stat->function = function;
-    timing_stat->delta_tick = new_tick_count - timing_stat->old_tick_count;
-    timing_stat->delta_time = (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
+    timing_stat->delta_tick = (uint32) (new_tick_count - timing_stat->old_tick_count);
+    timing_stat->delta_time = (f64) timing_stat->delta_tick / (f64) debug_container->performance_count_frequency;
     timing_stat->old_tick_count = new_tick_count;
     spinlock_end(&debug_container->perf_stats_spinlock);
 }
@@ -125,8 +133,8 @@ void update_timing_stat_end(uint32 stat, const char* function)
 
     spinlock_start(&debug_container->perf_stats_spinlock);
     timing_stat->function = function;
-    timing_stat->delta_tick = new_tick_count - timing_stat->old_tick_count;
-    timing_stat->delta_time = (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
+    timing_stat->delta_tick = (uint32) (new_tick_count - timing_stat->old_tick_count);
+    timing_stat->delta_time = (f64) timing_stat->delta_tick / (f64) debug_container->performance_count_frequency;
     timing_stat->old_tick_count = new_tick_count;
     spinlock_end(&debug_container->perf_stats_spinlock);
 }
@@ -140,8 +148,8 @@ void update_timing_stat_end_continued(uint32 stat, const char* function)
 
     spinlock_start(&debug_container->perf_stats_spinlock);
     timing_stat->function = function;
-    timing_stat->delta_tick = timing_stat->delta_tick + new_tick_count - timing_stat->old_tick_count;
-    timing_stat->delta_time = timing_stat->delta_time + (double) timing_stat->delta_tick / (double) debug_container->performance_count_frequency;
+    timing_stat->delta_tick = (uint32) ((uint32) (new_tick_count - timing_stat->old_tick_count) + timing_stat->delta_tick);
+    timing_stat->delta_time = timing_stat->delta_time + (f64) timing_stat->delta_tick / (f64) debug_container->performance_count_frequency;
     timing_stat->old_tick_count = new_tick_count;
     spinlock_end(&debug_container->perf_stats_spinlock);
 }
@@ -269,7 +277,7 @@ void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* fun
     uint64 idx = atomic_fetch_add_relaxed(&mem->reserve_action_idx, 1);
     if (idx >= ARRAY_COUNT(mem->reserve_action)) {
         atomic_set_acquire(&mem->reserve_action_idx, 1);
-        idx %= ARRAY_COUNT(mem->last_action);
+        idx %= ARRAY_COUNT(mem->reserve_action);
     }
 
     DebugMemoryRange* dmr = &mem->reserve_action[idx];
@@ -279,6 +287,27 @@ void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* fun
 
     dmr->time = __rdtsc();
     dmr->function_name = function;
+}
+
+// undo reserve
+void debug_memory_free(uint64 start, uint64 size)
+{
+    if (!start || !debug_container) {
+        return;
+    }
+
+    DebugMemory* mem = debug_memory_find(start);
+    if (!mem) {
+        return;
+    }
+
+    for (int32 i = 0; i < ARRAY_COUNT(mem->reserve_action); ++i) {
+        DebugMemoryRange* dmr = &mem->reserve_action[i];
+        if (dmr->start == start - mem->start) {
+            dmr->size = 0;
+            return;
+        }
+    }
 }
 
 // @bug This probably requires thread safety
@@ -302,7 +331,7 @@ void debug_memory_reset()
 }
 
 // @bug This probably requires thread safety
-byte* log_get_memory(uint64 size, byte aligned = 1, bool zeroed = false)
+byte* log_get_memory(uint64 size, byte aligned = 4, bool zeroed = false)
 {
     if (!debug_container) {
         return 0;
@@ -347,8 +376,8 @@ void log(const char* str, bool should_log, bool save, const char* file, const ch
     size_t file_len = strlen(file);
     size_t function_len = strlen(function);
 
-    char line_str[10];
-    int_to_str(line, line_str, '\0');
+    char line_str[14];
+    uint_to_str(line, line_str);
 
     size_t line_len = strlen(line_str);
 

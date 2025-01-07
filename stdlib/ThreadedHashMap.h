@@ -12,15 +12,9 @@
 #include "../stdlib/Types.h"
 #include "HashMap.h"
 
-#if _WIN32
-    #include "../platform/win32/threading/Thread.h"
-    #include "../platform/win32/threading/Semaphore.h"
-    #include "../platform/win32/threading/Atomic.h"
-#elif __linux__
-    #include "../platform/linux/threading/Thread.h"
-    #include "../platform/linux/threading/Semaphore.h"
-    #include "../platform/linux/threading/Atomic.h"
-#endif
+#include "../thread/Atomic.h"
+#include "../thread/Semaphore.h"
+#include "../thread/Thread.h"
 
 struct ThreadedHashMap {
     void** table;
@@ -125,9 +119,9 @@ void thrd_hashmap_get_entry(ThreadedHashMap* hm, HashEntry* entry, const char* k
 }
 
 inline
-void thrd_hashmap_delete_entry(ThreadedHashMap* hm, const char* key) {
+void thrd_hashmap_remove(ThreadedHashMap* hm, const char* key) {
     pthread_mutex_lock(&hm->mutex);
-    hashmap_delete_entry((HashMap *) hm, key);
+    hashmap_remove((HashMap *) hm, key);
     pthread_mutex_unlock(&hm->mutex);
 }
 

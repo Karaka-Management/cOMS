@@ -12,9 +12,9 @@
 #include "../../stdlib/Types.h"
 
 struct Shader {
-    uint32 shader_id;
-    uint32 shader_locations[7];
-    byte shader_data[16];
+    uint32 id;
+    uint32 locations[7];
+    byte data[16];
 };
 
 #endif

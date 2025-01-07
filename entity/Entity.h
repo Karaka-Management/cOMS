@@ -11,41 +11,23 @@
 
 #include "../stdlib/Types.h"
 #include "../stdlib/HashMap.h"
-#include "EntityType.h"
 
 #define MAX_ENTITY_NAME_LENGTH 32
 
 struct Entity {
     // The id is the same as its location in memory/in the ecs array
     // This is is only an internal id and NOT the same as a db id (e.g. player id)
-    uint64 internal_id;
+    uint32 internal_id;
 
-    EntityType type;
+    uint32 last_access;
 
-    uint64 last_access;
+    // Which entity is used
+    byte type;
 
-    // Variable used for thread safety
-    bool is_loaded;
+    byte state;
 
-    // Describes if the asset can be removed/garbage collected IF necessary
-    // This however only happens if space is needed
-    bool can_garbage_collect_ram;
-    bool can_garbage_collect_vram;
-
-    // Counts the references to this entity
-    // e.g. textures
-    int16 reference_count;
-
-    // A entity can reference up to N other entities
-    // This allows us to quickly update the other entities
-    // Example: A player pulls N mobs
-    // @bug This means there are hard limits on how many mobs can be pulled by a player
-    // @question should this be an entity id?
-    Entity* references[50];
-    uint64 free_references; // bits show which is free
-
-    // @question should this be an entity id?
-    Entity* schema; // This entity represents the schema for this entity (most likely stored in a separate ecs)
+    // This entity represents the schema for this entity (most likely stored in a separate ecs)
+    uint32 schema;
 
     // Actual memory address and specific entity data
     byte* self;
@@ -59,7 +41,7 @@ struct EntitySchema {
     // Could be 0 if there is no official id
     uint64 official_id;
 
-    EntityType type;
+    byte type;
 
     // Counts the references to this entity
     // e.g. textures

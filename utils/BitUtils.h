@@ -35,6 +35,7 @@
 
 // Right to left (little endian)
 #define IS_BIT_SET_R2L(num, pos) ((bool) ((num) & (1 << (pos))))
+#define IS_BIT_SET_64_R2L(num, pos) ((bool) ((num) & (1LL << (pos))))
 #define BIT_SET_R2L(num, pos) ((num) | ((uint32) 1 << (pos)))
 #define BIT_UNSET_R2L(num, pos) ((num) & ~((uint32) 1 << (pos)))
 #define BIT_FLIP_R2L(num, pos) ((num) ^ ((uint32) 1 << (pos)))

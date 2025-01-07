@@ -167,13 +167,14 @@ void wchar_to_char(const char* __restrict str, char* __restrict dest)
 }
 
 inline constexpr
-int32 str_to_int(const char* str)
+int64 str_to_int(const char* str)
 {
-    int32 result = 0;
+    int64 result = 0;
 
-    int32 sign = 1;
-    if (*str++ == '-') {
+    int64 sign = 1;
+    if (*str == '-') {
         sign = -1;
+        ++str;
     }
 
     while (*str >= '0' && *str <= '9') {
@@ -186,15 +187,21 @@ int32 str_to_int(const char* str)
     return result * sign;
 }
 
-inline constexpr
-int32 int_to_str(int64 number, char *str, const char thousands = ',') {
+inline
+int32 int_to_str(int64 number, char str[15], const char thousands)
+{
+    if (number == 0) {
+        *str++ = '0';
+        *str = '\0';
+
+        return 1;
+    }
+
     int32 i = 0;
     int32 digit_count = 0;
     int64 sign = number;
 
-    if (number == 0) {
-        str[i++] = '0';
-    } else if (number < 0) {
+    if (number < 0) {
         number = -number;
     }
 
@@ -212,7 +219,83 @@ int32 int_to_str(int64 number, char *str, const char thousands = ',') {
         str[i++] = '-';
     }
 
+    for (int32 j = 0, k = i - 1; j < k; ++j, --k) {
+        char temp = str[j];
+        str[j] = str[k];
+        str[k] = temp;
+    }
+
     str[i] = '\0';
+
+    return i;
+}
+
+inline constexpr
+int32 int_to_str(int64 number, char str[12]) {
+    int32 i = -1;
+    int64 sign = number;
+
+    if (number < 0) {
+        number = -number;
+    }
+
+    do {
+        str[++i] = number % 10 + '0';
+        number /= 10;
+    } while (number > 0);
+
+    if (sign < 0) {
+        str[++i] = '-';
+    }
+
+    for (int32 j = 0, k = i; j < k; ++j, --k) {
+        char temp = str[j];
+        str[j] = str[k];
+        str[k] = temp;
+    }
+
+    str[++i] = '\0';
+
+    return i;
+}
+
+inline constexpr
+int32 uint_to_str(uint64 number, char str[12]) {
+    int32 i = -1;
+
+    do {
+        str[++i] = number % 10 + '0';
+        number /= 10;
+    } while (number > 0);
+
+    for (int32 j = 0, k = i; j < k; ++j, --k) {
+        char temp = str[j];
+        str[j] = str[k];
+        str[k] = temp;
+    }
+
+    str[++i] = '\0';
+
+    return i;
+}
+
+static const char HEX_TABLE[] = {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'A', 'B', 'C', 'D', 'E', 'F'
+};
+
+inline constexpr
+int32 int_to_hex(int64 number, char str[9]) {
+    int32 i = -1;
+    uint64 n = (uint64) number;
+
+    do {
+        byte digit = n % 16;
+        str[++i] = HEX_TABLE[digit];
+        n /= 16;
+    } while (n > 0);
+
+    str[++i] = '\0';
 
     for (int32 j = 0, k = i - 1; j < k; ++j, --k) {
         char temp = str[j];
@@ -221,6 +304,29 @@ int32 int_to_str(int64 number, char *str, const char thousands = ',') {
     }
 
     return i;
+}
+
+inline constexpr
+int64 hex_to_int(const char* hex)
+{
+    int64 result = 0;
+    while ((*hex >= '0' && *hex <= '9')
+        || (*hex >= 'A' && *hex <= 'F')
+        || (*hex >= 'a' && *hex <= 'f')
+    ) {
+        byte value = *hex++;
+        if (value >= '0' && value <= '9') {
+            value = value - '0';
+        } else if (value >= 'A' && value <='F') {
+            value = value - 'A' + 10;
+        } else if (value >= 'a' && value <='f') {
+            value = value - 'a' + 10;
+        }
+
+        result = (result << 4) | (value & 0xF);
+    }
+
+    return result;
 }
 
 inline
@@ -239,6 +345,142 @@ size_t str_count(const char* __restrict str, const char* __restrict substr)
     }
 
     return count;
+}
+
+inline constexpr
+int32 is_eol(const char* str)
+{
+    if (*str == '\n') {
+        return 1;
+    } else if (*str == '\r' && str[1] == '\n') {
+        return 2;
+    }
+
+    return 0;
+}
+
+inline
+void str_copy_until(const char* __restrict src, char* __restrict dest, char delim)
+{
+    while (*src != delim && *src != '\0') {
+        *dest++ = *src++;
+    }
+
+    *dest = '\0';
+}
+
+inline
+void str_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
+{
+    while (*src != '\0') {
+        for (int32 i = 0; i < len; ++i) {
+            if (*src == delim[i]) {
+                *dest = '\0';
+                return;
+            }
+        }
+
+        *dest++ = *src++;
+    }
+
+    *dest = '\0';
+}
+
+inline
+int32 str_copy_until(char* __restrict dest, const char* __restrict src, char delim)
+{
+    int32 len = 0;
+    while (*src != delim && *src != '\0') {
+        *dest++ = *src++;
+        ++len;
+    }
+
+    *dest = '\0';
+
+    return len;
+}
+
+inline
+void str_copy_short(char* __restrict dest, const char* __restrict src, char delim = '\0')
+{
+    while (*src != delim) {
+        *dest++ = *src++;
+    }
+
+    *dest = '\0';
+}
+
+inline
+void str_copy_long(char* __restrict dest, const char* __restrict src, char delim = '\0')
+{
+    char* d = dest;
+    const char *s = src;
+
+    // Align destination to its natural alignment
+    while (((uintptr_t) d & (sizeof(uintptr_t) - 1)) != 0 && *s != '\0') {
+        *d++ = *s++;
+    }
+
+    // Copy using larger chunks (size of uintptr_t)
+    uintptr_t* aligned_dest = (uintptr_t *) d;
+    const uintptr_t* aligned_src = (const uintptr_t *) s;
+
+    while (*aligned_src != 0) {
+        *aligned_dest++ = *aligned_src++;
+    }
+
+    d = (char *) aligned_dest;
+    s = (const char *) aligned_src;
+
+    // Copy remaining bytes
+    while (*s != '\0') {
+        *d++ = *s++;
+    }
+
+    *d = '\0';
+}
+
+inline
+void str_copy_move_until(char** __restrict src, char* __restrict dest, char delim)
+{
+    while (**src != delim && **src != '\0') {
+        *dest++ = **src;
+        ++(*src);
+    }
+
+    *dest = '\0';
+}
+
+inline
+void str_copy_move_until(char** __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
+{
+    while (**src != '\0') {
+        for (int32 i = 0; i < len; ++i) {
+            if (**src == delim[i]) {
+                *dest = '\0';
+                return;
+            }
+        }
+
+        *dest++ = **src;
+        ++(*src);
+    }
+
+    *dest = '\0';
+}
+
+inline
+int32 strcpy_to_eol(const char* src, char* dst)
+{
+    int32 offset = 0;
+    while (!is_eol(src) && *src != '\0')  {
+        *dst++ = *src++;
+        ++offset;
+    }
+
+    *dst = '\0';
+
+    return offset;
 }
 
 inline
@@ -262,69 +504,58 @@ char* strsep(const char** sp, const char* sep)
     return s;
 }
 
-inline int64
-str_concat(
+inline void
+str_concat_new(
+    char* dst,
     const char* src1,
-    const char* src2,
-    char* dst
+    const char* src2
 ) {
-    int64 len = strlen(src1);
-    int64 len_total = len;
-
-    memcpy(dst, src1, len);
-    dst += len;
-
-    len = strlen(src2);
-    memcpy(dst, src2, len);
-    dst += len;
+    while (*src1) { *dst++ = *src1++; }
+    while (*src2) { *dst++ = *src2++; }
 
     *dst = '\0';
-
-    return len_total + len;
-}
-
-// @question Why is this called str_add instead of str_concat like the other functions?
-inline void
-str_add(char* base, const char* src)
-{
-    while (*base) {
-        ++base;
-    }
-
-    strcpy(base, src);
 }
 
 inline void
-str_add(char* base, const char* src, size_t src_length)
+str_concat_append(char* dst, const char* src)
 {
-    while (*base) {
-        ++base;
+    while (*dst) {
+        ++dst;
     }
 
-    memcpy(base, src, src_length);
-    base[src_length] = '\0';
+    str_copy_short(dst, src);
+}
+
+inline void
+str_concat_new(char* dst, const char* src1, const char* src2, const char* src3)
+{
+    while (*src1) { *dst++ = *src1++; }
+    while (*src2) { *dst++ = *src2++; }
+    while (*src3) { *dst++ = *src3++; }
+
+    *dst = '\0';
 }
 
 inline int64
-str_add(char* base, size_t base_length, const char* src, size_t src_length)
+str_concat_append(char* dst, size_t dst_length, const char* src, size_t src_length)
 {
-    memcpy(&base[base_length], src, src_length);
-    base[base_length + src_length] = '\0';
+    memcpy(&dst[dst_length], src, src_length);
+    dst[dst_length + src_length] = '\0';
 
-    return base_length + src_length;
+    return dst_length + src_length;
 }
 
 inline void
-str_add(char* base, size_t base_length, const char* src)
+str_concat_append(char* dst, size_t dst_length, const char* src)
 {
-    strcpy(&base[base_length], src);
+    str_copy_short(&dst[dst_length], src);
 }
 
 inline int64
-str_concat(
+str_concat_new(
+    char* dst,
     const char* src1, size_t src1_length,
-    const char* src2, size_t src2_length,
-    char* dst
+    const char* src2, size_t src2_length
 ) {
     memcpy(dst, src1, src1_length);
     dst += src1_length;
@@ -338,15 +569,41 @@ str_concat(
 }
 
 inline
-void str_concat(
+void str_concat_new(
+    char* dst,
     const char* src, size_t src_length,
-    int64 data,
-    char* dst
+    int64 data
 ) {
     memcpy(dst, src, src_length);
     int32 len = int_to_str(data, dst + src_length);
 
     dst[src_length + len] = '\0';
+}
+
+inline
+void str_concat_append(
+    char* dst,
+    int64 data
+) {
+    size_t dst_len = strlen(dst);
+    int_to_str(data, dst + dst_len);
+}
+
+inline void
+str_concat_new(char* dst, const char* src, int64 data)
+{
+    size_t src_len = strlen(src);
+    memcpy(dst, src, src_len);
+
+    int_to_str(data, dst + src_len);
+}
+
+inline
+void str_insert(char* __restrict dst, size_t insert_pos, const char* __restrict src) {
+    size_t src_length = strlen(src);
+    size_t dst_length = strlen(dst);
+    memcpy(dst + insert_pos + src_length, dst + insert_pos, dst_length - insert_pos + 1);
+    memcpy(dst + insert_pos, src, src_length);
 }
 
 inline
@@ -426,6 +683,77 @@ void create_const_name(unsigned char* name)
     *name = '\0';
 }
 
+int32 str_compare(const char* str1, const char* str2)
+{
+    byte c1, c2;
+
+    do {
+        c1 = (byte) *str1++;
+        c2 = (byte) *str2++;
+
+        if (c1 == '\0') {
+	        return c1 - c2;
+        }
+    } while (c1 == c2);
+
+    return c1 - c2;
+}
+
+int32 str_compare(const char* str1, const char* str2, size_t n)
+{
+    byte c1 = '\0';
+    byte c2 = '\0';
+
+    if (n >= 4) {
+        size_t n4 = n >> 2;
+
+        do {
+            c1 = (byte) *str1++;
+            c2 = (byte) *str2++;
+
+            if (c1 == '\0' || c1 != c2) {
+                return c1 - c2;
+            }
+
+            c1 = (byte) *str1++;
+            c2 = (byte) *str2++;
+
+            if (c1 == '\0' || c1 != c2) {
+                return c1 - c2;
+            }
+
+            c1 = (byte) *str1++;
+            c2 = (byte) *str2++;
+
+            if (c1 == '\0' || c1 != c2) {
+                return c1 - c2;
+            }
+
+            c1 = (byte) *str1++;
+            c2 = (byte) *str2++;
+
+            if (c1 == '\0' || c1 != c2) {
+                return c1 - c2;
+            }
+        } while (--n4 > 0);
+
+        n &= 3;
+    }
+
+    while (n > 0) {
+        c1 = (byte) *str1++;
+        c2 = (byte) *str2++;
+
+        if (c1 == '\0' || c1 != c2) {
+            return c1 - c2;
+        }
+
+        --n;
+    }
+
+    return c1 - c2;
+}
+
 inline constexpr
 bool str_ends_with(const char* str, const char* suffix) {
     if (!str || !suffix) {
@@ -439,7 +767,7 @@ bool str_ends_with(const char* str, const char* suffix) {
         return false;
     }
 
-    return strncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
+    return str_compare(str + str_len - suffix_len, suffix, suffix_len) == 0;
 }
 
 // WARNING: result needs to have the correct length
@@ -452,7 +780,7 @@ void str_replace(const char* str, const char* __restrict search, const char* __r
     size_t replace_len = strlen(replace);
 
     if (search_len == 0) {
-        strcpy(result, str);
+        str_copy_short(result, str);
         return;
     }
 
@@ -471,7 +799,7 @@ void str_replace(const char* str, const char* __restrict search, const char* __r
         str = current;
     }
 
-    strcpy(result_ptr, str);
+    str_copy_short(result_ptr, str);
 }
 
 void print_bytes(const void* ptr, size_t size)
@@ -491,18 +819,6 @@ void print_bytes(const void* ptr, size_t size)
             count = 0;
         }
     }
-}
-
-inline constexpr
-int32 is_eol(const char* str)
-{
-    if (*str == '\n') {
-        return 1;
-    } else if (*str == '\r' && str[1] == '\n') {
-        return 2;
-    }
-
-    return 0;
 }
 
 inline constexpr
@@ -637,104 +953,6 @@ void str_skip_until_list(char** __restrict str, const char* __restrict delim)
 
         ++(*str);
     }
-}
-
-inline
-void str_copy_until(const char* __restrict src, char* __restrict dest, char delim)
-{
-    while (*src != delim && *src != '\0') {
-        *dest++ = *src++;
-    }
-
-    *dest = '\0';
-}
-
-inline
-void str_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
-{
-    while (*src != '\0') {
-        for (int32 i = 0; i < len; ++i) {
-            if (*src == delim[i]) {
-                *dest = '\0';
-                return;
-            }
-        }
-
-        *dest++ = *src++;
-    }
-
-    *dest = '\0';
-}
-
-inline
-int32 str_copy_until(char* __restrict dest, const char* __restrict src, char delim)
-{
-    int32 len = 0;
-    while (*src != delim && *src != '\0') {
-        *dest++ = *src++;
-        ++len;
-    }
-
-    *dest = '\0';
-
-    return len;
-}
-
-inline
-int32 str_copy(char* __restrict dest, const char* __restrict src, char delim)
-{
-    int32 len = 0;
-    while (*src != delim) {
-        *dest++ = *src++;
-        ++len;
-    }
-
-    *dest = '\0';
-
-    return len;
-}
-
-inline
-void str_copy_move_until(char** __restrict src, char* __restrict dest, char delim)
-{
-    while (**src != delim && **src != '\0') {
-        *dest++ = **src;
-        ++(*src);
-    }
-
-    *dest = '\0';
-}
-
-inline
-void str_copy_move_until(char** __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
-{
-    while (**src != '\0') {
-        for (int32 i = 0; i < len; ++i) {
-            if (**src == delim[i]) {
-                *dest = '\0';
-                return;
-            }
-        }
-
-        *dest++ = **src;
-        ++(*src);
-    }
-
-    *dest = '\0';
-}
-
-inline
-int32 strcpy_to_eol(const char* src, char* dst)
-{
-    int32 offset = 0;
-    while (!is_eol(src) && *src != '\0')  {
-        *dst++ = *src++;
-        ++offset;
-    }
-
-    *dst = '\0';
-
-    return offset;
 }
 
 inline

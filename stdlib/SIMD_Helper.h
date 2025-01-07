@@ -12,14 +12,12 @@
 #include <stdint.h>
 #include <immintrin.h>
 #include <xmmintrin.h>
-#include "../Types.h"
+#include "Types.h"
 
 // @todo split into platform code for windows and linux
 
 #if _WIN32
     #include <windows.h>
-    #include <stdio.h>
-
     #ifdef _MSC_VER
         #include <intrin.h>
     #endif
