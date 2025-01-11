@@ -9,8 +9,6 @@
 #ifndef TOS_MATH_MATRIX_INT64_H
 #define TOS_MATH_MATRIX_INT64_H
 
-#include "../../utils/MathUtils.h"
-
 #if ARM
     #include "../../stdlib/IntrinsicsArm.h"
 #else

@@ -39,12 +39,12 @@ void heap_alloc(Heap* heap, uint32 element_size, uint64 capacity, int32 (*compar
     heap->compare = compare;
     heap->helper_mem = heap->elements + element_size;
 
-    DEBUG_MEMORY_INIT((uint64) heap->elements, element_size * capacity);
+    DEBUG_MEMORY_INIT((uintptr_t) heap->elements, element_size * capacity);
 }
 
 void heap_free(Heap* heap)
 {
-    DEBUG_MEMORY_DELETE((uint64) heap->elements, heap->element_size * heap->capacity);
+    DEBUG_MEMORY_DELETE((uintptr_t) heap->elements, heap->element_size * heap->capacity);
     platform_free((void **) &heap->elements);
 }
 
@@ -61,7 +61,7 @@ void heap_init(Heap* heap, BufferMemory* buf, uint32 element_size, uint64 capaci
     heap->size = 0;
     heap->compare = compare;
 
-    DEBUG_MEMORY_INIT((uint64) heap->elements, element_size * capacity);
+    DEBUG_MEMORY_INIT((uintptr_t) heap->elements, element_size * capacity);
 }
 
 void heapify_down(Heap* heap, uint64 index) {
@@ -127,7 +127,7 @@ void heap_pop(Heap* heap, void* out) {
         return;
     }
 
-    DEBUG_MEMORY_READ((uint64) heap->elements, heap->element_size);
+    DEBUG_MEMORY_READ((uintptr_t) heap->elements, heap->element_size);
 
     memcpy(out, heap->elements, heap->element_size);
     void* last_element = heap->elements + ((heap->size - 1) * heap->element_size);
@@ -138,7 +138,7 @@ void heap_pop(Heap* heap, void* out) {
 
 inline
 void* heap_peek(Heap* heap) {
-    DEBUG_MEMORY_READ((uint64) heap->elements, heap->element_size);
+    DEBUG_MEMORY_READ((uintptr_t) heap->elements, heap->element_size);
 
     return heap->elements;
 }

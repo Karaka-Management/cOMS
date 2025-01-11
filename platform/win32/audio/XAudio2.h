@@ -37,20 +37,20 @@ void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
     CoInitialize(NULL);
     HMODULE lib = LoadLibraryExA((LPCSTR) "xaudio2_9.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!lib) {
-        LOG("Xaudio2: Couldn't load xaudio2_9.dll\n", true, true);
+        LOG(true, "Xaudio2: Couldn't load xaudio2_9.dll\n");
 
         lib = LoadLibraryExA((LPCSTR) "xaudio2_8.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     }
 
     if (!lib) {
-        LOG("Xaudio2: Couldn't load xaudio2_8.dll\n", true, true);
+        LOG(true, "Xaudio2: Couldn't load xaudio2_8.dll\n");
 
         return;
     }
 
     XAudio2Create_t* XAudio2Create = (XAudio2Create_t *) GetProcAddress(lib, "XAudio2Create");
     if (!XAudio2Create || !SUCCEEDED(XAudio2Create(&api_setting->audio_handle, 0, XAUDIO2_DEFAULT_PROCESSOR))) {
-        LOG("Xaudio2: XAudio2Create failed\n", true, true);
+        LOG(true, "Xaudio2: XAudio2Create failed\n");
 
         return;
     }
@@ -63,7 +63,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
         0,
         NULL))
     ) {
-        LOG("Xaudio2: CreateMasteringVoice failed\n", true, true);
+        LOG(true, "Xaudio2: CreateMasteringVoice failed\n");
 
         return;
     }
@@ -78,7 +78,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, XAudio2Setting* api_setting) {
     wf.cbSize = 0;
 
     if (!SUCCEEDED(api_setting->audio_handle->CreateSourceVoice(&api_setting->source_voice, &wf))) {
-        LOG("Xaudio2: CreateSourceVoice failed\n", true, true);
+        LOG(true, "Xaudio2: CreateSourceVoice failed\n");
 
         return;
     }
@@ -187,7 +187,7 @@ void audio_play_buffer(AudioSetting* setting, XAudio2Setting* api_setting) {
     );
 
     if (!SUCCEEDED(api_setting->source_voice->SubmitSourceBuffer(&api_setting->internal_buffer[idx]))) {
-        LOG("Xaudio2: SubmitSourceBuffer failed\n", true, true);
+        LOG(true, "Xaudio2: SubmitSourceBuffer failed\n");
 
         return;
     }

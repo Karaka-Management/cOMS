@@ -13,7 +13,6 @@
 #include <immintrin.h>
 
 #include "../stdlib/Types.h"
-#include "../utils/MathUtils.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/TestUtils.h"
 
@@ -59,7 +58,9 @@ void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
 
     memset(ring->memory, 0, ring->size);
 
-    DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
+    DEBUG_MEMORY_INIT((uintptr_t) ring->memory, ring->size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, ring->size);
+    LOG_LEVEL_2("Allocated RingMemory: %n B", {{LOG_DATA_UINT64, &ring->size}});
 }
 
 inline
@@ -75,8 +76,8 @@ void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, uint32 alignmen
     ring->size = size;
     ring->alignment = alignment;
 
-    DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
-    DEBUG_MEMORY_RESERVE((uint64) ring->memory, ring->size, 187);
+    DEBUG_MEMORY_INIT((uintptr_t) ring->memory, ring->size);
+    DEBUG_MEMORY_RESERVE((uintptr_t) ring->memory, ring->size, 187);
 }
 
 inline
@@ -94,8 +95,8 @@ void ring_init(RingMemory* ring, byte* buf, uint64 size, uint32 alignment = 64)
 
     memset(ring->memory, 0, ring->size);
 
-    DEBUG_MEMORY_INIT((uint64) ring->memory, ring->size);
-    DEBUG_MEMORY_RESERVE((uint64) ring->memory, ring->size, 187);
+    DEBUG_MEMORY_INIT((uintptr_t) ring->memory, ring->size);
+    DEBUG_MEMORY_RESERVE((uintptr_t) ring->memory, ring->size, 187);
 }
 
 inline
@@ -134,7 +135,7 @@ byte* ring_calculate_position(const RingMemory* ring, uint64 size, uint32 aligne
 inline
 void ring_reset(RingMemory* ring)
 {
-    DEBUG_MEMORY_DELETE((uint64) ring->memory, ring->size);
+    DEBUG_MEMORY_DELETE((uintptr_t) ring->memory, ring->size);
     ring->head = ring->memory;
 }
 
@@ -145,7 +146,7 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint32 aligned
 
     // Actually, we cannot be sure that this is a read, it could also be a write.
     // However, we better do it once here than manually in every place that uses this function
-    DEBUG_MEMORY_READ((uint64) *pos, size);
+    DEBUG_MEMORY_READ((uintptr_t) *pos, size);
 
     if (aligned > 1) {
         uintptr_t address = (uintptr_t) *pos;
@@ -188,7 +189,7 @@ byte* ring_get_memory(RingMemory* ring, uint64 size, uint32 aligned = 4, bool ze
         memset((void *) ring->head, 0, size);
     }
 
-    DEBUG_MEMORY_WRITE((uint64) ring->head, size);
+    DEBUG_MEMORY_WRITE((uintptr_t) ring->head, size);
 
     byte* offset = ring->head;
     ring->head += size;
@@ -224,7 +225,7 @@ byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint32 aligned = 4, 
         memset((void *) pos, 0, size);
     }
 
-    DEBUG_MEMORY_WRITE((uint64) pos, size);
+    DEBUG_MEMORY_WRITE((uintptr_t) pos, size);
 
     return pos;
 }
@@ -236,7 +237,7 @@ byte* ring_get_element(const RingMemory* ring, uint64 element_count, uint64 elem
 {
     int64 index = (element % element_count) - 1;
 
-    DEBUG_MEMORY_READ((uint64) (ring->memory + index * size), 1);
+    DEBUG_MEMORY_READ((uintptr_t) (ring->memory + index * size), 1);
 
     return ring->memory + index * size;
 }

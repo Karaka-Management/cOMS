@@ -15,16 +15,13 @@
 #include "../../utils/TestUtils.h"
 
 // @todo Currently alignment only effects the starting position, but it should also effect the ending/size
+// @todo Consider to rename file to Allocator.h
 
 inline
 void* platform_alloc(size_t size)
 {
     return VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 }
-
-// @question Since we store at least the size of the memory in the beginning,
-// does this have a negative impact on caching?
-// Our Memory doesn't start at the cache line beginning but at least offset by sizeof(size_t)
 
 inline
 void* platform_alloc_aligned(size_t size, int32 alignment)

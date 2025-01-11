@@ -351,7 +351,7 @@ void atomic_and_relaxed(volatile uint64* value, uint64 mask)
 inline
 void atomic_and_relaxed(volatile int64* value, int64 mask)
 {
-    InterlockedAnd64NoFence((volatile LONG64 *) value, mask);
+    InterlockedAnd64NoFence((volatile LONG64 *) value, (LONG64) mask);
 }
 
 inline
@@ -456,7 +456,7 @@ int32 atomic_get_acquire(volatile int32* value)
 inline
 int64 atomic_get_acquire(volatile int64* value)
 {
-    return (int64) InterlockedCompareExchangeAcquire((long *) value, 0, 0);
+    return (int64) InterlockedCompareExchangeAcquire64((LONG64 *) value, 0, 0);
 }
 
 inline
@@ -492,13 +492,13 @@ void atomic_decrement_acquire(volatile int32* value)
 inline
 void atomic_increment_acquire(volatile int64* value)
 {
-    InterlockedIncrementAcquire((long *) value);
+    InterlockedIncrementAcquire64((LONG64 *) value);
 }
 
 inline
 void atomic_decrement_acquire(volatile int64* value)
 {
-    InterlockedDecrementAcquire((long *) value);
+    InterlockedDecrementAcquire64((LONG64 *) value);
 }
 
 inline
@@ -516,13 +516,13 @@ void atomic_sub_acquire(volatile int32* value, int32 decrement)
 inline
 void atomic_add_acquire(volatile int64* value, int64 increment)
 {
-    InterlockedAddAcquire((long *) value, (long) increment);
+    InterlockedAddAcquire64((LONG64 *) value, (LONG64) increment);
 }
 
 inline
 void atomic_sub_acquire(volatile int64* value, int64 decrement)
 {
-    InterlockedAddAcquire((long *) value, -1 * ((long) decrement));
+    InterlockedAddAcquire64((LONG64 *) value, -1 * ((LONG64) decrement));
 }
 
 inline
@@ -819,7 +819,7 @@ int32 atomic_get_release(volatile int32* value)
 inline
 int64 atomic_get_release(volatile int64* value)
 {
-    return (int64) InterlockedCompareExchangeRelease((long *) value, 0, 0);
+    return (int64) InterlockedCompareExchangeRelease64((LONG64 *) value, 0, 0);
 }
 
 inline
@@ -1314,7 +1314,7 @@ void atomic_set_acquire_release(volatile uint32* value, uint32 new_value)
 inline
 void atomic_set_acquire_release(volatile uint64* value, uint64 new_value)
 {
-    InterlockedExchange((long *) value, (long) new_value);
+    InterlockedExchange64((LONG64 *) value, (LONG64) new_value);
 }
 
 inline

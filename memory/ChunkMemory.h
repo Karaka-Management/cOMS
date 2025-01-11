@@ -11,7 +11,6 @@
 
 #include <string.h>
 #include "../stdlib/Types.h"
-#include "../utils/MathUtils.h"
 #include "../utils/TestUtils.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/BitUtils.h"
@@ -58,7 +57,9 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
 
     memset(buf->memory, 0, buf->size);
 
-    DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
+    DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
+    LOG_LEVEL_2("Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 }
 
 inline
@@ -82,8 +83,8 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk
     //  On another hand we could by accident overwrite the values in free if we are not careful
     buf->free = (uint64 *) (buf->memory + count * chunk_size);
 
-    DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
-    DEBUG_MEMORY_RESERVE((uint64) buf->memory, buf->size, 187);
+    DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
+    DEBUG_MEMORY_RESERVE((uintptr_t) buf->memory, buf->size, 187);
 }
 
 inline
@@ -108,14 +109,14 @@ void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, i
     //  On another hand we could by accident overwrite the values in free if we are not careful
     buf->free = (uint64 *) (buf->memory + count * chunk_size);
 
-    DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
-    DEBUG_MEMORY_RESERVE((uint64) buf->memory, buf->size, 187);
+    DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
+    DEBUG_MEMORY_RESERVE((uintptr_t) buf->memory, buf->size, 187);
 }
 
 inline
 void chunk_free(ChunkMemory* buf)
 {
-    DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->size);
+    DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->size);
     if (buf->alignment < 2) {
         platform_free((void **) &buf->memory);
     } else {
@@ -138,7 +139,7 @@ byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false)
         memset((void *) offset, 0, buf->chunk_size);
     }
 
-    DEBUG_MEMORY_READ((uint64) offset, buf->chunk_size);
+    DEBUG_MEMORY_READ((uintptr_t) offset, buf->chunk_size);
 
     return offset;
 }
@@ -246,7 +247,7 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1)
         return -1;
     }
 
-    DEBUG_MEMORY_WRITE((uint64) (buf->memory + free_element * buf->chunk_size), elements * buf->chunk_size);
+    DEBUG_MEMORY_WRITE((uintptr_t) (buf->memory + free_element * buf->chunk_size), elements * buf->chunk_size);
 
     buf->last_pos = free_element;
 
@@ -256,14 +257,14 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1)
 inline
 void chunk_free_element(ChunkMemory* buf, uint64 free_index, int32 bit_index)
 {
-    DEBUG_MEMORY_DELETE((uint64) (buf->memory + (free_index * 64 + bit_index) * buf->chunk_size), buf->chunk_size);
+    DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + (free_index * 64 + bit_index) * buf->chunk_size), buf->chunk_size);
     buf->free[free_index] &= ~(1LL << bit_index);
 }
 
 inline
 void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count = 1)
 {
-    DEBUG_MEMORY_DELETE((uint64) (buf->memory + element * buf->chunk_size), buf->chunk_size);
+    DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size);
 
     int64 free_index = element / 64;
     int32 bit_index = element & 63;
@@ -348,6 +349,8 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
     data += buf->size;
 
     buf->free = (uint64 *) (buf->memory + buf->count * buf->chunk_size);
+
+    LOG_LEVEL_2("Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 
     return buf->size;
 }

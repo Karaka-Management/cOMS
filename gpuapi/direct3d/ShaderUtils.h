@@ -41,7 +41,7 @@ ID3D12PipelineState* program_make(
     HRESULT hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState));
 
     if (FAILED(hr)) {
-        LOG("Failed to create program", true, true);
+        LOG(true, "Failed to create program");
         return NULL;
     }
 

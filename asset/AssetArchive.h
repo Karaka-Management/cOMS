@@ -165,6 +165,11 @@ void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* b
     file.content = ring_get_memory(ring, file.size);
     file_read(archive->fd, &file, 0, file.size);
     asset_archive_header_load(&archive->header, file.content, steps);
+
+    LOG_LEVEL_2(
+        "Loaded AssetArchive %s with %d assets",
+        {{LOG_DATA_CHAR_STR, (void *) path}, {LOG_DATA_UINT32, (void *) &archive->header.asset_count}}
+    );
 }
 
 // @question Do we want to allow a callback function?
@@ -293,6 +298,11 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     // Even though dependencies are still being loaded
     // the main program should still be able to do some work if possible
     thrd_ams_set_loaded(asset);
+
+    LOG_LEVEL_2(
+        "Asset %d loaded from archive %d for AMS %d with %n B compressed and %n B uncompressed",
+        {{LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}}
+    );
 
     // @performance maybe do in worker threads? This just feels very slow
     // @bug dependencies might be stored in different archives?

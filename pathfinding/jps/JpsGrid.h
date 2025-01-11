@@ -14,7 +14,6 @@
 #include <stdlib.h>
 
 #include "../../stdlib/Types.h"
-#include "../../utils/MathUtils.h"
 
 #include "JpsNode.h"
 

@@ -9,10 +9,27 @@
 #ifndef TOS_PLATFORM_WIN32_UTILS_H
 #define TOS_PLATFORM_WIN32_UTILS_H
 
+#include "../../stdlib/Types.h"
 #include <stdio.h>
 #include <windows.h>
 #include <string.h>
 
 #define strtok_r strtok_s
+
+uint32 key_to_unicode(byte scan_code, byte vkey, byte keyboard_state[256])
+{
+    WCHAR char_buffer[5] = {};
+    int32 result = ToUnicode(vkey, scan_code, keyboard_state, char_buffer, 5, 0);
+
+    if (result == 1) {
+        return (uint32) char_buffer[0];
+    } else if (result == 2) {
+        return (uint32) *((uint16 *) char_buffer);
+    } else if (result == 4) {
+        return *((uint32 *) char_buffer);
+    } else {
+        return 0;
+    }
+}
 
 #endif

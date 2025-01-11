@@ -28,6 +28,7 @@ struct Window {
     // 3. size
     // 4. fullscreen
     byte state_changes;
+    // @todo replace bools with states
     bool is_focused;
     bool is_fullscreen;
 
@@ -39,6 +40,7 @@ struct Window {
     // The problem is the main program doesn't know which gpuapi we are using, so maybe a void pointer?
     HGLRC openGLRC;
 
+    // @question why do we need the name?
     char name[32];
     WindowState state_old;
 };

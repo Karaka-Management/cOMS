@@ -155,7 +155,7 @@ uint32 hid_device_poll(Input* state, uint64 time) {
     }
     input_set_controller_state(state, &controller, time);
 
-    state->state_change_button = true;
+    state->general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
     state->time_last_input_check = time;
 
     return 0;

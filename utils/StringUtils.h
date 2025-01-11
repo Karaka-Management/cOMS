@@ -15,7 +15,6 @@
 #include <ctype.h>
 
 #include "../stdlib/Types.h"
-#include "MathUtils.h"
 
 inline
 int32 utf8_encode(uint32 codepoint, char* out)
@@ -78,6 +77,39 @@ int32 utf8_decode(const char* __restrict in, uint32* __restrict codepoint) {
     }
 
     return -1;
+}
+
+inline
+int32 utf8_decode(const uint32 codepoint, char* __restrict out) {
+    if (codepoint <= 0x7F) {
+        // 1-byte sequence (ASCII)
+        out[0] = (char) codepoint;
+
+        return 1;
+    } else if (codepoint <= 0x7FF) {
+        // 2-byte sequence
+        out[0] = (char) (0xC0 | ((codepoint >> 6) & 0x1F));
+        out[1] = (char) (0x80 | (codepoint & 0x3F));
+
+        return 2;
+    } else if (codepoint <= 0xFFFF) {
+        // 3-byte sequence
+        out[0] = (char) (0xE0 | ((codepoint >> 12) & 0x0F));
+        out[1] = (char) (0x80 | ((codepoint >> 6) & 0x3F));
+        out[2] = (char) (0x80 | (codepoint & 0x3F));
+
+        return 3;
+    } else if (codepoint <= 0x10FFFF) {
+        // 4-byte sequence
+        out[0] = (char) (0xF0 | ((codepoint >> 18) & 0x07));
+        out[1] = (char) (0x80 | ((codepoint >> 12) & 0x3F));
+        out[2] = (char) (0x80 | ((codepoint >> 6) & 0x3F));
+        out[3] = (char) (0x80 | (codepoint & 0x3F));
+
+        return 4;
+    }
+
+    return -1; // Invalid codepoint
 }
 
 inline
@@ -398,6 +430,17 @@ int32 str_copy_until(char* __restrict dest, const char* __restrict src, char del
     *dest = '\0';
 
     return len;
+}
+
+inline
+void str_copy_short(char* __restrict dest, const char* __restrict src, int32 length, char delim = '\0')
+{
+    int32 i = -1;
+    while (*src != delim && ++i < length) {
+        *dest++ = *src++;
+    }
+
+    *dest = '\0';
 }
 
 inline
@@ -981,66 +1024,40 @@ void str_pad(const char* input, char* output, char pad, size_t len) {
     }
 }
 
-void sprintf_fast(char *buffer, const char* format, ...) {
+void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) {
     va_list args;
     va_start(args, format);
 
-    const char* ptr = format;
-    char *buf_ptr = buffer;
-
-    while (*ptr) {
-        if (*ptr != '%') {
-            *buf_ptr++ = *ptr;
-        } else if (*ptr == '\\' && *(ptr + 1) == '%') {
-            ++ptr;
-            *buf_ptr++ = *ptr;
+    while (*format) {
+        if (*format != '%') {
+            *buffer++ = *format;
+        } else if (*format == '\\' && *(format + 1) == '%') {
+            ++format;
+            *buffer++ = *format;
         } else {
-            ++ptr;
+            ++format;
 
-            switch (*ptr) {
+            switch (*format) {
                 case 's': {
                     const char* str = va_arg(args, const char*);
                     while (*str) {
-                        *buf_ptr++ = *str++;
+                        *buffer++ = *str++;
                     }
+                } break;
+                case 'c': {
+                    *buffer++ = va_arg(args, char);
+                } break;
+                case 'n': {
+                    int64 val = va_arg(args, int64);
+                    buffer += int_to_str(val, buffer, ',');
                 } break;
                 case 'd': {
                     int32 val = va_arg(args, int32);
-                    if (val < 0) {
-                        *buf_ptr++ = '-';
-                        val = -val;
-                    }
-
-                    char temp[20];
-                    int32 index = 0;
-
-                    do {
-                        temp[index++] = (val % 10) + '0';
-                        val /= 10;
-                    } while (val > 0);
-
-                    while (index > 0) {
-                        *buf_ptr++ = temp[--index];
-                    }
+                    buffer += int_to_str(val, buffer);
                 } break;
                 case 'l': {
                     int64 val = va_arg(args, int64);
-                    if (val < 0) {
-                        *buf_ptr++ = '-';
-                        val = -val;
-                    }
-
-                    char temp[20];
-                    int64 index = 0;
-
-                    do {
-                        temp[index++] = (val % 10) + '0';
-                        val /= 10;
-                    } while (val > 0);
-
-                    while (index > 0) {
-                        *buf_ptr++ = temp[--index];
-                    }
+                    buffer += int_to_str(val, buffer);
                 } break;
                 case 'f': {
                     f64 val = va_arg(args, f64);
@@ -1049,7 +1066,7 @@ void sprintf_fast(char *buffer, const char* format, ...) {
                     int32 precision = 5;
 
                     // Check for optional precision specifier
-                    const char* prec_ptr = ptr + 1;
+                    const char* prec_ptr = format + 1;
                     if (*prec_ptr >= '0' && *prec_ptr <= '9') {
                         precision = 0;
                         while (*prec_ptr >= '0' && *prec_ptr <= '9') {
@@ -1057,11 +1074,11 @@ void sprintf_fast(char *buffer, const char* format, ...) {
                             prec_ptr++;
                         }
 
-                        ptr = prec_ptr - 1;
+                        format = prec_ptr - 1;
                     }
 
                     if (val < 0) {
-                        *buf_ptr++ = '-';
+                        *buffer++ = '-';
                         val = -val;
                     }
 
@@ -1087,31 +1104,143 @@ void sprintf_fast(char *buffer, const char* format, ...) {
                     } while (int_part > 0);
 
                     while (index > 0) {
-                        *buf_ptr++ = temp[--index];
+                        *buffer++ = temp[--index];
                     }
 
                     // Handle fractional part
                     if (precision > 0) {
-                        *buf_ptr++ = '.';
+                        *buffer++ = '.';
                         while (precision--) {
                             frac_part *= 10;
                             int32 digit = (int32) frac_part;
-                            *buf_ptr++ = (char) (digit + '0');
+                            *buffer++ = (char) (digit + '0');
                             frac_part -= digit;
                         }
                     }
                 } break;
                 default: {
                     // Handle unknown format specifiers
-                    *buf_ptr++ = '%';
+                    *buffer++ = '%';
                 } break;
             }
         }
 
-        ++ptr;
+        ++format;
     }
 
-    *buf_ptr = '\0';
+    *buffer = '\0';
+    va_end(args);
+}
+
+// There are situations where you only want to replace a certain amount of %
+void sprintf_fast_iter(char* buffer, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    int32 count_index = 0;
+
+    while (*format) {
+        if (*format != '%' || count_index >= 1) {
+            *buffer++ = *format;
+        } else if (*format == '\\' && *(format + 1) == '%') {
+            ++format;
+            *buffer++ = *format;
+        } else {
+            ++count_index;
+            ++format;
+
+            switch (*format) {
+                case 's': {
+                    const char* str = va_arg(args, const char*);
+                    while (*str) {
+                        *buffer++ = *str++;
+                    }
+                } break;
+                case 'c': {
+                    *buffer++ = va_arg(args, char);
+                } break;
+                case 'n': {
+                    int64 val = va_arg(args, int64);
+                    buffer += int_to_str(val, buffer, ',');
+                } break;
+                case 'd': {
+                    int32 val = va_arg(args, int32);
+                    buffer += int_to_str(val, buffer);
+                } break;
+                case 'l': {
+                    int64 val = va_arg(args, int64);
+                    buffer += int_to_str(val, buffer);
+                } break;
+                case 'f': {
+                    f64 val = va_arg(args, f64);
+
+                    // Default precision
+                    int32 precision = 5;
+
+                    // Check for optional precision specifier
+                    const char* prec_ptr = format + 1;
+                    if (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                        precision = 0;
+                        while (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                            precision = precision * 10 + (*prec_ptr - '0');
+                            prec_ptr++;
+                        }
+
+                        format = prec_ptr - 1;
+                    }
+
+                    if (val < 0) {
+                        *buffer++ = '-';
+                        val = -val;
+                    }
+
+                    if (precision < 6) {
+                        static const float powers_of_ten[] = {
+                            1.0f, 10.0f, 100.0f, 1000.0f, 10000.0f, 100000.0f
+                        };
+
+                        f32 scale = powers_of_ten[precision];
+                        val = OMS_ROUND_POSITIVE(val * scale) / scale;
+                    }
+
+                    // Handle integer part
+                    int32 int_part = (int32) val;
+                    f64 frac_part = val - int_part;
+
+                    char temp[20];
+                    int32 index = 0;
+
+                    do {
+                        temp[index++] = (int_part % 10) + '0';
+                        int_part /= 10;
+                    } while (int_part > 0);
+
+                    while (index > 0) {
+                        *buffer++ = temp[--index];
+                    }
+
+                    // Handle fractional part
+                    if (precision > 0) {
+                        *buffer++ = '.';
+                        while (precision--) {
+                            frac_part *= 10;
+                            int32 digit = (int32) frac_part;
+                            *buffer++ = (char) (digit + '0');
+                            frac_part -= digit;
+                        }
+                    }
+                } break;
+                default: {
+                    // Handle unknown format specifiers
+                    *buffer++ = '%';
+                } break;
+            }
+        }
+
+        ++format;
+    }
+
+    *buffer = '\0';
     va_end(args);
 }
 

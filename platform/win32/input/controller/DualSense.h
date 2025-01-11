@@ -14,7 +14,6 @@
 #include "../../../../input/ControllerInput.h"
 #include "../../../../input/InputConnectionType.h"
 #include "../../../../utils/BitUtils.h"
-#include "../../../../utils/MathUtils.h"
 
 // @bug bluetooth and USB have different formats?!
 // https://github.com/nondebug/dualsense

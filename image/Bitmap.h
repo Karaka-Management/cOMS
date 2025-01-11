@@ -15,7 +15,6 @@
 #include "../stdlib/Types.h"
 #include "../utils/Utils.h"
 #include "../utils/EndianUtils.h"
-#include "../utils/MathUtils.h"
 #include "Image.h"
 
 // See: https://en.wikipedia.org/wiki/BMP_file_format

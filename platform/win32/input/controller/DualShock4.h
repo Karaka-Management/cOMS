@@ -14,7 +14,6 @@
 #include "../../../../input/ControllerInput.h"
 #include "../../../../input/InputConnectionType.h"
 #include "../../../../utils/BitUtils.h"
-#include "../../../../utils/MathUtils.h"
 
 inline
 void input_map_dualshock4(ControllerInput* controller, InputConnectionType connection_type, byte* data)

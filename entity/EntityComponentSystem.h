@@ -108,7 +108,7 @@ Entity* ecs_insert_entity(EntityComponentSystem* ecs, Entity* entity_temp, int32
     memcpy(entity, entity_temp, mem->chunk_size);
 
     // @todo log entity stats (count, ram, vram)
-    //DEBUG_MEMORY_RESERVE((uint64) entity, entity->ram_size, 180);
+    //DEBUG_MEMORY_RESERVE((uintptr_t) entity, entity->ram_size, 180);
 
     return entity;
 }

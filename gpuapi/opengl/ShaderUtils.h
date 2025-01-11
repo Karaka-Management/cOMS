@@ -275,7 +275,7 @@ GLuint shader_make(GLenum type, const char* source, RingMemory* ring)
             GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
 
             glGetShaderInfoLog(shader, length, NULL, info);
-            LOG(info, true, true);
+            LOG(true, info);
 
             ASSERT_SIMPLE(false);
         }
@@ -321,7 +321,7 @@ GLuint program_make(
             GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
 
             glGetProgramInfoLog(program, length, NULL, info);
-            LOG(info, true, true);
+            LOG(true, info);
 
             ASSERT_SIMPLE(false);
         }

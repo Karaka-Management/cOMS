@@ -11,7 +11,6 @@
 
 #include <string.h>
 #include "../stdlib/Types.h"
-#include "../utils/MathUtils.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/TestUtils.h"
 #include "../log/DebugMemory.h"
@@ -46,13 +45,15 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 
     memset(buf->memory, 0, buf->size);
 
-    DEBUG_MEMORY_INIT((uint64) buf->memory, size);
+    DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
+    LOG_LEVEL_2("Allocated BufferMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 }
 
 inline
 void buffer_free(BufferMemory* buf)
 {
-    DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->size);
+    DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->size);
     if (buf->alignment < 2) {
         platform_free((void **) &buf->memory);
     } else {
@@ -74,15 +75,15 @@ void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 6
     buf->alignment = alignment;
     buf->element_alignment = 0;
 
-    DEBUG_MEMORY_INIT((uint64) buf->memory, buf->size);
-    DEBUG_MEMORY_RESERVE((uint64) buf->memory, buf->size, 187);
+    DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
+    DEBUG_MEMORY_RESERVE((uintptr_t) buf->memory, buf->size, 187);
 }
 
 inline
 void buffer_reset(BufferMemory* buf)
 {
     // @bug aren't we wasting element 0 (see get_memory, we are not using 0 only next element)
-    DEBUG_MEMORY_DELETE((uint64) buf->memory, buf->head - buf->memory);
+    DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->head - buf->memory);
     buf->head = buf->memory;
 }
 
@@ -107,7 +108,7 @@ byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4, bool 
         memset((void *) buf->head, 0, size);
     }
 
-    DEBUG_MEMORY_WRITE((uint64) buf->head, size);
+    DEBUG_MEMORY_WRITE((uintptr_t) buf->head, size);
 
     byte* offset = buf->head;
     buf->head += size;

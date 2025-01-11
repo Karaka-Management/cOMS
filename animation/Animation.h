@@ -10,8 +10,8 @@
 #ifndef TOS_ANIMATION_H
 #define TOS_ANIMATION_H
 
+#include <math.h>
 #include "../stdlib/Types.h"
-#include "../utils/MathUtils.h"
 
 #include "AnimationEaseType.h"
 

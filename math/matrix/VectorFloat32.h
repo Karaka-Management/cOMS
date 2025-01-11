@@ -9,7 +9,6 @@
 #ifndef TOS_MATH_MATRIX_VECTOR_FLOAT32_H
 #define TOS_MATH_MATRIX_VECTOR_FLOAT32_H
 
-#include "../../utils/MathUtils.h"
 #include "../../stdlib/Simd.h"
 
 struct v3_f32_4 {

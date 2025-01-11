@@ -363,6 +363,8 @@ void text_calculate_dimensions(
 
 // @todo implement shadow (offset + angle + diffuse) or should this be a shader only thing? if so this would be a problem for us since we are handling text in the same shader as simple shapes
 // we might want to implement distance field font atlas
+// @todo We should be able to cut off text at an arbitrary position, not just at a line_height incremental
+// we could probably get the MIN of the glyph height and the remaining window height
 v2_f32 vertex_text_create(
     Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
     f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
@@ -395,11 +397,19 @@ v2_f32 vertex_text_create(
         }
     }
 
+    f32 line_height_scaled = font->line_height * scale;
+
+    f32 rendered_width = 0;
+    f32 rendered_height = line_height_scaled;
+
     f32 offset_x = x;
     for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {
-            y -= font->line_height * scale;
+            rendered_height += line_height_scaled;
+            rendered_width = OMS_MAX(rendered_width, offset_x - x);
+
+            y -= line_height_scaled;
             offset_x = x;
 
             continue;
@@ -429,7 +439,7 @@ v2_f32 vertex_text_create(
     //      This way we can ensure no overflow easily
     // @todo implement line alignment, currently only total alignment is considered
 
-    return {offset_x, y};
+    return {rendered_width, rendered_height};
 }
 
 // @todo implement shadow (offset + angle + diffuse) or should this be a shader only thing? if so this would be a problem for us since we are handling text in the same shader as simple shapes

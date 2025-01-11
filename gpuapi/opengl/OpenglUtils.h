@@ -44,7 +44,7 @@ void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severit
         return;
     }
 
-    LOG(message, true, true);
+    LOG(true, message);
     ASSERT_SIMPLE(false);
 }
 
@@ -490,6 +490,7 @@ void gpuapi_error()
 {
     GLenum err;
     while ((err = glGetError()) != GL_NO_ERROR) {
+        LOG_FORMAT(true, "Opengl error: %d", {{LOG_DATA_INT32, (int32 *) &err}});
         ASSERT_SIMPLE(err == GL_NO_ERROR);
     }
 }

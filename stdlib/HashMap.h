@@ -140,6 +140,8 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ri
 
     hm->table = (void **) data;
     chunk_init(&hm->buf, data + sizeof(void *) * count, count, element_size, 8);
+
+    LOG_LEVEL_2("Created HashMap for %n elements with %n B per element = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}, {LOG_DATA_UINT64, &hm->buf.size}});
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
@@ -153,6 +155,8 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* 
 
     hm->table = (void **) data;
     chunk_init(&hm->buf, data + sizeof(void *) * count, count, element_size, 8);
+
+    LOG_LEVEL_2("Created HashMap for %n elements with %n B per element = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}, {LOG_DATA_UINT64, &hm->buf.size}});
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
@@ -160,6 +164,8 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf)
 {
     hm->table = (void **) buf;
     chunk_init(&hm->buf, buf + sizeof(void *) * count, count, element_size, 8);
+
+    LOG_LEVEL_2("Created HashMap for %n elements with %n B per element = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}, {LOG_DATA_UINT64, &hm->buf.size}});
 }
 
 // Calculates how large a hashmap will be
@@ -399,7 +405,7 @@ HashEntry* hashmap_get_reserve(HashMap* hm, const char* key)
 
     while (entry != NULL) {
         if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
-            DEBUG_MEMORY_READ((uint64) entry, sizeof(HashEntry));
+            DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
             return entry;
         }
 
@@ -434,7 +440,7 @@ HashEntry* hashmap_get_entry(const HashMap* hm, const char* key) {
 
     while (entry != NULL) {
         if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
-            DEBUG_MEMORY_READ((uint64) entry, sizeof(HashEntry));
+            DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
             return entry;
         }
 
@@ -452,7 +458,7 @@ HashEntry* hashmap_get_entry(const HashMap* hm, const char* key, uint64 hash) {
 
     while (entry != NULL) {
         if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
-            DEBUG_MEMORY_READ((uint64) entry, sizeof(HashEntry));
+            DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
             return entry;
         }
 
@@ -664,7 +670,7 @@ HashEntryKeyInt32* hashmap_get_entry(const HashMap* hm, int32 key) {
 
     while (entry != NULL) {
         if (entry->key == key) {
-            DEBUG_MEMORY_READ((uint64) entry, sizeof(HashEntryKeyInt32));
+            DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntryKeyInt32));
             return entry;
         }
 
@@ -682,7 +688,7 @@ HashEntryKeyInt32* hashmap_get_entry(const HashMap* hm, int32 key, uint64 hash) 
 
     while (entry != NULL) {
         if (entry->key == key) {
-            DEBUG_MEMORY_READ((uint64) entry, sizeof(HashEntryKeyInt32));
+            DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntryKeyInt32));
             return entry;
         }
 
@@ -850,6 +856,8 @@ int64 hashmap_load(HashMap* hm, const byte* data)
             ((HashEntryInt64 *) entry)->value = SWAP_ENDIAN_LITTLE(((HashEntryInt64 *) entry)->value);
         }
     chunk_iterate_end;
+
+    LOG_LEVEL_2("Loaded HashMap: %n B", {{LOG_DATA_UINT64, &hm->buf.size}});
 
     // How many bytes was read from data
     return sizeof(hm->buf.count) // hash map count = buffer count

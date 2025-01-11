@@ -226,44 +226,44 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
             InputKey key;
 
             if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) {
-                key.key_state = KEY_STATE_PRESSED;
-                key.key_id = INPUT_MOUSE_BUTTON_1;
+                key.key_state = KEY_PRESS_TYPE_PRESSED;
+                key.scan_code = INPUT_MOUSE_BUTTON_1;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) {
-                key.key_state = KEY_STATE_RELEASED;
-                key.key_id = INPUT_MOUSE_BUTTON_1;
+                key.key_state = KEY_PRESS_TYPE_RELEASED;
+                key.scan_code = INPUT_MOUSE_BUTTON_1;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) {
-                key.key_state = KEY_STATE_PRESSED;
-                key.key_id = INPUT_MOUSE_BUTTON_2;
+                key.key_state = KEY_PRESS_TYPE_PRESSED;
+                key.scan_code = INPUT_MOUSE_BUTTON_2;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) {
-                key.key_state = KEY_STATE_RELEASED;
-                key.key_id = INPUT_MOUSE_BUTTON_2;
+                key.key_state = KEY_PRESS_TYPE_RELEASED;
+                key.scan_code = INPUT_MOUSE_BUTTON_2;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN) {
-                key.key_state = KEY_STATE_PRESSED;
-                key.key_id = INPUT_MOUSE_BUTTON_3;
+                key.key_state = KEY_PRESS_TYPE_PRESSED;
+                key.scan_code = INPUT_MOUSE_BUTTON_3;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP) {
-                key.key_state = KEY_STATE_RELEASED;
-                key.key_id = INPUT_MOUSE_BUTTON_3;
+                key.key_state = KEY_PRESS_TYPE_RELEASED;
+                key.scan_code = INPUT_MOUSE_BUTTON_3;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN) {
-                key.key_state = KEY_STATE_PRESSED;
-                key.key_id = INPUT_MOUSE_BUTTON_4;
+                key.key_state = KEY_PRESS_TYPE_PRESSED;
+                key.scan_code = INPUT_MOUSE_BUTTON_4;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_4_UP) {
-                key.key_state = KEY_STATE_RELEASED;
-                key.key_id = INPUT_MOUSE_BUTTON_4;
+                key.key_state = KEY_PRESS_TYPE_RELEASED;
+                key.scan_code = INPUT_MOUSE_BUTTON_4;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN) {
-                key.key_state = KEY_STATE_PRESSED;
-                key.key_id = INPUT_MOUSE_BUTTON_5;
+                key.key_state = KEY_PRESS_TYPE_PRESSED;
+                key.scan_code = INPUT_MOUSE_BUTTON_5;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP) {
-                key.key_state = KEY_STATE_RELEASED;
-                key.key_id = INPUT_MOUSE_BUTTON_5;
+                key.key_state = KEY_PRESS_TYPE_RELEASED;
+                key.scan_code = INPUT_MOUSE_BUTTON_5;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) {
                 // @bug not working
-                key.key_state = KEY_STATE_RELEASED;
-                key.key_id = INPUT_MOUSE_BUTTON_WHEEL;
+                key.key_state = KEY_PRESS_TYPE_RELEASED;
+                key.scan_code = INPUT_MOUSE_BUTTON_WHEEL;
                 key.value = (int16) raw->data.mouse.usButtonData;
             } else if (raw->data.mouse.usButtonFlags & RI_MOUSE_HWHEEL) {
                 // @bug not working
-                key.key_state = KEY_STATE_RELEASED;
-                key.key_id = INPUT_MOUSE_BUTTON_HWHEEL;
+                key.key_state = KEY_PRESS_TYPE_RELEASED;
+                key.scan_code = INPUT_MOUSE_BUTTON_HWHEEL;
                 key.value = (int16) raw->data.mouse.usButtonData;
             } else {
                 return 0;
@@ -271,12 +271,12 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
 
             ++input_count;
 
-            key.key_id |= INPUT_MOUSE_PREFIX;
+            key.scan_code |= INPUT_MOUSE_PREFIX;
             key.time = time;
 
-            input_set_state(states[i].state.state_keys, &key);
-            states[i].state_change_button = true;
-        } else if (states[i].mouse_movement) {
+            input_set_state(states[i].state.active_keys, &key);
+            states[i].general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
+        } else if (states[i].general_states & INPUT_STATE_GENERAL_MOUSE_MOVEMENT) {
             // @question do we want to handle mouse movement for every individual movement, or do we want to pull it
             if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) {
                 RECT rect;
@@ -301,7 +301,7 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
                 states[i].state.x = MulDiv(raw->data.mouse.lLastX, rect.right, 65535) + rect.left;
                 states[i].state.y = MulDiv(raw->data.mouse.lLastY, rect.bottom, 65535) + rect.top;
 
-                states[i].state_change_mouse = true;
+                states[i].general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
             } else if (raw->data.mouse.lLastX != 0 || raw->data.mouse.lLastY != 0) {
                 states[i].state.dx += raw->data.mouse.lLastX;
                 states[i].state.dy += raw->data.mouse.lLastY;
@@ -309,7 +309,7 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
                 states[i].state.x = states[i].state.x + raw->data.mouse.lLastX;
                 states[i].state.y = states[i].state.y + raw->data.mouse.lLastY;
 
-                states[i].state_change_mouse = true;
+                states[i].general_states |= INPUT_STATE_GENERAL_MOUSE_CHANGE;
             }
         }
     } else if (raw->header.dwType == RIM_TYPEKEYBOARD) {
@@ -324,21 +324,26 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
             return 0;
         }
 
-        uint16 new_state;
+        KeyPressType new_state;
         if (raw->data.keyboard.Flags == RI_KEY_BREAK) {
-            new_state = KEY_STATE_RELEASED;
+            new_state = KEY_PRESS_TYPE_RELEASED;
         } else if (raw->data.keyboard.Flags == RI_KEY_MAKE) {
-            new_state = KEY_STATE_PRESSED;
+            new_state = KEY_PRESS_TYPE_PRESSED;
         } else {
             return 0;
         }
 
         ++input_count;
 
-        // @todo change to MakeCode instead of VKey
-        InputKey key = {(uint16) (raw->data.keyboard.VKey | INPUT_KEYBOARD_PREFIX), new_state, 0, time};
-        input_set_state(states[i].state.state_keys, &key);
-        states[i].state_change_button = true;
+        // @todo we need to support vkey and MakeCode/ScanCode for input mode -> typing and recognizing the respective unicode
+        InputKey key = {
+            (uint16) (raw->data.keyboard.MakeCode | INPUT_KEYBOARD_PREFIX),
+            (uint16) (raw->data.keyboard.VKey | INPUT_KEYBOARD_PREFIX),
+            new_state, time, 0, false
+        };
+
+        input_set_state(states[i].state.active_keys, &key);
+        states[i].general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
     } else if (raw->header.dwType == RIM_TYPEHID
         && raw->header.dwSize > sizeof(RAWINPUT)
     ) {
@@ -369,7 +374,7 @@ int32 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32
         }
         input_set_controller_state(&states[i], &controller, time);
 
-        states[i].state_change_button = true;
+        states[i].general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
         states[i].time_last_input_check = time;
     }
 

@@ -9,7 +9,6 @@
 #ifndef TOS_MATH_MATRIX_VECTOR_FLOAT64_H
 #define TOS_MATH_MATRIX_VECTOR_FLOAT64_H
 
-#include "../../utils/MathUtils.h"
 #include "../../stdlib/Simd.h"
 
 #endif

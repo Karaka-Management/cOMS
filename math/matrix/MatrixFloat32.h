@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "../../utils/MathUtils.h"
 #include "../../utils/TestUtils.h"
 
 #if ARM
@@ -345,7 +344,7 @@ void mat4_identity(__m128* matrix)
 // https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
 void mat4_rotation(f32* matrix, f32 x, f32 y, f32 z, f32 angle)
 {
-    ASSERT_SIMPLE(OMS_ABS(x * x + y * y + z * z - 1.0f) < 0.01);
+    ASSERT_SIMPLE(OMS_ABS_F32(x * x + y * y + z * z - 1.0f) < 0.01);
 
     // @todo replace with quaternions
     f32 s = sinf(angle);

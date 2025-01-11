@@ -8,7 +8,6 @@
 #include "TimingStat.h"
 #include "../utils/StringUtils.h"
 #include "../utils/TestUtils.h"
-#include "../utils/MathUtils.h"
 #include "../thread/Atomic.h"
 
 // Required for rdtsc();
@@ -69,34 +68,24 @@ void log_to_file()
 
     #if _WIN32
         DWORD written;
-        if (!WriteFile(
+        WriteFile(
             debug_container->log_fp,
             (char *) debug_container->log_memory.memory,
-            (uint32) debug_container->log_memory.pos - 1,
+            (uint32) debug_container->log_memory.pos,
             &written,
             NULL
-        )) {
-            CloseHandle(debug_container->log_fp);
-        }
+        );
     #else
         if (debug_container->log_fp < 0) {
             return;
         }
 
-        if (!write(
+        write(
             debug_container->log_fp,
             (char *) debug_container->log_memory.memory,
-            (uint32) debug_container->log_memory.pos - 1
-        )) {
-            close(debug_container->log_fp);
-        }
+            (uint32) debug_container->log_memory.pos
+        );
     #endif
-
-    memset(debug_container->log_memory.memory, 0, debug_container->log_memory.size);
-
-    // reset log position to start of memory pool
-    debug_container->log_memory.pos = 0;
-    debug_container->log_memory.start = 0;
 }
 
 // IMPORTANT: This function should only be called when you actually use this data
@@ -184,9 +173,8 @@ void log_counter(int32 id, int64 value)
     atomic_set_acquire(&debug_container->counter[id], value);
 }
 
-// @todo don't use a pointer to this should be in a global together with other logging data (see Log.h)
 inline
-DebugMemory* debug_memory_find(uint64 start)
+DebugMemory* debug_memory_find(uintptr_t start)
 {
     for (uint64 i = 0; i < debug_container->dmc.memory_size; ++i) {
         if (debug_container->dmc.memory_stats[i].start <= start
@@ -199,7 +187,7 @@ DebugMemory* debug_memory_find(uint64 start)
     return NULL;
 }
 
-void debug_memory_init(uint64 start, uint64 size)
+void debug_memory_init(uintptr_t start, uint64 size)
 {
     if (!start || !debug_container) {
         return;
@@ -231,7 +219,7 @@ void debug_memory_init(uint64 start, uint64 size)
     ++dmc->memory_element_idx;
 }
 
-void debug_memory_log(uint64 start, uint64 size, int32 type, const char* function)
+void debug_memory_log(uintptr_t start, uint64 size, int32 type, const char* function)
 {
     if (!start || !debug_container) {
         return;
@@ -263,7 +251,7 @@ void debug_memory_log(uint64 start, uint64 size, int32 type, const char* functio
     }
 }
 
-void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* function)
+void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* function)
 {
     if (!start || !debug_container) {
         return;
@@ -290,7 +278,7 @@ void debug_memory_reserve(uint64 start, uint64 size, int32 type, const char* fun
 }
 
 // undo reserve
-void debug_memory_free(uint64 start, uint64 size)
+void debug_memory_free(uintptr_t start, uint64 size)
 {
     if (!start || !debug_container) {
         return;
@@ -331,124 +319,118 @@ void debug_memory_reset()
 }
 
 // @bug This probably requires thread safety
-byte* log_get_memory(uint64 size, byte aligned = 4, bool zeroed = false)
+byte* log_get_memory()
 {
-    if (!debug_container) {
-        return 0;
-    }
-
     LogMemory* log_mem = &debug_container->log_memory;
-    ASSERT_SIMPLE(size <= log_mem->size);
-
-    if (aligned > 1) {
-        uintptr_t address = (uintptr_t) log_mem->memory;
-        log_mem->pos += (aligned - ((address + log_mem->pos) & (aligned - 1))) % aligned;
-    }
-
-    size = ROUND_TO_NEAREST(size, aligned);
-    if (log_mem->pos + size > log_mem->size) {
+    if (log_mem->pos + MAX_LOG_LENGTH > log_mem->size) {
         log_mem->pos = 0;
-
-        if (aligned > 1) {
-            uintptr_t address = (uintptr_t) log_mem->memory;
-            log_mem->pos += (aligned - ((address + log_mem->pos) & (aligned - 1))) % aligned;
-        }
     }
 
     byte* offset = (byte *) (log_mem->memory + log_mem->pos);
-    if (zeroed) {
-        memset((void *) offset, 0, size);
-    }
+    memset((void *) offset, 0, MAX_LOG_LENGTH);
 
-    log_mem->pos += size;
+    log_mem->pos += MAX_LOG_LENGTH;
 
     return offset;
 }
 
-// @todo add file name, function name and function line
-void log(const char* str, bool should_log, bool save, const char* file, const char* function, int32 line)
+void log(const char* str, bool should_log, const char* file, const char* function, int32 line)
 {
     if (!should_log || !debug_container) {
         return;
     }
 
-    size_t str_len = OMS_MIN(strlen(str), MAX_LOG_LENGTH - 128);
-    size_t file_len = strlen(file);
-    size_t function_len = strlen(function);
+    int64 len = strlen(str);
+    while (len > 0) {
+        LogMessage* msg = (LogMessage *) log_get_memory();
 
-    char line_str[14];
-    uint_to_str(line, line_str);
+        // Fill file
+        msg->file = file;
+        msg->function = function;
+        msg->line = line;
+        msg->message = (char *) (msg + 1);
 
-    size_t line_len = strlen(line_str);
+        int32 message_length = (int32) OMS_MIN(MAX_LOG_LENGTH - sizeof(LogMessage) - 1, len);
 
-    ASSERT_SIMPLE(str_len + file_len + function_len + line_len + 3 < MAX_LOG_LENGTH);
+        memcpy(msg->message, str, message_length);
+        msg->message[message_length] = '\0';
+        str += message_length;
+        len -= MAX_LOG_LENGTH - sizeof(LogMessage);
 
-    char* temp = (char *) log_get_memory(str_len + file_len + function_len + line_len + 3 + 1);
-    memcpy(temp, file, file_len);
-    temp[file_len] = ';';
-
-    memcpy(&temp[file_len], function, function_len);
-    temp[file_len + 1 + function_len] = ';';
-
-    memcpy(&temp[file_len + 1 + function_len], line_str, line_len);
-    temp[file_len + 1 + function_len + 1 + line_len] = ';';
-
-    memcpy(&temp[file_len + 1 + function_len + 1 + line_len + 1], str, str_len);
-    temp[file_len + 1 + function_len + 1 + line_len + 1 + str_len] = '\0';
-
-    if (save || debug_container->log_memory.size - debug_container->log_memory.pos < MAX_LOG_LENGTH) {
-        log_to_file();
+        if (debug_container->log_memory.size - debug_container->log_memory.pos < MAX_LOG_LENGTH) {
+            log_to_file();
+            debug_container->log_memory.pos = 0;
+        }
     }
 }
 
-void log(const char* format, LogDataType data_type, void* data, bool should_log, bool save, const char* file, const char* function, int32 line)
+void log(const char* format, LogDataArray data, bool should_log, const char* file, const char* function, int32 line)
 {
+    ASSERT_SIMPLE(strlen(format) + strlen(file) + strlen(function) + 50 < MAX_LOG_LENGTH);
+
     if (!should_log || !debug_container) {
         return;
     }
 
-    if (data_type == LOG_DATA_VOID) {
-        log(format, should_log, save, file, function, line);
+    if (data.data[0].type == LOG_DATA_VOID) {
+        log(format, should_log, file, function, line);
+        return;
     }
 
-    char* temp = (char *) log_get_memory(MAX_LOG_LENGTH);
+    LogMessage* msg = (LogMessage *) log_get_memory();
+    msg->file = file;
+    msg->function = function;
+    msg->line = line;
+    msg->message = (char *) (msg + 1);
 
-    switch (data_type) {
-        case LOG_DATA_INT32: {
-            sprintf(temp, format, *((int32 *) data));
-        } break;
-        case LOG_DATA_UINT32: {
-            sprintf(temp, format, *((uint32 *) data));
-        } break;
-        case LOG_DATA_INT64: {
-            sprintf(temp, format, *((int64 *) data));
-        } break;
-        case LOG_DATA_UINT64: {
-            sprintf(temp, format, *((uint64 *) data));
-        } break;
-        case LOG_DATA_CHAR: {
-            sprintf(temp, format, *((char *) data));
-        } break;
-        case LOG_DATA_CHAR_STR: {
-            sprintf(temp, format, *((char *) data));
-        } break;
-        case LOG_DATA_FLOAT32: {
-            sprintf(temp, format, *((f32 *) data));
-        } break;
-        case LOG_DATA_FLOAT64: {
-            sprintf(temp, format, *((f64 *) data));
-        } break;
-        default: {
-            UNREACHABLE();
+    char temp_format[MAX_LOG_LENGTH];
+    str_copy_short(msg->message, format);
+
+    for (int32 i = 0; i < LOG_DATA_ARRAY; ++i) {
+        if (data.data[i].type == LOG_DATA_VOID) {
+            break;
+        }
+
+        str_copy_short(temp_format, msg->message);
+
+        switch (data.data[i].type) {
+            case LOG_DATA_BYTE: {
+                sprintf_fast_iter(msg->message, temp_format, (int32) *((byte *) data.data[i].value));
+            } break;
+            case LOG_DATA_INT32: {
+                sprintf_fast_iter(msg->message, temp_format, *((int32 *) data.data[i].value));
+            } break;
+            case LOG_DATA_UINT32: {
+                sprintf_fast_iter(msg->message, temp_format, *((uint32 *) data.data[i].value));
+            } break;
+            case LOG_DATA_INT64: {
+                sprintf_fast_iter(msg->message, temp_format, *((int64 *) data.data[i].value));
+            } break;
+            case LOG_DATA_UINT64: {
+                sprintf_fast_iter(msg->message, temp_format, *((uint64 *) data.data[i].value));
+            } break;
+            case LOG_DATA_CHAR: {
+                sprintf_fast_iter(msg->message, temp_format, *((char *) data.data[i].value));
+            } break;
+            case LOG_DATA_CHAR_STR: {
+                sprintf_fast_iter(msg->message, temp_format, (const char *) data.data[i].value);
+            } break;
+            case LOG_DATA_FLOAT32: {
+                sprintf_fast_iter(msg->message, temp_format, *((f32 *) data.data[i].value));
+            } break;
+            case LOG_DATA_FLOAT64: {
+                sprintf_fast_iter(msg->message, temp_format, *((f64 *) data.data[i].value));
+            } break;
+            default: {
+                UNREACHABLE();
+            }
         }
     }
 
-    if (save || debug_container->log_memory.size - debug_container->log_memory.pos < MAX_LOG_LENGTH) {
+    if (debug_container->log_memory.size - debug_container->log_memory.pos < MAX_LOG_LENGTH) {
         log_to_file();
+        debug_container->log_memory.pos = 0;
     }
-
-    ASSERT_SIMPLE(false);
 }
-
 
 #endif

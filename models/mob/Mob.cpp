@@ -9,7 +9,6 @@
 #ifndef TOS_MODELS_MOB_C
 #define TOS_MODELS_MOB_C
 
-#include "../../utils/MathUtils.h"
 #include "Mob.h"
 #include "MobState.h"
 

@@ -14,7 +14,6 @@
 #include <string.h>
 
 #include "../../EngineDependencies/curl/include/curl/curl.h"
-#include "../utils/MathUtils.h"
 
 #define MAX_AUTH_POST_LENGTH 1024
 #define MAX_AUTH_RESPONSE_LENGTH 1024

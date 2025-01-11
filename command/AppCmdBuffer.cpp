@@ -29,6 +29,8 @@ void cmd_buffer_create(AppCmdBuffer* cb, BufferMemory* buf, int32 commands_count
 {
     chunk_init(&cb->commands, buf, commands_count, sizeof(Command), 64);
     pthread_mutex_init(&cb->mutex, NULL);
+
+    LOG_LEVEL_2("Created AppCmdBuffer: %n B", {{LOG_DATA_UINT64, &cb->commands.size}});
 }
 
 // This doesn't load the asset directly but tells (most likely) a worker thread to load an asset

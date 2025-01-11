@@ -18,15 +18,56 @@
     #include <windows.h>
 #endif
 
+#ifndef MAX_LOG_LENGTH
+    #define MAX_LOG_LENGTH 256
+#endif
+
+#ifndef MAX_LOG_MESSAGES
+    #define MAX_LOG_MESSAGES 256
+#endif
+
+#ifndef LOG_LEVEL
+    #define LOG_LEVEL 0
+#endif
+
+#define LOG_DATA_ARRAY 5
+
+enum LogDataType {
+    LOG_DATA_NONE,
+    LOG_DATA_VOID,
+    LOG_DATA_BYTE,
+    LOG_DATA_INT32,
+    LOG_DATA_UINT32,
+    LOG_DATA_INT64,
+    LOG_DATA_UINT64,
+    LOG_DATA_CHAR,
+    LOG_DATA_CHAR_STR,
+    LOG_DATA_FLOAT32,
+    LOG_DATA_FLOAT64
+};
+
 struct LogMemory {
     byte* memory;
 
-    uint32 id;
     uint64 size;
     uint64 pos;
-    uint32 alignment;
-    uint64 start;
-    uint64 end;
+};
+
+struct LogMessage {
+    const char* file;
+    const char* function;
+    int32 line;
+    uint64 time;
+    char* message;
+};
+
+struct LogData {
+    LogDataType type;
+    void* value;
+};
+
+struct LogDataArray{
+    LogData data[LOG_DATA_ARRAY];
 };
 
 struct DebugContainer {

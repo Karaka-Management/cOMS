@@ -11,7 +11,6 @@
 
 #include "../../../stdlib/Types.h"
 #include "../../../utils/Utils.h"
-#include "../../../utils/MathUtils.h"
 #include "Drop.h"
 
 // @todo how to do class specific loot table?

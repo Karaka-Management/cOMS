@@ -14,7 +14,6 @@
 
 #include "../../../input/ControllerInput.h"
 #include "../../../stdlib/Types.h"
-#include "../../../utils/MathUtils.h"
 
 // @todo consider to remove some global_persist and defines since we are never calling it somewhere else
 

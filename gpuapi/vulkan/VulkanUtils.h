@@ -111,7 +111,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
     if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         || (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     ) {
-        LOG(debug_callback_data->pMessage, true, true);
+        LOG(true, debug_callback_data->pMessage);
     }
 
     return VK_FALSE;
@@ -158,14 +158,14 @@ void vulkan_instance_create(
     if (validation_layer_count
         && (err = vulkan_check_validation_layer_support(validation_layers, validation_layer_count, ring))
     ) {
-        LOG_FORMAT("Vulkan validation_layer missing: %d\n", LOG_DATA_CHAR_STR, (void *) validation_layers[-err - 1], true, true);
+        LOG_FORMAT(true, "Vulkan validation_layer missing: %d", {{LOG_DATA_CHAR_STR, (void *) validation_layers[-err - 1]}});
         ASSERT_SIMPLE(false);
     }
 
     if (extension_count
         && (err = vulkan_check_extension_support(extensions, extension_count, ring))
     ) {
-        LOG_FORMAT("Vulkan extension missing: %d\n", LOG_DATA_CHAR_STR, (void *) extensions[-err - 1], true, true);
+        LOG_FORMAT(true, "Vulkan extension missing: %d", {{LOG_DATA_CHAR_STR, (void *) extensions[-err - 1]}});
         ASSERT_SIMPLE(false);
     }
 
@@ -195,7 +195,7 @@ void vulkan_instance_create(
 
     VkResult result;
     if ((result = vkCreateInstance(&create_info, NULL, instance)) != VK_SUCCESS) {
-        LOG_FORMAT("Vulkan vkCreateInstance: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+        LOG_FORMAT(true, "Vulkan vkCreateInstance: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
     }
 }
@@ -210,7 +210,7 @@ void vulkan_surface_create(VkInstance instance, VkSurfaceKHR* surface, Window* w
 
         VkResult result;
         if ((result = vkCreateWin32SurfaceKHR(instance, &surface_create_info, NULL, surface)) != VK_SUCCESS) {
-            LOG_FORMAT("Vulkan vkCreateWin32SurfaceKHR: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+            LOG_FORMAT(true, "Vulkan vkCreateWin32SurfaceKHR: %d", LOG_DATA_INT32, (int32 *) &result);
             return;
         }
     #elif __linux__
@@ -345,7 +345,7 @@ void gpuapi_pick_physical_device(
         }
     }
 
-    LOG("Vulkan failed to find physical device\n", true, true);
+    LOG(true, "Vulkan failed to find physical device");
     ASSERT_SIMPLE(false);
 }
 
@@ -392,7 +392,7 @@ void gpuapi_create_logical_device(
 
     VkResult result;
     if ((result = vkCreateDevice(physical_device, &create_info, NULL, device)) != VK_SUCCESS) {
-        LOG_FORMAT("Vulkan vkCreateDevice: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+        LOG_FORMAT(true, "Vulkan vkCreateDevice: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
     }
 
@@ -480,7 +480,7 @@ void vulkan_swap_chain_create(
 
     VkResult result;
     if ((result = vkCreateSwapchainKHR(device, &create_info, NULL, swapchain)) != VK_SUCCESS) {
-        LOG_FORMAT("Vulkan vkCreateSwapchainKHR: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+        LOG_FORMAT(true, "Vulkan vkCreateSwapchainKHR: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
     }
 
@@ -521,7 +521,7 @@ void vulkan_image_views_create(
         create_info.subresourceRange.layerCount = 1;
 
         if ((result = vkCreateImageView(device, &create_info, NULL, &swapchain_image_views[i])) != VK_SUCCESS) {
-            LOG_FORMAT("Vulkan vkCreateImageView: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+            LOG_FORMAT(true, "Vulkan vkCreateImageView: %d", LOG_DATA_INT32, (int32 *) &result);
             ASSERT_SIMPLE(false);
         }
     }
@@ -568,7 +568,7 @@ void create_render_pass(
 
     VkResult result;
     if ((result = vkCreateRenderPass(device, &renderPassInfo, NULL, render_pass)) != VK_SUCCESS) {
-        LOG_FORMAT("Vulkan vkCreateRenderPass: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+        LOG_FORMAT(true, "Vulkan vkCreateRenderPass: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
     }
 }
@@ -665,7 +665,7 @@ void vulkan_pipeline_create(
 
     VkResult result;
     if ((result = vkCreatePipelineLayout(device, &pipelineLayoutInfo, NULL, pipeline_layout)) != VK_SUCCESS) {
-        LOG_FORMAT("Vulkan vkCreatePipelineLayout: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+        LOG_FORMAT(true, "Vulkan vkCreatePipelineLayout: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
     }
 
@@ -686,7 +686,7 @@ void vulkan_pipeline_create(
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
     if ((result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, pipeline)) != VK_SUCCESS) {
-        LOG_FORMAT("Vulkan vkCreateGraphicsPipelines: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+        LOG_FORMAT(true, "Vulkan vkCreateGraphicsPipelines: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
     }
 
@@ -717,7 +717,7 @@ void vulkan_framebuffer_create(
         framebufferInfo.layers = 1;
 
         if ((result = vkCreateFramebuffer(device, &framebufferInfo, NULL, &swapchain_framebuffers[i])) != VK_SUCCESS) {
-            LOG_FORMAT("Vulkan vkCreateFramebuffer: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+            LOG_FORMAT(true, "Vulkan vkCreateFramebuffer: %d", LOG_DATA_INT32, (int32 *) &result);
             ASSERT_SIMPLE(false);
         }
     }
@@ -736,7 +736,7 @@ void vulkan_command_pool_create(
 
     VkResult result;
     if ((result = vkCreateCommandPool(device, &poolInfo, NULL, command_pool)) != VK_SUCCESS) {
-        LOG_FORMAT("Vulkan vkCreateCommandPool: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+        LOG_FORMAT(true, "Vulkan vkCreateCommandPool: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
     }
 }
@@ -751,7 +751,7 @@ void vulkan_command_buffer_create(VkDevice device, VkCommandBuffer* command_buff
 
     VkResult result;
     if ((result = vkAllocateCommandBuffers(device, &allocInfo, command_buffer)) != VK_SUCCESS) {
-        LOG_FORMAT("Vulkan vkAllocateCommandBuffers: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+        LOG_FORMAT(true, "Vulkan vkAllocateCommandBuffers: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
     }
 }
@@ -770,7 +770,7 @@ void vulkan_sync_objects_create(VkDevice device, VkSemaphore* image_available_se
         || (result = vkCreateSemaphore(device, &semaphoreInfo, NULL, render_finished_semaphore)) != VK_SUCCESS
         || (result = vkCreateFence(device, &fenceInfo, NULL, in_flight_fence)) != VK_SUCCESS
     ) {
-        LOG_FORMAT("Vulkan vulkan_sync_objects_create: %d\n", LOG_DATA_INT32, (int32 *) &result, true, true);
+        LOG_FORMAT(true, "Vulkan vulkan_sync_objects_create: %d", LOG_DATA_INT32, (int32 *) &result);
 
         ASSERT_SIMPLE(false);
     }

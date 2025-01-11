@@ -12,7 +12,6 @@
 #include <immintrin.h>
 #include <xmmintrin.h>
 
-#include "../../utils/MathUtils.h"
 #include "../../stdlib/Simd.h"
 
 struct v3_int64_2 {

@@ -45,6 +45,8 @@ void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 asset_compo
     hashmap_create(&ams->hash_map, count, sizeof(HashEntry) + sizeof(Asset), buf);
     ams->asset_component_count = asset_component_count;
     ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), 64, true);
+
+    LOG_LEVEL_2("Created AMS for %n assets", {{LOG_DATA_INT32, &count}});
 }
 
 inline
@@ -54,6 +56,8 @@ void ams_component_create(AssetComponent* ac, BufferMemory* buf, int32 chunk_siz
 
     chunk_init(&ac->asset_memory, buf, count, chunk_size, 64);
     pthread_mutex_init(&ac->mutex, NULL);
+
+    LOG_LEVEL_2("Created AMS Component for %n assets and %n B = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}, {LOG_DATA_UINT64, &ac->asset_memory.size}});
 }
 
 inline
@@ -69,6 +73,8 @@ void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32
     ac->asset_memory.free = (uint64 *) (ac->asset_memory.memory + ac->asset_memory.chunk_size * count);
 
     pthread_mutex_init(&ac->mutex, NULL);
+
+    LOG_LEVEL_2("Created AMS Component for %n assets and %n B = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}, {LOG_DATA_UINT64, &ac->asset_memory.size}});
 }
 
 inline
@@ -216,7 +222,7 @@ Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* ams, byte type, co
     ac->ram_size += asset->ram_size;
     ++ac->asset_count;
 
-    DEBUG_MEMORY_RESERVE((uint64) asset, asset->ram_size, 180);
+    DEBUG_MEMORY_RESERVE((uintptr_t) asset, asset->ram_size, 180);
 
     return asset;
 }
@@ -389,7 +395,7 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name
     ac->ram_size += asset->ram_size;
     ++ac->asset_count;
 
-    DEBUG_MEMORY_RESERVE((uint64) asset, asset->ram_size, 180);
+    DEBUG_MEMORY_RESERVE((uintptr_t) asset, asset->ram_size, 180);
 
     return asset;
 }
@@ -422,7 +428,7 @@ Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, byte type, const char*
     ac->ram_size += asset.ram_size;
     ++ac->asset_count;
 
-    DEBUG_MEMORY_RESERVE((uint64) asset_data, asset.ram_size, 180);
+    DEBUG_MEMORY_RESERVE((uintptr_t) asset_data, asset.ram_size, 180);
 
     ASSERT_SIMPLE(strlen(name) < HASH_MAP_MAX_KEY_LENGTH - 1);
 
@@ -499,7 +505,7 @@ Asset* ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, const cha
     ++ac->asset_count;
 
     Asset* asset = (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) asset_temp)->value;
-    DEBUG_MEMORY_RESERVE((uint64) asset->self, asset->ram_size, 180);
+    DEBUG_MEMORY_RESERVE((uintptr_t) asset->self, asset->ram_size, 180);
 
     return asset;
 }
@@ -530,7 +536,7 @@ Asset* thrd_ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, cons
     ++ac->asset_count;
 
     Asset* asset = (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) asset_temp)->value;
-    DEBUG_MEMORY_RESERVE((uint64) asset->self, asset->ram_size, 180);
+    DEBUG_MEMORY_RESERVE((uintptr_t) asset->self, asset->ram_size, 180);
 
     atomic_set_release(&asset->is_loaded, 1);
 

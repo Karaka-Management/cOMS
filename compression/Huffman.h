@@ -14,7 +14,6 @@
 
 #include "../stdlib/Types.h"
 #include "../utils/BitUtils.h"
-#include "../utils/MathUtils.h"
 #include "../utils/EndianUtils.h"
 
 struct HuffmanNode {

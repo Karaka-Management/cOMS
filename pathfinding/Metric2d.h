@@ -14,7 +14,6 @@
 #include <stdlib.h>
 
 #include "../stdlib/Types.h"
-#include "../utils/MathUtils.h"
 
 f32 manhattan_2d(v2_f32 a, v2_f32 b) {
     return fabs(a.x - b.x) + fabs(a.y - b.y);

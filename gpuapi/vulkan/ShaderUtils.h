@@ -58,7 +58,7 @@ VkShaderModule shader_make(VkDevice device, const char* source, int32 source_siz
     VkResult result = vkCreateShaderModule(device, &create_info, NULL, &shader_module);
 
     if (result != VK_SUCCESS) {
-        LOG("Failed to create shader module", true, true);
+        LOG(true, "Failed to create shader module");
         ASSERT_SIMPLE(false);
 
         return VK_NULL_HANDLE;

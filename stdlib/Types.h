@@ -54,6 +54,42 @@ typedef char sbyte;
 typedef uintptr_t umm;
 typedef intptr_t smm;
 
+#define OMS_PI 3.14159265358979323846f
+#define OMS_PI_OVER_TWO (OMS_PI / 2.0f)
+#define OMS_PI_OVER_FOUR (OMS_PI / 4.0f)
+#define OMS_TWO_PI (2.0f * OMS_PI)
+
+#define OMS_MAX(a, b) ((a) > (b) ? (a) : (b))
+#define OMS_MIN(a, b) ((a) > (b) ? (b) : (a))
+
+// @todo Switch the order of high and low
+#define OMS_CLAMP(val, high, low) ((val) < (low) ? (low) : ((val) > (high) ? (high) : (val)))
+
+#define OMS_ABS(a) ((a) > 0 ? (a) : -(a))
+#define OMS_ABS_INT8(a) ((a) & 0x7F)
+#define OMS_ABS_INT16(a) ((a) & 0x7FFF)
+#define OMS_ABS_INT32(a) ((a) & 0x7FFFFFFF)
+#define OMS_ABS_INT64(a) ((a) & 0x7FFFFFFFFFFFFFFF)
+#define OMS_ABS_F32(a) ((f32) (((int32) (a)) & 0x7FFFFFFF))
+#define OMS_ABS_F64(a) ((f64) (((int64) (a)) & 0x7FFFFFFFFFFFFFFF))
+
+#define OMS_DEG2RAD(angle) ((angle) * OMS_PI / 180.0f)
+#define OMS_RAD2DEG(angle) ((angle) * 180.0f / OMS_PI)
+
+#define ROUND_TO_NEAREST(a, b) (((a) + ((b) - 1)) & ~((b) - 1))
+#define OMS_ROUND_POSITIVE(x) ((int32)((x) + 0.5f))
+#define OMS_ROUND(x) (((x) >= 0) ? ((int32)((x) + 0.5f)) : ((int32)((x) - 0.5f)))
+
+#define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
+#define OMS_CEIL(x) ((x) == (int32)(x) ? (int32)(x) : ((x) > 0 ? (int32)(x) + 1 : (int32)(x)))
+
+#define FLOAT_CAST_EPS 0.001953125
+
+// Modulo function when b is a power of 2
+#define MODULO_2(a, b) ((a) & (b - 1))
+
+#define SQRT_2 1.4142135623730950488016887242097f
+
 #define KILOBYTE 1024
 #define MEGABYTE 1048576
 #define GIGABYTE 1073741824
@@ -201,6 +237,10 @@ struct v2_f32 {
     union {
         struct {
             f32 x, y;
+        };
+
+        struct {
+            f32 width, height;
         };
 
         f32 v[2];

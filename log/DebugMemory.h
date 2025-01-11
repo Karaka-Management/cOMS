@@ -16,7 +16,7 @@
 
 struct DebugMemoryRange {
     int32 type;
-    uint64 start;
+    uintptr_t start;
     uint64 size;
     uint64 time;
 
@@ -25,7 +25,7 @@ struct DebugMemoryRange {
 
 struct DebugMemory {
     uint64 usage;
-    uint64 start;
+    uintptr_t start;
     uint64 size;
 
     uint64 action_idx;
@@ -42,10 +42,10 @@ struct DebugMemoryContainer {
 };
 
 #if DEBUG || INTERNAL
-    void debug_memory_init(uint64, uint64);
-    void debug_memory_log(uint64, uint64, int32, const char*);
-    void debug_memory_reserve(uint64, uint64, int32, const char*);
-    void debug_memory_free(uint64, uint64);
+    void debug_memory_init(uintptr_t, uint64);
+    void debug_memory_log(uintptr_t, uint64, int32, const char*);
+    void debug_memory_reserve(uintptr_t, uint64, int32, const char*);
+    void debug_memory_free(uintptr_t, uint64);
     void debug_memory_reset();
 
     #define DEBUG_MEMORY_INIT(start, size) debug_memory_init((start), (size))

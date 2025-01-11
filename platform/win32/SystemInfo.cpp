@@ -276,6 +276,7 @@ int network_info_get(NetworkInfo* info) {
 
     // Get the size of the adapter addresses buffer
     if (GetAdaptersAddresses(AF_UNSPEC, 0, NULL, NULL, &dwSize) == ERROR_BUFFER_OVERFLOW) {
+        // @todo Remove malloc
         pAdapterAddresses = (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
         if (pAdapterAddresses == NULL) {
             WSACleanup();
