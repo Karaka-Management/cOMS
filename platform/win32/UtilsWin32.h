@@ -10,6 +10,7 @@
 #define TOS_PLATFORM_WIN32_UTILS_H
 
 #include "../../stdlib/Types.h"
+#include "../../utils/StringUtils.h"
 #include <stdio.h>
 #include <windows.h>
 #include <string.h>

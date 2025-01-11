@@ -166,6 +166,11 @@ void texture_use(const Texture* texture)
 }
 
 inline
+void texture_delete(Texture* texture) {
+    glDeleteTextures(1, &texture->id);
+}
+
+inline
 void draw_triangles_3d(VertexRef* vertices, GLuint buffer, int32 count) {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 

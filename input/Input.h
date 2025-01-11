@@ -11,6 +11,7 @@
 
 #include "../stdlib/Types.h"
 #include "../utils/BitUtils.h"
+#include "../utils/StringUtils.h"
 #include "../memory/BufferMemory.h"
 #include "ControllerInput.h"
 #include "InputConnectionType.h"
@@ -163,7 +164,7 @@ struct Input {
     // @todo this should probably be somewhere else
     // @todo don't we need multiple deadzones? triggers, sticks
     uint32 deadzone = 10;
-    uint32 characters[10];
+    char text[512];
 
     // This data is passed to the hotkey callback
     void* callback_data;
@@ -518,9 +519,9 @@ void input_hotkey_state(Input* input)
 
     // Check typing mode
     if (input->general_states & INPUT_STATE_GENERAL_TYPING_MODE) {
-        // @todo If this function becomes threaded we must maintain the input characters as a persistent state
+        *input->text = '\0';
         int32 input_characters = 0;
-        memset(input->characters, 0, sizeof(uint32) * ARRAY_COUNT(input->characters));
+        uint32 characters[10];
 
         // Create keyboard state array
         byte keyboard_state[256] = {};
@@ -541,7 +542,7 @@ void input_hotkey_state(Input* input)
                 && (state->active_keys[key_state].scan_code & INPUT_KEYBOARD_PREFIX)
                 && state->active_keys[key_state].key_state != KEY_PRESS_TYPE_RELEASED
             ) {
-                if (input_characters >= ARRAY_COUNT(input->characters)) {
+                if (input_characters >= ARRAY_COUNT(characters)) {
                     break;
                 }
 
@@ -554,21 +555,30 @@ void input_hotkey_state(Input* input)
                 // Is the pressed key a keyboard input
                 if (!code) {
                     // Is not text -> we have to reset characters
-                    memset(input->characters, 0, sizeof(uint32) * input_characters);
+                    memset(characters, 0, sizeof(uint32) * input_characters);
                     input_characters = 0;
 
                     break;
                 }
 
-                input->characters[input_characters++] = code;
+                characters[input_characters++] = code;
             }
         }
 
         if (input_characters) {
+            // Mark keys
             for (int32 key_state = 0; key_state < MAX_KEY_PRESS_TYPES; ++key_state) {
                 state->active_keys[key_state].is_processed = true;
                 state->active_keys[key_state].time = 0; // @todo fix
             }
+
+            // Create text from input
+            char* pos = input->text;
+            for (int32 i = 0; i < ARRAY_COUNT(characters); ++i) {
+                pos += utf8_decode(characters[i], pos);
+            }
+
+            *pos = '\0';
 
             input_clean_state(state->active_keys);
             return;
