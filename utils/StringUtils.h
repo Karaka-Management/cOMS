@@ -1277,6 +1277,83 @@ void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) {
     va_end(args);
 }
 
+void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __restrict format, ...) {
+    va_list args;
+    va_start(args, format);
+
+    // We start at 1 since we need 1 char for '\0'
+    int32 length = 1;
+    int32 offset;
+
+    while (*format && length < buffer_length) {
+        offset = 1;
+        if (*format != '%') {
+            *buffer++ = *format;
+        } else if (*format == '\\' && *(format + 1) == '%') {
+            ++format;
+            *buffer++ = *format;
+        } else {
+            ++format;
+
+            switch (*format) {
+                case 's': {
+                    const char* str = va_arg(args, const char*);
+                    --offset;
+                    while (*str) {
+                        *buffer++ = *str++;
+                        ++offset;
+                    }
+                } break;
+                case 'c': {
+                    *buffer++ = va_arg(args, char);
+                } break;
+                case 'n': {
+                    int64 val = va_arg(args, int64);
+                    buffer += offset = int_to_str(val, buffer, ',');
+                } break;
+                case 'd': {
+                    int32 val = va_arg(args, int32);
+                    buffer += offset = int_to_str(val, buffer);
+                } break;
+                case 'l': {
+                    int64 val = va_arg(args, int64);
+                    buffer += offset = int_to_str(val, buffer);
+                } break;
+                case 'f': {
+                    f64 val = va_arg(args, f64);
+
+                    // Default precision
+                    int32 precision = 5;
+
+                    // Check for optional precision specifier
+                    const char* prec_ptr = format + 1;
+                    if (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                        precision = 0;
+                        while (*prec_ptr >= '0' && *prec_ptr <= '9') {
+                            precision = precision * 10 + (*prec_ptr - '0');
+                            prec_ptr++;
+                        }
+
+                        format = prec_ptr - 1;
+                    }
+
+                    buffer += offset = float_to_str(val, buffer, precision);
+                } break;
+                default: {
+                    // Handle unknown format specifiers
+                    *buffer++ = '%';
+                } break;
+            }
+        }
+
+        length += offset;
+        ++format;
+    }
+
+    *buffer = '\0';
+    va_end(args);
+}
+
 // There are situations where you only want to replace a certain amount of %
 void sprintf_fast_iter(char* buffer, const char* format, ...) {
     va_list args;

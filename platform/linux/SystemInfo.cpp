@@ -11,19 +11,49 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include "../../stdlib/Types.h"
 #include "../../system/SystemInfo.h"
+#include "../../architecture/CpuInfo.cpp"
 
 #include <locale.h>
-#include <cpuid.h>
+#include <sys/resource.h>
 
-#if __aarch64__
-    #include "../../stdlib/SIMD_Helper.h"
-#else
-    #include "../../stdlib/sve/SVE_Helper.h"
-#endif
+// @todo Implement own line by line file reading
 
-// @todo implement for arm?
+uint64 system_private_memory_usage()
+{
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) == 0) {
+        return usage.ru_maxrss * 1024;  // Convert from kilobytes to bytes
+    } else {
+        return 0;
+    }
+}
+
+uint64 system_app_memory_usage()
+{
+    FILE* fp = fopen("/proc/self/smaps", "r");
+    if (!fp) {
+        return 0;
+    }
+
+    uint64 total_size = 0;
+    char line[256];
+    while (fgets(line, sizeof(line), fp)) {
+        if (str_compare(line, "Private_Dirty:", sizeof("Private_Dirty:") - 1) == 0) {
+            uint64 private_dirty;
+            if (sscanf(line, "Private_Dirty: %lu kB", &private_dirty) == 1) {
+                total_size += private_dirty * 1024;  // Convert from kB to bytes
+            }
+        }
+    }
+
+    fclose(fp);
+
+    return total_size;
+}
 
 uint16 system_language_code()
 {
@@ -39,263 +69,87 @@ uint16 system_country_code()
     return (localeName[3] << 8) | localeName[4];
 }
 
-void cache_info_get(int32 level, CpuCacheInfo* cache) {
-    uint32 eax, ebx, ecx, edx;
-    int32 type;
-
-    cache->level = level;
-    cache->size = 0;
-    cache->ways = 0;
-    cache->partitions = 0;
-    cache->sets = 0;
-    cache->line_size = 0;
-
-    __cpuid_count(4, level, eax, ebx, ecx, edx);
-
-    type = (eax & 0x1F);
-
-    if (type == 0) {
-        return;
-    }
-
-    cache->ways = ((ebx >> 22) & 0x3FF) + 1;
-    cache->line_size = (ebx & 0xFFF) + 1;
-    cache->partitions = ((ebx >> 12) & 0x3FF) + 1;
-    cache->sets = ecx + 1;
-    cache->size = cache->ways * cache->partitions * cache->line_size * cache->sets;
-}
-
 void mainboard_info_get(MainboardInfo* info) {
     info->name[63] = '\0';
     info->serial_number[63] = '\0';
 
-    HRESULT hres;
+    FILE *fp;
 
-    // Step 1: Initialize COM library
-    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
-    if (FAILED(hres)) {
-        return;
+    fp = fopen("/sys/class/dmi/id/board_name", "r");
+    if (fp) {
+        fgets(info->name, 64, fp);
+        fclose(fp);
     }
 
-    // Step 2: Set general COM security levels
-    hres = CoInitializeSecurity(
-        NULL,
-        -1,
-        NULL,
-        NULL,
-        RPC_C_AUTHN_LEVEL_DEFAULT,
-        RPC_C_IMP_LEVEL_IMPERSONATE,
-        NULL,
-        EOAC_NONE,
-        NULL
-    );
-    if (FAILED(hres)) {
-        CoUninitialize();
-        return;
+    fp = fopen("/sys/class/dmi/id/board_serial", "r");
+    if (fp) {
+        fgets(info->serial_number, 64, fp);
+        fclose(fp);
     }
 
-    // Step 3: Obtain initial locator to WMI
-    IWbemLocator *pLoc = NULL;
-    hres = CoCreateInstance(
-        CLSID_WbemLocator,
-        0,
-        CLSCTX_INPROC_SERVER,
-        IID_IWbemLocator,
-        (LPVOID *)&pLoc
-    );
-    if (FAILED(hres)) {
-        CoUninitialize();
-        return;
-    }
-
-    // Step 4: Connect to WMI through IWbemLocator::ConnectServer
-    IWbemServices *pSvc = NULL;
-    hres = pLoc->ConnectServer(
-        _bstr_t(L"ROOT\\CIMV2"),
-        NULL,
-        NULL,
-        0,
-        NULL,
-        0,
-        0,
-        &pSvc
-    );
-    if (FAILED(hres)) {
-        pLoc->Release();
-        CoUninitialize();
-        return;
-    }
-
-    // Step 5: Set security levels on the proxy
-    hres = CoSetProxyBlanket(
-        pSvc,
-        RPC_C_AUTHN_WINNT,
-        RPC_C_AUTHZ_NONE,
-        NULL,
-        RPC_C_AUTHN_LEVEL_CALL,
-        RPC_C_IMP_LEVEL_IMPERSONATE,
-        NULL,
-        EOAC_NONE
-    );
-    if (FAILED(hres)) {
-        pSvc->Release();
-        pLoc->Release();
-        CoUninitialize();
-        return;
-    }
-
-    // Step 6: Use the IWbemServices pointer to make a WMI query
-    IEnumWbemClassObject* pEnumerator = NULL;
-    hres = pSvc->ExecQuery(
-        bstr_t("WQL"),
-        bstr_t("SELECT * FROM Win32_BaseBoard"),
-        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
-        NULL,
-        &pEnumerator
-    );
-    if (FAILED(hres)) {
-        pSvc->Release();
-        pLoc->Release();
-        CoUninitialize();
-        return;
-    }
-
-    // Step 7: Retrieve the data
-    IWbemClassObject *pclsObj = NULL;
-    ULONG uReturn = 0;
-    while (pEnumerator) {
-        HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
-        if (0 == uReturn) {
-            break;
-        }
-
-        VARIANT vtProp;
-        hr = pclsObj->Get(L"Product", 0, &vtProp, 0, 0);
-        if (SUCCEEDED(hr)) {
-            snprintf(info->name, 64, "%S", vtProp.bstrVal);
-            VariantClear(&vtProp);
-        }
-
-        hr = pclsObj->Get(L"SerialNumber", 0, &vtProp, 0, 0);
-        if (SUCCEEDED(hr)) {
-            snprintf(info->serial_number, 63, "%S", vtProp.bstrVal);
-            info->serial_number[64] = '\0';
-
-            VariantClear(&vtProp);
-        }
-
-        pclsObj->Release();
-    }
-
-    // Clean up
-    pSvc->Release();
-    pLoc->Release();
-    pEnumerator->Release();
-    CoUninitialize();
+    info->name[strcspn(info->name, "\n")] = '\0';
+    info->serial_number[strcspn(info->serial_number, "\n")] = '\0';
 }
 
-int network_info_get(NetworkInfo* info) {
-    WSADATA wsaData;
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        return 0;
-    }
-
-    DWORD dwSize = 0;
-    PIP_ADAPTER_ADDRESSES pAdapterAddresses = NULL;
-    PIP_ADAPTER_ADDRESSES pAdapter = NULL;
-
-    // Get the size of the adapter addresses buffer
-    if (GetAdaptersAddresses(AF_UNSPEC, 0, NULL, NULL, &dwSize) == ERROR_BUFFER_OVERFLOW) {
-        pAdapterAddresses = (PIP_ADAPTER_ADDRESSES) malloc(dwSize);
-        if (pAdapterAddresses == NULL) {
-            WSACleanup();
-            return 0;
-        }
-    } else {
-        WSACleanup();
-        return 0;
-    }
-
-    // Get the adapter addresses
-    if (GetAdaptersAddresses(AF_UNSPEC, 0, NULL, pAdapterAddresses, &dwSize) != NO_ERROR) {
-        free(pAdapterAddresses);
-        WSACleanup();
-        return 0;
-    }
-
+int32 network_info_get(NetworkInfo* info) {
+    char path[256];
+    struct stat st;
     int32 i = 0;
 
-    // Iterate over the adapters and print their MAC addresses
-    pAdapter = pAdapterAddresses;
-    while (pAdapter && i < 4) {
-        if (pAdapter->PhysicalAddressLength != 0) {
-            info[i].slot[63] = '\0';
+    for (i = 0; i < 4; i++) {
+        sprintf_fast(path, "/sys/class/net/eth%d", i);
+
+        if (stat(path, &st) == 0) {
+            // Read MAC address
+            sprintf_fast(path, "/sys/class/net/eth%d/address", i);
+            FILE *mac_file = fopen(path, "r");
+            if (mac_file) {
+                fscanf(mac_file, "%s", info[i].mac);
+                fclose(mac_file);
+            }
+
+            // Read interface name
+            sprintf_fast(path, "/sys/class/net/eth%d/ifindex", i);
+            FILE *index_file = fopen(path, "r");
+            if (index_file) {
+                fscanf(index_file, "%s", info[i].slot);
+                fclose(index_file);
+            }
+
             info[i].mac[23] = '\0';
-
-            memcpy(info[i].mac, pAdapter->PhysicalAddress, 8);
-            wcstombs(info[i].slot, pAdapter->FriendlyName, 63);
-
-            ++i;
+            info[i].slot[63] = '\0';
         }
-
-        pAdapter = pAdapter->Next;
     }
-
-    free(pAdapterAddresses);
-    WSACleanup();
 
     return i;
 }
 
 void cpu_info_get(CpuInfo* info) {
-    int32 temp;
-    info->simd.sse = (temp = max_sse_supported()) > 9 ? temp / 10.0f : temp;
-    info->simd.avx256 = max_avx256_supported();
-    info->simd.avx512 = max_avx512_supported();
-
-    cache_info_get(1, &info->cache[0]);
-    cache_info_get(2, &info->cache[1]);
-    cache_info_get(3, &info->cache[2]);
-    cache_info_get(4, &info->cache[3]);
-
-    SYSTEM_INFO sys_info;
-    GetSystemInfo(&sys_info);
-    info->page_size = sys_info.dwPageSize;
-
-    int32 cpuInfo[4] = { 0 };
-    __cpuid(cpuInfo, 0);
-
-    memset(info->vendor, 0, sizeof(info->vendor));
-    *((int*)info->vendor) = cpuInfo[1];
-    *((int*)(info->vendor + 4)) = cpuInfo[3];
-    *((int*)(info->vendor + 8)) = cpuInfo[2];
-    info->vendor[12] = '\0';
-
-    __cpuid(cpuInfo, 0x80000002);
-    memcpy(info->brand, cpuInfo, sizeof(cpuInfo));
-    __cpuid(cpuInfo, 0x80000003);
-    memcpy(info->brand + 16, cpuInfo, sizeof(cpuInfo));
-    __cpuid(cpuInfo, 0x80000004);
-    memcpy(info->brand + 32, cpuInfo, sizeof(cpuInfo));
-    info->brand[48] = '\0';
-
-    __cpuid(cpuInfo, 1);
-    info->model = (cpuInfo[0] >> 4) & 0xF;
-    info->family = (cpuInfo[0] >> 8) & 0xF;
-
-    DWORD bufSize = sizeof(DWORD);
-    HKEY hKey;
-    long lError = RegOpenKeyExA(
-        HKEY_LOCAL_MACHINE,
-        "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
-        0, KEY_READ, &hKey
-    );
-
-    if (lError == ERROR_SUCCESS) {
-        RegQueryValueExA(hKey, "~MHz", NULL, NULL, (LPBYTE) &(info->mhz), &bufSize);
+    FILE* fp = fopen("/proc/cpuinfo", "r");
+    if (!fp) {
+        return;
     }
 
-    RegCloseKey(hKey);
+    char line[256];
+
+    while (fgets(line, sizeof(line), fp)) {
+        if (str_compare(line, "vendor_id", 9) == 0) {
+            sscanf(line, "vendor_id : %s", info->vendor);
+        } else if (str_compare(line, "model", 5) == 0) {
+            sscanf(line, "model : %d", &info->model);
+        } else if (str_compare(line, "cpu MHz", 7) == 0) {
+            sscanf(line, "cpu MHz : %d", &info->mhz);
+        } else if (str_compare(line, "cpu cores", 10) == 0) {
+            sscanf(line, "cpu cores : %d", &info->thread_coun);
+        } else if (str_compare(line, "model name", 10) == 0) {
+            sscanf(line, "model name : %63[^\n]", info->brand);
+        }
+    }
+
+    fclose(fp);
+
+    info->family = 0;
+    info->page_size = 4096;  // Assuming standard page size of 4KB in Linux
 }
 
 void os_info_get(OSInfo* info) {
@@ -303,167 +157,111 @@ void os_info_get(OSInfo* info) {
     memcpy(info->name, "Linux", sizeof("Linux"));
     info->major = 0;
     info->minor = 0;
-
-    info->vendor[sizeof("Linux")] = '\0';
-    info->name[sizeof("Linux")] = '\0';
 }
 
 void ram_info_get(RamInfo* info) {
-    MEMORYSTATUSEX statex;
-    statex.dwLength = sizeof(statex);
-    GlobalMemoryStatusEx(&statex);
-    info->memory = (int) (statex.ullTotalPhys / (1024 * 1024));
+    FILE* fp = fopen("/proc/meminfo", "r");
+    if (fp == NULL) {
+        return;
+    }
+
+    char line[256];
+    uint32 total_memory = 0;
+
+    while (fgets(line, sizeof(line), fp)) {
+        if (sscanf(line, "MemTotal: %u kB", &total_memory) == 1) {
+            break;
+        }
+    }
+
+    fclose(fp);
+
+    // Convert memory from kB to MB
+    info->memory = total_memory / 1024;
 }
 
 uint32 gpu_info_get(GpuInfo* info) {
-    IDXGIFactory *pFactory = NULL;
-    IDXGIAdapter *pAdapter = NULL;
-    DXGI_ADAPTER_DESC adapterDesc;
-
-    HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
-    if (FAILED(hr)) {
+    FILE* fp = popen("lspci | grep VGA", "r");
+    if (fp == NULL) {
         return 0;
     }
 
-    uint32 i = 0;
-    while (pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND && i < 2) {
-        hr = pAdapter->GetDesc(&adapterDesc);
-        if (FAILED(hr)) {
-            pAdapter->Release();
-            break;
+    uint32 count = 0;
+    char line[256];
+
+    while (fgets(line, sizeof(line), fp)) {
+        if (count >= 2) break;
+
+        // Assuming that the first part of the line contains the name of the GPU
+        char* gpu_name = strtok(line, ":");
+        if (gpu_name) {
+            sprintf_fast(info[count].name, sizeof(info[count].name), "%s", gpu_name);
         }
 
-        wcstombs(info[i].name, adapterDesc.Description, 63);
-        info[i].name[63] = '\0';
-        info[i].vram = (int) (adapterDesc.DedicatedVideoMemory / (1024 * 1024));
+        // @todo this is Wrong
+        info[count].vram = 2048;
 
-        pAdapter->Release();
-        i++;
+        count++;
     }
 
-    pFactory->Release();
+    fclose(fp);
 
-    return i;
+    return count;
+}
+
+
+void display_info_get_primary(DisplayInfo* info) {
+    FILE* fp = popen("xrandr --current", "r");
+    if (fp == NULL) {
+        return;
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), fp)) {
+        if (strstr(line, "primary")) {
+            // Example of a line containing display info: "HDMI-1 connected 1920x1080+0+0 60.00*+"
+            char name[64];
+            uint32 width, height, hz;
+            if (sscanf(line, "%s connected %dx%d+%*d+%*d %d", name, &width, &height, &hz) == 4) {
+                str_copy_short(info->name, name);
+                info->width = width;
+                info->height = height;
+                info->hz = hz;
+            }
+            break;
+        }
+    }
+
+    fclose(fp);
 }
 
 uint32 display_info_get(DisplayInfo* info) {
-    DISPLAY_DEVICEA device;
-    DEVMODEA mode;
-
-    device.cb = sizeof(DISPLAY_DEVICEA);
-
-    uint32 i = 0;
-
-    while (EnumDisplayDevicesA(NULL, i, &device, 0)) {
-        mode.dmSize = sizeof(mode);
-
-        if (EnumDisplaySettingsA(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
-            str_copy_short(info[i].name, device.DeviceName);
-            info[i].width = mode.dmPelsWidth;
-            info[i].height = mode.dmPelsHeight;
-            info[i].hz = mode.dmDisplayFrequency;
-        }
-
-        ++i;
+    FILE* fp = popen("xrandr --current", "r");
+    if (fp == NULL) {
+        return 0;
     }
 
-    return i;
-}
+    char line[256];
+    uint32 count = 0;
 
-void system_info_render(char* buf, const SystemInfo* info) {
-    const char avx512[8][12] = {
-        "AVX-512F",
-        "AVX-512DQ",
-        "AVX-512IFMA",
-        "AVX-512PF",
-        "AVX-512ER",
-        "AVX-512CD",
-        "AVX-512BW",
-        "AVX-512VL"
-    };
+    while (fgets(line, sizeof(line), fp)) {
+        if (strstr(line, "connected")) {
+            // Example: "HDMI-1 connected 1920x1080+0+0 60.00*+"
+            char name[64];
+            uint32 width, height, hz;
+            if (sscanf(line, "%s connected %dx%d+%*d+%*d %d", name, &width, &height, &hz) == 4) {
+                str_copy_short(info[count].name, name);
+                info[count].width = width;
+                info[count].height = height;
+                info[count].hz = hz;
+                count++;
+            }
+        }
+    }
 
-    sprintf_s(
-        buf,
-        "OS:\n"
-        "==============\n"
-        "Vendor: %s\n" "Name: %s\n" "Major: %d\n" "Minor: %d\n"
-        "\n"
-        "Mainboard:\n"
-        "==============\n"
-        "Name: %s\n" "SN: %s\n"
-        "\n"
-        "Network:\n"
-        "==============\n"
-        "Slot: %s\n" "MAC: %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n"
-        "\n"
-        "Slot: %s\n" "MAC: %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n"
-        "\n"
-        "Slot: %s\n" "MAC: %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n"
-        "\n"
-        "Slot: %s\n" "MAC: %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n"
-        "\n"
-        "CPU:\n"
-        "==============\n"
-        "Hardware\n" "Vendor: %s\n" "Brand: %s\n" "Model: %d\n" "Family: %d\n" "Mhz: %d\n" "Page Size: %d\n"
-        "\n"
-        "Cache:\n"
-        "L1: Size %d Line %d\n"
-        "L2: Size %d Line %d\n"
-        "L3: Size %d Line %d\n"
-        "L4: Size %d Line %d\n"
-        "\n"
-        "SIMD:\n" "SSE: %.1f\n" "AVX256: %d\n" "AVX512: %s\n"
-        "\n"
-        "GPU:\n"
-        "==============\n"
-        "Name: %s\n" "VRAM: %d\n"
-        "Name: %s\n" "VRAM: %d\n"
-        "\n"
-        "Display:\n"
-        "==============\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
-        "\n"
-        "RAM:\n"
-        "==============\n"
-        "Memory: %d MB",
-        info->os.vendor, info->os.name, info->os.major, info->os.minor,
-        info->mainboard.name, info->mainboard.serial_number,
-        info->network[0].slot, info->network[0].mac[0], info->network[0].mac[1], info->network[0].mac[2], info->network[0].mac[3], info->network[0].mac[4], info->network[0].mac[5], info->network[0].mac[6], info->network[0].mac[7],
-        info->network_count < 2 ? "" : info->network[1].slot, info->network_count < 2 ? 0 : info->network[1].mac[0], info->network_count < 2 ? 0 : info->network[1].mac[1], info->network_count < 2 ? 0 : info->network[1].mac[2], info->network_count < 2 ? 0 : info->network[1].mac[3], info->network_count < 2 ? 0 : info->network[1].mac[4], info->network_count < 2 ? 0 : info->network[1].mac[5], info->network_count < 2 ? 0 : info->network[1].mac[6], info->network_count < 2 ? 0 : info->network[1].mac[7],
-        info->network_count < 3 ? "" : info->network[2].slot, info->network_count < 3 ? 0 : info->network[2].mac[0], info->network_count < 3 ? 0 : info->network[2].mac[1], info->network_count < 3 ? 0 : info->network[2].mac[2], info->network_count < 3 ? 0 : info->network[2].mac[3], info->network_count < 3 ? 0 : info->network[2].mac[4], info->network_count < 3 ? 0 : info->network[2].mac[5], info->network_count < 3 ? 0 : info->network[2].mac[6], info->network_count < 3 ? 0 : info->network[2].mac[7],
-        info->network_count < 4 ? "" : info->network[3].slot, info->network_count < 4 ? 0 : info->network[3].mac[0], info->network_count < 4 ? 0 : info->network[3].mac[1], info->network_count < 4 ? 0 : info->network[3].mac[2], info->network_count < 4 ? 0 : info->network[3].mac[3], info->network_count < 4 ? 0 : info->network[3].mac[4], info->network_count < 4 ? 0 : info->network[3].mac[5], info->network_count < 4 ? 0 : info->network[3].mac[6], info->network_count < 4 ? 0 : info->network[3].mac[7],
-        info->cpu.vendor, info->cpu.brand, info->cpu.model, info->cpu.family, info->cpu.mhz, info->cpu.page_size,
-        info->cpu.cache[0].size, info->cpu.cache[0].line_size,
-        info->cpu.cache[1].size, info->cpu.cache[1].line_size,
-        info->cpu.cache[2].size, info->cpu.cache[2].line_size,
-        info->cpu.cache[3].size, info->cpu.cache[3].line_size,
-        info->cpu.simd.sse, info->cpu.simd.avx256, info->cpu.simd.avx512 > 0 ? avx512[info->cpu.simd.avx512 - 1] : "0",
-        info->gpu[0].name, info->gpu[0].vram,
-        info->gpu_count < 2 ? "" : info->gpu[1].name, info->gpu_count < 2 ? 0 : info->gpu[1].vram,
-        info->display[0].name, info->display[0].width, info->display[0].height, info->display[0].hz,
-        info->display_count < 2 ? "" : info->display[1].name, info->display_count < 2 ? 0 : info->display[1].width, info->display_count < 2 ? 0 : info->display[1].height, info->display_count < 2 ? 0 : info->display[1].hz,
-        info->display_count < 3 ? "" : info->display[2].name, info->display_count < 3 ? 0 : info->display[2].width, info->display_count < 3 ? 0 : info->display[2].height, info->display_count < 3 ? 0 : info->display[2].hz,
-        info->display_count < 4 ? "" : info->display[3].name, info->display_count < 4 ? 0 : info->display[3].width, info->display_count < 4 ? 0 : info->display[3].height, info->display_count < 4 ? 0 : info->display[3].hz,
-        info->display_count < 5 ? "" : info->display[4].name, info->display_count < 5 ? 0 : info->display[4].width, info->display_count < 5 ? 0 : info->display[4].height, info->display_count < 5 ? 0 : info->display[4].hz,
-        info->display_count < 6 ? "" : info->display[5].name, info->display_count < 6 ? 0 : info->display[5].width, info->display_count < 6 ? 0 : info->display[5].height, info->display_count < 6 ? 0 : info->display[5].hz,
-        info->ram.memory
-    );
-}
+    fclose(fp);
 
-void system_info_get(SystemInfo* info)
-{
-    os_info_get(&info->os);
-    mainboard_info_get(&info->mainboard);
-    info->network_count = network_info_get(info->network);
-    cpu_info_get(&info->cpu);
-    ram_info_get(&info->ram);
-    info->gpu_count = gpu_info_get(info->gpu);
-    info->display_count = display_info_get(info->display);
+    return count;
 }
 
 #endif

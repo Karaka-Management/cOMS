@@ -10,15 +10,7 @@
 #define TOS_SYSTEM_INFO_H
 
 #include "../stdlib/Types.h"
-
-struct CpuCacheInfo {
-    int32 level;
-    int32 size;
-    int32 ways;
-    int32 partitions;
-    int32 sets;
-    int32 line_size;
-};
+#include "../architecture/CpuInfo.h"
 
 // @todo add vendor name
 struct MainboardInfo {
@@ -29,28 +21,7 @@ struct MainboardInfo {
 // @todo add ipv6
 struct NetworkInfo {
     char slot[64];
-    byte mac[8];
-};
-
-struct SIMDInfo {
-    int32 sse;
-    int32 avx256;
-    int32 avx512;
-    int32 sve;
-    int32 neon;
-    bool abm;
-};
-
-struct CpuInfo {
-    char vendor[13];
-    char brand[49];
-    int32 model;
-    int32 family;
-    int32 thread_count;
-    int32 mhz;
-    CpuCacheInfo cache[4];
-    int32 page_size;
-    SIMDInfo simd;
+    byte mac[24];
 };
 
 struct OSInfo {
@@ -61,12 +32,12 @@ struct OSInfo {
 };
 
 struct RamInfo {
-    int32 memory;
+    uint32 memory;
 };
 
 struct GpuInfo {
     char name[64];
-    int32 vram;
+    uint32 vram;
 };
 
 struct DisplayInfo {

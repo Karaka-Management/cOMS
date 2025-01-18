@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_FAST_PIPES_H
-#define TOS_UTILS_FAST_PIPES_H
+#ifndef TOS_PLATFORM_WIN32_FAST_PIPES_H
+#define TOS_PLATFORM_WIN32_FAST_PIPES_H
 
 #include "../stdlib/Types.h"
 
