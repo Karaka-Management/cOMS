@@ -153,6 +153,24 @@ struct v4_byte {
     };
 };
 
+struct v4_int16 {
+    union {
+        struct {
+            int16 x, y;
+
+            union {
+                int16 z, width;
+            };
+
+            union {
+                int16 w, height;
+            };
+        };
+
+        int16 v[4];
+    };
+};
+
 struct v2_int32 {
     union {
         struct {

@@ -9,7 +9,7 @@
 #include "../font/Font.h"
 #include "../system/FileUtils.cpp"
 
-#include "UIAttribute.h"
+#include "attribute/UIAttribute.h"
 #include "UIElementType.h"
 
 #define UI_THEME_VERSION 1
@@ -20,43 +20,16 @@
 // WARNING: Make sure the order of this struct and UITheme is the same for the first elements
 //          This allows us to cast between both
 struct UIThemeStyle {
-    byte* data;
-
     // A theme may have N named styles
     // The hashmap contains the offset where the respective style can be found
     // @performance Switch to perfect hash map
     HashMap hash_map;
+    byte* data;
+
+    // It feels weird that this is here, especially considering we could have multiple fonts
+    Font* font;
 };
 
-// General theme for all scenes
-struct UITheme {
-    // This one usually remains unchanged unless someone changes the theme
-    UIThemeStyle ui_general;
-
-    // This one is scene specific and is loaded with the scene
-    // We have a pointer that references the currently active scene
-    // The other two elements contain the actual data.
-    // This allows us to easily pre-fetch scene styles and the pointer allows us to easily switch between them
-    // When loading a new scene we simply use the style that is currently not pointed to by primary_scene
-    UIThemeStyle* primary_scene;
-    UIThemeStyle ui_scene1;
-    UIThemeStyle ui_scene2;
-
-    // @question This basically means we only support 1 font for the UI ?!
-    //  This is probably something to re-consider
-    Font font;
-
-    // @todo add cursor styles
-    // @todo what about ui audio?
-
-    char name[32];
-};
-
-// @performance Consider to replace HashEntryInt64 with HashEntryVoidP.
-//  This way we wouldn't have to do theme->data + entry->value and could just use entry->value
-//  Of course this means during the saving and loading we need to convert to and from offsets
-//  The problem is that the actual dumping and loading for that part doesn't happen in the hashmap but in the chunk_memory
-//  The chunk_memory doesn't know how the value look like -> cannot do the conversion
 inline
 UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
 {
@@ -66,7 +39,7 @@ UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
         return NULL;
     }
 
-    return (UIAttributeGroup *) (theme->data + entry->value);
+    return (UIAttributeGroup *) entry->value;
 }
 
 inline
@@ -78,9 +51,10 @@ UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name,
         return NULL;
     }
 
-    return (UIAttributeGroup *) (theme->data + entry->value);
+    return (UIAttributeGroup *) entry->value;
 }
 
+static inline
 int compare_by_attribute_id(const void* a, const void* b) {
     UIAttribute* attr_a = (UIAttribute *) a;
     UIAttribute* attr_b = (UIAttribute *) b;
@@ -117,11 +91,6 @@ void theme_from_file_txt(
     // Use version for different handling
     int32 version = strtol(pos, &pos, 10); ++pos;
 
-    bool block_open = false;
-    char block_name[32];
-    char attribute_name[32];
-    bool last_token_newline = false;
-
     // We have to find how many groups are defined in the theme file.
     // Therefore we have to do an initial iteration
     int32 temp_group_count = 0;
@@ -134,13 +103,8 @@ void theme_from_file_txt(
             ++temp_group_count;
         }
 
-        // Go to the end of the line
-        str_move_to(&pos, '\n');
-
-        // Go to next line
-        if (*pos != '\0') {
-            ++pos;
-        }
+        // Go to the next line
+        str_move_past(&pos, '\n');
     }
 
     // @performance This is probably horrible since we are not using a perfect hashing function (1 hash -> 1 index)
@@ -155,6 +119,10 @@ void theme_from_file_txt(
     // move past version string
     str_move_past(&pos, '\n');
 
+    bool block_open = false;
+    char block_name[28];
+    char attribute_name[32];
+    bool last_token_newline = false;
     while (*pos != '\0') {
         str_skip_whitespace(&pos);
 
@@ -175,7 +143,7 @@ void theme_from_file_txt(
         last_token_newline = false;
 
         if (!block_open) {
-            str_copy_move_until(&pos, block_name, " \n", sizeof(" \n") - 1);
+            str_copy_move_until(&pos, block_name, " \r\n");
 
             // All blocks need to start with #. In the past this wasn't the case and may not be in the future. This is why we keep this if here.
             if (*block_name == '#' || *block_name == '.') {
@@ -200,166 +168,16 @@ void theme_from_file_txt(
             continue;
         }
 
-        str_copy_move_until(&pos, attribute_name, " :\n", sizeof(" :\n") - 1);
+        str_copy_move_until(&pos, attribute_name, " :\n");
 
         // Skip any white spaces or other delimeter
         str_skip_list(&pos, " \t:", sizeof(" \t:") - 1);
 
         ASSERT_SIMPLE((*pos != '\0' && *pos != '\n'));
 
-        // Handle different attribute types
+        // Parse attribute value
         UIAttribute attribute = {};
-        if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_TYPE), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_TYPE;
-
-            char str[32];
-            str_copy_move_until(&pos, str, '\n');
-
-            for (int32 j = 0; j < UI_ELEMENT_TYPE_SIZE; ++j) {
-                if (strcmp(str, ui_element_type_to_string((UIElementType) j)) == 0) {
-
-                    attribute.value_int = j;
-                    break;
-                }
-            }
-
-            ++pos;
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_STYLE), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_STYLE;
-
-            str_copy_move_until(&pos, attribute.value_str, '\n');
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_COLOR), attribute_name) == 0) {
-            ++pos; // Skip '#'
-
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_COLOR;
-            hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_SIZE), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_SIZE;
-            attribute.value_float = strtof(pos, &pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_WEIGHT), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_WEIGHT;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT;
-            attribute.value_float = strtof(pos, &pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_ALIGN_H), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_ALIGN_H;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_ALIGN_V), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_ALIGN_V;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_ZINDEX), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_ZINDEX;
-            attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos));
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR), attribute_name) == 0) {
-            ++pos; // Skip '#'
-
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_COLOR;
-            hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG;
-
-            str_copy_move_until(&pos, attribute.value_str, '\n');
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_OPACITY;
-            attribute.value_float = SWAP_ENDIAN_LITTLE(strtof(pos, &pos));
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_V), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_V;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_POSITION_H;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BACKGROUND_IMG_STYLE;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_COLOR), attribute_name) == 0) {
-            ++pos; // Skip '#'
-
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_COLOR;
-            hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_WIDTH), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_WIDTH;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR), attribute_name) == 0) {
-            ++pos; // Skip '#'
-
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_TOP_COLOR;
-            hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_TOP_WIDTH;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR), attribute_name) == 0) {
-            ++pos; // Skip '#'
-
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_RIGHT_COLOR;
-            hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_RIGHT_WIDTH;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR), attribute_name) == 0) {
-            ++pos; // Skip '#'
-
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_COLOR;
-            hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_BOTTOM_WIDTH;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR), attribute_name) == 0) {
-            ++pos; // Skip '#'
-
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_LEFT_COLOR;
-            hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_BORDER_LEFT_WIDTH;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_TOP), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_TOP;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_RIGHT), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_RIGHT;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_BOTTOM), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_BOTTOM;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_PADDING_LEFT), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_PADDING_LEFT;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR), attribute_name) == 0) {
-            ++pos; // Skip '#'
-
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_COLOR;
-            hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_ANGLE;
-            attribute.value_float = strtof(pos, &pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_INNER_DISTANCE;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR), attribute_name) == 0) {
-            ++pos; // Skip '#'
-
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_COLOR;
-            hexstr_to_rgba(&attribute.value_v4_f32, pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_ANGLE;
-            attribute.value_float = strtof(pos, &pos);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_SHADOW_OUTER_DISTANCE;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION;
-            attribute.value_int = strtoul(pos, &pos, 10);
-        } else if (strcmp(ui_attribute_type_to_string(UI_ATTRIBUTE_TYPE_TRANSITION_DURATION), attribute_name) == 0) {
-            attribute.attribute_id = UI_ATTRIBUTE_TYPE_TRANSITION_DURATION;
-            attribute.value_float = strtof(pos, &pos);
-        } else {
-            str_move_to(&pos, '\n');
-
-            continue;
-        }
+        ui_attribute_parse_value(&attribute, attribute_name, pos);
 
         // Again, currently this if check is redundant but it wasn't in the past and we may need it again in the future.
         if (block_name[0] == '#' || block_name[0] == '.') {
@@ -379,6 +197,52 @@ void theme_from_file_txt(
 
     // We still need to sort the last group
     qsort(temp_group->attributes, temp_group->attribute_size, sizeof(UIAttribute), compare_by_attribute_id);
+}
+
+static inline
+void ui_theme_parse_group(HashEntryInt64* entry, byte* data, const byte** pos)
+{
+    // @performance Are we sure the data is nicely aligned?
+    // Probably depends on the from_txt function and the start of theme->data
+
+    // Change offset to pointer
+    entry->value = (uintptr_t) data + entry->value;
+
+    UIAttributeGroup* group = (UIAttributeGroup *) entry->value;
+
+    group->attribute_size = SWAP_ENDIAN_LITTLE(*((int32 *) *pos));
+    *pos += sizeof(group->attribute_size);
+
+    for (uint32 j = 0; j < group->attribute_size; ++j) {
+        group->attributes[j].attribute_id = (UIAttributeType) SWAP_ENDIAN_LITTLE(*((uint16 *) *pos));
+        *pos += sizeof(group->attributes[j].attribute_id);
+
+        group->attributes[j].datatype = *((UIAttributeDataType *) *pos);
+        *pos += sizeof(group->attributes[j].datatype);
+
+        if (group->attributes[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
+            group->attributes[j].value_int = SWAP_ENDIAN_LITTLE(*((int32 *) *pos));
+            *pos += sizeof(group->attributes[j].value_int);
+        } else if (group->attributes[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
+            group->attributes[j].value_float = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
+            *pos += sizeof(group->attributes[j].value_float);
+        } else if (group->attributes[j].datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
+            memcpy(group->attributes[j].value_str, *pos, sizeof(group->attributes[j].value_str));
+            *pos += sizeof(group->attributes[j].value_str);
+        } else if (group->attributes[j].datatype == UI_ATTRIBUTE_DATA_TYPE_V4_F32) {
+            group->attributes[j].value_v4_f32.x = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
+            *pos += sizeof(group->attributes[j].value_v4_f32.x);
+
+            group->attributes[j].value_v4_f32.y = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
+            *pos += sizeof(group->attributes[j].value_v4_f32.y);
+
+            group->attributes[j].value_v4_f32.z = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
+            *pos += sizeof(group->attributes[j].value_v4_f32.z);
+
+            group->attributes[j].value_v4_f32.w = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
+            *pos += sizeof(group->attributes[j].value_v4_f32.w);
+        }
+    }
 }
 
 // Memory layout (data) - This is not the layout of the file itself, just how we represent it in memory
@@ -401,6 +265,7 @@ int32 theme_from_data(
     UIThemeStyle* theme
 ) {
     const byte* pos = data;
+    const byte* max_pos = data;
 
     int32 version = *((int32 *) pos);
     pos += sizeof(version);
@@ -422,33 +287,25 @@ int32 theme_from_data(
 
         HashEntryInt64* entry = (HashEntryInt64 *) theme->hash_map.table[i];
 
+        // This way we now could access the data directly without the silly theme->data + entry->value calc.
         pos = start + entry->value;
-        UIAttributeGroup* group = (UIAttributeGroup *) (theme->data + entry->value);
-
-        group->attribute_size = SWAP_ENDIAN_LITTLE(*((int32 *) pos));
-        pos += sizeof(group->attribute_size);
-
-        // @performance The UIAttribute contains a char array which makes this WAY larger than it needs to be in 99% of the cases
-        memcpy(group->attributes, pos, group->attribute_size * sizeof(UIAttribute));
-        pos += group->attribute_size * sizeof(UIAttribute);
+        ui_theme_parse_group(entry, theme->data, &pos);
+        if (pos > max_pos) {
+            max_pos = pos;
+        }
 
         // load all the next elements
         while (entry->next) {
             pos = start + entry->value;
-            group = (UIAttributeGroup *) (theme->data + entry->value);
-
-            group->attribute_size = SWAP_ENDIAN_LITTLE(*((int32 *) pos));
-            pos += sizeof(group->attribute_size);
-
-            // @performance The UIAttribute contains a char array which makes this WAY larger than it needs to be in 99% of the cases
-            memcpy(group->attributes, pos, group->attribute_size * sizeof(UIAttribute));
-            pos += group->attribute_size * sizeof(UIAttribute);
-
+            ui_theme_parse_group(entry, theme->data, &pos);
+            if (pos > max_pos) {
+                max_pos = pos;
+            }
             entry = entry->next;
         }
     }
 
-    return (int32) (pos - data);
+    return (int32) (max_pos - data);
 }
 
 // Calculates the maximum theme size
@@ -459,6 +316,49 @@ int64 theme_data_size(const UIThemeStyle* theme)
 {
     return hashmap_size(&theme->hash_map)
         + theme->hash_map.buf.count * UI_ATTRIBUTE_TYPE_SIZE * sizeof(UIAttribute);
+}
+
+// @todo Why do even need **pos, shouldn't it just be *pos
+static inline
+void ui_theme_serialize_group(HashEntryInt64* entry, byte* data, byte** pos, const byte* start)
+{
+    // @performance Are we sure the data is nicely aligned?
+    // Probably depends on the from_txt function and the start of theme->data
+    UIAttributeGroup* group = (UIAttributeGroup *) (data + entry->value);
+
+    *((int32 *) *pos) = SWAP_ENDIAN_LITTLE(group->attribute_size);
+    *pos += sizeof(group->attribute_size);
+
+    for (uint32 j = 0; j < group->attribute_size; ++j) {
+        *((uint16 *) *pos) = SWAP_ENDIAN_LITTLE(group->attributes[j].attribute_id);
+        *pos += sizeof(group->attributes[j].attribute_id);
+
+        *((byte *) *pos) = group->attributes[j].datatype;
+        *pos += sizeof(group->attributes[j].datatype);
+
+        if (group->attributes[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
+            *((int32 *) *pos) = SWAP_ENDIAN_LITTLE(group->attributes[j].value_int);
+            *pos += sizeof(group->attributes[j].value_int);
+        } else if (group->attributes[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
+            *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(group->attributes[j].value_float);
+            *pos += sizeof(group->attributes[j].value_float);
+        } else if (group->attributes[j].datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
+            memcpy(*pos, group->attributes[j].value_str, sizeof(group->attributes[j].value_str));
+            *pos += sizeof(group->attributes[j].value_str);
+        } else if (group->attributes[j].datatype == UI_ATTRIBUTE_DATA_TYPE_V4_F32) {
+            *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(group->attributes[j].value_v4_f32.x);
+            *pos += sizeof(group->attributes[j].value_v4_f32.x);
+
+            *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(group->attributes[j].value_v4_f32.y);
+            *pos += sizeof(group->attributes[j].value_v4_f32.y);
+
+            *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(group->attributes[j].value_v4_f32.z);
+            *pos += sizeof(group->attributes[j].value_v4_f32.z);
+
+            *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(group->attributes[j].value_v4_f32.w);
+            *pos += sizeof(group->attributes[j].value_v4_f32.w);
+        }
+    }
 }
 
 // File layout - binary
@@ -481,6 +381,7 @@ int32 theme_to_data(
     byte* data
 ) {
     byte* pos = data;
+    byte* max_pos = data;
 
     // version
     *((int32 *) pos) = SWAP_ENDIAN_LITTLE(UI_THEME_VERSION);
@@ -500,32 +401,23 @@ int32 theme_to_data(
         HashEntryInt64* entry = (HashEntryInt64 *) theme->hash_map.table[i];
 
         pos = start + entry->value;
-        UIAttributeGroup* group = (UIAttributeGroup *) (theme->data + entry->value);
-
-        *((int32 *) pos) = SWAP_ENDIAN_LITTLE(group->attribute_size);
-        pos += sizeof(group->attribute_size);
-
-        // @performance The UIAttribute contains a char array which makes this WAY larger than it needs to be in 99% of the cases
-        memcpy(pos, group->attributes, group->attribute_size * sizeof(UIAttribute));
-        pos += sizeof(UIAttribute);
+        ui_theme_serialize_group(entry, theme->data, &pos, start);
+        if (pos > max_pos) {
+            max_pos = pos;
+        }
 
         // save all the next elements
         while (entry->next) {
             pos = start + entry->value;
-            group = (UIAttributeGroup *) (theme->data + entry->value);
-
-            *((int32 *) pos) = SWAP_ENDIAN_LITTLE(group->attribute_size);
-            pos += sizeof(group->attribute_size);
-
-            // @performance The UIAttribute contains a char array which makes this WAY larger than it needs to be in 99% of the cases
-            memcpy(pos, group->attributes, group->attribute_size * sizeof(UIAttribute));
-            pos += sizeof(UIAttribute);
-
+            ui_theme_serialize_group(entry, theme->data, &pos, start);
+            if (pos > max_pos) {
+                max_pos = pos;
+            }
             entry = entry->next;
         }
     }
 
-    return (int32) (pos - data);
+    return (int32) (max_pos - data);
 }
 
 #endif

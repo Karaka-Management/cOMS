@@ -38,12 +38,12 @@ void module_file_parse(const char* path, Module* module, RingMemory* ring)
             strncpy_s(value, MAX_LENGTH, space + 1, MAX_LENGTH - 1);
             value[MAX_LENGTH - 1] = '\0';
 
-            if (strcmp(name, "name") == 0) {
+            if (str_compare(name, "name") == 0) {
                 strncpy_s(module->name, MAX_LENGTH, value, sizeof(module->name) - 1);
                 module->name[strlen(value)] = '\0';
-            } else if (strcmp(name, "version") == 0) {
+            } else if (str_compare(name, "version") == 0) {
                 module->version = (byte) atol(value);
-            } else if (strcmp(name, "type") == 0) {
+            } else if (str_compare(name, "type") == 0) {
                 module->type = (ModuleType) atol(value);
             }
         }

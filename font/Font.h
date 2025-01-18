@@ -116,21 +116,21 @@ void font_from_file_txt(
                 ++pos;
             }
 
-            if (strcmp(block_name, "texture") == 0) {
+            if (str_compare(block_name, "texture") == 0) {
                 while (*pos != '\n') {
                     *texture_pos++ = *pos++;
                 }
 
                 *texture_pos++ = '\0';
-            } else if (strcmp(block_name, "font_size") == 0) {
+            } else if (str_compare(block_name, "font_size") == 0) {
                 font->size = strtof(pos, &pos);
-            } else if (strcmp(block_name, "line_height") == 0) {
+            } else if (str_compare(block_name, "line_height") == 0) {
                 font->line_height = strtof(pos, &pos);
-            } else if (strcmp(block_name, "image_width") == 0) {
+            } else if (str_compare(block_name, "image_width") == 0) {
                 image_width = strtoul(pos, &pos, 10);
-            } else if (strcmp(block_name, "image_height") == 0) {
+            } else if (str_compare(block_name, "image_height") == 0) {
                 image_height = strtoul(pos, &pos, 10);
-            } else if (strcmp(block_name, "glyph_count") == 0) {
+            } else if (str_compare(block_name, "glyph_count") == 0) {
                 // glyph_count has to be the last general element
                 font->glyph_count = strtoul(pos, &pos, 10);
                 start = false;

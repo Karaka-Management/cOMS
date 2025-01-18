@@ -193,8 +193,9 @@ void hashmap_insert(HashMap* hm, const char* key, int32 value) {
     HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    // @performance Do we really need strncpy? Either use memcpy or strcpy?! Same goes for all the other cases below
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
@@ -219,7 +220,9 @@ void hashmap_insert(HashMap* hm, const char* key, int64 value) {
     HashEntryInt64* entry = (HashEntryInt64 *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
@@ -244,7 +247,9 @@ void hashmap_insert(HashMap* hm, const char* key, uintptr_t value) {
     HashEntryUIntPtr* entry = (HashEntryUIntPtr *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
@@ -269,7 +274,9 @@ void hashmap_insert(HashMap* hm, const char* key, void* value) {
     HashEntryVoidP* entry = (HashEntryVoidP *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
@@ -294,7 +301,9 @@ void hashmap_insert(HashMap* hm, const char* key, f32 value) {
     HashEntryFloat* entry = (HashEntryFloat *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->value = value;
@@ -319,10 +328,12 @@ void hashmap_insert(HashMap* hm, const char* key, const char* value) {
     HashEntryStr* entry = (HashEntryStr *) chunk_get_element(&hm->buf, element, true);
     entry->element_id = element;
 
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
-    strncpy(entry->value, value, HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->value, value, HASH_MAP_MAX_KEY_LENGTH);
     entry->value[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->next = NULL;
@@ -348,7 +359,9 @@ HashEntry* hashmap_insert(HashMap* hm, const char* key, byte* value) {
 
     entry->value = (byte *) entry + sizeof(HashEntry);
 
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     memcpy(entry->value, value, hm->buf.chunk_size - sizeof(HashEntry));
@@ -378,7 +391,9 @@ HashEntry* hashmap_reserve(HashMap* hm, const char* key) {
 
     entry->value = (byte *) entry + sizeof(HashEntry);
 
-    strncpy(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->next = NULL;
@@ -422,7 +437,9 @@ HashEntry* hashmap_get_reserve(HashMap* hm, const char* key)
 
     entry_new->value = (byte *) entry_new + sizeof(HashEntry);
 
-    strncpy(entry_new->key, key, HASH_MAP_MAX_KEY_LENGTH);
+    // Ensure key length
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry_new->key, key, HASH_MAP_MAX_KEY_LENGTH);
     entry_new->key[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     if (entry) {
@@ -621,7 +638,7 @@ void hashmap_insert(HashMap* hm, int32 key, const char* value) {
 
     entry->key = key;
 
-    strncpy(entry->value, value, HASH_MAP_MAX_KEY_LENGTH);
+    str_copy_short(entry->value, value, HASH_MAP_MAX_KEY_LENGTH);
     entry->value[HASH_MAP_MAX_KEY_LENGTH - 1] = '\0';
 
     entry->next = NULL;

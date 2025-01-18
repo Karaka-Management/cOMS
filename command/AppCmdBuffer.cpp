@@ -23,6 +23,12 @@
  * this AppCmdBuffer interacts with the individual systems and manually call those
  */
 #include "AppCmdBuffer.h"
+#include "../camera/Camera.h"
+#include "../ui/UILayout.h"
+#include "../ui/UITheme.h"
+#include "../system/FileUtils.cpp"
+
+// @todo Move the different functions to their own respective files (e.g. CmdAsset.cpp, CmdLayout.cpp)
 
 inline
 void cmd_buffer_create(AppCmdBuffer* cb, BufferMemory* buf, int32 commands_count)
@@ -40,10 +46,32 @@ void cmd_asset_load_enqueue(AppCmdBuffer* cb, Command* cmd)
     queue_enqueue_wait_atomic(cb->assets_to_load, (byte *) cmd->data);
 }
 
+// This doesn't load the file directly but tells (most likely) a worker thread to load a file
+static inline
+void cmd_file_load_enqueue(AppCmdBuffer* cb, Command* cmd)
+{
+    // cmd->data structure:
+    //      start with a pointer to a callback function
+    //      file path
+    queue_enqueue_wait_atomic(cb->files_to_load, (byte *) cmd->data);
+}
+
+static inline
+void cmd_file_load(AppCmdBuffer* cb, Command* cmd)
+{
+    FileBody file;
+    file_read((const char *) cmd->data + sizeof(CommandFunction), &file, cb->thrd_mem_vol);
+
+    // WARNING: This is not the normal cmd.callback
+    // This is a special callback part of the cmd data;
+    CommandFunction callback = *((CommandFunction *) cmd->data);
+    callback(&file);
+}
+
 static inline
 void* cmd_func_run(AppCmdBuffer* cb, Command* cmd)
 {
-    CommandFunc func = *((CommandFunc *) cmd->data);
+    CommandFunction func = *((CommandFunction *) cmd->data);
     return func(cmd);
 }
 
@@ -187,10 +215,10 @@ void thrd_cmd_insert(AppCmdBuffer* cb, CommandType type, const char* data)
     thrd_cmd_insert(cb, &cmd);
 }
 
-inline void thrd_cmd_func_insert(AppCmdBuffer* cb, CommandType type, CommandFunc* func) {
+inline void thrd_cmd_func_insert(AppCmdBuffer* cb, CommandType type, CommandFunction* func) {
     Command cmd;
     cmd.type = CMD_FUNC_RUN;
-    *((CommandFunc *) cmd.data) = *func;
+    *((CommandFunction *) cmd.data) = *func;
 
     thrd_cmd_insert(cb, &cmd);
 }
@@ -211,10 +239,10 @@ inline void thrd_cmd_audio_play(AppCmdBuffer* cb, const char* data) {
     thrd_cmd_insert(cb, &cmd);
 }
 
-inline void thrd_cmd_func_run(AppCmdBuffer* cb, CommandFunc* func) {
+inline void thrd_cmd_func_run(AppCmdBuffer* cb, CommandFunction* func) {
     Command cmd;
     cmd.type = CMD_FUNC_RUN;
-    *((CommandFunc *) cmd.data) = *func;
+    *((CommandFunction *) cmd.data) = *func;
 
     thrd_cmd_insert(cb, &cmd);
 }
@@ -251,13 +279,13 @@ inline void thrd_cmd_font_load(AppCmdBuffer* cb, const char* data) {
     thrd_cmd_insert(cb, &cmd);
 }
 
-inline Asset* cmd_asset_load(AppCmdBuffer* cb, int32 asset_id)
+inline Asset* cmd_asset_load_sync(AppCmdBuffer* cb, int32 asset_id)
 {
     int32 archive_id = (asset_id >> 24) & 0xFF;
     return asset_archive_asset_load(&cb->asset_archives[archive_id], asset_id, cb->ams, cb->mem_vol);
 }
 
-inline Asset* cmd_asset_load(AppCmdBuffer* cb, const char* asset_id_str)
+inline Asset* cmd_asset_load_sync(AppCmdBuffer* cb, const char* asset_id_str)
 {
     int32 asset_id = (int32) str_to_int(asset_id_str);
     int32 archive_id = (asset_id >> 24) & 0xFF;
@@ -309,11 +337,11 @@ inline Asset* cmd_audio_play(AppCmdBuffer* cb, const char* name) {
     return asset;
 }
 
-inline void* cmd_func_run(AppCmdBuffer* cb, CommandFunc func) {
+inline void* cmd_func_run(AppCmdBuffer* cb, CommandFunction func) {
     return func(NULL);
 }
 
-inline Asset* cmd_texture_load(AppCmdBuffer* cb, int32 asset_id) {
+inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
     // Check if asset already loaded
     char id_str[9];
     int_to_hex(asset_id, id_str);
@@ -339,7 +367,7 @@ inline Asset* cmd_texture_load(AppCmdBuffer* cb, int32 asset_id) {
     return asset;
 }
 
-inline Asset* cmd_texture_load(AppCmdBuffer* cb, const char* name) {
+inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, const char* name) {
     // Check if asset already loaded
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, name);
 
@@ -363,7 +391,7 @@ inline Asset* cmd_texture_load(AppCmdBuffer* cb, const char* name) {
     return asset;
 }
 
-inline Asset* cmd_font_load(AppCmdBuffer* cb, int32 asset_id) {
+inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id) {
     // Check if asset already loaded
     char id_str[9];
     int_to_hex(asset_id, id_str);
@@ -387,7 +415,7 @@ inline Asset* cmd_font_load(AppCmdBuffer* cb, int32 asset_id) {
     return asset;
 }
 
-inline Asset* cmd_font_load(AppCmdBuffer* cb, const char* name) {
+inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, const char* name) {
     // Check if asset already loaded
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, name);
 
@@ -407,12 +435,137 @@ inline Asset* cmd_font_load(AppCmdBuffer* cb, const char* name) {
     // @question What about also loading the font atlas
 
     return asset;
+}
+
+inline
+UILayout* cmd_layout_load_sync(
+    AppCmdBuffer* cb,
+    UILayout* layout, const char* layout_path
+) {
+    FileBody layout_file;
+    file_read(layout_path, &layout_file, cb->mem_vol);
+    layout_from_data(layout_file.content, layout);
+
+    return layout;
+}
+
+inline
+UIThemeStyle* cmd_theme_load_sync(
+    AppCmdBuffer* cb,
+    UIThemeStyle* theme, const char* theme_path
+) {
+    FileBody theme_file;
+    file_read(theme_path, &theme_file, cb->mem_vol);
+    theme_from_data(theme_file.content, theme);
+
+    return theme;
+}
+
+inline
+void cmd_layout_populate_sync(
+    AppCmdBuffer* cb,
+    UILayout* layout, UIThemeStyle* theme,
+    const Camera* camera
+) {
+    layout_from_theme(layout, theme, camera);
+}
+
+inline
+UILayout* cmd_ui_load_sync(
+    AppCmdBuffer* cb,
+    UILayout* layout, const char* layout_path,
+    UIThemeStyle* general_theme,
+    UIThemeStyle* theme, const char* theme_path,
+    const Camera* camera
+) {
+    cmd_layout_load_sync(cb, layout, layout_path);
+    cmd_layout_populate_sync(cb, layout, general_theme, camera);
+
+    cmd_theme_load_sync(cb, theme, theme_path);
+    cmd_layout_populate_sync(cb, layout, theme, camera);
+
+    return layout;
+}
+
+static inline
+UILayout* cmd_ui_load(AppCmdBuffer* cb, Command* cmd)
+{
+    byte* pos = cmd->data;
+
+    UILayout* layout = (UILayout *) pos;
+    pos += sizeof(uintptr_t);
+
+    char* layout_path = (char *) pos;
+    str_move_to((char **) &pos, '\0'); ++pos;
+
+    UIThemeStyle* general_theme = (UIThemeStyle *) pos;
+    pos += sizeof(uintptr_t);
+
+    UIThemeStyle* theme = (UIThemeStyle *) pos;
+    pos += sizeof(uintptr_t);
+
+    char* theme_path = (char *) pos;
+    str_move_to((char **) &pos, '\0'); ++pos;
+
+    Camera* camera = (Camera *) pos;
+
+    return cmd_ui_load_sync(
+        cb,
+        layout, layout_path,
+        general_theme,
+        theme, theme_path,
+        camera
+    );
+}
+
+inline
+void thrd_cmd_ui_load(
+    AppCmdBuffer* cb,
+    UILayout* layout, const char* layout_path,
+    UIThemeStyle* general_theme,
+    UIThemeStyle* theme, const char* theme_path,
+    const Camera* camera,
+    CommandFunction callback
+) {
+    Command cmd;
+    cmd.type = CMD_UI_LOAD;
+    cmd.callback = callback;
+    byte* pos = cmd.data;
+
+    // Layout pointer
+    *((uintptr_t *) pos) = (uintptr_t) layout;
+    pos += sizeof(uintptr_t);
+
+    // Layout path
+    pos += str_copy_until((char *) pos, layout_path, '\0');
+    *pos = '\0'; ++pos;
+
+    // General theme pointer
+    *((uintptr_t *) pos) = (uintptr_t) general_theme;
+    pos += sizeof(uintptr_t);
+
+    // Theme pointer
+    *((uintptr_t *) pos) = (uintptr_t) theme;
+    pos += sizeof(uintptr_t);
+
+    // Theme path
+    pos += str_copy_until((char *) pos, theme_path, '\0');
+    *pos = '\0'; ++pos;
+
+    // Camera pointer
+    *((uintptr_t *) pos) = (uintptr_t) camera;
+
+    thrd_cmd_insert(cb, &cmd);
 }
 
 // @question In some cases we don't remove an element if it couldn't get completed
 // Would it make more sense to remove it and add a new follow up command automatically in such cases?
 // e.g. couldn't play audio since it isn't loaded -> queue for asset load -> queue for internal play
-// I gues this only makes sense if we would switch to a queue
+// I guess this only makes sense if we would switch to a queue
+// @question Some of the functions create another async call
+//      E.g. do something that requires an asset, if asset not available queue for asset load.
+//      Do we really want to do that or do we instead want to load the asset right then and there
+//      If we do it right then and DON'T defer it, this would also solve the first question
 void cmd_iterate(AppCmdBuffer* cb)
 {
     int32 last_element = 0;
@@ -431,7 +584,9 @@ void cmd_iterate(AppCmdBuffer* cb)
             case CMD_ASSET_LOAD: {
                     cmd_asset_load(cb, cmd);
                 } break;
-            case CMD_FILE_LOAD: {} break;
+            case CMD_FILE_LOAD: {
+                    cmd_file_load(cb, cmd);
+                } break;
             case CMD_TEXTURE_LOAD: {
                     remove = cmd_texture_load_async(cb, cmd) != NULL;
                 } break;
@@ -456,6 +611,9 @@ void cmd_iterate(AppCmdBuffer* cb)
             case CMD_SHADER_LOAD: {
                     remove = cmd_shader_load(cb, cmd) != NULL;
                 } break;
+            case CMD_UI_LOAD: {
+                    remove = cmd_ui_load(cb, cmd) != NULL;
+                } break;
             default: {
                 UNREACHABLE();
             }
@@ -466,10 +624,14 @@ void cmd_iterate(AppCmdBuffer* cb)
             continue;
         }
 
+        if (cmd->callback) {
+            cmd->callback(cmd);
+        }
+
         chunk_free_element(&cb->commands, free_index, bit_index);
 
         // @performance This adds some unnecessary overhead.
-        // It would be much better, if we could define cb->last_element as the limit in the for loop
+        // It would be better, if we could define cb->last_element as the limit in the for loop
         if (chunk_id == cb->last_element) {
             break;
         }

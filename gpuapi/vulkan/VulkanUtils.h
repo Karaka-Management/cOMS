@@ -23,10 +23,11 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include "../../stdlib/Types.h"
-#include "ShaderUtils.h"
+#include "../../utils/StringUtils.h"
 #include "../../utils/TestUtils.h"
 #include "../../log/Log.h"
 #include "../../memory/RingMemory.h"
+#include "ShaderUtils.h"
 
 PACKED_STRUCT;
 // WARNING: indices values start at one (are offset by +1) because 0 means no value in our implementation
@@ -65,7 +66,7 @@ int32 vulkan_check_validation_layer_support(const char** validation_layers, uint
         bool layerFound = false;
 
         for (uint32 j = 0; j < layer_count; ++j) {
-            if (strcmp(validation_layers[i], available_layers[j].layerName) == 0) {
+            if (str_compare(validation_layers[i], available_layers[j].layerName) == 0) {
                 layerFound = true;
                 break;
             }
@@ -90,7 +91,7 @@ int32 vulkan_check_extension_support(const char** extensions, uint32 extension_c
         bool layerFound = false;
 
         for (uint32 j = 0; j < ext_count; ++j) {
-            if (strcmp(extensions[i], available_extensions[j].extensionName) == 0) {
+            if (str_compare(extensions[i], available_extensions[j].extensionName) == 0) {
                 layerFound = true;
                 break;
             }
@@ -227,7 +228,7 @@ bool vulkan_device_supports_extensions(VkPhysicalDevice device, const char** dev
     for (int32 i = 0; i < device_extension_count; ++i) {
         bool found = false;
         for (int32 j = 0; j < extension_count; ++j) {
-            if (strcmp(device_extensions[i], available_extensions[j].extensionName) == 0) {
+            if (str_compare(device_extensions[i], available_extensions[j].extensionName) == 0) {
                 found = true;
                 break;
             }

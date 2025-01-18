@@ -740,7 +740,7 @@ bool gl_extensions_load()
         }
 
         // umm count = end - pos;
-        // OpenGL->SupportsSRGBFramebuffer = strcmp(count, pos, "WGL_EXT_framebuffer_sRGB") == 0 || strcmp(count, pos, "WGL_ARB_framebuffer_sRGB") == 0;
+        // OpenGL->SupportsSRGBFramebuffer = str_compare(count, pos, "WGL_EXT_framebuffer_sRGB") == 0 || str_compare(count, pos, "WGL_ARB_framebuffer_sRGB") == 0;
 
         pos = end;
     }

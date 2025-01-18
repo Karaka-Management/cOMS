@@ -2,55 +2,116 @@
 #define TOS_UI_ELEMENT_TYPE_H
 
 #include <stdio.h>
+#include "../stdlib/Types.h"
+#include "UIButton.h"
+#include "UISelect.h"
+#include "UIInput.h"
+#include "UIText.h"
+#include "UITextarea.h"
+#include "UIImage.h"
+#include "UILink.h"
+#include "UIWindow.h"
+#include "UITable.h"
+#include "UIPanel.h"
+#include "UITab.h"
+#include "UICursor.h"
 
-enum UIElementType {
-    UI_ELEMENT_TYPE_BUTTON,
-    UI_ELEMENT_TYPE_SELECT,
-    UI_ELEMENT_TYPE_DROPDOWN,
-    UI_ELEMENT_TYPE_TEXTFIELD,
-    UI_ELEMENT_TYPE_TEXTAREA,
-    UI_ELEMENT_TYPE_IMAGE,
-    UI_ELEMENT_TYPE_TEXT,
-    UI_ELEMENT_TYPE_LINK,
-    UI_ELEMENT_TYPE_TABLE,
-
-    UI_ELEMENT_TYPE_VIEW_WINDOW,
-    UI_ELEMENT_TYPE_VIEW_PANEL,
-    UI_ELEMENT_TYPE_VIEW_TAB,
-
-    UI_ELEMENT_TYPE_SIZE,
-};
-
-constexpr const char* ui_element_type_to_string(UIElementType e)
+constexpr
+int32 ui_element_type_size(UIElementType e)
 {
     switch (e) {
         case UI_ELEMENT_TYPE_BUTTON:
-            return "button";
+            return sizeof(UIButton);
         case UI_ELEMENT_TYPE_SELECT:
-            return "select";
-        case UI_ELEMENT_TYPE_DROPDOWN:
-            return "dropdown";
-        case UI_ELEMENT_TYPE_TEXTFIELD:
-            return "textfield";
-        case UI_ELEMENT_TYPE_TEXTAREA:
-            return "textarea";
-        case UI_ELEMENT_TYPE_IMAGE:
-            return "image";
+            return sizeof(UISelect);
+        case UI_ELEMENT_TYPE_INPUT:
+            return sizeof(UIInput);
         case UI_ELEMENT_TYPE_TEXT:
-            return "text";
+            return sizeof(UIText);
+        case UI_ELEMENT_TYPE_TEXTAREA:
+            return sizeof(UITextarea);
+        case UI_ELEMENT_TYPE_IMAGE:
+            return sizeof(UIImage);
         case UI_ELEMENT_TYPE_LINK:
-            return "link";
+            return sizeof(UILink);
         case UI_ELEMENT_TYPE_TABLE:
-            return "table";
+            return sizeof(UITable);
         case UI_ELEMENT_TYPE_VIEW_WINDOW:
-            return "view_window";
+            return sizeof(UIWindow);
         case UI_ELEMENT_TYPE_VIEW_PANEL:
-            return "view_panel";
+            return sizeof(UIPanel);
         case UI_ELEMENT_TYPE_VIEW_TAB:
-            return "view_tab";
+            return sizeof(UITab);
+        case UI_ELEMENT_TYPE_CURSOR:
+            return sizeof(UICursor);
+        default: {
+            UNREACHABLE();
+        }
+    }
+}
+
+constexpr
+int32 ui_element_state_size(UIElementType e)
+{
+    switch (e) {
+        case UI_ELEMENT_TYPE_BUTTON:
+            return sizeof(UIButtonState);
+        case UI_ELEMENT_TYPE_SELECT:
+            return sizeof(UISelectState);
+        case UI_ELEMENT_TYPE_INPUT:
+            return sizeof(UIInputState);
+        case UI_ELEMENT_TYPE_TEXT:
+            return sizeof(UITextState);
+        case UI_ELEMENT_TYPE_TEXTAREA:
+            return sizeof(UITextareaState);
+        case UI_ELEMENT_TYPE_IMAGE:
+            return sizeof(UIImageState);
+        case UI_ELEMENT_TYPE_LINK:
+            return sizeof(UILinkState);
+        case UI_ELEMENT_TYPE_TABLE:
+            return sizeof(UITableState);
+        case UI_ELEMENT_TYPE_VIEW_WINDOW:
+            return sizeof(UIWindowState);
+        case UI_ELEMENT_TYPE_VIEW_PANEL:
+            return sizeof(UIPanelState);
+        case UI_ELEMENT_TYPE_VIEW_TAB:
+            return sizeof(UITabState);
+        case UI_ELEMENT_TYPE_CURSOR:
+            return sizeof(UICursorState);
+        default: {
+            UNREACHABLE();
+        }
+    }
+}
+
+constexpr
+int32 ui_element_type_to_id(const char* str)
+{
+    if (str_compare("button", str) == 0) {
+        return UI_ELEMENT_TYPE_BUTTON;
+    } else if (str_compare("select", str) == 0) {
+        return UI_ELEMENT_TYPE_SELECT;
+    } else if (str_compare("input", str) == 0) {
+        return UI_ELEMENT_TYPE_INPUT;
+    } else if (str_compare("textarea", str) == 0) {
+        return UI_ELEMENT_TYPE_TEXTAREA;
+    } else if (str_compare("image", str) == 0) {
+        return UI_ELEMENT_TYPE_IMAGE;
+    } else if (str_compare("text", str) == 0) {
+        return UI_ELEMENT_TYPE_TEXT;
+    } else if (str_compare("link", str) == 0) {
+        return UI_ELEMENT_TYPE_LINK;
+    } else if (str_compare("table", str) == 0) {
+        return UI_ELEMENT_TYPE_TABLE;
+    } else if (str_compare("view_window", str) == 0) {
+        return UI_ELEMENT_TYPE_VIEW_WINDOW;
+    } else if (str_compare("view_panel", str) == 0) {
+        return UI_ELEMENT_TYPE_VIEW_PANEL;
+    } else if (str_compare("view_tab", str) == 0) {
+        return UI_ELEMENT_TYPE_VIEW_TAB;
     }
 
-    return NULL;
+    return -1;
 }
 
 #endif

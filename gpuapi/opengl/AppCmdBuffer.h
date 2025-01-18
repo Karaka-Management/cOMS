@@ -20,7 +20,7 @@ void* cmd_shader_load(AppCmdBuffer* cb, Command* cmd) {
     return NULL;
 }
 
-void* cmd_shader_load(AppCmdBuffer* cb, Shader* shader, int32* shader_ids) {
+void* cmd_shader_load_sync(AppCmdBuffer* cb, Shader* shader, int32* shader_ids) {
     char asset_id[9];
 
     int32 shader_assets[SHADER_TYPE_SIZE];

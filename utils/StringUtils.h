@@ -15,6 +15,7 @@
 #include <ctype.h>
 
 #include "../stdlib/Types.h"
+#include "../utils/TestUtils.h"
 
 inline
 int32 utf8_encode(uint32 codepoint, char* out)
@@ -196,6 +197,132 @@ void wchar_to_char(const char* __restrict str, char* __restrict dest)
     }
 
     *dest = '\0';
+}
+
+inline
+bool is_float(const char* str) {
+    bool has_dot = false;
+
+    if (*str == '-' || *str == '+') {
+        str++;
+    }
+
+    while (*str) {
+        if (*str == '.') {
+            if (has_dot) {
+                return false;
+            }
+
+            has_dot = true;
+        } else if (*str < '0' || *str > '9') {
+            return false;
+        }
+
+        ++str;
+    }
+
+    return has_dot;
+}
+
+inline
+bool is_integer(const char* str) {
+    if (*str == '-' || *str == '+') {
+        str++;
+    }
+
+    if (*str == '\0') {
+        return false;
+    }
+
+    bool is_int = false;
+    while (*str) {
+        if (*str < '0' || *str > '9') {
+            return false;
+        }
+
+        ++str;
+        is_int = true;
+    }
+
+    return is_int;
+}
+
+inline
+bool is_hex_color(const char* str)
+{
+    if (str[0] != '#') {
+        return false;
+    }
+
+    ++str;
+
+    while (*str) {
+        if ((*str < 'A' || *str > 'F')
+            || (*str < 'a' || *str > 'f')
+            || (*str < '0' || *str > '9')
+        ) {
+            return false;
+        }
+
+        ++str;
+    }
+
+    return true;
+}
+
+inline
+bool str_is_alpha(char str) {
+    return (str < 'A' || str > 'F')
+        || (str < 'a' || str > 'f');
+}
+
+inline
+bool str_is_num(char str) {
+    return str < '0' || str > '9';
+}
+
+inline
+bool str_is_alphanum(char str) {
+    return (str < 'A' || str > 'F')
+        || (str < 'a' || str > 'f')
+        || (str < '0' || str > '9');
+}
+
+inline
+size_t str_length(const char* str)
+{
+    const char* s = str;
+
+    // Quick check for very short strings
+    while ((uintptr_t) s % sizeof(uintptr_t) != 0) {
+        if (*s == '\0') {
+            return s - str;
+        }
+
+        ++s;
+    }
+
+    // Process words at a time
+    const uintptr_t* word_ptr = (const uintptr_t *) s;
+    const uintptr_t word_mask = (uintptr_t) -1 / 0xFF; // 0x01010101...
+
+    while (true) {
+        uintptr_t word = *word_ptr++;
+        // Detect null byte using word-level operation
+        if ((word - word_mask) & ~word & (word_mask << 7)) {
+            break;
+        }
+    }
+
+    // Backtrack to find the exact null byte
+    s = (const char *) (word_ptr - 1);
+    for (size_t i = 0; i < sizeof(uintptr_t); ++i) {
+        if (s[i] == '\0') {
+            return s + i - str;
+        }
+    }
+
+    return 0;
 }
 
 inline constexpr
@@ -392,33 +519,6 @@ int32 is_eol(const char* str)
 }
 
 inline
-void str_copy_until(const char* __restrict src, char* __restrict dest, char delim)
-{
-    while (*src != delim && *src != '\0') {
-        *dest++ = *src++;
-    }
-
-    *dest = '\0';
-}
-
-inline
-void str_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
-{
-    while (*src != '\0') {
-        for (int32 i = 0; i < len; ++i) {
-            if (*src == delim[i]) {
-                *dest = '\0';
-                return;
-            }
-        }
-
-        *dest++ = *src++;
-    }
-
-    *dest = '\0';
-}
-
-inline
 int32 str_copy_until(char* __restrict dest, const char* __restrict src, char delim)
 {
     int32 len = 0;
@@ -432,11 +532,32 @@ int32 str_copy_until(char* __restrict dest, const char* __restrict src, char del
     return len;
 }
 
+// @todo Inconsistent parameter order of dest and src with other functions
 inline
-void str_copy_short(char* __restrict dest, const char* __restrict src, int32 length, char delim = '\0')
+void str_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim)
+{
+    size_t len = strlen(delim);
+
+    while (*src != '\0') {
+        for (int32 i = 0; i < len; ++i) {
+            if (*src == delim[i]) {
+                *dest = '\0';
+                return;
+            }
+        }
+
+        *dest++ = *src;
+        ++src;
+    }
+
+    *dest = '\0';
+}
+
+inline
+void str_copy_short(char* __restrict dest, const char* __restrict src, int32 length)
 {
     int32 i = -1;
-    while (*src != delim && ++i < length) {
+    while (*src != '\0' && ++i < length) {
         *dest++ = *src++;
     }
 
@@ -444,9 +565,9 @@ void str_copy_short(char* __restrict dest, const char* __restrict src, int32 len
 }
 
 inline
-void str_copy_short(char* __restrict dest, const char* __restrict src, char delim = '\0')
+void str_copy_short(char* __restrict dest, const char* __restrict src)
 {
-    while (*src != delim) {
+    while (*src != '\0') {
         *dest++ = *src++;
     }
 
@@ -454,7 +575,7 @@ void str_copy_short(char* __restrict dest, const char* __restrict src, char deli
 }
 
 inline
-void str_copy_long(char* __restrict dest, const char* __restrict src, char delim = '\0')
+void str_copy_long(char* __restrict dest, const char* __restrict src)
 {
     char* d = dest;
     const char *s = src;
@@ -495,10 +616,12 @@ void str_copy_move_until(char** __restrict src, char* __restrict dest, char deli
 }
 
 inline
-void str_copy_move_until(char** __restrict src, char* __restrict dest, const char* __restrict delim, int32 len)
+void str_copy_move_until(char** __restrict src, char* __restrict dest, const char* __restrict delim)
 {
+    size_t len = strlen(delim);
+
     while (**src != '\0') {
-        for (int32 i = 0; i < len; ++i) {
+        for (size_t i = 0; i < len; ++i) {
             if (**src == delim[i]) {
                 *dest = '\0';
                 return;
@@ -650,6 +773,12 @@ void str_insert(char* __restrict dst, size_t insert_pos, const char* __restrict 
 }
 
 inline
+void str_remove(char* __restrict dst, size_t remove_pos, size_t remove_length) {
+    size_t src_length = strlen(dst);
+    memmove(dst + remove_pos, dst + remove_pos + remove_length, src_length - (remove_pos + remove_length) + 1);
+}
+
+inline
 char* strtok(char* str, const char* __restrict delim, char* *key) {
     char* result;
     if (str == NULL) {
@@ -726,6 +855,7 @@ void create_const_name(unsigned char* name)
     *name = '\0';
 }
 
+constexpr inline
 int32 str_compare(const char* str1, const char* str2)
 {
     byte c1, c2;
@@ -733,11 +863,7 @@ int32 str_compare(const char* str1, const char* str2)
     do {
         c1 = (byte) *str1++;
         c2 = (byte) *str2++;
-
-        if (c1 == '\0') {
-	        return c1 - c2;
-        }
-    } while (c1 == c2);
+    } while (c1 == c2 && c1 != '\0');
 
     return c1 - c2;
 }
@@ -901,6 +1027,16 @@ void str_move_to(char** str, char delim)
 }
 
 inline
+void str_move_to_pos(const char** str, int32 pos)
+{
+    if (pos >= 0) {
+        *str += pos;
+    } else {
+        *str = OMS_MAX(*str + (strlen(*str) - pos), *str);
+    }
+}
+
+inline
 void str_move_past(char** str, char delim)
 {
     while (**str != delim && **str != '\0')  {
@@ -930,11 +1066,10 @@ bool str_is_comment(char* str)
     return (*str == '/' && str[1] == '/') || (*str == '/' && str[1] == '*');
 }
 
-// @question Isn't that basically like move_to? Consider to unify
 inline
 void str_skip(char** str, char delim)
 {
-    while (**str == delim)  {
+    while (**str && **str == delim)  {
         ++(*str);
     }
 }
@@ -942,7 +1077,7 @@ void str_skip(char** str, char delim)
 inline
 void str_skip_whitespace(char** str)
 {
-    while (**str == ' ' || **str == '\t')  {
+    while (**str && (**str == ' ' || **str == '\t'))  {
         ++(*str);
     }
 }
@@ -1024,6 +1159,55 @@ void str_pad(const char* input, char* output, char pad, size_t len) {
     }
 }
 
+inline
+int32 float_to_str(f64 value, char* buffer, int32 precision = 5)
+{
+    ASSERT_SIMPLE(precision < 6);
+
+    char* start = buffer;
+
+    if (value < 0) {
+        *buffer++ = '-';
+        value = -value;
+    }
+
+    static const float powers_of_ten[] = {
+        1.0f, 10.0f, 100.0f, 1000.0f, 10000.0f, 100000.0f
+    };
+
+    f32 scale = powers_of_ten[precision];
+    value = OMS_ROUND_POSITIVE(value * scale) / scale;
+
+    // Handle integer part
+    int32 int_part = (int32) value;
+    f64 frac_part = value - int_part;
+
+    char temp[20];
+    int32 index = 0;
+
+    do {
+        temp[index++] = (int_part % 10) + '0';
+        int_part /= 10;
+    } while (int_part > 0);
+
+    while (index > 0) {
+        *buffer++ = temp[--index];
+    }
+
+    // Handle fractional part
+    if (precision > 0) {
+        *buffer++ = '.';
+        while (precision--) {
+            frac_part *= 10;
+            int32 digit = (int32) frac_part;
+            *buffer++ = (char) (digit + '0');
+            frac_part -= digit;
+        }
+    }
+
+    return (int32) (buffer - start);
+}
+
 void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) {
     va_list args;
     va_start(args, format);
@@ -1077,46 +1261,7 @@ void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) {
                         format = prec_ptr - 1;
                     }
 
-                    if (val < 0) {
-                        *buffer++ = '-';
-                        val = -val;
-                    }
-
-                    if (precision < 6) {
-                        static const float powers_of_ten[] = {
-                            1.0f, 10.0f, 100.0f, 1000.0f, 10000.0f, 100000.0f
-                        };
-
-                        f32 scale = powers_of_ten[precision];
-                        val = OMS_ROUND_POSITIVE(val * scale) / scale;
-                    }
-
-                    // Handle integer part
-                    int32 int_part = (int32) val;
-                    f64 frac_part = val - int_part;
-
-                    char temp[20];
-                    int32 index = 0;
-
-                    do {
-                        temp[index++] = (int_part % 10) + '0';
-                        int_part /= 10;
-                    } while (int_part > 0);
-
-                    while (index > 0) {
-                        *buffer++ = temp[--index];
-                    }
-
-                    // Handle fractional part
-                    if (precision > 0) {
-                        *buffer++ = '.';
-                        while (precision--) {
-                            frac_part *= 10;
-                            int32 digit = (int32) frac_part;
-                            *buffer++ = (char) (digit + '0');
-                            frac_part -= digit;
-                        }
-                    }
+                    buffer += float_to_str(val, buffer, precision);
                 } break;
                 default: {
                     // Handle unknown format specifiers
@@ -1189,46 +1334,7 @@ void sprintf_fast_iter(char* buffer, const char* format, ...) {
                         format = prec_ptr - 1;
                     }
 
-                    if (val < 0) {
-                        *buffer++ = '-';
-                        val = -val;
-                    }
-
-                    if (precision < 6) {
-                        static const float powers_of_ten[] = {
-                            1.0f, 10.0f, 100.0f, 1000.0f, 10000.0f, 100000.0f
-                        };
-
-                        f32 scale = powers_of_ten[precision];
-                        val = OMS_ROUND_POSITIVE(val * scale) / scale;
-                    }
-
-                    // Handle integer part
-                    int32 int_part = (int32) val;
-                    f64 frac_part = val - int_part;
-
-                    char temp[20];
-                    int32 index = 0;
-
-                    do {
-                        temp[index++] = (int_part % 10) + '0';
-                        int_part /= 10;
-                    } while (int_part > 0);
-
-                    while (index > 0) {
-                        *buffer++ = temp[--index];
-                    }
-
-                    // Handle fractional part
-                    if (precision > 0) {
-                        *buffer++ = '.';
-                        while (precision--) {
-                            frac_part *= 10;
-                            int32 digit = (int32) frac_part;
-                            *buffer++ = (char) (digit + '0');
-                            frac_part -= digit;
-                        }
-                    }
+                    buffer += float_to_str(val, buffer, precision);
                 } break;
                 default: {
                     // Handle unknown format specifiers

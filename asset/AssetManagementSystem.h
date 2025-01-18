@@ -372,8 +372,6 @@ void thrd_ams_remove_asset(AssetManagementSystem* ams, const char* name, Asset* 
 
 Asset* ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name, uint32 size, uint32 overhead = 0)
 {
-    ASSERT_SIMPLE(strlen(name) < HASH_MAP_MAX_KEY_LENGTH - 1);
-
     AssetComponent* ac = &ams->asset_components[type];
     uint16 elements = ams_calculate_chunks(ac, size, overhead);
 
@@ -430,8 +428,6 @@ Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, byte type, const char*
 
     DEBUG_MEMORY_RESERVE((uintptr_t) asset_data, asset.ram_size, 180);
 
-    ASSERT_SIMPLE(strlen(name) < HASH_MAP_MAX_KEY_LENGTH - 1);
-
     return (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) &asset)->value;
 }
 
@@ -464,6 +460,11 @@ void thrd_ams_update(AssetManagementSystem* ams, uint64 time, uint64 dt)
         ++ams->asset_components[asset->component_id].asset_count;
 
         if ((asset->state & ASSET_STATE_RAM_GC) || (asset->state & ASSET_STATE_VRAM_GC)) {
+            // @todo Currently we cannot really delete based on last access since we are not updating the last_access reliably
+            // This is usually the case for global/static assets such as font, ui_asset = ui vertices, ...
+            // The reason for this is that we store a reference to those assets in a global struct
+            // One solution could be to manually update the last_access at the end of every frame (shouldn't be THAT many assets)?
+            // Maybe we can even implement a scene specific post_scene() function that does this for scene specific assets e.g. post_scene_scene1();
             if ((asset->state & ASSET_STATE_RAM_GC)
                 && (asset->state & ASSET_STATE_VRAM_GC)
                 && time - asset->last_access <= dt

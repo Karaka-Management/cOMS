@@ -11,6 +11,7 @@
 
 #include "../stdlib/Types.h"
 
+// @question Consider to rename internal enum values to contain the word INTERNAL
 enum CommandType {
     CMD_FUNC_RUN,
     CMD_ASSET_ENQUEUE,
@@ -23,13 +24,15 @@ enum CommandType {
     CMD_AUDIO_PLAY,
     CMD_AUDIO_ENQUEUE, // Only for internal use
     CMD_SHADER_LOAD,
+    CMD_UI_LOAD,
 };
+
+typedef void* (*CommandFunction)(void* data);
 
 struct Command {
     CommandType type;
-    byte data[28]; // @todo to be adjusted
+    CommandFunction callback;
+    byte data[256]; // @todo to be adjusted
 };
-
-typedef void* (*CommandFunc)(Command*);
 
 #endif

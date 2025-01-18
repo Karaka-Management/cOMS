@@ -14,7 +14,6 @@
 #include "../hash/GeneralHash.h"
 #include "../memory/RingMemory.h"
 
-#define PERFECT_HASH_MAP_MAX_KEY_LENGTH 32
 typedef uint64 (*perfect_hash_function)(const char* key, int32 seed);
 
 const perfect_hash_function PERFECT_HASH_FUNCTIONS[] = {
@@ -29,43 +28,43 @@ const perfect_hash_function PERFECT_HASH_FUNCTIONS[] = {
 
 struct PerfectHashEntryInt32 {
     int64 element_id;
-    char key[PERFECT_HASH_MAP_MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     int32 value;
 };
 
 struct PerfectHashEntryInt64 {
     int64 element_id;
-    char key[PERFECT_HASH_MAP_MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     int64 value;
 };
 
 struct PerfectHashEntryUIntPtr {
     int64 element_id;
-    char key[PERFECT_HASH_MAP_MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     uintptr_t value;
 };
 
 struct PerfectHashEntryVoidP {
     int64 element_id;
-    char key[PERFECT_HASH_MAP_MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     void* value;
 };
 
 struct PerfectHashEntryFloat {
     int64 element_id;
-    char key[PERFECT_HASH_MAP_MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     f32 value;
 };
 
 struct PerfectHashEntryStr {
     int64 element_id;
-    char key[PERFECT_HASH_MAP_MAX_KEY_LENGTH];
-    char value[PERFECT_HASH_MAP_MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
+    char value[HASH_MAP_MAX_KEY_LENGTH];
 };
 
 struct PerfectHashEntry {
     int64 element_id;
-    char key[PERFECT_HASH_MAP_MAX_KEY_LENGTH];
+    char key[HASH_MAP_MAX_KEY_LENGTH];
     byte* value;
 };
 
@@ -244,7 +243,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, const char* val
     PerfectHashEntryStr* entry = (PerfectHashEntryStr *) (hm->hash_entries + hm->entry_size * index);
     entry->element_id = index;
     str_copy_short(entry->key, key);
-    memcpy(entry->value, value, PERFECT_HASH_MAP_MAX_KEY_LENGTH);
+    memcpy(entry->value, value, HASH_MAP_MAX_KEY_LENGTH);
 }
 
 inline

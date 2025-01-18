@@ -20,6 +20,7 @@
 #include "../asset/AssetManagementSystem.h"
 #include "../object/Texture.h"
 #include "../memory/Queue.h"
+#include "../system/FileUtils.cpp"
 #include "Command.h"
 
 struct AppCmdBuffer {
@@ -40,6 +41,7 @@ struct AppCmdBuffer {
     AssetManagementSystem* ams;
     AssetArchive* asset_archives;
     Queue* assets_to_load;
+    Queue* files_to_load;
     AudioMixer* mixer;
     GpuApiType gpu_api;
 };
@@ -48,13 +50,13 @@ struct AppCmdBuffer {
     #include "../gpuapi/opengl/AppCmdBuffer.h"
 #elif VULKAN
     inline void* cmd_shader_load(AppCmdBuffer* cb, Command* cmd) { return NULL; }
-    inline void* cmd_shader_load(AppCmdBuffer* cb, void* shader, int32* shader_ids) { return NULL; }
+    inline void* cmd_shader_load_sync(AppCmdBuffer* cb, void* shader, int32* shader_ids) { return NULL; }
 #elif DIRECTX
     inline void* cmd_shader_load(AppCmdBuffer* cb, Command* cmd) { return NULL; }
-    inline void* cmd_shader_load(AppCmdBuffer* cb, void* shader, int32* shader_ids) { return NULL; }
+    inline void* cmd_shader_load_sync(AppCmdBuffer* cb, void* shader, int32* shader_ids) { return NULL; }
 #else
     inline void* cmd_shader_load(AppCmdBuffer* cb, Command* cmd) { return NULL; }
-    inline void* cmd_shader_load(AppCmdBuffer* cb, void* shader, int32* shader_ids) { return NULL; }
+    inline void* cmd_shader_load_sync(AppCmdBuffer* cb, void* shader, int32* shader_ids) { return NULL; }
 #endif
 
 #endif

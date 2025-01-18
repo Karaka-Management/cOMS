@@ -25,6 +25,7 @@ struct PoolWorker {
     void* result;
     RingMemory ring;
     ThreadPoolJobFunc func;
+    ThreadPoolJobFunc callback;
 };
 
 struct Worker {

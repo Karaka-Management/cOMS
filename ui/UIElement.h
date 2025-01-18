@@ -2,51 +2,44 @@
 #define TOS_UI_ELEMENT_H
 
 #include "../stdlib/Types.h"
-#include "UIElementType.h"
-#include "../object/Vertex.h"
 
-#include <immintrin.h>
-#include <xmmintrin.h>
-
-struct UIElementDimension {
-	int16 x1;
-	int16 y1;
-	int16 x2;
-	int16 y2;
+enum UIElementType : byte {
+    UI_ELEMENT_TYPE_BUTTON,
+    UI_ELEMENT_TYPE_SELECT,
+    UI_ELEMENT_TYPE_INPUT,
+    UI_ELEMENT_TYPE_TEXTAREA,
+    UI_ELEMENT_TYPE_IMAGE,
+    UI_ELEMENT_TYPE_TEXT,
+    UI_ELEMENT_TYPE_LINK,
+    UI_ELEMENT_TYPE_TABLE,
+    UI_ELEMENT_TYPE_VIEW_WINDOW,
+    UI_ELEMENT_TYPE_VIEW_PANEL,
+    UI_ELEMENT_TYPE_VIEW_TAB,
+    UI_ELEMENT_TYPE_CURSOR,
+    UI_ELEMENT_TYPE_SIZE,
 };
 
-#define UI_ELEMENT_STATE_VISIBLE 1
-#define UI_ELEMENT_STATE_ACTIVE 2
-#define UI_ELEMENT_STATE_FOCUSED 4
-#define UI_ELEMENT_STATE_CLICKED 8
-#define UI_ELEMENT_STATE_ANIMATION 16
+enum UIElementState : byte {
+    UI_ELEMENT_STATE_ACTIVE = 1 << 0,
+    UI_ELEMENT_STATE_VISIBLE = 1 << 1,
+    UI_ELEMENT_STATE_FOCUSED = 1 << 2,
+    UI_ELEMENT_STATE_CLICKABLE = 1 << 3,
+    UI_ELEMENT_STATE_ANIMATION = 1 << 4,
+};
 
 struct UIElement {
-    const char* name;
-    int32 id;
+    // @see UIElementState
+    byte state_flag;
     UIElementType type;
-    bool is_dynamic;
 
-    int16 window_id;
-    int16 panel_id;
+    UIStyleType style_old;
+    UIStyleType style_new;
+    UIElement* parent;
+    void* state;
+    void* details[UI_STYLE_TYPE_SIZE];
 
-    UIElementDimension dimension;
-
-    int32 state_flag;
-
-    f32 anim_elapsed;
-
-    int16 scroll_x;
-    int16 scroll_y;
-
-    // @todo animation state
-
-    // @todo cache vertex result for default, hover etc.
-    int32 vertex_count;
-    Vertex3DTextureColorIndex* vertices; // WARNING: This is not the official holder of the memory, its in UILayout
-
-    // @todo We could even have a pointer that points into the complete ui array making it possible to simply replace this section
-    //      This is something we wanted to do anyway when updating sub regions on the gpu memory
+    uint16 children_count;
+    UIElement** children;
 };
 
 #endif

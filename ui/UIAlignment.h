@@ -1,16 +1,16 @@
 #ifndef TOS_UI_ALIGNMENT_H
 #define TOS_UI_ALIGNMENT_H
 
-enum UIAlignH {
-    UI_ALIGN_H_LEFT,
-    UI_ALIGN_H_CENTER,
-    UI_ALIGN_H_RIGHT,
-};
+#include "../stdlib/Types.h"
 
-enum UIAlignV {
-    UI_ALIGN_V_BOTTOM,
-    UI_ALIGN_V_CENTER,
-    UI_ALIGN_V_TOP,
+enum UIAlign : byte {
+    UI_ALIGN_H_LEFT = 1 << 0,
+    UI_ALIGN_H_CENTER = 1 << 1,
+    UI_ALIGN_H_RIGHT = 1 << 2,
+
+    UI_ALIGN_V_BOTTOM = 1 << 3,
+    UI_ALIGN_V_CENTER = 1 << 4,
+    UI_ALIGN_V_TOP = 1 << 5,
 };
 
 #endif
