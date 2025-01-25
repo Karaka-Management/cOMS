@@ -33,7 +33,7 @@
 
     static inline
     void cpuid(int32 cpuInfo[4], int32 function_id) {
-        __asm__ volatile(
+        asm volatile(
             "cpuid"
             : "=a" (cpuInfo[0]), "=b" (cpuInfo[1]), "=c" (cpuInfo[2]), "=d" (cpuInfo[3])
             : "a" (function_id)

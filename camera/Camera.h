@@ -10,9 +10,8 @@
 #define TOS_CAMERA_H
 
 #include "../stdlib/Types.h"
-
 #include "../math/matrix/MatrixFloat32.h"
-
+#include "../compiler/CompilerUtils.h"
 #include "CameraMovement.h"
 
 #define CAMERA_MAX_INPUTS 4
@@ -40,6 +39,8 @@ struct Camera {
     f32 sensitivity;
     f32 zoom;
 
+    // @question Consider to make these f32 values.
+    // Yes, this uses obviously more space BUT we use these values very often in vertex calculations and always have to cast it
     uint16 viewport_width;
     uint16 viewport_height;
 

@@ -546,8 +546,7 @@ void str_copy_until(const char* __restrict src, char* __restrict dest, const cha
             }
         }
 
-        *dest++ = *src;
-        ++src;
+        *dest++ = *src++;
     }
 
     *dest = '\0';
@@ -605,7 +604,7 @@ void str_copy_long(char* __restrict dest, const char* __restrict src)
 }
 
 inline
-void str_copy_move_until(char** __restrict src, char* __restrict dest, char delim)
+void str_copy_move_until(const char** __restrict src, char* __restrict dest, char delim)
 {
     while (**src != delim && **src != '\0') {
         *dest++ = **src;
@@ -616,7 +615,7 @@ void str_copy_move_until(char** __restrict src, char* __restrict dest, char deli
 }
 
 inline
-void str_copy_move_until(char** __restrict src, char* __restrict dest, const char* __restrict delim)
+void str_copy_move_until(const char** __restrict src, char* __restrict dest, const char* __restrict delim)
 {
     size_t len = strlen(delim);
 
@@ -1019,13 +1018,14 @@ int32 str_to(const char* str, char delim)
 }
 
 inline
-void str_move_to(char** str, char delim)
+void str_move_to(const char** str, char delim)
 {
     while (**str != delim && **str != '\0')  {
         ++(*str);
     }
 }
 
+// Negative pos counts backwards
 inline
 void str_move_to_pos(const char** str, int32 pos)
 {
@@ -1037,7 +1037,7 @@ void str_move_to_pos(const char** str, int32 pos)
 }
 
 inline
-void str_move_past(char** str, char delim)
+void str_move_past(const char** str, char delim)
 {
     while (**str != delim && **str != '\0')  {
         ++(*str);
@@ -1049,7 +1049,7 @@ void str_move_past(char** str, char delim)
 }
 
 inline
-void str_move_past_alpha_num(char** str)
+void str_move_past_alpha_num(const char** str)
 {
     while ((**str >= 48 && **str <= 57)
         || (**str >= 65 && **str <= 90)
@@ -1061,13 +1061,13 @@ void str_move_past_alpha_num(char** str)
 }
 
 inline
-bool str_is_comment(char* str)
+bool str_is_comment(const char* str)
 {
     return (*str == '/' && str[1] == '/') || (*str == '/' && str[1] == '*');
 }
 
 inline
-void str_skip(char** str, char delim)
+void str_skip(const char** str, char delim)
 {
     while (**str && **str == delim)  {
         ++(*str);
@@ -1075,7 +1075,7 @@ void str_skip(char** str, char delim)
 }
 
 inline
-void str_skip_whitespace(char** str)
+void str_skip_whitespace(const char** str)
 {
     while (**str && (**str == ' ' || **str == '\t'))  {
         ++(*str);
@@ -1083,7 +1083,7 @@ void str_skip_whitespace(char** str)
 }
 
 inline
-void str_skip_empty(char** str)
+void str_skip_empty(const char** str)
 {
     while (**str == ' ' || **str == '\t' || **str == '\n' || **str == '\r')  {
         ++(*str);
@@ -1091,7 +1091,7 @@ void str_skip_empty(char** str)
 }
 
 inline
-void str_skip_non_empty(char** str)
+void str_skip_non_empty(const char** str)
 {
     while (**str != ' ' && **str != '\t' && **str != '\n' && **str != '\0')  {
         ++(*str);
@@ -1099,7 +1099,7 @@ void str_skip_non_empty(char** str)
 }
 
 inline
-void str_skip_list(char** __restrict str, const char* __restrict delim, int32 len)
+void str_skip_list(const char** __restrict str, const char* __restrict delim, int32 len)
 {
     bool run = true;
     while (run && **str != '\0') {
@@ -1117,7 +1117,7 @@ void str_skip_list(char** __restrict str, const char* __restrict delim, int32 le
 }
 
 inline
-void str_skip_until_list(char** __restrict str, const char* __restrict delim)
+void str_skip_until_list(const char** __restrict str, const char* __restrict delim)
 {
     while (**str != '\0') {
         const char* delim_temp = delim;

@@ -13,12 +13,7 @@
 #include <string.h>
 #include <math.h>
 #include "../../utils/TestUtils.h"
-
-#if ARM
-    #include "../../stdlib/IntrinsicsArm.h"
-#else
-    #include "../../stdlib/Intrinsics.h"
-#endif
+#include "../../architecture/Intrinsics.h"
 
 // @todo Implement intrinsic versions!
 
@@ -29,7 +24,7 @@
 inline
 void vec2_normalize(f32* __restrict x, f32* __restrict y)
 {
-    f32 d = oms_rsqrt((*x) * (*x) + (*y) * (*y));
+    f32 d = intrin_rsqrt_f32((*x) * (*x) + (*y) * (*y));
 
     *x *= d;
     *y *= d;
@@ -113,7 +108,7 @@ f32 vec3_length(v3_f32* vec)
 inline
 void vec3_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z)
 {
-    f32 d = oms_rsqrt((*x) * (*x) + (*y) * (*y) + (*z) * (*z));
+    f32 d = intrin_rsqrt_f32((*x) * (*x) + (*y) * (*y) + (*z) * (*z));
 
     *x *= d;
     *y *= d;
@@ -123,7 +118,7 @@ void vec3_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z)
 inline
 void vec3_normalize(v3_f32* vec)
 {
-    f32 d = oms_rsqrt(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
+    f32 d = intrin_rsqrt_f32(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
 
     vec->x *= d;
     vec->y *= d;
@@ -204,7 +199,7 @@ f32 vec3_dot(const v3_f32* a, const v3_f32* b) {
 
 void vec4_normalize(f32* __restrict x, f32* __restrict y, f32* __restrict z, f32* __restrict w)
 {
-    f32 d = oms_rsqrt((*x) * (*x) + (*y) * (*y) + (*z) * (*z) + (*w) * (*w));
+    f32 d = intrin_rsqrt_f32((*x) * (*x) + (*y) * (*y) + (*z) * (*z) + (*w) * (*w));
 
     *x *= d;
     *y *= d;

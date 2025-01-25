@@ -53,4 +53,34 @@ struct UIAttributeDimension {
     */
 };
 
+inline
+void ui_attr_dimension_serialize(const UIAttributeDimension* __restrict dim, byte** __restrict pos)
+{
+    **pos = dim->flag;
+    *pos += sizeof(dim->flag);
+
+    **pos = dim->alignment;
+    *pos += sizeof(dim->alignment);
+
+    for (int32 i = 0; i < 4; ++i) {
+        *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(dim->dimension.vec[i]);
+        *pos += sizeof(dim->dimension.vec[i]);
+    }
+}
+
+inline
+void ui_attr_dimension_unserialize(UIAttributeDimension* __restrict dim, const byte** __restrict pos)
+{
+    dim->flag = **pos;
+    *pos += sizeof(dim->flag);
+
+    dim->alignment = **pos;
+    *pos += sizeof(dim->alignment);
+
+    for (int32 i = 0; i < 4; ++i) {
+        dim->dimension.vec[i] = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
+        *pos += sizeof(dim->dimension.vec[i]);
+    }
+}
+
 #endif

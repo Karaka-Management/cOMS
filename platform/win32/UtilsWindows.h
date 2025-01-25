@@ -145,6 +145,7 @@ void window_open(Window* window)
 void window_close(Window* window)
 {
     CloseWindow(window->hwnd);
+    DestroyWindow(window->hwnd);
 }
 
 #endif

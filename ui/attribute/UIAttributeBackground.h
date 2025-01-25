@@ -13,9 +13,29 @@ enum UIBackgroundStyle : byte {
 struct UIAttributeBackground {
     UIBackgroundStyle background_style;
     union {
-        void* background_image;
+        uint32 background_image;
         uint32 background_color;
     };
 };
+
+inline
+void ui_attr_background_serialize(const UIAttributeBackground* __restrict bg, byte** __restrict pos)
+{
+    **pos = bg->background_style;
+    *pos += sizeof(bg->background_style);
+
+    *((uint32 *) *pos) = SWAP_ENDIAN_LITTLE(bg->background_color);
+    *pos += sizeof(bg->background_color);
+}
+
+inline
+void ui_attr_background_unserialize(UIAttributeBackground* __restrict bg, const byte** __restrict pos)
+{
+    bg->background_style = (UIBackgroundStyle) **pos;
+    *pos += sizeof(bg->background_style);
+
+    bg->background_color = SWAP_ENDIAN_LITTLE(*((uint32 *) *pos));
+    *pos += sizeof(bg->background_color);
+}
 
 #endif

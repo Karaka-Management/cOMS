@@ -14,6 +14,7 @@ struct UIAttributeFont {
     f32 weight;
     UIAttributeShadow shadow_outer;
     byte decoration;
+    byte alignment;
 
     // @todo family?
 };

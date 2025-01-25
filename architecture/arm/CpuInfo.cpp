@@ -36,9 +36,9 @@ uint64 cpu_info_features() {
     return feature_bitfield;
 }
 
-void cpu_info_cache(int32_t level, CpuCacheInfo* cache) {
-    uint32_t ccsidr; // Cache Size ID Register
-    uint32_t line_size, associativity, num_sets;
+void cpu_info_cache(int32 level, CpuCacheInfo* cache) {
+    uint32 ccsidr; // Cache Size ID Register
+    uint32 line_size, associativity, num_sets;
 
     cache->level = level;
     cache->size = 0;
@@ -48,9 +48,9 @@ void cpu_info_cache(int32_t level, CpuCacheInfo* cache) {
     cache->line_size = 0;
 
     // Select cache level and type in CSSELR
-    uint32_t csselr = level << 1; // Data or unified cache
-    __asm__ volatile("msr csselr_el1, %0" : : "r" (csselr));
-    __asm__ volatile("mrs %0, ccsidr_el1" : "=r" (ccsidr));
+    uint32 csselr = level << 1; // Data or unified cache
+    asm volatile("msr csselr_el1, %0" : : "r" (csselr));
+    asm volatile("mrs %0, ccsidr_el1" : "=r" (ccsidr));
 
     // Extract cache details from CCSIDR
     line_size = (ccsidr & 0x7) + 4; // Line size in log2 words

@@ -25,8 +25,10 @@
 #include "AppCmdBuffer.h"
 #include "../camera/Camera.h"
 #include "../ui/UILayout.h"
+#include "../ui/UILayout.cpp"
 #include "../ui/UITheme.h"
 #include "../system/FileUtils.cpp"
+#include "../compiler/CompilerUtils.h"
 
 // @todo Move the different functions to their own respective files (e.g. CmdAsset.cpp, CmdLayout.cpp)
 
@@ -464,7 +466,7 @@ UIThemeStyle* cmd_theme_load_sync(
 inline
 void cmd_layout_populate_sync(
     AppCmdBuffer* cb,
-    UILayout* layout, UIThemeStyle* theme,
+    UILayout* layout, const UIThemeStyle* theme,
     const Camera* camera
 ) {
     layout_from_theme(layout, theme, camera);
@@ -496,7 +498,7 @@ UILayout* cmd_ui_load(AppCmdBuffer* cb, Command* cmd)
     pos += sizeof(uintptr_t);
 
     char* layout_path = (char *) pos;
-    str_move_to((char **) &pos, '\0'); ++pos;
+    str_move_to((const char **) &pos, '\0'); ++pos;
 
     UIThemeStyle* general_theme = (UIThemeStyle *) pos;
     pos += sizeof(uintptr_t);
@@ -505,7 +507,7 @@ UILayout* cmd_ui_load(AppCmdBuffer* cb, Command* cmd)
     pos += sizeof(uintptr_t);
 
     char* theme_path = (char *) pos;
-    str_move_to((char **) &pos, '\0'); ++pos;
+    str_move_to((const char **) &pos, '\0'); ++pos;
 
     Camera* camera = (Camera *) pos;
 

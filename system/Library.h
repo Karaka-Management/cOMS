@@ -12,22 +12,20 @@
 #include "../stdlib/Types.h"
 
 #if _WIN32
-    #include <windows.h>
+    #include "../platform/win32/Library.h"
+#elif __linux__
+    #include "../platform/linux/Library.h"
 #endif
 
 struct Library {
-    #if _WIN32
-        HMODULE handle;
-    #elif __linux__
-        void* handle;
-    #endif
+    LibraryHandle handle;
 
     bool is_valid;
 
     char dir[MAX_PATH];
     char dst[64];
 
-    #if DEBUG
+    #if DEBUG || INTERNAL
         uint64 last_load;
     #endif
 

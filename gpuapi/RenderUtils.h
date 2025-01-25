@@ -13,267 +13,112 @@
 #include <string.h>
 #include "../stdlib/Types.h"
 #include "../utils/StringUtils.h"
-#include "../math/matrix/MatrixFloat32.h"
 #include "../font/Font.h"
 #include "../object/Vertex.h"
-#include "../ui/UITheme.h"
-#include "../ui/UIElement.h"
 #include "../ui/UIAlignment.h"
-
-// @performance Create improved vertex generation for components (input + button, chat, ...) where we don't use as many
-//      degenerate triangle
-
-// @todo in many places we use ->value_int. We should load it as a value_float and also define it as float in the theme.
-// This way we wouldn't have to convert the value
+#include "../architecture/Intrinsics.h"
 
 inline
-void vertex_degenerate_create(
-    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
+int32 vertex_degenerate_create(
+    Vertex3DTextureColor* __restrict vertices, f32 zindex,
     f32 x, f32 y
 ) {
     // Degenerate triangles
     // They are alternating every loop BUT since we use references they look the same in code
     // WARNING: Before using we must make sure that the 0 index is defined
     //          The easiest way is to just define a "degenerate" starting point
-    vertices[*index] = {{vertices[*index - 1].position.x, vertices[*index - 1].position.y, zindex}, {0, 0}, 0};
-    ++(*index);
+    vertices[0] = {{vertices[0 - 1].position.x, vertices[0 - 1].position.y, zindex}, {0, 0}};
+    vertices[1] = {{x, y, zindex}, {0, 0}};
 
-    vertices[*index] = {{x, y, zindex}, {0, 0}, 0};
-    ++(*index);
+    return 2;
 }
 
 inline
-void vertex_line_create(
-    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
-    f32 x1, f32 y1, f32 x2, f32 y2, f32 thickness, int32 align_h, int32 align_v,
-    f32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
+void adjust_aligned_position(
+    f32* __restrict x, f32* __restrict y,
+    f32 width, f32 height,
+    byte alignment
+)
+{
+    if (alignment & UI_ALIGN_H_RIGHT) {
+        *x -= width;
+    } else if (alignment & UI_ALIGN_H_CENTER) {
+        *x -= width / 2;
+    }
+
+    if (alignment & UI_ALIGN_V_TOP) {
+        *y -= height;
+    } else if (alignment & UI_ALIGN_V_CENTER) {
+        *y -= height / 2;
+    }
+}
+
+inline
+int32 vertex_line_create(
+    Vertex3DTextureColor* __restrict vertices, f32 zindex,
+    v2_f32 start, v2_f32 end, f32 thickness, byte alignment,
+    uint32 rgba = 0
 ) {
-    if (align_h == UI_ALIGN_H_RIGHT) {
-        x1 -= thickness;
-        x2 -= thickness;
-    } else if (align_h == UI_ALIGN_H_CENTER) {
-        x1 -= thickness / 2;
-        x2 -= thickness / 2;
+    if (alignment & UI_ALIGN_H_RIGHT) {
+        start.x -= thickness;
+        end.x -= thickness;
+    } else if (alignment & UI_ALIGN_H_CENTER) {
+        start.x -= thickness / 2;
+        end.x -= thickness / 2;
     }
 
-    if (align_v == UI_ALIGN_V_TOP) {
-        y1 -= thickness;
-        y2 -= thickness;
-    } else if (align_v == UI_ALIGN_V_CENTER) {
-        y1 -= thickness / 2;
-        y2 -= thickness / 2;
+    if (alignment & UI_ALIGN_V_TOP) {
+        start.y -= thickness;
+        end.y -= thickness;
+    } else if (alignment & UI_ALIGN_V_CENTER) {
+        start.y -= thickness / 2;
+        end.y -= thickness / 2;
     }
 
-    f32 n1 = -(y2 - y1);
-    f32 n2 = x2 - x1;
-    f32 n_ = oms_rsqrt(n2 * n2 + n1 * n1);
+    f32 n1 = -(end.y - start.y);
+    f32 n2 = end.x - start.x;
+    f32 n_ = intrin_rsqrt_f32(n2 * n2 + n1 * n1);
     f32 norm1 = n1 * n_;
     f32 norm2 = n2 * n_;
 
-    vertex_degenerate_create(vertices, index, zindex, x1, y1);
+    int32 idx = vertex_degenerate_create(vertices, zindex, start.x, start.y);
 
-    int32 idx = *index;
+    vertices[idx++] = {{start.x, start.y, zindex}, {-((f32) rgba), 0.0f}};
+    vertices[idx++] = {{start.x + thickness * norm1, start.y + thickness * norm2, zindex}, {-((f32) rgba), 0.0f}};
+    vertices[idx++] = {{end.x, end.y, zindex}, {-((f32) rgba), 0.0f}};
+    vertices[idx++] = {{end.x + thickness * norm1, end.y + thickness * norm2, zindex}, {-((f32) rgba), 0.0f}};
 
-    vertices[idx++] = {{x1, y1, zindex}, {tex_x1, tex_y1}, color_index};
-    vertices[idx++] = {{x1 + thickness * norm1, y1 + thickness * norm2, zindex}, {tex_x1, tex_y2}, color_index};
-    vertices[idx++] = {{x2, y2, zindex}, {tex_x2, tex_y1}, color_index};
-    vertices[idx++] = {{x2 + thickness * norm1, y2 + thickness * norm2, zindex}, {tex_x2, tex_y2}, color_index};
-
-    *index = idx;
+    return idx;
 }
 
 // @performance Do we really want to create the UI as one continuous mesh?
 // Individual meshes without degenerates might be faster
 inline
-void vertex_rect_create(
-    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
-    f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
-    f32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
+int32 vertex_rect_create(
+    Vertex3DTextureColor* __restrict vertices, f32 zindex,
+    v4_f32 dimension, byte alignment,
+    uint32 rgba = 0, v2_f32 tex1 = {0}, v2_f32 tex2 = {0}
 ) {
-    if (align_h == UI_ALIGN_H_RIGHT) {
-        x -= width;
-    } else if (align_h == UI_ALIGN_H_CENTER) {
-        x -= width / 2;
+    if (alignment) {
+        adjust_aligned_position(&dimension.x, &dimension.y, dimension.width, dimension.height, alignment);
     }
 
-    if (align_v == UI_ALIGN_V_TOP) {
-        y -= height;
-    } else if (align_v == UI_ALIGN_V_CENTER) {
-        y -= height / 2;
+    if (rgba) {
+        tex1.x = -((f32) rgba);
+        tex2.x = -((f32) rgba);
     }
 
-    vertex_degenerate_create(vertices, index, zindex, x, y);
+    int32 idx = vertex_degenerate_create(vertices, zindex, dimension.x, dimension.y);
 
-    f32 y_height = y + height;
-    f32 x_width = x + width;
+    f32 y_height = dimension.y + dimension.height;
+    f32 x_width = dimension.x + dimension.width;
 
-    // Rectangle
-    int32 idx = *index;
+    vertices[idx++] = {{dimension.x, dimension.y, zindex}, {tex1.x, tex1.y}};
+    vertices[idx++] = {{dimension.x, y_height, zindex}, {tex1.x, tex2.y}};
+    vertices[idx++] = {{x_width, dimension.y, zindex}, {tex2.x, tex1.y}};
+    vertices[idx++] = {{x_width, y_height, zindex}, {tex2.x, tex2.y}};
 
-    vertices[idx++] = {{x, y, zindex}, {tex_x1, tex_y1}, color_index};
-    vertices[idx++] = {{x, y_height, zindex}, {tex_x1, tex_y2}, color_index};
-    vertices[idx++] = {{x_width, y, zindex}, {tex_x2, tex_y1}, color_index};
-    vertices[idx++] = {{x_width, y_height, zindex}, {tex_x2, tex_y2}, color_index};
-
-    *index = idx;
-}
-
-// @todo also allow background -> we can benefit from reduced vertex count
-// All we have to do is add 3 more vertices (= inside vertices)
-inline
-void vertex_rect_border_create(
-    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
-    f32 x, f32 y, f32 width, f32 height, f32 thickness, int32 align_h, int32 align_v,
-    f32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
-) {
-    if (align_h == UI_ALIGN_H_RIGHT) {
-        x -= width;
-    } else if (align_h == UI_ALIGN_H_CENTER) {
-        x -= width / 2;
-    }
-
-    if (align_v == UI_ALIGN_V_TOP) {
-        y -= height;
-    } else if (align_v == UI_ALIGN_V_CENTER) {
-        y -= height / 2;
-    }
-
-    vertex_degenerate_create(vertices, index, zindex, x, y);
-
-    // @bug While this works for the whole rectangle it doesn't work for individual borders
-    // @todo We need a version where you can define individual borders
-
-    f32 y_height = y + height;
-    f32 y_thickness = y + thickness;
-    f32 x_width = x + width;
-    f32 x_thickness = x + thickness;
-
-    // Rectangle
-    // Top border
-    vertices[*index].position.x = x;
-    vertices[*index].position.y = y;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x1;
-    vertices[*index].tex_coord.y = tex_y1;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    vertices[*index].position.x = x;
-    vertices[*index].position.y = y_thickness;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x1;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    vertices[*index].position.x = x_width;
-    vertices[*index].position.y = y;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y1;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    vertices[*index].position.x = x_width;
-    vertices[*index].position.y = y_thickness;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    // Right border
-    vertices[*index].position.x = x_width - thickness;
-    vertices[*index].position.y = y_thickness;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    vertices[*index].position.x = x_width;
-    vertices[*index].position.y = y_height;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x1;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    vertices[*index].position.x = x_width - thickness;
-    vertices[*index].position.y = y_height;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y1;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    // Bottom border
-    vertices[*index].position.x = x_width - thickness;
-    vertices[*index].position.y = y_height - thickness;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    vertices[*index].position.x = x;
-    vertices[*index].position.y = y_height;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x1;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    vertices[*index].position.x = x;
-    vertices[*index].position.y = y_height - thickness;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y1;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    // Left border
-    vertices[*index].position.x = x_thickness;
-    vertices[*index].position.y = y_height - thickness;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    vertices[*index].position.x = x;
-    vertices[*index].position.y = y_thickness;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x1;
-    vertices[*index].tex_coord.y = tex_y2;
-    vertices[*index].color = color_index;
-    ++(*index);
-
-    vertices[*index].position.x = x_thickness;
-    vertices[*index].position.y = y_thickness;
-    vertices[*index].position.z = zindex;
-    vertices[*index].tex_coord.x = tex_x2;
-    vertices[*index].tex_coord.y = tex_y1;
-    vertices[*index].color = color_index;
-    ++(*index);
-}
-
-void vertex_input(Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
-    f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
-    f32 color_index = 0, f32 tex_x1 = 0.0f, f32 tex_y1 = 0.0f, f32 tex_x2 = 0.0f, f32 tex_y2 = 0.0f
-)
-{
-    vertex_rect_border_create(
-        vertices, index, zindex,
-        x, y, width, height, 1, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
-        12, 0.0f, 0.0f
-    );
-
-    vertex_rect_create(
-        vertices, index, zindex,
-        x + 1, y + 1, width - 2, height - 2, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
-        14, 0.0f, 0.0f
-    );
+    return idx;
 }
 
 static inline
@@ -365,36 +210,30 @@ void text_calculate_dimensions(
 // we might want to implement distance field font atlas
 // @todo We should be able to cut off text at an arbitrary position, not just at a line_height incremental
 // we could probably get the MIN of the glyph height and the remaining window height
-v2_f32 vertex_text_create(
-    Vertex3DTextureColorIndex* __restrict vertices, uint32* __restrict index, f32 zindex,
-    f32 x, f32 y, f32 width, f32 height, int32 align_h, int32 align_v,
-    const Font* __restrict font, const char* __restrict text, f32 size, f32 color_index = 0
+v3_int32 vertex_text_create(
+    Vertex3DTextureColor* __restrict vertices, f32 zindex,
+    v4_f32 dimension, byte alignment,
+    const Font* __restrict font, const char* __restrict text,
+    f32 size, uint32 rgba = 0,
+    f32 font_weight = 1.0f
 ) {
     int32 length = utf8_strlen(text);
     bool is_ascii = (int32) strlen(text) == length;
     f32 scale = size / font->size;
 
     // If we do a different alignment we need to pre-calculate the width and height
-    if (align_h != 0 || align_v != 0) {
-        if (align_h != 0 && align_v != 0) {
-            text_calculate_dimensions(&width, &height, font, text, is_ascii, scale, length);
-        } else if (align_h != 0) {
-            width = text_calculate_dimensions_width(font, text, is_ascii, scale, length);
+    if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
+        if ((alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER))
+            && (alignment & (UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER))
+        ) {
+            text_calculate_dimensions(&dimension.width, &dimension.height, font, text, is_ascii, scale, length);
+        } else if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER)) {
+            dimension.width = text_calculate_dimensions_width(font, text, is_ascii, scale, length);
         } else {
-            height = text_calculate_dimensions_height(font, text, scale, length);
+            dimension.height = text_calculate_dimensions_height(font, text, scale, length);
         }
 
-        if (align_h == UI_ALIGN_H_RIGHT) {
-            x -= width;
-        } else if (align_h == UI_ALIGN_H_CENTER) {
-            x -= width / 2;
-        }
-
-        if (align_v == UI_ALIGN_V_TOP) {
-            y -= height;
-        } else if (align_v == UI_ALIGN_V_CENTER) {
-            y -= height / 2;
-        }
+        adjust_aligned_position(&dimension.x, &dimension.y, dimension.width, dimension.height, alignment);
     }
 
     f32 line_height_scaled = font->line_height * scale;
@@ -402,15 +241,17 @@ v2_f32 vertex_text_create(
     f32 rendered_width = 0;
     f32 rendered_height = line_height_scaled;
 
-    f32 offset_x = x;
+    int32 idx = 0;
+
+    f32 offset_x = dimension.x;
     for (int32 i = 0; i < length; ++i) {
         int32 character = is_ascii ? text[i] : utf8_get_char_at(text, i);
         if (character == '\n') {
             rendered_height += line_height_scaled;
-            rendered_width = OMS_MAX(rendered_width, offset_x - x);
+            rendered_width = OMS_MAX(rendered_width, offset_x - dimension.x);
 
-            y -= line_height_scaled;
-            offset_x = x;
+            dimension.y -= line_height_scaled;
+            offset_x = dimension.x;
 
             continue;
         }
@@ -420,15 +261,17 @@ v2_f32 vertex_text_create(
             continue;
         }
 
-        f32 offset_y = y + glyph->metrics.offset_y * scale;
+        f32 offset_y = dimension.y + glyph->metrics.offset_y * scale;
         offset_x += glyph->metrics.offset_x * scale;
 
-        // @performance Consider to handle whitespaces just by offsetting
-        vertex_rect_create(
-            vertices, index, zindex,
-            offset_x, offset_y, glyph->metrics.width * scale, glyph->metrics.height * scale, UI_ALIGN_H_LEFT, UI_ALIGN_V_BOTTOM,
-            color_index, glyph->coords.x1, glyph->coords.y1, glyph->coords.x2, glyph->coords.y2
-        );
+        if (character != ' ' && character != '\t') {
+            // @todo We should probably inline the code here, we might be able to even optimize it then
+            idx += vertex_rect_create(
+                vertices, zindex,
+                {offset_x, offset_y, glyph->metrics.width * scale, glyph->metrics.height * scale}, 0,
+                rgba, glyph->coords.start, glyph->coords.end
+            );
+        }
 
         offset_x += (glyph->metrics.width + glyph->metrics.advance_x) * scale;
     }
@@ -439,150 +282,7 @@ v2_f32 vertex_text_create(
     //      This way we can ensure no overflow easily
     // @todo implement line alignment, currently only total alignment is considered
 
-    return {rendered_width, rendered_height};
+    return {(int32) rendered_width, (int32) rendered_height, idx};
 }
-
-inline
-void entity_world_space(f32* world_space, const f32* local_space, const f32* model_mat)
-{
-    mat4vec4_mult(model_mat, local_space, world_space);
-}
-
-inline
-void entity_view_space(f32* view_space, const f32* world_space, const f32* view_mat)
-{
-    mat4vec4_mult(view_mat, world_space, view_space);
-}
-
-inline
-void entity_clip_space(f32* clip_space, const f32* view_space, const f32* projection_mat)
-{
-    mat4vec4_mult(projection_mat, view_space, clip_space);
-}
-
-inline
-void entity_clip_space_mat(f32* result_mat, const f32* model_mat, const f32* view_mat, const f32* projection_mat)
-{
-    f32 temp[16];
-    mat4mat4_mult(projection_mat, view_mat, temp);
-    mat4mat4_mult(temp, model_mat, result_mat);
-}
-
-/**
- * Create the matrix used to transform from local space to clip space
- *
- * This allows us to transform multiple objects with the same matrix
- *
- * Vclip = Mprojection * Mview * Mmodel * Vlocal
- */
-void entity_clip_space_mat_sse(f32* result_mat, const f32* model_mat, const f32* view_mat, const f32* projection_mat)
-{
-    __m128 temp[4];
-
-    __m128 a[4];
-    __m128 b[4];
-
-    a[0] = _mm_load_ps(projection_mat);
-    a[1] = _mm_load_ps(&projection_mat[4]);
-    a[2] = _mm_load_ps(&projection_mat[8]);
-    a[3] = _mm_load_ps(&projection_mat[12]);
-
-    b[0] = _mm_load_ps(view_mat);
-    b[1] = _mm_load_ps(&view_mat[4]);
-    b[2] = _mm_load_ps(&view_mat[8]);
-    b[3] = _mm_load_ps(&view_mat[12]);
-    _MM_TRANSPOSE4_PS(b[0], b[1], b[2], b[3]);
-
-    mat4mat4_mult_sse(a, b, temp);
-
-    a[0] = temp[0];
-    a[1] = temp[1];
-    a[2] = temp[2];
-    a[3] = temp[3];
-
-    b[0] = _mm_load_ps(model_mat);
-    b[1] = _mm_load_ps(&model_mat[4]);
-    b[2] = _mm_load_ps(&model_mat[8]);
-    b[3] = _mm_load_ps(&model_mat[12]);
-    _MM_TRANSPOSE4_PS(b[0], b[1], b[2], b[3]);
-
-    mat4mat4_mult_sse(a, b, temp);
-    _mm_store_ps(&result_mat[0], temp[0]);
-    _mm_store_ps(&result_mat[4], temp[1]);
-    _mm_store_ps(&result_mat[8], temp[2]);
-    _mm_store_ps(&result_mat[12], temp[3]);
-}
-
-inline
-void entity_clip_space_from_local(f32* clip_space, const f32* local_space, const f32* mat)
-{
-    mat4vec4_mult(mat, local_space, clip_space);
-}
-
-inline
-void entity_clip_space_from_local_sse(f32* clip_space, const f32* local_space, const f32* mat)
-{
-    mat4vec4_mult_sse(mat, local_space, clip_space);
-}
-
-/*
-inline
-void entity_screen_space(f32* screen_space, const f32* clip_space, const f32* viewport_mat)
-{
-    // @todo implement
-}
-*/
-
-inline
-void entity_world_space_sse(f32* world_space, const f32* local_space, const f32* model_mat)
-{
-    mat4vec4_mult_sse(model_mat, local_space, world_space);
-}
-
-inline
-void entity_view_space_sse(f32* view_space, const f32* world_space, const f32* view_mat)
-{
-    mat4vec4_mult_sse(view_mat, world_space, view_space);
-}
-
-inline
-void entity_clip_space_sse(f32* clip_space, const f32* view_space, const f32* projection_mat)
-{
-    mat4vec4_mult_sse(projection_mat, view_space, clip_space);
-}
-
-/*
-inline
-void entity_screen_space_sse(f32* screen_space, const f32* clip_space, const f32* viewport_mat)
-{
-    // @todo implement
-}
-*/
-
-inline
-void entity_world_space_sse(__m128* world_space, const __m128* local_space, const __m128* model_mat)
-{
-    mat4vec4_mult_sse(model_mat, local_space, world_space);
-}
-
-inline
-void entity_view_space_sse(__m128* view_space, const __m128* world_space, const __m128* view_mat)
-{
-    mat4vec4_mult_sse(view_mat, world_space, view_space);
-}
-
-inline
-void entity_clip_space_sse(__m128* clip_space, const __m128* view_space, const __m128* projection_mat)
-{
-    mat4vec4_mult_sse(projection_mat, view_space, clip_space);
-}
-
-/*
-inline
-void entity_screen_space_sse(__m128* screen_space, const __m128* clip_space, const __m128* viewport_mat)
-{
-    // @todo implement
-}
-*/
 
 #endif

@@ -176,20 +176,24 @@ file_read(const char* path, FileBody* file, RingMemory* ring = NULL)
         return;
     }
 
-    LARGE_INTEGER size;
-    if (!GetFileSizeEx(fp, &size)) {
-        CloseHandle(fp);
-        file->content = NULL;
+    if (file->size == 0) {
+        LARGE_INTEGER size;
+        if (!GetFileSizeEx(fp, &size)) {
+            CloseHandle(fp);
+            file->content = NULL;
 
-        return;
+            return;
+        }
+
+        file->size = size.QuadPart + 1;
     }
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, size.QuadPart + 1);
+        file->content = ring_get_memory(ring, file->size);
     }
 
-    DWORD bytes;
-    if (!ReadFile(fp, file->content, (uint32) size.QuadPart, &bytes, NULL)) {
+    DWORD bytes_read;
+    if (!ReadFile(fp, file->content, (uint32) file->size - 1, &bytes_read, NULL)) {
         CloseHandle(fp);
         file->content = NULL;
 
@@ -198,12 +202,13 @@ file_read(const char* path, FileBody* file, RingMemory* ring = NULL)
 
     CloseHandle(fp);
 
-    file->content[bytes] = '\0';
-    file->size = size.QuadPart;
+    file->content[bytes_read] = '\0';
+    file->size = bytes_read + 1;
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
 }
 
+// @question Do we really need length? we have file.size we could use as we do in a function above
 inline
 void file_read(const char* path, FileBody* file, uint64 offset, uint64 length = MAX_UINT64, RingMemory* ring = NULL)
 {
@@ -272,8 +277,8 @@ void file_read(const char* path, FileBody* file, uint64 offset, uint64 length = 
         return;
     }
 
-    DWORD bytes;
-    if (!ReadFile(fp, file->content, (uint32) read_length, &bytes, NULL)) {
+    DWORD bytes_read;
+    if (!ReadFile(fp, file->content, (uint32) read_length, &bytes_read, NULL)) {
         CloseHandle(fp);
         file->content = NULL;
 
@@ -282,10 +287,10 @@ void file_read(const char* path, FileBody* file, uint64 offset, uint64 length = 
 
     CloseHandle(fp);
 
-    file->content[bytes] = '\0';
-    file->size = bytes;
+    file->content[bytes_read] = '\0';
+    file->size = bytes_read;
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
 }
 
 inline
@@ -326,18 +331,70 @@ void file_read(FileHandle fp, FileBody* file, uint64 offset = 0, uint64 length =
         return;
     }
 
-    DWORD bytes;
-    if (!ReadFile(fp, file->content, (uint32) read_length, &bytes, NULL)) {
+    DWORD bytes_read;
+    if (!ReadFile(fp, file->content, (uint32) read_length, &bytes_read, NULL)) {
         file->content = NULL;
         ASSERT_SIMPLE(false);
 
         return;
     }
 
-    file->content[bytes] = '\0';
-    file->size = bytes;
+    file->content[bytes_read] = '\0';
+    file->size = bytes_read;
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
+}
+
+inline
+bool file_read_line(
+    FileHandle fp,
+    char* line_buffer, size_t buffer_size,
+    char internal_buffer[512], ssize_t* internal_buffer_size, char** internal_pos
+) {
+    if (!(*internal_pos)) {
+        *internal_pos = internal_buffer;
+    }
+
+    size_t line_filled = 0;
+
+    while (line_filled < buffer_size - 1) {
+        // Refill the internal buffer if empty
+        if (*internal_pos == internal_buffer + *internal_buffer_size) {
+            if (!ReadFile(fp, internal_buffer, 512, (DWORD *) internal_buffer_size, NULL)
+                || *internal_buffer_size == 0
+            ) {
+                line_buffer[line_filled] = '\0';
+
+                return line_filled > 0;
+            }
+
+            *internal_pos = internal_buffer;
+        }
+
+        char current_char = **internal_pos;
+        ++(*internal_pos);
+
+        // Handle line endings (\n, \r, \r\n, \n\r)
+        if (current_char == '\n' || current_char == '\r') {
+            if ((*internal_pos < internal_buffer + *internal_buffer_size)
+                && (**internal_pos == '\n' || **internal_pos == '\r')
+                && **internal_pos != current_char
+            ) {
+                ++(*internal_pos);
+            }
+
+            line_buffer[line_filled] = '\0';
+
+            // Successfully read a line
+            return true;
+        }
+
+        line_buffer[line_filled++] = current_char;
+    }
+
+    line_buffer[line_filled] = '\0';
+
+    return true;
 }
 
 inline uint64

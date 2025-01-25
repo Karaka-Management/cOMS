@@ -9,13 +9,8 @@
 #include "../utils/StringUtils.h"
 #include "../utils/TestUtils.h"
 #include "../thread/Atomic.h"
-
-// Required for rdtsc();
-#if _WIN32
-    #include <intrin.h>
-#else
-    #include <x86intrin.h>
-#endif
+#include "../architecture/Intrinsics.h"
+#include "../compiler/CompilerUtils.h"
 
 global_persist DebugContainer* debug_container = NULL;
 
@@ -93,7 +88,7 @@ void log_to_file()
 inline
 void update_timing_stat(uint32 stat, const char* function)
 {
-    uint64 new_tick_count = __rdtsc();
+    uint64 new_tick_count = intrin_timestamp_counter();
 
     TimingStat* timing_stat = &debug_container->perf_stats[stat];
 
@@ -109,14 +104,14 @@ inline
 void update_timing_stat_start(uint32 stat, const char*)
 {
     spinlock_start(&debug_container->perf_stats_spinlock);
-    debug_container->perf_stats[stat].old_tick_count = __rdtsc();
+    debug_container->perf_stats[stat].old_tick_count = intrin_timestamp_counter();
     spinlock_end(&debug_container->perf_stats_spinlock);
 }
 
 inline
 void update_timing_stat_end(uint32 stat, const char* function)
 {
-    uint64 new_tick_count = __rdtsc();
+    uint64 new_tick_count = intrin_timestamp_counter();
 
     TimingStat* timing_stat = &debug_container->perf_stats[stat];
 
@@ -131,7 +126,7 @@ void update_timing_stat_end(uint32 stat, const char* function)
 inline
 void update_timing_stat_end_continued(uint32 stat, const char* function)
 {
-    uint64 new_tick_count = __rdtsc();
+    uint64 new_tick_count = intrin_timestamp_counter();
 
     TimingStat* timing_stat = &debug_container->perf_stats[stat];
 
@@ -241,7 +236,7 @@ void debug_memory_log(uintptr_t start, uint64 size, int32 type, const char* func
     dmr->start = start - mem->start;
     dmr->size = size;
 
-    dmr->time = __rdtsc();
+    dmr->time = intrin_timestamp_counter();
     dmr->function_name = function;
 
     if (type < 0 && mem->usage < size * -type) {
@@ -273,7 +268,7 @@ void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* 
     dmr->start = start - mem->start;
     dmr->size = size;
 
-    dmr->time = __rdtsc();
+    dmr->time = intrin_timestamp_counter();
     dmr->function_name = function;
 }
 
@@ -307,7 +302,7 @@ void debug_memory_reset()
     }
 
     // We remove debug information that are "older" than 1GHz
-    uint64 time = __rdtsc() - 1 * GHZ;
+    uint64 time = intrin_timestamp_counter() - 1 * GHZ;
 
     for (uint64 i = 0; i < debug_container->dmc.memory_element_idx; ++i) {
         for (int32 j = 0; j < DEBUG_MEMORY_RANGE_MAX; ++j) {

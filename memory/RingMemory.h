@@ -17,6 +17,7 @@
 #include "../utils/TestUtils.h"
 
 #include "BufferMemory.h"
+#include "../log/Log.h"
 #include "../log/DebugMemory.h"
 #include "../thread/Atomic.h"
 #include "../thread/Semaphore.h"
@@ -270,7 +271,7 @@ bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, uint32 aligned
     uint64 max_mem_required = size + aligned * 2;
 
     // @todo consider to switch to uintptr_t
-    uint64 tail = atomic_get_relaxed((uint64 *) &ring->tail);
+    uint64 tail = (uint64) atomic_get_relaxed((void **) &ring->tail);
 
     // This doesn't have to be atomic since we assume single producer/consumer and a commit is performed by the consumer
     uint64 head = (uint64) ring->head;

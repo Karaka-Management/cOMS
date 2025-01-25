@@ -17,6 +17,10 @@ enum UIAttributeType : uint16 {
     UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH,
     UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT,
 
+    // Allows elements to overflow their parent while still positioned relative to their parent element
+    // e.g. Text in a button (e.g. a cooldown timer of a skill could be positioned below a button)
+    UI_ATTRIBUTE_TYPE_DIMENSION_OVERFLOW,
+
     UI_ATTRIBUTE_TYPE_CONTENT,
     UI_ATTRIBUTE_TYPE_CONTENT_ALIGN_H,
     UI_ATTRIBUTE_TYPE_CONTENT_ALIGN_V,

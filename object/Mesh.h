@@ -16,6 +16,7 @@
 #include "../utils/EndianUtils.h"
 #include "../utils/StringUtils.h"
 #include "../stdlib/Simd.h"
+#include "../compiler/CompilerUtils.h"
 
 #define MESH_VERSION 1
 
@@ -72,13 +73,13 @@ void mesh_from_file_txt(
     file_read(path, &file, ring);
     ASSERT_SIMPLE(file.size);
 
-    char* pos = (char *) file.content;
+    const char* pos = (char *) file.content;
 
     // move past the version string
     pos += 8;
 
     // @todo us version for different handling
-    int32 version = strtol(pos, &pos, 10); ++pos;
+    int32 version = strtol(pos, (char **) &pos, 10); ++pos;
 
     int32 object_index = 0;
     int32 group_index = 0;
@@ -179,9 +180,9 @@ void mesh_from_file_txt(
                         mesh->vertex_type |= VERTEX_TYPE_POSITION;
                     }
 
-                    vertices[vertex_count * 3] = strtof(pos, &pos); ++pos;
-                    vertices[vertex_count * 3 + 1] = strtof(pos, &pos); ++pos;
-                    vertices[vertex_count * 3 + 2] = strtof(pos, &pos); ++pos;
+                    vertices[vertex_count * 3] = strtof(pos, (char **) &pos); ++pos;
+                    vertices[vertex_count * 3 + 1] = strtof(pos, (char **) &pos); ++pos;
+                    vertices[vertex_count * 3 + 2] = strtof(pos, (char **) &pos); ++pos;
 
                     // has color information
                     // @todo Move to own case statement // 'co'
@@ -190,13 +191,13 @@ void mesh_from_file_txt(
                             mesh->vertex_type |= VERTEX_TYPE_COLOR;
                         }
 
-                        vertices[vertex_count * 12 + 8] = strtof(pos, &pos); ++pos;
-                        vertices[vertex_count * 12 + 9] = strtof(pos, &pos); ++pos;
-                        vertices[vertex_count * 12 + 10] = strtof(pos, &pos); ++pos;
+                        vertices[vertex_count * 12 + 8] = strtof(pos, (char **) &pos); ++pos;
+                        vertices[vertex_count * 12 + 9] = strtof(pos, (char **) &pos); ++pos;
+                        vertices[vertex_count * 12 + 10] = strtof(pos, (char **) &pos); ++pos;
 
                         // handle optional alpha [a]
                         if (*pos != '\n' && pos[1] != ' ' && pos[1] != '\n') {
-                            vertices[vertex_count * 12 + 11] = strtof(pos, &pos); ++pos;
+                            vertices[vertex_count * 12 + 11] = strtof(pos, (char **) &pos); ++pos;
                         } else {
                             vertices[vertex_count * 12 + 11] = 1.0f;
                         }
@@ -208,30 +209,30 @@ void mesh_from_file_txt(
                 } break;
             case 2: {
                     // 'vn'
-                    normals[normal_count * 3] = strtof(pos, &pos); ++pos;
-                    normals[normal_count * 3 + 1] = strtof(pos, &pos); ++pos;
-                    normals[normal_count * 3 + 2] = strtof(pos, &pos); ++pos;
+                    normals[normal_count * 3] = strtof(pos, (char **) &pos); ++pos;
+                    normals[normal_count * 3 + 1] = strtof(pos, (char **) &pos); ++pos;
+                    normals[normal_count * 3 + 2] = strtof(pos, (char **) &pos); ++pos;
 
                     ++normal_count;
                 } break;
             case 3: {
                     // 'vt'
-                    tex_coords[tex_coord_count * 2] = strtof(pos, &pos); ++pos;
-                    tex_coords[tex_coord_count * 2 + 1] = strtof(pos, &pos); ++pos;
+                    tex_coords[tex_coord_count * 2] = strtof(pos, (char **) &pos); ++pos;
+                    tex_coords[tex_coord_count * 2 + 1] = strtof(pos, (char **) &pos); ++pos;
 
                     ++tex_coord_count;
                 } break;
             case 4: {
                     // 'vp'
-                    strtof(pos, &pos); ++pos;
+                    strtof(pos, (char **) &pos); ++pos;
 
                     // handle optional [v]
                     if (*pos != '\n' && pos[1] != ' ' && pos[1] != '\n') {
-                        strtof(pos, &pos); ++pos;
+                        strtof(pos, (char **) &pos); ++pos;
 
                         // handle optional [w]
                         if (*pos != '\n' && pos[1] != ' ' && pos[1] != '\n') {
-                            strtof(pos, &pos); ++pos;
+                            strtof(pos, (char **) &pos); ++pos;
                         }
                     }
                 } break;
@@ -248,12 +249,12 @@ void mesh_from_file_txt(
                 } break;
             case 6: {
                     // 's'
-                    strtol(pos, &pos, 10); ++pos;
+                    strtol(pos, (char **) &pos, 10); ++pos;
                 } break;
             case 7: {
                     // 'f'
                     int32 ftype = 0;
-                    char* tmp = pos;
+                    const char* tmp = pos;
                     while (*tmp != ' ') {
                         if (*tmp++ == '/') {
                             ++ftype;
@@ -275,33 +276,33 @@ void mesh_from_file_txt(
                                 face_type = VERTEX_TYPE_POSITION;
                             }
 
-                            faces[(face_count * max_blocks * 1) + block] = strtol(pos, &pos, 10) - 1; ++pos;
+                            faces[(face_count * max_blocks * 1) + block] = strtol(pos, (char **) &pos, 10) - 1; ++pos;
                         } else if (ftype == 1) {
                             // v1/vt1 v2/vt2 v3/vt3 ...
                             if (face_count == 0) {
                                 face_type = VERTEX_TYPE_POSITION | VERTEX_TYPE_TEXTURE_COORD;
                             }
 
-                            faces[(face_count * max_blocks * 2) + block * 2] = strtol(pos, &pos, 10) - 1; ++pos;
-                            faces[(face_count * max_blocks * 2) + block * 2 + 1] = strtol(pos, &pos, 10) - 1; ++pos;
+                            faces[(face_count * max_blocks * 2) + block * 2] = strtol(pos, (char **) &pos, 10) - 1; ++pos;
+                            faces[(face_count * max_blocks * 2) + block * 2 + 1] = strtol(pos, (char **) &pos, 10) - 1; ++pos;
                         } else if (ftype == 2) {
                             // v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3 ...
                             if (face_count == 0) {
                                 face_type = VERTEX_TYPE_POSITION | VERTEX_TYPE_TEXTURE_COORD | VERTEX_TYPE_NORMAL;
                             }
 
-                            faces[(face_count * max_blocks * 3) + block * 3] = strtol(pos, &pos, 10) - 1; ++pos;
-                            faces[(face_count * max_blocks * 3) + block * 3 + 1] = strtol(pos, &pos, 10) - 1; ++pos;
-                            faces[(face_count * max_blocks * 3) + block * 3 + 2] = strtol(pos, &pos, 10) - 1; ++pos;
+                            faces[(face_count * max_blocks * 3) + block * 3] = strtol(pos, (char **) &pos, 10) - 1; ++pos;
+                            faces[(face_count * max_blocks * 3) + block * 3 + 1] = strtol(pos, (char **) &pos, 10) - 1; ++pos;
+                            faces[(face_count * max_blocks * 3) + block * 3 + 2] = strtol(pos, (char **) &pos, 10) - 1; ++pos;
                         } else if (ftype == 3) {
                             // v1//vn1 v2//vn2 v3//vn3 ...
                             if (face_count == 0) {
                                 face_type = VERTEX_TYPE_POSITION | VERTEX_TYPE_NORMAL;
                             }
 
-                            faces[(face_count * max_blocks * 2) + block * 2] = strtol(pos, &pos, 10) - 1; ++pos;
+                            faces[(face_count * max_blocks * 2) + block * 2] = strtol(pos, (char **) &pos, 10) - 1; ++pos;
                             ++pos;
-                            faces[(face_count * max_blocks * 2) + block * 2 + 1] = strtol(pos, &pos, 10) - 1; ++pos;
+                            faces[(face_count * max_blocks * 2) + block * 2 + 1] = strtol(pos, (char **) &pos, 10) - 1; ++pos;
                         }
 
                         ++block;
@@ -323,7 +324,7 @@ void mesh_from_file_txt(
             case 9: {
                     //l
                     while (*pos != '\0' && *pos != '\n') {
-                        strtol(pos, &pos, 10); ++pos;
+                        strtol(pos, (char **) &pos, 10); ++pos;
                     }
                 } break;
             case 10: {

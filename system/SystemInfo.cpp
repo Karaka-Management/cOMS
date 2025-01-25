@@ -53,15 +53,16 @@ void system_info_render(char* buf, const SystemInfo* info) {
         "==============\n"
         "Name: %s\n" "VRAM: %d\n"
         "Name: %s\n" "VRAM: %d\n"
+        "Name: %s\n" "VRAM: %d\n"
         "\n"
         "Display:\n"
         "==============\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
-        "Name: %s\n" "Width: %d\n" "Height: %d\n" "Hz: %d\n"
+        "Name: %s " "Width: %d " "Height: %d " "Hz: %d " "Primary: %d\n"
+        "Name: %s " "Width: %d " "Height: %d " "Hz: %d " "Primary: %d\n"
+        "Name: %s " "Width: %d " "Height: %d " "Hz: %d " "Primary: %d\n"
+        "Name: %s " "Width: %d " "Height: %d " "Hz: %d " "Primary: %d\n"
+        "Name: %s " "Width: %d " "Height: %d " "Hz: %d " "Primary: %d\n"
+        "Name: %s " "Width: %d " "Height: %d " "Hz: %d " "Primary: %d\n"
         "\n"
         "RAM:\n"
         "==============\n"
@@ -80,12 +81,13 @@ void system_info_render(char* buf, const SystemInfo* info) {
         info->cpu.features,
         info->gpu[0].name, info->gpu[0].vram,
         info->gpu_count < 2 ? "" : info->gpu[1].name, info->gpu_count < 2 ? 0 : info->gpu[1].vram,
-        info->display[0].name, info->display[0].width, info->display[0].height, info->display[0].hz,
-        info->display_count < 2 ? "" : info->display[1].name, info->display_count < 2 ? 0 : info->display[1].width, info->display_count < 2 ? 0 : info->display[1].height, info->display_count < 2 ? 0 : info->display[1].hz,
-        info->display_count < 3 ? "" : info->display[2].name, info->display_count < 3 ? 0 : info->display[2].width, info->display_count < 3 ? 0 : info->display[2].height, info->display_count < 3 ? 0 : info->display[2].hz,
-        info->display_count < 4 ? "" : info->display[3].name, info->display_count < 4 ? 0 : info->display[3].width, info->display_count < 4 ? 0 : info->display[3].height, info->display_count < 4 ? 0 : info->display[3].hz,
-        info->display_count < 5 ? "" : info->display[4].name, info->display_count < 5 ? 0 : info->display[4].width, info->display_count < 5 ? 0 : info->display[4].height, info->display_count < 5 ? 0 : info->display[4].hz,
-        info->display_count < 6 ? "" : info->display[5].name, info->display_count < 6 ? 0 : info->display[5].width, info->display_count < 6 ? 0 : info->display[5].height, info->display_count < 6 ? 0 : info->display[5].hz,
+        info->gpu_count < 3 ? "" : info->gpu[2].name, info->gpu_count < 3 ? 0 : info->gpu[2].vram,
+        info->display[0].name, info->display[0].width, info->display[0].height, info->display[0].hz, info->display[0].is_primary,
+        info->display_count < 2 ? "" : info->display[1].name, info->display_count < 2 ? 0 : info->display[1].width, info->display_count < 2 ? 0 : info->display[1].height, info->display_count < 2 ? 0 : info->display[1].hz, info->display_count < 2 ? 0 : info->display[1].is_primary,
+        info->display_count < 3 ? "" : info->display[2].name, info->display_count < 3 ? 0 : info->display[2].width, info->display_count < 3 ? 0 : info->display[2].height, info->display_count < 3 ? 0 : info->display[2].hz, info->display_count < 3 ? 0 : info->display[2].is_primary,
+        info->display_count < 4 ? "" : info->display[3].name, info->display_count < 4 ? 0 : info->display[3].width, info->display_count < 4 ? 0 : info->display[3].height, info->display_count < 4 ? 0 : info->display[3].hz, info->display_count < 4 ? 0 : info->display[3].is_primary,
+        info->display_count < 5 ? "" : info->display[4].name, info->display_count < 5 ? 0 : info->display[4].width, info->display_count < 5 ? 0 : info->display[4].height, info->display_count < 5 ? 0 : info->display[4].hz, info->display_count < 5 ? 0 : info->display[4].is_primary,
+        info->display_count < 6 ? "" : info->display[5].name, info->display_count < 6 ? 0 : info->display[5].width, info->display_count < 6 ? 0 : info->display[5].height, info->display_count < 6 ? 0 : info->display[5].hz, info->display_count < 6 ? 0 : info->display[5].is_primary,
         info->ram.memory
     );
 }
@@ -99,7 +101,6 @@ void system_info_get(SystemInfo* info)
     ram_info_get(&info->ram);
     info->gpu_count = gpu_info_get(info->gpu);
     info->display_count = display_info_get(info->display);
-    display_info_get_primary(&info->display_primary);
     info->language = system_language_code();
 }
 

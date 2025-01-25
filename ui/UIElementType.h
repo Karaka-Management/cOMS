@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include "../stdlib/Types.h"
+#include "../compiler/CompilerUtils.h"
 #include "UIButton.h"
 #include "UISelect.h"
 #include "UIInput.h"
@@ -46,6 +47,7 @@ int32 ui_element_type_size(UIElementType e)
             return sizeof(UICursor);
         default: {
             UNREACHABLE();
+            return 0;
         }
     }
 }
@@ -80,6 +82,7 @@ int32 ui_element_state_size(UIElementType e)
             return sizeof(UICursorState);
         default: {
             UNREACHABLE();
+            return 0;
         }
     }
 }

@@ -18,15 +18,14 @@
 #include "../../utils/StringUtils.h"
 #include "../../system/Library.h"
 
-// @todo Rename file to Library.cpp
-
 inline
 bool library_load(Library* lib)
 {
     char dst[MAX_PATH];
     str_concat_new(dst, lib->dir, lib->dst);
 
-    #if DEBUG
+    // In debug mode, we create a copy at runtime, so we can recompile & reload it
+    #if DEBUG || INTERNAL
         char src[MAX_PATH];
         size_t dst_len = strlen(dst);
 

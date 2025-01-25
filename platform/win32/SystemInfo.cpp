@@ -30,6 +30,7 @@
 #include <hidsdi.h>
 
 // @performance Do we really need all these libs, can't we simplify that?!
+// At least we should dynamically load them, this way the application won't crash if the lib doesn't exist
 #include <intrin.h>
 #pragma comment(lib, "Advapi32.lib")
 #pragma comment(lib, "wbemuuid.lib")
@@ -94,8 +95,8 @@ uint16 system_country_code()
 }
 
 void mainboard_info_get(MainboardInfo* info) {
-    info->name[63] = '\0';
-    info->serial_number[63] = '\0';
+    info->name[sizeof(info->name) - 1] = '\0';
+    info->serial_number[sizeof(info->serial_number) - 1] = '\0';
 
     HRESULT hres;
 
@@ -214,8 +215,6 @@ void mainboard_info_get(MainboardInfo* info) {
         if (SUCCEEDED(hr)) {
             wchar_to_char(vtProp.bstrVal);
             sprintf_fast(info->serial_number, sizeof(info->serial_number), "%s", vtProp.bstrVal);
-            info->serial_number[64] = '\0';
-
             VariantClear(&vtProp);
         }
 
@@ -227,6 +226,9 @@ void mainboard_info_get(MainboardInfo* info) {
     pLoc->Release();
     pEnumerator->Release();
     CoUninitialize();
+
+    info->name[sizeof(info->name) - 1] = '\0';
+    info->serial_number[sizeof(info->serial_number) - 1] = '\0';
 }
 
 int32 network_info_get(NetworkInfo* info) {
@@ -368,7 +370,7 @@ uint32 gpu_info_get(GpuInfo* info) {
     }
 
     uint32 i = 0;
-    while (pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND && i < 2) {
+    while (pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND && i < 3) {
         hr = pAdapter->GetDesc(&adapterDesc);
         if (FAILED(hr)) {
             pAdapter->Release();
@@ -388,33 +390,6 @@ uint32 gpu_info_get(GpuInfo* info) {
     return i;
 }
 
-void display_info_get_primary(DisplayInfo* info) {
-    DISPLAY_DEVICEA device;
-    DEVMODEA mode;
-
-    device.cb = sizeof(DISPLAY_DEVICEA);
-
-    uint32_t i = 0;
-    while (EnumDisplayDevicesA(NULL, i, &device, 0)) {
-        ++i;
-
-        if (!(device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE)) {
-            continue;
-        }
-
-        mode.dmSize = sizeof(mode);
-
-        if (EnumDisplaySettingsA(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode)) {
-            str_copy_short(info->name, device.DeviceName);
-            info->width = mode.dmPelsWidth;
-            info->height = mode.dmPelsHeight;
-            info->hz = mode.dmDisplayFrequency;
-        }
-
-        break;
-    }
-}
-
 uint32 display_info_get(DisplayInfo* info) {
     DISPLAY_DEVICEA device;
     DEVMODEA mode;
@@ -431,6 +406,7 @@ uint32 display_info_get(DisplayInfo* info) {
             info[i].width = mode.dmPelsWidth;
             info[i].height = mode.dmPelsHeight;
             info[i].hz = mode.dmDisplayFrequency;
+            info[i].is_primary = (bool) (device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE);
         }
 
         ++i;

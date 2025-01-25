@@ -16,6 +16,7 @@
 #include "../../stdlib/Types.h"
 #include "../../system/SystemInfo.h"
 #include "../../architecture/CpuInfo.cpp"
+#include "../../system/FileUtils.cpp"
 
 #include <locale.h>
 #include <sys/resource.h>
@@ -34,14 +35,15 @@ uint64 system_private_memory_usage()
 
 uint64 system_app_memory_usage()
 {
-    FILE* fp = fopen("/proc/self/smaps", "r");
-    if (!fp) {
-        return 0;
-    }
-
     uint64 total_size = 0;
+
+    FileHandle fp = file_read_handle("/proc/self/smaps");
     char line[256];
-    while (fgets(line, sizeof(line), fp)) {
+    char internal_buffer[512];
+    ssize_t internal_buffer_size = 0;
+    char* internal_pos = NULL;
+
+    while (file_read_line(fp, line, sizeof(line), internal_buffer, &internal_buffer_size, &internal_pos)) {
         if (str_compare(line, "Private_Dirty:", sizeof("Private_Dirty:") - 1) == 0) {
             uint64 private_dirty;
             if (sscanf(line, "Private_Dirty: %lu kB", &private_dirty) == 1) {
@@ -50,7 +52,7 @@ uint64 system_app_memory_usage()
         }
     }
 
-    fclose(fp);
+    file_close_handle(fp);
 
     return total_size;
 }
@@ -70,22 +72,18 @@ uint16 system_country_code()
 }
 
 void mainboard_info_get(MainboardInfo* info) {
-    info->name[63] = '\0';
-    info->serial_number[63] = '\0';
+    FileBody file;
 
-    FILE *fp;
+    file.content = info->name;
+    file.size = sizeof(info->name);
+    file_read("/sys/class/dmi/id/board_name", &file);
 
-    fp = fopen("/sys/class/dmi/id/board_name", "r");
-    if (fp) {
-        fgets(info->name, 64, fp);
-        fclose(fp);
-    }
+    file.content = info->serial_number;
+    file.size = sizeof(info->serial_number);
+    file_read("/sys/class/dmi/id/board_serial", &file);
 
-    fp = fopen("/sys/class/dmi/id/board_serial", "r");
-    if (fp) {
-        fgets(info->serial_number, 64, fp);
-        fclose(fp);
-    }
+    info->name[sizeof(info->name) - 1] = '\0';
+    info->serial_number[sizeof(info->serial_number) - 1] = '\0';
 
     info->name[strcspn(info->name, "\n")] = '\0';
     info->serial_number[strcspn(info->serial_number, "\n")] = '\0';
@@ -96,28 +94,23 @@ int32 network_info_get(NetworkInfo* info) {
     struct stat st;
     int32 i = 0;
 
+    FileBody file;
+
     for (i = 0; i < 4; i++) {
         sprintf_fast(path, "/sys/class/net/eth%d", i);
 
         if (stat(path, &st) == 0) {
             // Read MAC address
             sprintf_fast(path, "/sys/class/net/eth%d/address", i);
-            FILE *mac_file = fopen(path, "r");
-            if (mac_file) {
-                fscanf(mac_file, "%s", info[i].mac);
-                fclose(mac_file);
-            }
+            file.content = info[i].mac;
+            file.size = sizeof(info[i].mac);
+            file_read(path, &file);
 
             // Read interface name
             sprintf_fast(path, "/sys/class/net/eth%d/ifindex", i);
-            FILE *index_file = fopen(path, "r");
-            if (index_file) {
-                fscanf(index_file, "%s", info[i].slot);
-                fclose(index_file);
-            }
-
-            info[i].mac[23] = '\0';
-            info[i].slot[63] = '\0';
+            file.content = info[i].slot;
+            file.size = sizeof(info[i].slot);
+            file_read(path, &file);
         }
     }
 
@@ -125,14 +118,13 @@ int32 network_info_get(NetworkInfo* info) {
 }
 
 void cpu_info_get(CpuInfo* info) {
-    FILE* fp = fopen("/proc/cpuinfo", "r");
-    if (!fp) {
-        return;
-    }
-
+    FileHandle fp = file_read_handle("/proc/cpuinfo");
     char line[256];
+    char internal_buffer[512];
+    ssize_t internal_buffer_size = 0;
+    char* internal_pos = NULL;
 
-    while (fgets(line, sizeof(line), fp)) {
+    while (file_read_line(fp, line, sizeof(line), internal_buffer, &internal_buffer_size, &internal_pos)) {
         if (str_compare(line, "vendor_id", 9) == 0) {
             sscanf(line, "vendor_id : %s", info->vendor);
         } else if (str_compare(line, "model", 5) == 0) {
@@ -146,7 +138,7 @@ void cpu_info_get(CpuInfo* info) {
         }
     }
 
-    fclose(fp);
+    file_close_handle(fp);
 
     info->family = 0;
     info->page_size = 4096;  // Assuming standard page size of 4KB in Linux
@@ -160,21 +152,21 @@ void os_info_get(OSInfo* info) {
 }
 
 void ram_info_get(RamInfo* info) {
-    FILE* fp = fopen("/proc/meminfo", "r");
-    if (fp == NULL) {
-        return;
-    }
-
-    char line[256];
     uint32 total_memory = 0;
 
-    while (fgets(line, sizeof(line), fp)) {
+    FileHandle fp = file_read_handle("/proc/meminfo");
+    char line[256];
+    char internal_buffer[512];
+    ssize_t internal_buffer_size = 0;
+    char* internal_pos = NULL;
+
+    while (file_read_line(fp, line, sizeof(line), internal_buffer, &internal_buffer_size, &internal_pos)) {
         if (sscanf(line, "MemTotal: %u kB", &total_memory) == 1) {
             break;
         }
     }
 
-    fclose(fp);
+    file_close_handle(fp);
 
     // Convert memory from kB to MB
     info->memory = total_memory / 1024;
@@ -209,32 +201,6 @@ uint32 gpu_info_get(GpuInfo* info) {
     return count;
 }
 
-
-void display_info_get_primary(DisplayInfo* info) {
-    FILE* fp = popen("xrandr --current", "r");
-    if (fp == NULL) {
-        return;
-    }
-
-    char line[256];
-    while (fgets(line, sizeof(line), fp)) {
-        if (strstr(line, "primary")) {
-            // Example of a line containing display info: "HDMI-1 connected 1920x1080+0+0 60.00*+"
-            char name[64];
-            uint32 width, height, hz;
-            if (sscanf(line, "%s connected %dx%d+%*d+%*d %d", name, &width, &height, &hz) == 4) {
-                str_copy_short(info->name, name);
-                info->width = width;
-                info->height = height;
-                info->hz = hz;
-            }
-            break;
-        }
-    }
-
-    fclose(fp);
-}
-
 uint32 display_info_get(DisplayInfo* info) {
     FILE* fp = popen("xrandr --current", "r");
     if (fp == NULL) {
@@ -254,6 +220,7 @@ uint32 display_info_get(DisplayInfo* info) {
                 info[count].width = width;
                 info[count].height = height;
                 info[count].hz = hz;
+                info[count].is_primary = strstr(line, "primary");
                 count++;
             }
         }

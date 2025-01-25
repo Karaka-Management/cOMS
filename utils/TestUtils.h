@@ -10,6 +10,7 @@
 #define TOS_UTILS_TEST_UTILS_H
 
 #include <stdio.h>
+#include "../architecture/Intrinsics.h"
 
 #define ASSERT_EQUALS(a, b, t1, t2)                      \
     ({                                                   \
@@ -118,12 +119,12 @@
 
 #define ASSERT_PERFORMANCE_START(time_start)             \
 ({                                                       \
-    time_start = __rdtsc();                              \
+    time_start = intrin_timestamp_counter();             \
 })
 
-#define ASSERT_PERFORMANCE_END(time_start, max_duration)        \
-({                                                              \
-    ASSERT_TRUE(__rdtsc() - (time_start) <= (max_duration));    \
+#define ASSERT_PERFORMANCE_END(time_start, max_duration)                        \
+({                                                                              \
+    ASSERT_TRUE(intrin_timestamp_counter() - (time_start) <= (max_duration));   \
 })
 
 #endif

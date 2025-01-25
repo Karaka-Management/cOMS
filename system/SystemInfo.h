@@ -45,6 +45,7 @@ struct DisplayInfo {
     int32 width;
     int32 height;
     int32 hz;
+    bool is_primary;
 };
 
 struct SystemInfo {
@@ -57,10 +58,9 @@ struct SystemInfo {
     CpuInfo cpu;
     RamInfo ram;
 
-    GpuInfo gpu[2];
+    GpuInfo gpu[3];
     int32 gpu_count;
 
-    DisplayInfo display_primary;
     DisplayInfo display[6];
     int32 display_count;
 

@@ -11,6 +11,7 @@
 
 #include "../stdlib/Types.h"
 #include "../utils/StringUtils.h"
+#include "../compiler/CompilerUtils.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -106,6 +107,7 @@ f32 evaluator_apply_operator(char op, f32 a, f32 b) {
             return a / b;
         default: {
             UNREACHABLE();
+            return 0;
         }
     }
 }

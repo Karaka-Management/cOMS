@@ -27,6 +27,7 @@
 #include "AssetManagementSystem.h"
 #include "../system/FileUtils.cpp"
 #include "../stdlib/Simd.h"
+#include "../compiler/CompilerUtils.h"
 
 #define ASSET_ARCHIVE_VERSION 1
 
@@ -71,7 +72,7 @@ struct AssetArchive {
 };
 
 // Calculates how large the header memory has to be to hold all its information
-int32 asset_archive_header_size(AssetArchive* archive, byte* data)
+int32 asset_archive_header_size(AssetArchive* __restrict archive, const byte* __restrict data)
 {
     data += sizeof(archive->header.version);
 
@@ -88,7 +89,7 @@ int32 asset_archive_header_size(AssetArchive* archive, byte* data)
         + asset_dependency_count * sizeof(int32);
 }
 
-void asset_archive_header_load(AssetArchiveHeader* header, byte* data, int32 steps = 8)
+void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte* __restrict data, int32 steps = 8)
 {
     header->version = SWAP_ENDIAN_LITTLE(*((int32 *) data));
     data += sizeof(header->version);

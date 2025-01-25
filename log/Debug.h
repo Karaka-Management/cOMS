@@ -32,6 +32,18 @@
 
 #define LOG_DATA_ARRAY 5
 
+#ifndef DEBUG_COUNTER
+    #define DEBUG_COUNTER 1
+    enum DebugCounter {
+        DEBUG_COUNTER_MEM_ALLOC,
+
+        DEBUG_COUNTER_DRIVE_READ,
+        DEBUG_COUNTER_DRIVE_WRITE,
+
+        DEBUG_COUNTER_SIZE
+    };
+#endif
+
 enum LogDataType {
     LOG_DATA_NONE,
     LOG_DATA_VOID,
@@ -86,6 +98,8 @@ struct DebugContainer {
     // Used to log general int values (e.g. counter for draw calls etc.)
     int64* counter;
 
+    // We are not using FileHandle here since that would require us to include more files
+    // These files in return require Debug.h
     #if _WIN32
         HANDLE log_fp;
     #elif __linux__

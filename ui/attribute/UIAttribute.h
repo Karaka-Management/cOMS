@@ -4,6 +4,7 @@
 #include "../../stdlib/Types.h"
 #include "../../utils/StringUtils.h"
 #include "../../math/Evaluator.h"
+#include "../../compiler/CompilerUtils.h"
 #include "UIAttributeType.h"
 #include "UIAttributeDimension.h"
 
@@ -29,27 +30,31 @@ struct UIAttribute {
 };
 
 struct UIAttributeGroup {
-    int32 attribute_size;
-    UIAttribute* attributes;
+    int32 attribute_count;
+    // We don't use a pointer since this would prevent us from copying around the main data owner
+    // The UIAttribute values come directly after UIAttributeGroup (e.g. group + 1 in memory)
+    //UIAttribute* attributes;
 };
 
 UIAttribute* ui_attribute_from_group(UIAttributeGroup* group, UIAttributeType type)
 {
-    if (!group->attributes) {
+    if (!group->attribute_count) {
         return NULL;
     }
 
     int32 left = 0;
     int32 right = type;
 
+    UIAttribute* attributes = (UIAttribute *) (group + 1);
+
     // Binary search since attributes are sorted by attribute_id
     // @performance Consider Eytzinger
     while (left <= right) {
         int32 mid = left + (right - left) / 2;
 
-        if (group->attributes[mid].attribute_id == type) {
-            return &group->attributes[mid];
-        }  else if (group->attributes[mid].attribute_id < type) {
+        if (attributes[mid].attribute_id == type) {
+            return &attributes[mid];
+        }  else if (attributes[mid].attribute_id < type) {
             left = mid + 1;
         }  else {
             right = mid - 1;
@@ -70,6 +75,8 @@ int32 ui_attribute_type_to_id(const char* attribute_name)
         return UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH;
     } else if (str_compare(attribute_name, "height") == 0) {
         return UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT;
+    } else if (str_compare(attribute_name, "overflow") == 0) {
+        return UI_ATTRIBUTE_TYPE_DIMENSION_OVERFLOW;
     } else if (str_compare(attribute_name, "font_name") == 0) {
         return UI_ATTRIBUTE_TYPE_FONT_NAME;
     } else if (str_compare(attribute_name, "font_color") == 0) {

@@ -23,8 +23,7 @@ struct Asset {
     // Could be 0 if there is no official id
     uint32 official_id;
 
-    // @performance We would like to use a bool but windows only supports 32bit atomic values as smallest value
-    // Maybe if we would set the IS_LOADED_STATE in the enum as the highest bit we could use the state variable and check it with >=
+    // @performance Maybe if we would set the IS_LOADED_STATE in the enum as the highest bit we could use the state variable and check it with >=
     int32 is_loaded;
 
     // Describes how much ram/vram the asset uses

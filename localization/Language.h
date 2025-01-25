@@ -7,12 +7,14 @@
 
 #define LANGUAGE_VERSION 1
 
+// Size is limited to 4GB
 struct Language {
-    // WARNING: the actual start of data is data -= sizeof(count); see file loading below
+    // WARNING: the actual start of data is data -= sizeof(Language); see file loading below
+    // The reason for this is we store the Language struct in the beginning of the data/file
     byte* data;
 
     int32 count;
-    int64 size;
+    int32 size;
     char** lang;
 };
 
@@ -27,7 +29,7 @@ void language_from_file_txt(
 
     // count elements
     language->count = 1;
-    int64 len = 0;
+    int32 len = 0;
 
     byte* data = file.content;
 
@@ -65,7 +67,7 @@ int32 language_data_size(const Language* language)
     return (int32) (language->size
         + sizeof(language->count)
         + sizeof(language->size)
-        + language->count * sizeof(uint64)
+        + language->count * sizeof(uint32)
     );
 }
 
@@ -92,12 +94,12 @@ int32 language_from_data(
 
     // Load pointers/offsets
     for (int32 i = 0; i < language->count; ++i) {
-        *pos_lang++ = (char *) (start + SWAP_ENDIAN_LITTLE(*((uint64 *) pos)));
-        pos += sizeof(uint64);
+        *pos_lang++ = (char *) (start + SWAP_ENDIAN_LITTLE(*((uint32 *) pos)));
+        pos += sizeof(uint32);
     }
 
     memcpy(
-        language->data + language->count * sizeof(uint64),
+        language->data + language->count * sizeof(uint32),
         pos,
         language->size
     );
@@ -123,14 +125,14 @@ int32 language_to_data(
 
     // Save pointers
     for (int32 i = 0; i < language->count; ++i) {
-       *((uint64 *) pos) = SWAP_ENDIAN_LITTLE(pos - start);
-        pos += sizeof(uint64);
+       *((uint32 *) pos) = SWAP_ENDIAN_LITTLE((uint32) ((uintptr_t) pos - (uintptr_t) start));
+        pos += sizeof(uint32);
     }
 
     // Save actual strings
     memcpy(
         pos,
-        language->data + language->count * sizeof(uint64),
+        language->data + language->count * sizeof(uint32),
         language->size
     );
 

@@ -20,7 +20,7 @@ typedef void (*ThreadPoolJobFunc)(void*);
 
 struct PoolWorker {
     int32 id;
-    volatile int32 state;
+    int32 state;
     void* arg;
     void* result;
     RingMemory ring;
@@ -29,7 +29,7 @@ struct PoolWorker {
 };
 
 struct Worker {
-    volatile int32 state;
+    int32 state;
     pthread_t thread;
 };
 

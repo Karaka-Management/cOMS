@@ -224,29 +224,33 @@ void file_read(const char* path, FileBody* file, RingMemory* ring) {
         return;
     }
 
-    struct stat file_stat;
-    if (fstat(fp, &file_stat) == -1) {
-        close(fp);
-        file->size = 0;
-        file->content = NULL;
+    if (file->size == 0) {
+        struct stat file_stat;
+        if (fstat(fp, &file_stat) == -1) {
+            close(fp);
+            file->size = 0;
+            file->content = NULL;
 
-        return;
-    }
+            return;
+        }
 
-    if (file_stat.st_size > MAX_UINT32) {
-        close(fp);
-        file->size = 0;
-        file->content = NULL;
+        if (file_stat.st_size > MAX_UINT32) {
+            close(fp);
+            file->size = 0;
+            file->content = NULL;
 
-        return;
+            return;
+        }
+
+        file->size = file_stat.st_size + 1;
     }
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, file_stat.st_size);
+        file->content = ring_get_memory(ring, file->size);
     }
 
-    ssize_t bytes_read = read(fp, file->content, file_stat.st_size);
-    if (bytes_read != file_stat.st_size) {
+    ssize_t bytes_read = read(fp, file->content, file->size - 1);
+    if (bytes_read != file->size) {
         close(fp);
         file->content = NULL;
         file->size = 0;
@@ -260,6 +264,59 @@ void file_read(const char* path, FileBody* file, RingMemory* ring) {
     LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
 
     close(fp);
+}
+
+// This function uses a couple of temporary/internal variables to keep track of state and data for consecutive calls
+// The alternative would be to correct the file position after almost every call using seek which is very inefficient.
+// Since the mentality of this function is to be called consecutively we do it this way.
+bool file_read_line(
+    FileHandle fp,
+    char* line_buffer, size_t buffer_size,
+    char internal_buffer[512], ssize_t* internal_buffer_size, char** internal_pos
+) {
+    if (!(*internal_pos)) {
+        *internal_pos = internal_buffer;
+    }
+
+    size_t line_filled = 0;
+
+    while (line_filled < buffer_size - 1) {
+        // Refill the internal buffer if empty
+        if (*internal_pos == internal_buffer + *internal_buffer_size) {
+            *internal_buffer_size = read(fp, internal_buffer, 512);
+            if (*internal_buffer_size <= 0) {
+                line_buffer[line_filled] = '\0';
+
+                return line_filled > 0;
+            }
+
+            *internal_pos = internal_buffer;
+        }
+
+        char current_char = **internal_pos;
+        ++(*internal_pos);
+
+        // Handle line endings (\n, \r, \r\n, \n\r)
+        if (current_char == '\n' || current_char == '\r') {
+            if ((*internal_pos < internal_buffer + *internal_buffer_size)
+                && (**internal_pos == '\n' || **internal_pos == '\r')
+                && **internal_pos != current_char
+            ) {
+                ++(*internal_pos);
+            }
+
+            line_buffer[line_filled] = '\0';
+
+            // Successfully read a line
+            return true;
+        }
+
+        line_buffer[line_filled++] = current_char;
+    }
+
+    line_buffer[line_filled] = '\0';
+
+    return true;
 }
 
 inline

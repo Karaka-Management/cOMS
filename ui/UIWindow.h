@@ -6,6 +6,7 @@
 #include "attribute/UIAttributeShadow.h"
 #include "attribute/UIAttributeFont.h"
 #include "attribute/UIAttributeBackground.h"
+#include "attribute/UIAttributeDimension.h"
 #include "UIAnimation.h"
 #include "UIStyleType.h"
 
@@ -13,7 +14,7 @@ struct UIWindowState {
 };
 
 struct UIWindow {
-    v4_int16 dimension;
+    UIAttributeDimension dimension;
     UIAnimation animation;
     byte padding;
     byte alignment;

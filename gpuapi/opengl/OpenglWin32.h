@@ -858,6 +858,7 @@ void opengl_init(Window* window, int32 multisample = 0)
 
     opengl_init_wgl();
 
+    // @question Why do we do the GetDC here? Couldn't we do it in UtilsWindows.h
     window->hdc = GetDC(window->hwnd);
     set_pixel_format(window->hdc, multisample);
 

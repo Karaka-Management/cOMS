@@ -17,7 +17,7 @@
 #include "AudioSetting.h"
 #include "Wav.h"
 
-void audio_from_file(Audio* audio, const char* path, RingMemory* ring)
+void audio_from_file(Audio* __restrict audio, const char* __restrict path, RingMemory* __restrict ring)
 {
     FileBody file;
     file_read(path, &file, ring);
@@ -40,7 +40,7 @@ int32 audio_data_size(const Audio* audio)
 }
 
 inline
-uint32 audio_header_from_data(const byte* data, Audio* audio)
+uint32 audio_header_from_data(const byte* __restrict data, Audio* __restrict audio)
 {
     const byte* start = data;
 
@@ -62,7 +62,7 @@ uint32 audio_header_from_data(const byte* data, Audio* audio)
 }
 
 inline
-uint32 audio_header_to_data(const Audio* audio, byte* data)
+uint32 audio_header_to_data(const Audio* __restrict audio, byte* __restrict data)
 {
     byte* start = data;
 
@@ -79,7 +79,7 @@ uint32 audio_header_to_data(const Audio* audio, byte* data)
     return (int32) (data - start);
 }
 
-uint32 audio_from_data(const byte* data, Audio* audio)
+uint32 audio_from_data(const byte* __restrict data, Audio* __restrict audio)
 {
     data += audio_header_from_data(data, audio);
 
@@ -89,7 +89,7 @@ uint32 audio_from_data(const byte* data, Audio* audio)
     return audio_data_size(audio);
 }
 
-uint32 audio_to_data(const Audio* audio, byte* data)
+uint32 audio_to_data(const Audio* __restrict audio, byte* __restrict data)
 {
     data += audio_header_to_data(audio, data);
 

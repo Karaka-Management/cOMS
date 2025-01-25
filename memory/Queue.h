@@ -192,7 +192,7 @@ bool queue_dequeue(Queue* queue, byte* data)
 inline
 bool queue_dequeue_atomic(Queue* queue, byte* data)
 {
-    if (atomic_get_acquire_release((volatile uint64 *) &queue->head) == (uint64) queue->tail) {
+    if ((uint64) atomic_get_acquire_release((void **) &queue->head) == (uint64) queue->tail) {
         return false;
     }
 

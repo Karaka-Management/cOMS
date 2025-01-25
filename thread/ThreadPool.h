@@ -34,7 +34,7 @@ struct ThreadPool {
     int32 size;
     int32 state;
 
-    uint32 id_counter;
+    int32 id_counter;
 };
 
 static THREAD_RETURN thread_pool_worker(void* arg)
@@ -120,7 +120,7 @@ void thread_pool_wait(ThreadPool* pool)
 void thread_pool_destroy(ThreadPool* pool)
 {
     // This sets the queue to empty
-    atomic_set_acquire((void **) &pool->work_queue.tail, (void **) &pool->work_queue.head);
+    atomic_set_acquire((void **) &pool->work_queue.tail, pool->work_queue.head);
 
     // This sets the state to "shutdown"
     atomic_set_release(&pool->state, 1);

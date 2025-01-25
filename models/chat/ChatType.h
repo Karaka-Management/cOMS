@@ -9,18 +9,24 @@
 #ifndef TOS_MODELS_CHAT_TYPE_H
 #define TOS_MODELS_CHAT_TYPE_H
 
-enum ChatType {
-    CHAT_TYPE_MIXED = 1,
-    CHAT_TYPE_LOCAL = 2,
-    CHAT_TYPE_GLOBAL = 4,
-    CHAT_TYPE_PLAYER = 8,
-    CHAT_TYPE_GROUP = 16,
-    CHAT_TYPE_GUILD = 32,
-    CHAT_TYPE_AUCTION_HOUSE = 64,
-    CHAT_TYPE_TRADE = 128,
-    CHAT_TYPE_PRIVATE = 256, // e.g. direct messages, also used in raid finders etc.
-    CHAT_TYPE_FRIENDS = 512,
-    CHAT_TYPE_CHAT_ROOM = 1024
+#include "../../stdlib/Types.h"
+
+// NOT the message type, just where the message is sent to/from
+enum ChatType : uint16 {
+    CHAT_TYPE_MIXED = 1 << 0,
+    CHAT_TYPE_LOCAL = 1 << 1,
+    CHAT_TYPE_GLOBAL = 1 << 2,
+    CHAT_TYPE_SERVER = 1 << 3,
+    CHAT_TYPE_PLAYER = 1 << 4,
+    CHAT_TYPE_GROUP = 1 << 5,
+    CHAT_TYPE_GUILD = 1 << 6,
+    CHAT_TYPE_AUCTION_HOUSE = 1 << 7,
+    CHAT_TYPE_TRADE = 1 << 8, // When trading with someone
+    CHAT_TYPE_PRIVATE = 1 << 9, // When chatting with someone in private (DM)
+    CHAT_TYPE_FRIENDS = 1 << 10,
+    CHAT_TYPE_CHAT_ROOM = 1 << 11, // Specific chat channels
+    CHAT_TYPE_CHAT_LFG = 1 << 12, // LFG finder
+    CHAT_TYPE_PVP = 1 << 13, // Also Guild vs. Guild
 };
 
 #endif

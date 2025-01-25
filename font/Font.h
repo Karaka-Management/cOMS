@@ -17,10 +17,8 @@ struct GlyphMetrics {
 };
 
 struct GlyphTextureCoords {
-    f32 x1;
-    f32 y1;
-    f32 x2;
-    f32 y2;
+    v2_f32 start;
+    v2_f32 end;
 };
 
 #define GLYPH_SIZE 40
@@ -147,14 +145,14 @@ void font_from_file_txt(
                 {strtof(++pos, &pos), strtof(++pos, &pos), strtof(++pos, &pos), strtof(++pos, &pos)}
             };
 
-            font->glyphs[glyph_index].metrics.width = font->glyphs[glyph_index].coords.x2 - font->glyphs[glyph_index].coords.x1;
-            font->glyphs[glyph_index].metrics.height = font->glyphs[glyph_index].coords.y2 - font->glyphs[glyph_index].coords.y1;
+            font->glyphs[glyph_index].metrics.width = font->glyphs[glyph_index].coords.end.x - font->glyphs[glyph_index].coords.start.x;
+            font->glyphs[glyph_index].metrics.height = font->glyphs[glyph_index].coords.end.y - font->glyphs[glyph_index].coords.start.y;
 
-            font->glyphs[glyph_index].coords.x1 /= image_width;
-            font->glyphs[glyph_index].coords.x2 /= image_width;
+            font->glyphs[glyph_index].coords.start.x /= image_width;
+            font->glyphs[glyph_index].coords.end.x /= image_width;
 
-            font->glyphs[glyph_index].coords.y1 /= image_height;
-            font->glyphs[glyph_index].coords.y2 /= image_height;
+            font->glyphs[glyph_index].coords.start.y /= image_height;
+            font->glyphs[glyph_index].coords.end.y /= image_height;
 
             ++glyph_index;
 
@@ -263,9 +261,9 @@ void font_invert_coordinates(Font* font)
 {
     // @todo Implement y-offset correction
     for (uint32 i = 0; i < font->glyph_count; ++i) {
-        float temp = font->glyphs[i].coords.y1;
-        font->glyphs[i].coords.y1 = 1.0f - font->glyphs[i].coords.y2;
-        font->glyphs[i].coords.y2 = 1.0f - temp;
+        float temp = font->glyphs[i].coords.start.y;
+        font->glyphs[i].coords.start.y = 1.0f - font->glyphs[i].coords.end.y;
+        font->glyphs[i].coords.end.y = 1.0f - temp;
     }
 }
 

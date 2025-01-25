@@ -18,7 +18,7 @@
 #include "Bitmap.h"
 #include "Png.h"
 
-void image_from_file(Image* image, const char* path, RingMemory* ring)
+void image_from_file(Image* __restrict image, const char* __restrict path, RingMemory* __restrict ring)
 {
     FileBody file;
     file_read(path, &file, ring);
@@ -32,7 +32,7 @@ void image_from_file(Image* image, const char* path, RingMemory* ring)
     }
 }
 
-void image_flip_vertical(RingMemory* ring, Image* image)
+void image_flip_vertical(RingMemory* __restrict ring, Image* __restrict image)
 {
     uint32 stride = image->width * sizeof(uint32);
     byte* temp = ring_get_memory(ring, image->pixel_count * sizeof(uint32));
@@ -66,7 +66,7 @@ int32 image_data_size(const Image* image)
 }
 
 inline
-uint32 image_header_from_data(const byte* data, Image* image)
+uint32 image_header_from_data(const byte* __restrict data, Image* __restrict image)
 {
     const byte* start = data;
 
@@ -84,7 +84,7 @@ uint32 image_header_from_data(const byte* data, Image* image)
     return (int32) (data - start);
 }
 
-uint32 image_from_data(const byte* data, Image* image)
+uint32 image_from_data(const byte* __restrict data, Image* __restrict image)
 {
     const byte* pos = data;
     pos += image_header_from_data(data, image);
@@ -97,7 +97,7 @@ uint32 image_from_data(const byte* data, Image* image)
 }
 
 inline
-uint32 image_header_to_data(const Image* image, byte* data)
+uint32 image_header_to_data(const Image* __restrict image, byte* __restrict data)
 {
     byte* start = data;
 
@@ -113,7 +113,7 @@ uint32 image_header_to_data(const Image* image, byte* data)
     return (int32) (data - start);
 }
 
-uint32 image_to_data(const Image* image, byte* data)
+uint32 image_to_data(const Image* __restrict image, byte* __restrict data)
 {
     byte* pos = data;
     pos += image_header_to_data(image, data);

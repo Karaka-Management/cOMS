@@ -3,15 +3,15 @@
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
-#include <x86intrin.h>
+#include "../architecture/Intrinsics.h"
 
 // @todo consider to log/ignore outliers
 uint64_t measure_cycles(int count, size_t (*func)(const char *), const char *str) {
-    uint64_t start = __rdtsc();
-    for (int = 0; i < count; ++i) {
+    uint64_t start = intrin_timestamp_counter();
+    for (int i = 0; i < count; ++i) {
         func(str);
     }
-    uint64_t end = __rdtsc();
+    uint64_t end = intrin_timestamp_counter();
 
     return end - start;
 }

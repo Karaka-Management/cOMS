@@ -14,6 +14,7 @@
 #include "../utils/TestUtils.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/BitUtils.h"
+#include "../log/Log.h"
 #include "../log/DebugMemory.h"
 #include "BufferMemory.h"
 #include "../system/Allocator.h"
@@ -125,7 +126,7 @@ void chunk_free(ChunkMemory* buf)
 }
 
 inline
-uint32 chunk_id_from_memory(ChunkMemory* buf, byte* pos) {
+uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) {
     return (uint32) ((uintptr_t) pos - (uintptr_t) buf->memory) / buf->chunk_size;
 }
 

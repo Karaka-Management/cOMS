@@ -12,6 +12,7 @@
 #if __aarch64__
 
 #else
+    // @todo Should get moved to architecture/x86/simd directory
     #include "simd/SIMD_F32.h"
     #include "simd/SIMD_F64.h"
     #include "simd/SIMD_I8.h"

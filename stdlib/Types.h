@@ -6,30 +6,14 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_TYPES_H
-#define TOS_TYPES_H
+#ifndef TOS_STDLIB_TYPES_H
+#define TOS_STDLIB_TYPES_H
 
 #include <stdint.h>
 
 #ifdef _MSC_VER
     #include <windows.h>
-
-    #define PACKED_STRUCT  __pragma(pack(push, 1))
-    #define UNPACKED_STRUCT __pragma(pack(pop))
     typedef SSIZE_T ssize_t;
-
-    #define UNREACHABLE() __assume(0)
-#else
-    #define PACKED_STRUCT  __attribute__((__packed__))
-    #define UNPACKED_STRUCT ((void) 0)
-
-    #define UNREACHABLE() __builtin_unreachable()
-#endif
-
-#if _WIN32
-    #define EXPORT_LIB extern "C" __declspec(dllexport)
-#elif __linux__
-    #define EXPORT_LIB extern "C" __attribute__((visibility("default")))
 #endif
 
 #define ARRAY_COUNT(a) (sizeof(a) / sizeof((a)[0]))

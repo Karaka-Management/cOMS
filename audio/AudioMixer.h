@@ -71,7 +71,7 @@ enum AudioMixerState {
 struct AudioMixer {
     ChunkMemory audio_instances;
     AudioMixerState state_old;
-    AudioMixerState state_new;
+    int32 state_new;
 
     uint64 effect;
 
@@ -98,13 +98,13 @@ struct AudioMixer {
 
 bool audio_mixer_is_active(AudioMixer* mixer) {
     if (mixer->state_old == AUDIO_MIXER_STATE_ACTIVE
-        && atomic_get_relaxed((int32 *) &mixer->state_new) == AUDIO_MIXER_STATE_ACTIVE
+        && atomic_get_relaxed(&mixer->state_new) == AUDIO_MIXER_STATE_ACTIVE
     ) {
         return true;
     }
 
     AudioMixerState mixer_state;
-    if ((mixer_state = (AudioMixerState) atomic_get_relaxed((int32 *) &mixer->state_new)) != mixer->state_old) {
+    if ((mixer_state = (AudioMixerState) atomic_get_relaxed(&mixer->state_new)) != mixer->state_old) {
         if (mixer->state_old == AUDIO_MIXER_STATE_UNINITIALIZED) {
             audio_load(
                 mixer->window,
