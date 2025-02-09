@@ -1,58 +1,72 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
 #include <time.h>
-#include "../architecture/Intrinsics.h"
+#include <stdint.h>
 
-// @todo consider to log/ignore outliers
-uint64_t measure_cycles(int count, size_t (*func)(const char *), const char *str) {
-    uint64_t start = intrin_timestamp_counter();
-    for (int i = 0; i < count; ++i) {
-        func(str);
+#define ITERATIONS 1000
+
+// Function prototypes for the functions to be profiled
+void function1();
+void function2();
+
+// Profiling function
+void profile(void (*func)(), const char* func_name, int iterations, double* total_time, uint64_t* total_cycles, double* mean_time, uint64_t* mean_cycles) {
+    struct timespec start_time, end_time;
+    uint64_t start_cycle, end_cycle;
+    *total_time = 0;
+    *total_cycles = 0;
+
+    for (int i = 0; i < iterations; i++) {
+        clock_gettime(CLOCK_MONOTONIC, &start_time);
+        start_cycle = __builtin_ia32_rdtsc();
+        func();
+        end_cycle = __builtin_ia32_rdtsc();
+        clock_gettime(CLOCK_MONOTONIC, &end_time);
+
+        double elapsed_time = (end_time.tv_sec - start_time.tv_sec) * 1e9 + (end_time.tv_nsec - start_time.tv_nsec);
+        uint64_t elapsed_cycles = end_cycle - start_cycle;
+
+        *total_time += elapsed_time;
+        *total_cycles += elapsed_cycles;
     }
-    uint64_t end = intrin_timestamp_counter();
 
-    return end - start;
+    *mean_time = *total_time / iterations;
+    *mean_cycles = *total_cycles / iterations;
 }
 
-void compare_strlen(int count, const char *str) {
-    uint64_t normal_cycles = measure_cycles(count, strlen, str);
-    uint64_t optimized_cycles = measure_cycles(count, strlen_optimized, str);
-
-    printf("String length: %zu\n", strlen(str));
-    printf("Normal strlen cycles: %lu\n", normal_cycles);
-    printf("Optimized strlen cycles: %lu\n", optimized_cycles);
-    printf("Speedup: %.2fx\n", (double)normal_cycles / optimized_cycles);
+// Example functions to profile
+void function1() {
+    // Simulate some work
+    for (volatile int i = 0; i < 1000000; i++);
 }
 
-char* generate_random_string(size_t length) {
-    char *str = (char *) malloc(length + 1);
-    for (size_t i = 0; i < length; i++) {
-        str[i] = (char) rand();
-    }
-
-    str[length] = '\0';
-
-    return str;
+void function2() {
+    // Simulate some work
+    for (volatile int i = 0; i < 2000000; i++);
 }
 
 int main() {
-    srand((unsigned int) time(NULL));
+    double total_time1, total_time2, mean_time1, mean_time2;
+    uint64_t total_cycles1, total_cycles2, mean_cycles1, mean_cycles2;
 
-    size_t lengths[] = {5, 16, 64, 256, 1024, 4096};
-    const size_t num_lengths = sizeof(lengths) / sizeof(lengths[0]);
+    profile(function1, "Function 1", ITERATIONS, &total_time1, &total_cycles1, &mean_time1, &mean_cycles1);
+    profile(function2, "Function 2", ITERATIONS, &total_time2, &total_cycles2, &mean_time2, &mean_cycles2);
 
-    for (size_t i = 0; i < num_lengths; i++) {
-        size_t length = lengths[i];
-        char *random_string = generate_random_string(length);
+    // Print table header
+    printf("+-----------------+-------------------+-------------------+-------------------+-------------------+\n");
+    printf("| Function        | Total Time (ns)   | Total Cycles      | Mean Time (ns)    | Mean Cycles       |\n");
+    printf("+-----------------+-------------------+-------------------+-------------------+-------------------+\n");
 
-        printf("Test %zu (length: %zu):\n", i + 1, length);
-        compare_strlen(100000, random_string);
+    // Print results for Function 1
+    printf("| %-15s | %17.2f | %17lu | %17.2f | %17lu |\n",
+           "Function 1", total_time1, total_cycles1, mean_time1, mean_cycles1);
 
-        free(random_string);
-        printf("\n");
-    }
+    // Print results for Function 2
+    printf("| %-15s | %17.2f | %17lu | %17.2f | %17lu |\n",
+           "Function 2", total_time2, total_cycles2, mean_time2, mean_cycles2);
+
+    // Print table footer
+    printf("+-----------------+-------------------+-------------------+-------------------+-------------------+\n");
 
     return 0;
 }

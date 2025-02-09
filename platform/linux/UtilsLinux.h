@@ -16,28 +16,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
-
-int32 sprintf_s(char *buffer, size_t sizeOfBuffer, const char *format, ...) {
-    int32 result;
-    va_list args;
-
-    if (buffer == NULL || format == NULL || sizeOfBuffer == 0) {
-        return -1;
-    }
-
-    va_start(args, format);
-    result = vsnprintf(buffer, sizeOfBuffer, format, args);
-    va_end(args);
-
-    if (result >= 0 && (size_t) result >= sizeOfBuffer) {
-        buffer[sizeOfBuffer - 1] = '\0';
-        return 80;
-    }
-
-    // Return the result
-    return result;
-}
-
 void clipboard_get(char* text, int32 max_length)
 {
     *text = '\0';
@@ -78,6 +56,10 @@ void clipboard_get(char* text, int32 max_length)
     }
 
     XCloseDisplay(display);
+}
+
+void output_char(char c) {
+    write(STDOUT_FILENO, &c, 1);
 }
 
 #endif

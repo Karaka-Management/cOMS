@@ -30,7 +30,8 @@ struct UIAttribute {
 };
 
 struct UIAttributeGroup {
-    int32 attribute_count;
+    // @question Why is this a uint32 instead of uint16, I think it doesn't matter due to the alignment?!
+    uint32 attribute_count;
     // We don't use a pointer since this would prevent us from copying around the main data owner
     // The UIAttribute values come directly after UIAttributeGroup (e.g. group + 1 in memory)
     //UIAttribute* attributes;
@@ -42,39 +43,39 @@ UIAttribute* ui_attribute_from_group(UIAttributeGroup* group, UIAttributeType ty
         return NULL;
     }
 
-    int32 left = 0;
-    int32 right = type;
-
     UIAttribute* attributes = (UIAttribute *) (group + 1);
 
-    // Binary search since attributes are sorted by attribute_id
-    // @performance Consider Eytzinger
-    while (left <= right) {
-        int32 mid = left + (right - left) / 2;
-
-        if (attributes[mid].attribute_id == type) {
-            return &attributes[mid];
-        }  else if (attributes[mid].attribute_id < type) {
-            left = mid + 1;
-        }  else {
-            right = mid - 1;
-        }
+    // The following code is an optimized binary search
+    // @performance Consider to use EytzingerSearch for even better performance
+    int32 length = group->attribute_count;
+    while (length > 1) {
+        int32 half = length / 2;
+        length -= half;
+        attributes += (attributes[half - 1].attribute_id < type) * half;
     }
 
-    return NULL;
+    return attributes->attribute_id == type ? attributes : NULL;
 }
 
 constexpr
 int32 ui_attribute_type_to_id(const char* attribute_name)
 {
     if (str_compare(attribute_name, "x") == 0) {
-        return UI_ATTRIBUTE_TYPE_DIMENSION_X;
+        return UI_ATTRIBUTE_TYPE_POSITION_X;
     } else if (str_compare(attribute_name, "y") == 0) {
-        return UI_ATTRIBUTE_TYPE_DIMENSION_Y;
+        return UI_ATTRIBUTE_TYPE_POSITION_Y;
     } else if (str_compare(attribute_name, "width") == 0) {
         return UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH;
     } else if (str_compare(attribute_name, "height") == 0) {
         return UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT;
+    } else if (str_compare(attribute_name, "width_min") == 0) {
+        return UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH_MIN;
+    } else if (str_compare(attribute_name, "height_min") == 0) {
+        return UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT_MIN;
+    } else if (str_compare(attribute_name, "width_max") == 0) {
+        return UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH_MAX;
+    } else if (str_compare(attribute_name, "height_max") == 0) {
+        return UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT_MAX;
     } else if (str_compare(attribute_name, "overflow") == 0) {
         return UI_ATTRIBUTE_TYPE_DIMENSION_OVERFLOW;
     } else if (str_compare(attribute_name, "font_name") == 0) {
@@ -185,7 +186,15 @@ int32 ui_attribute_type_to_id(const char* attribute_name)
         return UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION;
     } else if (str_compare(attribute_name, "transition_duration") == 0) {
         return UI_ATTRIBUTE_TYPE_TRANSITION_DURATION;
+    } else if (str_compare(attribute_name, "text_limit") == 0) {
+        return UI_ATTRIBUTE_TYPE_TEXT_LIMIT;
+    } else if (str_compare(attribute_name, "cache_size") == 0) {
+        return UI_ATTRIBUTE_TYPE_CACHE_SIZE;
+    } else if (str_compare(attribute_name, "anim") == 0) {
+        return UI_ATTRIBUTE_TYPE_ANIMATION;
     }
+
+    ASSERT_SIMPLE(false);
 
     return -1;
 }
@@ -198,13 +207,13 @@ void ui_attribute_parse_value(UIAttribute* attr, const char* attribute_name, con
 
     str_copy_until(pos, value, "\r\n");
 
-    if (is_integer(value)) {
-        attr->value_int = strtoul(value, NULL, 10);
+    if (str_is_integer(value)) {
+        attr->value_int = (int32) str_to_int(value);
         attr->datatype = UI_ATTRIBUTE_DATA_TYPE_INT;
-    } else if (is_float(value)) {
-        attr->value_float = strtof(value, NULL);
+    } else if (str_is_float(value)) {
+        attr->value_float = str_to_float(value, NULL);
         attr->datatype = UI_ATTRIBUTE_DATA_TYPE_F32;
-    } else if (is_hex_color(value)) {
+    } else if (str_is_hex_color(value)) {
         ++pos; // Skip '#'
         hexstr_to_rgba(&attr->value_v4_f32, pos);
         attr->datatype = UI_ATTRIBUTE_DATA_TYPE_V4_F32;
@@ -232,13 +241,13 @@ inline
 void ui_theme_assign_dimension(UIAttributeDimension* dimension, const UIAttribute* attr, int32 variable_count, const EvaluatorVariable* variables)
 {
     switch (attr->attribute_id) {
-        case UI_ATTRIBUTE_TYPE_DIMENSION_X: {
+        case UI_ATTRIBUTE_TYPE_POSITION_X: {
                 ui_theme_assign_f32(&dimension->dimension.x, attr, variable_count, variables);
             } break;
         case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH: {
                 ui_theme_assign_f32(&dimension->dimension.width, attr, variable_count, variables);
             } break;
-        case UI_ATTRIBUTE_TYPE_DIMENSION_Y: {
+        case UI_ATTRIBUTE_TYPE_POSITION_Y: {
                 ui_theme_assign_f32(&dimension->dimension.y, attr, variable_count, variables);
             } break;
         case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {

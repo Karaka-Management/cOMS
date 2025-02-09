@@ -72,7 +72,7 @@ uint16 system_country_code()
 }
 
 void mainboard_info_get(MainboardInfo* info) {
-    FileBody file;
+    FileBody file = {};
 
     file.content = info->name;
     file.size = sizeof(info->name);
@@ -94,7 +94,7 @@ int32 network_info_get(NetworkInfo* info) {
     struct stat st;
     int32 i = 0;
 
-    FileBody file;
+    FileBody file = {};
 
     for (i = 0; i < 4; i++) {
         sprintf_fast(path, "/sys/class/net/eth%d", i);
@@ -211,7 +211,7 @@ uint32 display_info_get(DisplayInfo* info) {
     uint32 count = 0;
 
     while (fgets(line, sizeof(line), fp)) {
-        if (strstr(line, "connected")) {
+        if (str_find(line, "connected")) {
             // Example: "HDMI-1 connected 1920x1080+0+0 60.00*+"
             char name[64];
             uint32 width, height, hz;
@@ -220,7 +220,7 @@ uint32 display_info_get(DisplayInfo* info) {
                 info[count].width = width;
                 info[count].height = height;
                 info[count].hz = hz;
-                info[count].is_primary = strstr(line, "primary");
+                info[count].is_primary = str_find(line, "primary");
                 count++;
             }
         }

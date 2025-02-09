@@ -11,11 +11,12 @@
 
 #include "../stdlib/Types.h"
 #include "../utils/StringUtils.h"
+#include "../utils/TestUtils.h"
 #include "../compiler/CompilerUtils.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
-#define EVALUATOR_MAX_STACK_SIZE 256
+#define EVALUATOR_MAX_STACK_SIZE 16
 
 // Stack for operators
 struct EvaluatorOperatorStack {
@@ -30,18 +31,9 @@ struct EvaluatorValueStack {
 };
 
 struct EvaluatorVariable {
-    char name[32];
+    char name[8];
     f32 value;
 };
-
-static inline
-const char* evaluator_skip_whitespace(const char* str) {
-    while (*str && (*str == ' ' || *str == '\t')) {
-        ++str;
-    }
-
-    return str;
-}
 
 // Stack operations
 void evaluator_push_operator(EvaluatorOperatorStack* stack, char op) {
@@ -89,12 +81,14 @@ int32 evaluator_precedence(char op) {
         case '*':
         case '/':
             return 2;
+        case 'u': // Unary minus
+            return 3;
         default:
             return 0;
     }
 }
 
-// Apply an operator to two values
+// Apply an operator to one or two values
 f32 evaluator_apply_operator(char op, f32 a, f32 b) {
     switch (op) {
         case '+':
@@ -105,9 +99,10 @@ f32 evaluator_apply_operator(char op, f32 a, f32 b) {
             return a * b;
         case '/':
             return a / b;
+        case 'u': // Unary minus
+            return -a;
         default: {
             UNREACHABLE();
-            return 0;
         }
     }
 }
@@ -121,12 +116,10 @@ f32 evaluator_evaluate_expression(const char* expr) {
 
     const char* ptr = expr;
     while (*ptr) {
-        ptr = evaluator_skip_whitespace(ptr);
-
         if (str_is_num(*ptr) || *ptr == '.') {
             // Parse number
-            char* end;
-            f32 value = strtof(ptr, &end);
+            const char* end;
+            f32 value = str_to_float(ptr, &end);
             evaluator_push_value(&values, value);
             ptr = end;
         } else if (str_is_alpha(*ptr)) {
@@ -172,20 +165,33 @@ f32 evaluator_evaluate_expression(const char* expr) {
             while (evaluator_peek_operator(&operators) != '(') {
                 char op = evaluator_pop_operator(&operators);
                 f32 b = evaluator_pop_value(&values);
-                f32 a = evaluator_pop_value(&values);
-                evaluator_push_value(&values, evaluator_apply_operator(op, a, b));
+                if (op == 'u') {
+                    evaluator_push_value(&values, evaluator_apply_operator(op, b, 0));
+                } else {
+                    f32 a = evaluator_pop_value(&values);
+                    evaluator_push_value(&values, evaluator_apply_operator(op, a, b));
+                }
             }
 
             evaluator_pop_operator(&operators); // Remove '('
             ++ptr;
-        } else if (strchr("+-*/", *ptr)) {
+        } else if (str_find("+-*/", *ptr)) {
             // Operator
             char op = *ptr;
+            // Check if the operator is unary
+            if (op == '-' && (ptr == expr || *(ptr - 1) == '(' || str_find("+-*/", *(ptr - 1)))) {
+                op = 'u'; // Unary minus
+            }
+
             while (evaluator_precedence(evaluator_peek_operator(&operators)) >= evaluator_precedence(op)) {
                 char top_op = evaluator_pop_operator(&operators);
                 f32 b = evaluator_pop_value(&values);
-                f32 a = evaluator_pop_value(&values);
-                evaluator_push_value(&values, evaluator_apply_operator(top_op, a, b));
+                if (top_op == 'u') {
+                    evaluator_push_value(&values, evaluator_apply_operator(top_op, b, 0));
+                } else {
+                    f32 a = evaluator_pop_value(&values);
+                    evaluator_push_value(&values, evaluator_apply_operator(top_op, a, b));
+                }
             }
 
             evaluator_push_operator(&operators, op);
@@ -199,8 +205,12 @@ f32 evaluator_evaluate_expression(const char* expr) {
     while (operators.top >= 0) {
         char op = evaluator_pop_operator(&operators);
         f32 b = evaluator_pop_value(&values);
-        f32 a = evaluator_pop_value(&values);
-        evaluator_push_value(&values, evaluator_apply_operator(op, a, b));
+        if (op == 'u') {
+            evaluator_push_value(&values, evaluator_apply_operator(op, b, 0));
+        } else {
+            f32 a = evaluator_pop_value(&values);
+            evaluator_push_value(&values, evaluator_apply_operator(op, a, b));
+        }
     }
 
     return evaluator_pop_value(&values);
@@ -209,82 +219,113 @@ f32 evaluator_evaluate_expression(const char* expr) {
 // Evaluate built-in functions
 f32 evaluator_evaluate_function(const char* name, const char* args) {
     if (str_compare(name, "min") == 0) {
-        const char* comma = strchr(args, ',');
+        const char* comma = str_find(args, ',');
         if (!comma) {
-            return 0.0;
+            return 0.0; // Invalid function call (min requires at least two arguments)
         }
 
+        // Split the arguments into two expressions
         char arg1[64], arg2[64];
         memcpy(arg1, args, comma - args);
         arg1[comma - args] = '\0';
         str_copy_short(arg2, comma + 1);
 
+        // Recursively evaluate the arguments
         f32 val1 = evaluator_evaluate_expression(arg1);
         f32 val2 = evaluator_evaluate_expression(arg2);
 
-        return OMS_MIN(val1, val2);
+        return (val1 < val2) ? val1 : val2; // Return the minimum value
     } else if (str_compare(name, "max") == 0) {
-        const char* comma = strchr(args, ',');
+        const char* comma = str_find(args, ',');
         if (!comma) {
-            return 0.0;
+            return 0.0; // Invalid function call (max requires at least two arguments)
         }
 
+        // Split the arguments into two expressions
         char arg1[64], arg2[64];
         memcpy(arg1, args, comma - args);
         arg1[comma - args] = '\0';
         str_copy_short(arg2, comma + 1);
 
+        // Recursively evaluate the arguments
         f32 val1 = evaluator_evaluate_expression(arg1);
         f32 val2 = evaluator_evaluate_expression(arg2);
 
-        return OMS_MAX(val1, val2);
+        return (val1 > val2) ? val1 : val2; // Return the maximum value
+    } else if (str_compare(name, "sqrt") == 0) {
+        // Evaluate the single argument
+        f32 val = evaluator_evaluate_expression(args);
+        return sqrtf(val); // Return the square root
+    } else if (str_compare(name, "abs") == 0) {
+        // Evaluate the single argument
+        f32 val = evaluator_evaluate_expression(args);
+        return OMS_ABS(val); // Return the absolute value
     }
 
+    // Handle unknown functions (you can add more functions as needed)
     return 0.0;
 }
 
-f32 evaluator_evaluate(char* expr, int32 variable_count = 0, const EvaluatorVariable* variables = NULL) {
+f32 evaluator_evaluate(const char* expr, int32 variable_count = 0, const EvaluatorVariable* variables = NULL) {
     // Handle variables
-    const char* ptr = expr;
-    int32 available_variables = variable_count;
+    char expr_internal[1024];
+    char* dest = expr_internal;
 
-    while (*ptr && available_variables) {
-        // Skip none-alpha values
-        while (!str_is_alpha(*ptr) && *ptr != '\0') {
-            ++ptr;
-        }
+    if (variable_count) {
+        while (*expr != '\0') {
+            // Skip none-alpha values
+            while (!str_is_alpha(*expr) && *expr != '\0') {
+                if (*expr != ' ') {
+                    *dest++ = *expr;
+                }
 
-        if (*ptr == '\0') {
-            continue;
-        }
+                ++expr;
+            }
 
-        // Potential variable name
-        for (int32 i = 0; i < variable_count; ++i) {
-            size_t len = strlen(variables[i].name);
-
-            // Check  if string is variable (must be followed by a whitespace or end of string)
-            if (str_compare(ptr, variables[i].name, len) == 0 && (ptr[len] == ' ' || ptr[len] == '\0')) {
-                // Remove variable
-                str_remove(expr, ptr - expr, len);
-
-                // Replace variable with value
-                char value[25];
-                int32 value_length = float_to_str(variables[i].value, value, 4);
-                str_insert(expr, ptr - expr, value);
-
-                --available_variables;
+            if (*expr == '\0') {
                 break;
             }
-        }
 
-        // Move past string, this should work regardless of whether we found a variable or not
-        while (str_is_alpha(*ptr) && *ptr != '\0') {
-            ++ptr;
+            // Potential variable name
+            bool found_variable = false;
+            for (int32 i = 0; i < variable_count; ++i) {
+                size_t len = str_length(variables[i].name);
+
+                // Check if string is variable (must be followed by none-alpha value = string mustn't continue)
+                if (str_compare(expr, variables[i].name, len) == 0
+                    && !str_is_alphanum(expr[len]) && expr[len] != '('
+                ) {
+                    // Replace variable with value
+                    dest += float_to_str(variables[i].value, dest, 4);
+                    expr += len;
+                    found_variable = true;
+                    break;
+                }
+            }
+
+            if (!found_variable) {
+                // If no variable is found we must skip the entire alpha string,
+                // otherwise a substring may match a variable name later on
+                while (str_is_alphanum(*expr)) {
+                    *dest++ = *expr++;
+                }
+            }
         }
     }
 
-    // Evaluate math formula
-    return evaluator_evaluate_expression(expr);
+    // Copy remaining / or entire string over to internal expression
+    // We also ignore all whitespaces here for simplified handling later on
+    while (*expr != '\0') {
+        if (*expr != ' ') {
+            *dest++ = *expr;
+        }
+
+        ++expr;
+    }
+
+    *dest = '\0';
+
+    return evaluator_evaluate_expression(expr_internal);
 }
 
 #endif

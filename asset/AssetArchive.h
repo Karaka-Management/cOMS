@@ -89,7 +89,7 @@ int32 asset_archive_header_size(AssetArchive* __restrict archive, const byte* __
         + asset_dependency_count * sizeof(int32);
 }
 
-void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte* __restrict data, int32 steps = 8)
+void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte* __restrict data, [[maybe_unused]] int32 steps = 8)
 {
     header->version = SWAP_ENDIAN_LITTLE(*((int32 *) data));
     data += sizeof(header->version);
@@ -142,7 +142,7 @@ void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* b
     }
     archive->mmf = file_mmf_handle(archive->fd_async);
 
-    FileBody file;
+    FileBody file = {};
     file.size = 64;
 
     // Find header size
@@ -186,7 +186,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     AssetArchiveElement* element = &archive->header.asset_element[id & 0x00FFFFFF];
 
     byte component_id = archive->asset_type_map[element->type];
-    AssetComponent* ac = &ams->asset_components[component_id];
+    //AssetComponent* ac = &ams->asset_components[component_id];
 
     // Create a string representation from the asset id
     // We can't just use the asset id, since an int can have a \0 between high byte and low byte

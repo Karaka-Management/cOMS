@@ -153,18 +153,30 @@ void update_timing_stat_reset(uint32 stat)
 inline
 void reset_counter(int32 id)
 {
+    if (!debug_container || !debug_container->counter) {
+        return;
+    }
+
     atomic_set_acquire(&debug_container->counter[id], 0);
 }
 
 inline
 void log_increment(int32 id, int64 by = 1)
 {
+    if (!debug_container || !debug_container->counter) {
+        return;
+    }
+
     atomic_add_acquire(&debug_container->counter[id], by);
 }
 
 inline
 void log_counter(int32 id, int64 value)
 {
+    if (!debug_container || !debug_container->counter) {
+        return;
+    }
+
     atomic_set_acquire(&debug_container->counter[id], value);
 }
 
@@ -273,7 +285,7 @@ void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* 
 }
 
 // undo reserve
-void debug_memory_free(uintptr_t start, uint64 size)
+void debug_memory_free(uintptr_t start)
 {
     if (!start || !debug_container) {
         return;
@@ -335,7 +347,7 @@ void log(const char* str, bool should_log, const char* file, const char* functio
         return;
     }
 
-    int64 len = strlen(str);
+    int64 len = str_length(str);
     while (len > 0) {
         LogMessage* msg = (LogMessage *) log_get_memory();
 
@@ -344,6 +356,7 @@ void log(const char* str, bool should_log, const char* file, const char* functio
         msg->function = function;
         msg->line = line;
         msg->message = (char *) (msg + 1);
+        msg->time = system_time();
 
         int32 message_length = (int32) OMS_MIN(MAX_LOG_LENGTH - sizeof(LogMessage) - 1, len);
 
@@ -361,7 +374,7 @@ void log(const char* str, bool should_log, const char* file, const char* functio
 
 void log(const char* format, LogDataArray data, bool should_log, const char* file, const char* function, int32 line)
 {
-    ASSERT_SIMPLE(strlen(format) + strlen(file) + strlen(function) + 50 < MAX_LOG_LENGTH);
+    ASSERT_SIMPLE(str_length(format) + str_length(file) + str_length(function) + 50 < MAX_LOG_LENGTH);
 
     if (!should_log || !debug_container) {
         return;
@@ -377,6 +390,7 @@ void log(const char* format, LogDataArray data, bool should_log, const char* fil
     msg->function = function;
     msg->line = line;
     msg->message = (char *) (msg + 1);
+    msg->time = system_time();
 
     char temp_format[MAX_LOG_LENGTH];
     str_copy_short(msg->message, format);
@@ -389,6 +403,8 @@ void log(const char* format, LogDataArray data, bool should_log, const char* fil
         str_copy_short(temp_format, msg->message);
 
         switch (data.data[i].type) {
+            case LOG_DATA_NONE: {
+            }   break;
             case LOG_DATA_BYTE: {
                 sprintf_fast_iter(msg->message, temp_format, (int32) *((byte *) data.data[i].value));
             } break;

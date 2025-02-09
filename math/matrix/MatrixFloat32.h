@@ -9,7 +9,6 @@
 #ifndef TOS_MATH_MATRIX_FLOAT32_H
 #define TOS_MATH_MATRIX_FLOAT32_H
 
-#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include "../../utils/TestUtils.h"
@@ -43,19 +42,19 @@ void vec2_add(v2_f32* __restrict vec, const v2_f32* b) {
 }
 
 inline
-void vec2_sub(v2_f32* __restrict vec, const v2_f32* a, const v2_f32* b) {
+void vec2_sub(v2_f32* __restrict vec, const v2_f32* __restrict a, const v2_f32* __restrict b) {
     vec->x = a->x - b->x;
     vec->y = a->y - b->y;
 }
 
 inline
-void vec2_sub(v2_f32* __restrict vec, const v2_f32* b) {
+void vec2_sub(v2_f32* __restrict vec, const v2_f32* __restrict b) {
     vec->x -= b->x;
     vec->y -= b->y;
 }
 
 inline
-void vec2_mul(v2_f32* vec, const v2_f32* a, f32 s) {
+void vec2_mul(v2_f32* __restrict vec, const v2_f32* __restrict a, f32 s) {
     vec->x = a->x * s;
     vec->y = a->y * s;
 }
@@ -78,7 +77,7 @@ void vec2_mul(v2_f32* __restrict vec, const v2_f32* a, const v2_f32* b) {
 }
 
 inline
-void vec2_mul(v2_f32* __restrict vec, const v2_f32* b) {
+void vec2_mul(v2_f32* vec, const v2_f32* b) {
     vec->x *= b->x;
     vec->y *= b->y;
 }
@@ -140,21 +139,21 @@ void vec3_add(v3_f32* __restrict vec, const v3_f32* b) {
 }
 
 inline
-void vec3_sub(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) {
+void vec3_sub(v3_f32* __restrict vec, const v3_f32* __restrict a, const v3_f32* __restrict b) {
     vec->x = a->x - b->x;
     vec->y = a->y - b->y;
     vec->z = a->z - b->z;
 }
 
 inline
-void vec3_sub(v3_f32* __restrict vec, const v3_f32* b) {
+void vec3_sub(v3_f32* __restrict vec, const v3_f32* __restrict b) {
     vec->x -= b->x;
     vec->y -= b->y;
     vec->z -= b->z;
 }
 
 inline
-void vec3_mul(v3_f32* vec, const v3_f32* a, f32 s) {
+void vec3_mul(v3_f32* __restrict vec, const v3_f32* __restrict a, f32 s) {
     vec->x = a->x * s;
     vec->y = a->y * s;
     vec->z = a->z * s;
@@ -180,7 +179,7 @@ void vec3_mul(v3_f32* __restrict vec, const v3_f32* a, const v3_f32* b) {
 }
 
 inline
-void vec3_mul(v3_f32* __restrict vec, const v3_f32* b) {
+void vec3_mul(v3_f32* vec, const v3_f32* b) {
     vec->x *= b->x;
     vec->y *= b->y;
     vec->z *= b->z;
@@ -224,7 +223,7 @@ void vec4_add(v4_f32* __restrict vec, const v4_f32* b) {
 }
 
 inline
-void vec4_sub(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) {
+void vec4_sub(v4_f32* __restrict vec, const v4_f32* __restrict a, const v4_f32* __restrict b) {
     vec->x = a->x - b->x;
     vec->y = a->y - b->y;
     vec->z = a->z - b->z;
@@ -232,7 +231,7 @@ void vec4_sub(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) {
 }
 
 inline
-void vec4_sub(v4_f32* __restrict vec, const v4_f32* b) {
+void vec4_sub(v4_f32* __restrict vec, const v4_f32* __restrict b) {
     vec->x -= b->x;
     vec->y -= b->y;
     vec->z -= b->z;
@@ -240,7 +239,7 @@ void vec4_sub(v4_f32* __restrict vec, const v4_f32* b) {
 }
 
 inline
-void vec4_mul(v4_f32* vec, const v4_f32* a, f32 s) {
+void vec4_mul(v4_f32* __restrict vec, const v4_f32* __restrict a, f32 s) {
     vec->x = a->x * s;
     vec->y = a->y * s;
     vec->z = a->z * s;
@@ -269,7 +268,7 @@ void vec4_mul(v4_f32* __restrict vec, const v4_f32* a, const v4_f32* b) {
 }
 
 inline
-void vec4_mul(v4_f32* __restrict vec, const v4_f32* b) {
+void vec4_mul(v4_f32* vec, const v4_f32* b) {
     vec->x *= b->x;
     vec->y *= b->y;
     vec->z *= b->z;

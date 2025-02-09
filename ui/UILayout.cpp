@@ -16,6 +16,8 @@
 #include "UIInput.h"
 #include "UILabel.h"
 
+// @todo We should add some asserts that ensure that the respective structs at least start at a 4byte memory alignment
+
 // Doesn't change the position of pos outside of the function, since lookahead
 static
 void ui_layout_count_direct_children(UIElement* __restrict element, const char* __restrict pos, int32 parent_level)
@@ -24,23 +26,29 @@ void ui_layout_count_direct_children(UIElement* __restrict element, const char* 
     // We have to perform a lookahead since this determins the size of our children array
     uint16 direct_child_elements = 0;
 
-    int32 level = 0;
+    int32 level;
     while (*pos != '\0') {
-        while (*pos == ' ' || *pos == '\t') {
+        level = 0;
+        while (is_whitespace(*pos)) {
             ++pos;
             ++level;
         }
 
         if (level > parent_level + 4) {
             // This element is a childrens child and not a direct child
+            str_move_past(&pos, '\n');
+
             continue;
         } else if (level <= parent_level || !str_is_alphanum(*pos)) {
             // We are no longer inside of element
+            str_move_past(&pos, '\n');
+
             break;
         }
 
-        ++direct_child_elements;
         str_move_past(&pos, '\n');
+
+        ++direct_child_elements;
     }
 
     element->children_count = direct_child_elements;
@@ -55,20 +63,24 @@ void ui_layout_assign_children(
 ) {
     int32 current_child_pos = 0;
 
-    char block_name[28];
+    char block_name[HASH_MAP_MAX_KEY_LENGTH];
 
-    int32 level = 0;
     while (*pos != '\0') {
-        while (*pos == ' ' || *pos == '\t') {
+        int32 level = 0;
+        while (is_whitespace(*pos)) {
             ++pos;
             ++level;
         }
 
         if (level > parent_level + 4) {
             // This element is a childrens child and not a direct child
+            str_move_past(&pos, '\n');
+
             continue;
         } else if (level <= parent_level) {
             // We are no longer inside of element
+            str_move_past(&pos, '\n');
+
             break;
         }
 
@@ -96,17 +108,17 @@ void layout_from_file_txt(
     const char* __restrict path,
     RingMemory* ring
 ) {
-    FileBody file;
+    FileBody file = {};
     file_read(path, &file, ring);
     ASSERT_SIMPLE(file.size);
 
     const char* pos = (char *) file.content;
 
-    // move past the version string
+    // move past the "version" string
     pos += 8;
 
     // Use version for different handling
-    int32 version = strtol(pos, (char **) &pos, 10); ++pos;
+    [[maybe_unused]] int32 version = (int32) str_to_int(pos, &pos); ++pos;
 
     // 1. Iteration: We have to find how many elements are defined in the layout file.
     // Therefore we have to do an initial iteration
@@ -133,34 +145,32 @@ void layout_from_file_txt(
     // move past version string
     str_move_past(&pos, '\n');
 
-    char block_name[28];
-    char block_type[28];
+    char block_name[HASH_MAP_MAX_KEY_LENGTH];
+    char block_type[32];
 
     // We store the UIElement and associated data after the hashmap
     byte* element_data = layout->data + hm_size;
 
     // Create root element
     UIElement* root = (UIElement *) element_data;
-    hashmap_insert(&layout->hash_map, ":root", element_data - layout->data);
+    hashmap_insert(&layout->hash_map, ":root", (int32) (element_data - layout->data));
     ui_layout_count_direct_children(root, pos, -4);
 
     // NOTE: The root element cannot have any animations or vertices
     element_data += sizeof(UIElement) + sizeof(uint32) * root->children_count;
 
-    int32 level;
     while (*pos != '\0') {
-        if (*pos == '\n') {
-            ++pos;
-            continue;
+        while (is_eol(pos)) {
+            pos += is_eol(pos);
         }
 
-        level = 0;
-        while (*pos == ' ' || *pos == '\t')  {
+        int32 level = 0;
+        while (is_whitespace(*pos))  {
             ++pos;
             ++level;
         }
 
-        if (*pos == '\n' || *pos == '\0') {
+        if (is_eol(pos) || *pos == '\0') {
             continue;
         }
 
@@ -203,18 +213,17 @@ void layout_from_file_txt(
     str_move_past(&pos, '\n');
 
     while (*pos != '\0') {
-        if (*pos == '\n') {
-            ++pos;
-            continue;
+        while (is_eol(pos)) {
+            pos += is_eol(pos);
         }
 
-        level = 0;
-        while (*pos == ' ' || *pos == '\t')  {
+        int32 level = 0;
+        while (is_whitespace(*pos))  {
             ++pos;
             ++level;
         }
 
-        if (*pos == '\n' || *pos == '\0') {
+        if (is_eol(pos) || *pos == '\0') {
             continue;
         }
 
@@ -238,13 +247,16 @@ void layout_from_file_txt(
 
     int32 child = 0;
     while (*pos != '\0') {
-        if (*pos == '\n') {
-            ++pos;
+        while (is_eol(pos)) {
+            pos += is_eol(pos);
+        }
+
+        if (is_whitespace(*pos)) {
+            str_move_past(&pos, '\n');
             continue;
         }
 
-        if (*pos == ' ' || *pos == '\t') {
-            str_move_past(&pos, '\n');
+        if (is_eol(pos) || *pos == '\0') {
             continue;
         }
 
@@ -276,8 +288,7 @@ static
 void ui_layout_serialize_element(
     HashEntryInt32* entry,
     byte* data,
-    byte** pos,
-    const byte* start
+    byte** pos
 ) {
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of layout->data
@@ -405,28 +416,16 @@ int32 layout_to_data(
     pos += hashmap_dump(&layout->hash_map, pos);
 
     // UIElement data
-    for (uint32 i = 0; i < layout->hash_map.buf.count; ++i) {
-        HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry_by_index((HashMap *) &layout->hash_map, i);
-        if (!entry) {
-            continue;
-        }
+    uint32 chunk_id = 0;
+    chunk_iterate_start(&layout->hash_map.buf, chunk_id)
+        HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
 
         pos = start + entry->value;
-        ui_layout_serialize_element(entry, layout->data, &pos, start);
+        ui_layout_serialize_element(entry, layout->data, &pos);
         if (pos > max_pos) {
             max_pos = pos;
         }
-
-        // save all the next elements
-        while (entry->next) {
-            pos = start + entry->value;
-            ui_layout_serialize_element(entry, layout->data, &pos, start);
-            if (pos > max_pos) {
-                max_pos = pos;
-            }
-            entry = (HashEntryInt32 *) hashmap_get_entry_by_element((HashMap *) &layout->hash_map, entry->next);
-        }
-    }
+    chunk_iterate_end;
 
     return (int32) (max_pos - data);
 }
@@ -576,28 +575,17 @@ int32 layout_from_data(
     pos += hashmap_load(&layout->hash_map, pos);
 
     // layout data
-    for (int32 i = 0; i < layout->hash_map.buf.count; ++i) {
-        HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry_by_index(&layout->hash_map, i);
-        if (!entry) {
-            continue;
-        }
+    // @performance We are iterating the hashmap twice (hashmap_load and here)
+    uint32 chunk_id = 0;
+    chunk_iterate_start(&layout->hash_map.buf, chunk_id)
+        HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
 
         pos = start + entry->value;
         ui_layout_parse_element(entry, layout->data, &pos);
         if (pos > max_pos) {
             max_pos = pos;
         }
-
-        // save all the next elements
-        while (entry->next) {
-            pos = start + entry->value;
-            ui_layout_parse_element(entry, layout->data, &pos);
-            if (pos > max_pos) {
-                max_pos = pos;
-            }
-            entry = (HashEntryInt32 *) hashmap_get_entry_by_element(&layout->hash_map, entry->next);
-        }
-    }
+    chunk_iterate_end;
 
     layout->layout_size = (uint32) (max_pos - data);
 
@@ -623,22 +611,22 @@ void layout_from_theme(
 
     // @todo Handle animations
     // @todo Handle vertices_active offset
-
-    layout->font = theme->font;
+    if (theme->font) {
+        layout->font = theme->font;
+    }
 
     // Current position where we can the different sub elements (e.g. :hover, :active, ...)
     // We make sure that the offset is a multiple of 8 bytes for better alignment
     uint32 dynamic_pos = ROUND_TO_NEAREST(layout->layout_size, 8);
 
     // We first need to handle the default element -> iterate all elements but only handle the default style
-    for (int32 i = 0; i < theme->hash_map.buf.count; ++i) {
-        HashEntryInt32* style_entry = (HashEntryInt32 *) hashmap_get_entry_by_index((HashMap *) &theme->hash_map, i);
-        if (!style_entry) {
-            continue;
-        }
+    // The reason for this is, later on in the specialized style we use the base style and copy it over as foundation
+    uint32 chunk_id = 0;
+    chunk_iterate_start(&theme->hash_map.buf, chunk_id)
+        HashEntryInt32* style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
 
         // We don't handle special styles here, only the default one
-        if (strchr(style_entry->key, ':')) {
+        if (str_find(style_entry->key, ':')) {
             continue;
         }
 
@@ -666,25 +654,24 @@ void layout_from_theme(
                 );
             } break;
         }
-    }
+    chunk_iterate_end;
 
     // We iterate every style
     //      1. Fill default element if it is default style
     //      2. Create and fill new element if it isn't default style (e.g. :hover)
-    for (int32 i = 0; i < theme->hash_map.buf.count; ++i) {
-        HashEntryInt32* style_entry = (HashEntryInt32 *) hashmap_get_entry_by_index((HashMap *) &theme->hash_map, i);
-        if (!style_entry) {
-            continue;
-        }
+    // @performance It is dumb that we iterate here again (see iteration above). It would be nice to combine both iterations
+    // If we could see if the default element is already populated we could easily combine this
+    // We could use a helper array to keep track of initialized chunk_id but we also don't have access to malloc/ring memory here
+    chunk_id = 0;
+    chunk_iterate_start(&theme->hash_map.buf, chunk_id)
+        HashEntryInt32* style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
 
         // We only handle special styles here, not the default one
-        char* special = strchr(style_entry->key, ':');
+        const char* special = str_find(style_entry->key, ':');
         if (!special) {
             // The default element was already handled outside this loop
             continue;
         }
-
-        UIStyleType style_type = (UIStyleType) ui_style_type_to_id(special);
 
         char pure_name[HASH_MAP_MAX_KEY_LENGTH];
         str_copy_until(style_entry->key, pure_name, ':');
@@ -696,6 +683,7 @@ void layout_from_theme(
         }
 
         UIElement* element = (UIElement *) (layout->data + entry->value);
+        UIStyleType style_type = (UIStyleType) ui_style_type_to_id(special);
 
         // Doesn't exist (usually the first load, but exists when we resize our window)
         if (!element->style_types[style_type]) {
@@ -726,7 +714,7 @@ void layout_from_theme(
                 );
             } break;
         }
-    }
+    chunk_iterate_end;
 }
 
 void ui_layout_update(UILayout* layout, UIElement* element) {
@@ -842,6 +830,42 @@ inline
 uint32 layout_element_from_location(UILayout* layout, uint16 x, uint16 y)
 {
     return layout->ui_chroma_codes[layout->width * y / 4 + x / 4];
+}
+
+inline
+UIElement* layout_get_element(const UILayout* __restrict layout, const char* __restrict element)
+{
+    HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry((HashMap *) &layout->hash_map, element);
+    if (!entry) {
+        return NULL;
+    }
+
+    return (UIElement *) (layout->data + entry->value);
+}
+
+inline
+void* layout_get_element_state(const UILayout* layout, UIElement* element)
+{
+    return layout->data + element->state;
+}
+
+inline
+void* layout_get_element_style(const UILayout* layout, UIElement* element, UIStyleType style_type)
+{
+    return layout->data + element->style_types[style_type];
+}
+
+inline
+UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element)
+{
+    return (UIElement *) (layout->data + element->parent);
+}
+
+inline
+UIElement* layout_get_element_child(const UILayout* layout, UIElement* element, uint16 child)
+{
+    uint16* children = (uint16 *) (element + 1);
+    return (UIElement *) (layout->data + children[child]);
 }
 
 #endif

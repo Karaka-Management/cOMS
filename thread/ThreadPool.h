@@ -9,9 +9,6 @@
 #ifndef TOS_THREADS_THREAD_POOL_H
 #define TOS_THREADS_THREAD_POOL_H
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "../stdlib/Types.h"
 #include "../memory/Queue.h"
 #include "../memory/BufferMemory.h"
@@ -28,13 +25,13 @@ struct ThreadPool {
     pthread_cond_t work_cond;
     pthread_cond_t working_cond;
 
-    int32 working_cnt;
-    int32 thread_cnt;
+    atomic_32 int32 working_cnt;
+    atomic_32 int32 thread_cnt;
 
     int32 size;
-    int32 state;
+    atomic_32 int32 state;
 
-    int32 id_counter;
+    atomic_32 int32 id_counter;
 };
 
 static THREAD_RETURN thread_pool_worker(void* arg)

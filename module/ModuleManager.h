@@ -30,7 +30,7 @@ void module_file_parse(const char* path, Module* module, RingMemory* ring)
     const char* space;
 
     while (line != NULL) {
-        space = strchr(line, ' ');
+        space = str_find(line, ' ');
         if (space != NULL) {
             size_t name_length = space - line;
             strncpy_s(name, MAX_LENGTH, line, name_length);
@@ -40,7 +40,7 @@ void module_file_parse(const char* path, Module* module, RingMemory* ring)
 
             if (str_compare(name, "name") == 0) {
                 strncpy_s(module->name, MAX_LENGTH, value, sizeof(module->name) - 1);
-                module->name[strlen(value)] = '\0';
+                module->name[str_length(value)] = '\0';
             } else if (str_compare(name, "version") == 0) {
                 module->version = (byte) atol(value);
             } else if (str_compare(name, "type") == 0) {

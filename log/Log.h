@@ -9,7 +9,6 @@
 #ifndef TOS_LOG_H
 #define TOS_LOG_H
 
-#include <stdio.h>
 #include "../stdlib/Types.h"
 #include "Debug.h"
 

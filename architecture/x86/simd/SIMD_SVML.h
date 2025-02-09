@@ -12,6 +12,8 @@
 #include <immintrin.h>
 #include <xmmintrin.h>
 
+#include "../../../stdlib/Types.h"
+
 #if __linux__
     #include "math.h"
 

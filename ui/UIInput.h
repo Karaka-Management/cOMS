@@ -92,7 +92,7 @@ void ui_input_state_unserialize(UIInputState* __restrict state, const byte** __r
 void ui_input_state_populate(const UIAttributeGroup* __restrict group, UIInputState* __restrict state) {
 
     UIAttribute* attributes = (UIAttribute *) (group + 1);
-    for (int32 i = 0; i < group->attribute_count; ++i) {
+    for (uint32 i = 0; i < group->attribute_count; ++i) {
         switch (attributes[i].attribute_id) {
             case UI_ATTRIBUTE_TYPE_TYPE: {
                     state->type = (UIInputType) attributes[i].value_int;
@@ -168,7 +168,6 @@ void ui_input_element_populate(
                 } break;
             default:
                 UNREACHABLE();
-                parent_dimension = NULL;
         }
 
         variables[2].value = parent_dimension->x;
@@ -180,11 +179,11 @@ void ui_input_element_populate(
     UIAttribute* attributes = (UIAttribute *) (group + 1);
 
     // First set all values, which we can set immediately
-    for (int32 i = 0; i < group->attribute_count; ++i) {
+    for (uint32 i = 0; i < group->attribute_count; ++i) {
         switch (attributes->attribute_id) {
-            case UI_ATTRIBUTE_TYPE_DIMENSION_X:
+            case UI_ATTRIBUTE_TYPE_POSITION_X:
             case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH:
-            case UI_ATTRIBUTE_TYPE_DIMENSION_Y:
+            case UI_ATTRIBUTE_TYPE_POSITION_Y:
             case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {
                     ui_theme_assign_dimension(&input->dimension, attributes, 6, variables);
                 } break;
@@ -195,7 +194,7 @@ void ui_input_element_populate(
 int32 ui_input_element_update(UILayout* layout, UIElement* element)
 {
     UIInput* input = (UIInput *) (layout->data + element->style_types[element->style_new]);
-    UIInputState* state = (UIInputState *) (layout->data + element->state);
+    //UIInputState* state = (UIInputState *) (layout->data + element->state);
 
     int32 idx = 0;
     f32 zindex = element->zindex;

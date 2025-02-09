@@ -18,7 +18,7 @@
 
 #include "BufferMemory.h"
 #include "../log/Log.h"
-#include "../log/DebugMemory.h"
+#include "../log/Debug.cpp"
 #include "../thread/Atomic.h"
 #include "../thread/Semaphore.h"
 #include "../thread/ThreadDefines.h"
@@ -78,7 +78,7 @@ void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, uint32 alignmen
     ring->alignment = alignment;
 
     DEBUG_MEMORY_INIT((uintptr_t) ring->memory, ring->size);
-    DEBUG_MEMORY_RESERVE((uintptr_t) ring->memory, ring->size, 187);
+    DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
 }
 
 inline
@@ -97,17 +97,22 @@ void ring_init(RingMemory* ring, byte* buf, uint64 size, uint32 alignment = 64)
     memset(ring->memory, 0, ring->size);
 
     DEBUG_MEMORY_INIT((uintptr_t) ring->memory, ring->size);
-    DEBUG_MEMORY_RESERVE((uintptr_t) ring->memory, ring->size, 187);
+    DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
 }
 
 inline
 void ring_free(RingMemory* ring)
 {
+    DEBUG_MEMORY_DELETE((uintptr_t) ring->memory, ring->size);
+
     if (ring->alignment < 2) {
         platform_free((void **) &ring->memory);
     } else {
         platform_aligned_free((void **) &ring->memory);
     }
+
+    ring->size = 0;
+    ring->memory = NULL;
 }
 
 inline
@@ -141,6 +146,7 @@ void ring_reset(RingMemory* ring)
 }
 
 // Moves a pointer based on the size you want to consume (new position = after consuming size)
+// Usually used to move head or tail pointer (= pos)
 void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint32 aligned = 4)
 {
     ASSERT_SIMPLE(size <= ring->size);
@@ -234,13 +240,11 @@ byte* ring_get_memory_nomove(RingMemory* ring, uint64 size, uint32 aligned = 4, 
 // Used if the ring only contains elements of a certain size
 // This way you can get a certain element
 inline
-byte* ring_get_element(const RingMemory* ring, uint64 element_count, uint64 element, uint64 size)
+byte* ring_get_element(const RingMemory* ring, uint64 element, uint64 size)
 {
-    int64 index = (element % element_count) - 1;
+    DEBUG_MEMORY_READ((uintptr_t) (ring->memory + element * size), 1);
 
-    DEBUG_MEMORY_READ((uintptr_t) (ring->memory + index * size), 1);
-
-    return ring->memory + index * size;
+    return ring->memory + element * size;
 }
 
 /**
@@ -250,14 +254,15 @@ inline
 bool ring_commit_safe(const RingMemory* ring, uint64 size, uint32 aligned = 4)
 {
     // aligned * 2 since that should be the maximum overhead for an element
+    // -1 since that is the worst case, we can't be missing a complete alignment because than it would be already aligned
     // This is not 100% correct BUT it is way faster than any correct version I can come up with
-    uint64 max_mem_required = size + aligned * 2;
+    uint64 max_mem_required = size + (aligned - 1) * 2;
 
     if (ring->tail < ring->head) {
-        return ((uint64) (ring->end - ring->head)) > max_mem_required
-            || ((uint64) (ring->tail - ring->memory)) > max_mem_required;
+        return ((uint64) (ring->end - ring->head)) >= max_mem_required
+            || ((uint64) (ring->tail - ring->memory)) >= max_mem_required;
     } else if (ring->tail > ring->head) {
-        return ((uint64) (ring->tail - ring->head)) > max_mem_required;
+        return ((uint64) (ring->tail - ring->head)) >= max_mem_required;
     } else {
         return true;
     }
@@ -267,8 +272,9 @@ inline
 bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, uint32 aligned = 4)
 {
     // aligned * 2 since that should be the maximum overhead for an element
+    // -1 since that is the worst case, we can't be missing a complete alignment because than it would be already aligned
     // This is not 100% correct BUT it is way faster than any correct version I can come up with
-    uint64 max_mem_required = size + aligned * 2;
+    uint64 max_mem_required = size + (aligned - 1) * 2;
 
     // @todo consider to switch to uintptr_t
     uint64 tail = (uint64) atomic_get_relaxed((void **) &ring->tail);
@@ -277,10 +283,10 @@ bool ring_commit_safe_atomic(const RingMemory* ring, uint64 size, uint32 aligned
     uint64 head = (uint64) ring->head;
 
     if (tail < head) {
-        return ((uint64) (ring->end - head)) > max_mem_required
-            || ((uint64) (tail - (uint64) ring->memory)) > max_mem_required;
+        return ((uint64) (ring->end - head)) >= max_mem_required
+            || ((uint64) (tail - (uint64) ring->memory)) >= max_mem_required;
     } else if (tail > head) {
-        return ((uint64) (tail - head)) > max_mem_required;
+        return ((uint64) (tail - head)) >= max_mem_required;
     } else {
         return true;
     }

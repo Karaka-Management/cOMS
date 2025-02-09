@@ -114,7 +114,7 @@ void thrd_queue_enqueue_unique_wait(ThreadedQueue* queue, const byte* data)
         ASSERT_SIMPLE((uint64_t) tail % 4 == 0);
 
         // @performance we could probably make this faster since we don't need to compare the entire range
-        if (is_equal_aligned(tail, data, queue->element_size) == 0) {
+        if (is_equal(tail, data, queue->element_size) == 0) {
             pthread_mutex_unlock(&queue->mutex);
 
             return;
@@ -145,7 +145,7 @@ void thrd_queue_enqueue_unique(ThreadedQueue* queue, const byte* data)
         ASSERT_SIMPLE((uint64_t) tail % 4 == 0);
 
         // @performance we could probably make this faster since we don't need to compare the entire range
-        if (is_equal_aligned(tail, data, queue->element_size) == 0) {
+        if (is_equal(tail, data, queue->element_size) == 0) {
             pthread_mutex_unlock(&queue->mutex);
 
             return;

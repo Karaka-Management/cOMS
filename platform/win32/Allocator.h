@@ -15,7 +15,6 @@
 #include "../../utils/TestUtils.h"
 
 // @todo Currently alignment only effects the starting position, but it should also effect the ending/size
-// @todo Consider to rename file to Allocator.h
 
 inline
 void* platform_alloc(size_t size)

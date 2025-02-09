@@ -182,7 +182,7 @@ int32 qoa_clamp_s16(int32 v) {
 	return v;
 }
 
-uint32 qoa_encode_frame(const int16* sample_data, int32 channels, uint32 frame_samples, QoaLms* lms, byte* bytes)
+uint32 qoa_encode_frame(const int16* sample_data, uint32 channels, uint32 frame_samples, QoaLms* lms, byte* bytes)
 {
     byte* start = bytes;
 
@@ -319,11 +319,11 @@ uint32 qoa_encode(const Audio* audio, byte* data) {
 
 	/* Calculate the encoded size and allocate */
     uint32 sample_count = audio->size / (audio->channels * audio->bloc_size);
-	uint32 num_frames = (sample_count + QOA_FRAME_LEN - 1) / QOA_FRAME_LEN;
-	uint32 num_slices = (sample_count + QOA_SLICE_LEN - 1) / QOA_SLICE_LEN;
+	// uint32 num_frames = (sample_count + QOA_FRAME_LEN - 1) / QOA_FRAME_LEN;
+	//uint32 num_slices = (sample_count + QOA_SLICE_LEN - 1) / QOA_SLICE_LEN;
 
     QoaLms lms[QOA_MAX_CHANNELS];
-    for (int32 i = 0; i < audio->channels; ++i) {
+    for (uint32 i = 0; i < audio->channels; ++i) {
         /*
         Set the initial LMS weights to {0, 0, -1, 2}. This helps with the
         prediction of the first few ms of a file.
@@ -339,7 +339,6 @@ uint32 qoa_encode(const Audio* audio, byte* data) {
 
 	// Go through all frames
 	int32 frame_samples = QOA_FRAME_LEN;
-    int32 p = 0;
 
 	for (uint32 sample_index = 0; sample_index < sample_count; sample_index += frame_samples) {
 		frame_samples = qoa_clamp(QOA_FRAME_LEN, 0, sample_count - sample_index);
@@ -352,7 +351,7 @@ uint32 qoa_encode(const Audio* audio, byte* data) {
 	return (uint32) (data - start);
 }
 
-uint32 qoa_decode_frame(const byte* bytes, int32 channels, QoaLms* lms, int16* sample_data)
+uint32 qoa_decode_frame(const byte* bytes, uint32 channels, QoaLms* lms, int16* sample_data)
 {
     const byte* start = bytes;
 
@@ -360,11 +359,11 @@ uint32 qoa_decode_frame(const byte* bytes, int32 channels, QoaLms* lms, int16* s
     uint32 frame_samples = SWAP_ENDIAN_LITTLE(*((uint32 *) bytes));
     bytes += sizeof(frame_samples);
 
-    uint32 slices = (frame_samples + QOA_SLICE_LEN - 1) / QOA_SLICE_LEN;
-    uint32 frame_size = QOA_FRAME_SIZE(channels, slices);
-	uint32 data_size = frame_size - 4 - QOA_LMS_LEN * 4 * channels;
-	uint32 num_slices = data_size / 8;
-	uint32 max_total_samples = num_slices * QOA_SLICE_LEN;
+    //uint32 slices = (frame_samples + QOA_SLICE_LEN - 1) / QOA_SLICE_LEN;
+    //uint32 frame_size = QOA_FRAME_SIZE(channels, slices);
+	//uint32 data_size = frame_size - 4 - QOA_LMS_LEN * 4 * channels;
+	//uint32 num_slices = data_size / 8;
+	// uint32 max_total_samples = num_slices * QOA_SLICE_LEN;
 
 	// Read the LMS state: 4 x 2 bytes history, 4 x 2 bytes weights per channel
 	for (uint32 c = 0; c < channels; ++c) {

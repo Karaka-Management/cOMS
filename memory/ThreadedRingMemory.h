@@ -111,10 +111,10 @@ byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* ring, uint64 size, byte al
 // Used if the ring only contains elements of a certain size
 // This way you can get a certain element
 inline
-byte* thrd_ring_get_element(ThreadedRingMemory* ring, uint64 element_count, uint64 element, uint64 size)
+byte* thrd_ring_get_element(ThreadedRingMemory* ring, uint64 element, uint64 size)
 {
     pthread_mutex_lock(&ring->mutex);
-    byte* result = ring_get_element((RingMemory *) ring, element_count, element, size);
+    byte* result = ring_get_element((RingMemory *) ring, element, size);
     pthread_mutex_unlock(&ring->mutex);
 
     return result;

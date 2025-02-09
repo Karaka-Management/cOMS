@@ -52,6 +52,9 @@ struct VulkanSwapChainSupportDetails {
 inline
 void change_viewport(Window* w, int32 offset_x = 0, int32 offset_y = 0)
 {
+    (void *) w;
+    (void) offset_x;
+    (void) offset_y;
     // @todo implement
 }
 
@@ -62,7 +65,7 @@ int32 vulkan_check_validation_layer_support(const char** validation_layers, uint
     VkLayerProperties* available_layers = (VkLayerProperties *) ring_get_memory(ring, layer_count * sizeof(VkLayerProperties));
     vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
 
-    for (int32 i = 0; i < validation_layer_count; ++i) {
+    for (uint32 i = 0; i < validation_layer_count; ++i) {
         bool layerFound = false;
 
         for (uint32 j = 0; j < layer_count; ++j) {
@@ -73,7 +76,7 @@ int32 vulkan_check_validation_layer_support(const char** validation_layers, uint
         }
 
         if (!layerFound) {
-            return -(i + 1);
+            return -((int32) (i + 1));
         }
     }
 
@@ -87,7 +90,7 @@ int32 vulkan_check_extension_support(const char** extensions, uint32 extension_c
     VkExtensionProperties* available_extensions = (VkExtensionProperties *) ring_get_memory(ring, ext_count * sizeof(VkExtensionProperties));
     vkEnumerateInstanceExtensionProperties(NULL, &ext_count, available_extensions);
 
-    for (int32 i = 0; i < extension_count; ++i) {
+    for (uint32 i = 0; i < extension_count; ++i) {
         bool layerFound = false;
 
         for (uint32 j = 0; j < ext_count; ++j) {
@@ -98,7 +101,7 @@ int32 vulkan_check_extension_support(const char** extensions, uint32 extension_c
         }
 
         if (!layerFound) {
-            return -(i + 1);
+            return -((int32) (i + 1));
         }
     }
 
@@ -225,9 +228,9 @@ bool vulkan_device_supports_extensions(VkPhysicalDevice device, const char** dev
     VkExtensionProperties* available_extensions = (VkExtensionProperties *) ring_get_memory(ring, extension_count * sizeof(VkExtensionProperties));
     vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, available_extensions);
 
-    for (int32 i = 0; i < device_extension_count; ++i) {
+    for (uint32 i = 0; i < device_extension_count; ++i) {
         bool found = false;
-        for (int32 j = 0; j < extension_count; ++j) {
+        for (uint32 j = 0; j < extension_count; ++j) {
             if (str_compare(device_extensions[i], available_extensions[j].extensionName) == 0) {
                 found = true;
                 break;
@@ -269,7 +272,7 @@ VulkanQueueFamilyIndices vulkan_find_queue_families(VkPhysicalDevice physical_de
     VkQueueFamilyProperties* queue_families = (VkQueueFamilyProperties *) ring_get_memory(ring, (queue_family_count + 1) * sizeof(VkQueueFamilyProperties));
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_families);
 
-    for (int32 i = 0; i < queue_family_count; ++i) {
+    for (uint32 i = 0; i < queue_family_count; ++i) {
         if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             indices.graphics_family = i + 1;
         }
@@ -338,7 +341,7 @@ void gpuapi_pick_physical_device(
     VkPhysicalDevice* devices = (VkPhysicalDevice *) ring_get_memory(ring, device_count * sizeof(VkPhysicalDevice));
     vkEnumeratePhysicalDevices(instance, &device_count, devices);
 
-    for (int32 i = 0; i < device_count; ++i) {
+    for (uint32 i = 0; i < device_count; ++i) {
         if (vulkan_is_device_suitable(devices[i], surface, device_extensions, device_extension_count, ring)) {
             // @question Do we really have to do a memcpy or could we just assign? Isn't VkPhysicalDevice just a pointer internally?
             memcpy(physical_device, &devices[i], sizeof(VkPhysicalDevice));
@@ -351,7 +354,7 @@ void gpuapi_pick_physical_device(
 }
 
 void gpuapi_create_logical_device(
-    VkInstance instance, VkSurfaceKHR surface, VkDevice* device, VkPhysicalDevice physical_device,
+    VkSurfaceKHR surface, VkDevice* device, VkPhysicalDevice physical_device,
     VkQueue* graphics_queue, VkQueue* present_queue,
     const char** device_extensions, uint32 device_extension_count,
     const char** validation_layers, uint32 validation_layer_count, RingMemory* ring
@@ -412,7 +415,7 @@ void vulkan_swap_chain_create(
     VulkanSwapChainSupportDetails swap_chain_support = vulkan_query_swap_chain_support(physical_device, surface, ring);
 
     VkSurfaceFormatKHR* surface_format = &swap_chain_support.formats[0];
-    for (int32 i = 0; i < swap_chain_support.format_size; ++i) {
+    for (uint32 i = 0; i < swap_chain_support.format_size; ++i) {
         if (swap_chain_support.formats[i].format == VK_FORMAT_B8G8R8A8_SRGB
             && swap_chain_support.formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
         ) {
@@ -423,7 +426,7 @@ void vulkan_swap_chain_create(
 
     // @todo switch from VK_PRESENT_MODE_MAILBOX_KHR to VK_PRESENT_MODE_FIFO_KHR
     VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
-    for (int32 i = 0; i < swap_chain_support.present_mode_size; ++i) {
+    for (uint32 i = 0; i < swap_chain_support.present_mode_size; ++i) {
         if (swap_chain_support.present_modes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
             present_mode = swap_chain_support.present_modes[i];
             break;
@@ -579,12 +582,10 @@ void vulkan_pipeline_create(
     VkDevice device,
     VkShaderModule vertex_shader,
     VkShaderModule fragment_shader,
-    VkShaderModule geometry_shader,
+    [[maybe_unused]] VkShaderModule geometry_shader,
     VkPipeline* pipeline,
     VkPipelineLayout* pipeline_layout,
-    VkRenderPass render_pass,
-    const char* source,
-    int32 source_size
+    VkRenderPass render_pass
 )
 {
     uint32 stage_count = 0;

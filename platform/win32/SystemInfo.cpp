@@ -44,7 +44,7 @@ uint64 system_private_memory_usage()
     PROCESS_MEMORY_COUNTERS_EX pmc;
     HANDLE process = GetCurrentProcess();
 
-    GetProcessMemoryInfo(process, (PROCESS_MEMORY_COUNTERS*) &pmc, sizeof(pmc));
+    GetProcessMemoryInfo(process, (PROCESS_MEMORY_COUNTERS *) &pmc, sizeof(pmc));
 
     CloseHandle(process);
 

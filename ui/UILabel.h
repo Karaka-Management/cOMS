@@ -22,27 +22,32 @@ struct UILabel {
 
 void ui_label_state_serialize(const UILabelState* __restrict state, byte** __restrict pos)
 {
-
+    (void *) state;
+    (void **) pos;
 }
 
 void ui_label_state_unserialize(UILabelState* __restrict state, const byte** __restrict pos)
 {
-
+    (void *) state;
+    (void **) pos;
 }
 
 void ui_label_state_populate(const UIAttributeGroup* __restrict group, UILabelState* __restrict state)
 {
-
+    (void *) group;
+    (void *) state;
 }
 
 void ui_label_element_serialize(const UILabel* __restrict details, byte** __restrict pos)
 {
-
+    (void *) details;
+    (void **) pos;
 }
 
 void ui_label_element_unserialize(UILabel* __restrict details, const byte** __restrict pos)
 {
-
+    (void *) details;
+    (void **) pos;
 }
 
 void ui_label_element_populate(
@@ -51,6 +56,10 @@ void ui_label_element_populate(
     UIStyleType style_type,
     EvaluatorVariable* __restrict variables
 ) {
+    (void *) group;
+    (void *) element;
+    (void) style_type;
+    (void *) variables;
 }
 
 int32 ui_label_element_update(UILayout* layout, UIElement* element)
@@ -62,8 +71,8 @@ int32 ui_label_element_update(UILayout* layout, UIElement* element)
         layout->vertices_active + element->vertices_active, element->zindex,
         label->dimension.dimension, label->font.alignment,
         layout->font, state->content,
-        label->font.size, label->font.color,
-        label->font.weight
+        label->font.size, label->font.color
+        //label->font.weight
     ).z;
 }
 

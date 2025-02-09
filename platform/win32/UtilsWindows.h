@@ -14,6 +14,7 @@
 #include "../../stdlib/Types.h"
 #include "../../utils/TestUtils.h"
 
+// @question Shouldn't this function and the next one accept a parameter of what to add/remove?
 inline
 void window_remove_style(Window* w)
 {

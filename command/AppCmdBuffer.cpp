@@ -27,6 +27,7 @@
 #include "../ui/UILayout.h"
 #include "../ui/UILayout.cpp"
 #include "../ui/UITheme.h"
+#include "../scene/SceneInfo.h"
 #include "../system/FileUtils.cpp"
 #include "../compiler/CompilerUtils.h"
 
@@ -43,14 +44,14 @@ void cmd_buffer_create(AppCmdBuffer* cb, BufferMemory* buf, int32 commands_count
 
 // This doesn't load the asset directly but tells (most likely) a worker thread to load an asset
 static inline
-void cmd_asset_load_enqueue(AppCmdBuffer* cb, Command* cmd)
+void cmd_asset_load_enqueue(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 {
     queue_enqueue_wait_atomic(cb->assets_to_load, (byte *) cmd->data);
 }
 
 // This doesn't load the file directly but tells (most likely) a worker thread to load a file
 static inline
-void cmd_file_load_enqueue(AppCmdBuffer* cb, Command* cmd)
+void cmd_file_load_enqueue(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 {
     // cmd->data structure:
     //      start with a pointer to a callback function
@@ -59,9 +60,9 @@ void cmd_file_load_enqueue(AppCmdBuffer* cb, Command* cmd)
 }
 
 static inline
-void cmd_file_load(AppCmdBuffer* cb, Command* cmd)
+void cmd_file_load(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 {
-    FileBody file;
+    FileBody file = {};
     file_read((const char *) cmd->data + sizeof(CommandFunction), &file, cb->thrd_mem_vol);
 
     // WARNING: This is not the normal cmd.callback
@@ -71,14 +72,14 @@ void cmd_file_load(AppCmdBuffer* cb, Command* cmd)
 }
 
 static inline
-void* cmd_func_run(AppCmdBuffer* cb, Command* cmd)
+void* cmd_func_run(AppCmdBuffer*, Command* cmd)
 {
     CommandFunction func = *((CommandFunction *) cmd->data);
     return func(cmd);
 }
 
 static inline
-Asset* cmd_asset_load(AppCmdBuffer* cb, Command* cmd)
+Asset* cmd_asset_load(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 {
     int32 asset_id = (int32) str_to_int((char *) cmd->data);
     int32 archive_id = (asset_id >> 24) & 0xFF;
@@ -86,7 +87,7 @@ Asset* cmd_asset_load(AppCmdBuffer* cb, Command* cmd)
 }
 
 static inline
-Asset* cmd_audio_play_enqueue(AppCmdBuffer* cb, Command* cmd)
+Asset* cmd_audio_play_enqueue(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 {
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
@@ -104,7 +105,7 @@ Asset* cmd_audio_play_enqueue(AppCmdBuffer* cb, Command* cmd)
 }
 
 static inline
-Asset* cmd_audio_play_async(AppCmdBuffer* cb, Command* cmd)
+Asset* cmd_audio_play_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 {
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
@@ -117,7 +118,7 @@ Asset* cmd_audio_play_async(AppCmdBuffer* cb, Command* cmd)
 }
 
 static inline
-Asset* cmd_texture_create(AppCmdBuffer* cb, Command* cmd)
+Asset* cmd_texture_create(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 {
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
@@ -135,7 +136,7 @@ Asset* cmd_texture_create(AppCmdBuffer* cb, Command* cmd)
 }
 
 static inline
-Asset* cmd_texture_load_async(AppCmdBuffer* cb, Command* cmd)
+Asset* cmd_texture_load_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 {
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
@@ -148,7 +149,7 @@ Asset* cmd_texture_load_async(AppCmdBuffer* cb, Command* cmd)
 }
 
 static inline
-Asset* cmd_font_create(AppCmdBuffer* cb, Command* cmd)
+Asset* cmd_font_create(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 {
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
@@ -164,7 +165,7 @@ Asset* cmd_font_create(AppCmdBuffer* cb, Command* cmd)
 }
 
 static inline
-Asset* cmd_font_load_async(AppCmdBuffer* cb, Command* cmd)
+Asset* cmd_font_load_async(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
 {
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, (char *) cmd->data);
     if (!asset) {
@@ -177,7 +178,7 @@ Asset* cmd_font_load_async(AppCmdBuffer* cb, Command* cmd)
 }
 
 inline
-void thrd_cmd_insert(AppCmdBuffer* cb, Command* cmd_temp)
+void thrd_cmd_insert(AppCmdBuffer* __restrict cb, Command* __restrict cmd_temp)
 {
     pthread_mutex_lock(&cb->mutex);
     int32 index = chunk_reserve(&cb->commands, 1);
@@ -201,6 +202,7 @@ inline
 void thrd_cmd_insert(AppCmdBuffer* cb, CommandType type, int32 data)
 {
     Command cmd;
+    cmd.callback = NULL;
     cmd.type = type;
     *((int32 *) cmd.data) = data;
 
@@ -211,14 +213,16 @@ inline
 void thrd_cmd_insert(AppCmdBuffer* cb, CommandType type, const char* data)
 {
     Command cmd;
+    cmd.callback = NULL;
     cmd.type = type;
     str_copy_short((char *) cmd.data, data);
 
     thrd_cmd_insert(cb, &cmd);
 }
 
-inline void thrd_cmd_func_insert(AppCmdBuffer* cb, CommandType type, CommandFunction* func) {
+inline void thrd_cmd_func_insert(AppCmdBuffer* cb, CommandFunction* func) {
     Command cmd;
+    cmd.callback = NULL;
     cmd.type = CMD_FUNC_RUN;
     *((CommandFunction *) cmd.data) = *func;
 
@@ -227,6 +231,7 @@ inline void thrd_cmd_func_insert(AppCmdBuffer* cb, CommandType type, CommandFunc
 
 inline void thrd_cmd_audio_play(AppCmdBuffer* cb, int32 data) {
     Command cmd;
+    cmd.callback = NULL;
     cmd.type = CMD_AUDIO_PLAY;
     *((int32 *) cmd.data) = data;
 
@@ -235,6 +240,7 @@ inline void thrd_cmd_audio_play(AppCmdBuffer* cb, int32 data) {
 
 inline void thrd_cmd_audio_play(AppCmdBuffer* cb, const char* data) {
     Command cmd;
+    cmd.callback = NULL;
     cmd.type = CMD_AUDIO_PLAY;
     str_copy_short((char *) cmd.data, data);
 
@@ -243,6 +249,7 @@ inline void thrd_cmd_audio_play(AppCmdBuffer* cb, const char* data) {
 
 inline void thrd_cmd_func_run(AppCmdBuffer* cb, CommandFunction* func) {
     Command cmd;
+    cmd.callback = NULL;
     cmd.type = CMD_FUNC_RUN;
     *((CommandFunction *) cmd.data) = *func;
 
@@ -251,6 +258,7 @@ inline void thrd_cmd_func_run(AppCmdBuffer* cb, CommandFunction* func) {
 
 inline void thrd_cmd_texture_load(AppCmdBuffer* cb, int32 data) {
     Command cmd;
+    cmd.callback = NULL;
     cmd.type = CMD_TEXTURE_LOAD;
     *((int32 *) cmd.data) = data;
 
@@ -259,6 +267,7 @@ inline void thrd_cmd_texture_load(AppCmdBuffer* cb, int32 data) {
 
 inline void thrd_cmd_texture_load(AppCmdBuffer* cb, const char* data) {
     Command cmd;
+    cmd.callback = NULL;
     cmd.type = CMD_TEXTURE_LOAD;
     str_copy_short((char *) cmd.data, data);
 
@@ -267,6 +276,7 @@ inline void thrd_cmd_texture_load(AppCmdBuffer* cb, const char* data) {
 
 inline void thrd_cmd_font_load(AppCmdBuffer* cb, int32 data) {
     Command cmd;
+    cmd.callback = NULL;
     cmd.type = CMD_FONT_LOAD;
     *((int32 *) cmd.data) = data;
 
@@ -275,6 +285,7 @@ inline void thrd_cmd_font_load(AppCmdBuffer* cb, int32 data) {
 
 inline void thrd_cmd_font_load(AppCmdBuffer* cb, const char* data) {
     Command cmd;
+    cmd.callback = NULL;
     cmd.type = CMD_FONT_LOAD;
     str_copy_short((char *) cmd.data, data);
 
@@ -339,7 +350,7 @@ inline Asset* cmd_audio_play(AppCmdBuffer* cb, const char* name) {
     return asset;
 }
 
-inline void* cmd_func_run(AppCmdBuffer* cb, CommandFunction func) {
+inline void* cmd_func_run(AppCmdBuffer*, CommandFunction func) {
     return func(NULL);
 }
 
@@ -444,8 +455,14 @@ UILayout* cmd_layout_load_sync(
     AppCmdBuffer* cb,
     UILayout* layout, const char* layout_path
 ) {
-    FileBody layout_file;
+    FileBody layout_file = {};
     file_read(layout_path, &layout_file, cb->mem_vol);
+
+    if (!layout_file.content) {
+        LOG_FORMAT(layout_file.content == NULL, "Failed loading layout \"%s\"\n", {{LOG_DATA_CHAR_STR, &layout_path}});
+        return NULL;
+    }
+
     layout_from_data(layout_file.content, layout);
 
     return layout;
@@ -456,7 +473,7 @@ UIThemeStyle* cmd_theme_load_sync(
     AppCmdBuffer* cb,
     UIThemeStyle* theme, const char* theme_path
 ) {
-    FileBody theme_file;
+    FileBody theme_file = {};
     file_read(theme_path, &theme_file, cb->mem_vol);
     theme_from_data(theme_file.content, theme);
 
@@ -465,7 +482,7 @@ UIThemeStyle* cmd_theme_load_sync(
 
 inline
 void cmd_layout_populate_sync(
-    AppCmdBuffer* cb,
+    AppCmdBuffer*,
     UILayout* layout, const UIThemeStyle* theme,
     const Camera* camera
 ) {
@@ -474,15 +491,20 @@ void cmd_layout_populate_sync(
 
 inline
 UILayout* cmd_ui_load_sync(
-    AppCmdBuffer* cb,
-    UILayout* layout, const char* layout_path,
-    UIThemeStyle* general_theme,
-    UIThemeStyle* theme, const char* theme_path,
-    const Camera* camera
+    AppCmdBuffer* __restrict cb,
+    UILayout* __restrict layout, const char* __restrict layout_path,
+    UIThemeStyle* __restrict general_theme,
+    UIThemeStyle* __restrict theme, const char* __restrict theme_path,
+    const Camera* __restrict camera
 ) {
-    cmd_layout_load_sync(cb, layout, layout_path);
-    cmd_layout_populate_sync(cb, layout, general_theme, camera);
+    if (!cmd_layout_load_sync(cb, layout, layout_path)) {
+        // We have to make sure that at least the font is set
+        layout->font = general_theme->font;
 
+        return NULL;
+    }
+
+    cmd_layout_populate_sync(cb, layout, general_theme, camera);
     cmd_theme_load_sync(cb, theme, theme_path);
     cmd_layout_populate_sync(cb, layout, theme, camera);
 
@@ -490,43 +512,41 @@ UILayout* cmd_ui_load_sync(
 }
 
 static inline
-UILayout* cmd_ui_load(AppCmdBuffer* cb, Command* cmd)
+UILayout* cmd_ui_load(AppCmdBuffer* __restrict cb, const Command* __restrict cmd)
 {
-    byte* pos = cmd->data;
+    const byte* pos = cmd->data;
 
-    UILayout* layout = (UILayout *) pos;
+    SceneInfo* scene = (SceneInfo *) *((uintptr_t *) pos);
     pos += sizeof(uintptr_t);
 
     char* layout_path = (char *) pos;
     str_move_to((const char **) &pos, '\0'); ++pos;
 
-    UIThemeStyle* general_theme = (UIThemeStyle *) pos;
-    pos += sizeof(uintptr_t);
-
-    UIThemeStyle* theme = (UIThemeStyle *) pos;
+    UIThemeStyle* general_theme = (UIThemeStyle *) *((uintptr_t *) pos);
     pos += sizeof(uintptr_t);
 
     char* theme_path = (char *) pos;
     str_move_to((const char **) &pos, '\0'); ++pos;
 
-    Camera* camera = (Camera *) pos;
+    Camera* camera = (Camera *) *((uintptr_t *) pos);
 
     return cmd_ui_load_sync(
         cb,
-        layout, layout_path,
+        &scene->ui_layout, layout_path,
         general_theme,
-        theme, theme_path,
+        &scene->ui_theme, theme_path,
         camera
     );
 }
 
 inline
 void thrd_cmd_ui_load(
-    AppCmdBuffer* cb,
-    UILayout* layout, const char* layout_path,
-    UIThemeStyle* general_theme,
-    UIThemeStyle* theme, const char* theme_path,
-    const Camera* camera,
+    AppCmdBuffer* __restrict cb,
+    SceneInfo* __restrict scene_info,
+    const char* __restrict layout_path,
+    UIThemeStyle* __restrict general_theme,
+    const char* __restrict theme_path,
+    const Camera* __restrict camera,
     CommandFunction callback
 ) {
     Command cmd;
@@ -534,8 +554,8 @@ void thrd_cmd_ui_load(
     cmd.callback = callback;
     byte* pos = cmd.data;
 
-    // Layout pointer
-    *((uintptr_t *) pos) = (uintptr_t) layout;
+    // Scene info pointer
+    *((uintptr_t *) pos) = (uintptr_t) scene_info;
     pos += sizeof(uintptr_t);
 
     // Layout path
@@ -544,10 +564,6 @@ void thrd_cmd_ui_load(
 
     // General theme pointer
     *((uintptr_t *) pos) = (uintptr_t) general_theme;
-    pos += sizeof(uintptr_t);
-
-    // Theme pointer
-    *((uintptr_t *) pos) = (uintptr_t) theme;
     pos += sizeof(uintptr_t);
 
     // Theme path
@@ -571,7 +587,7 @@ void thrd_cmd_ui_load(
 void cmd_iterate(AppCmdBuffer* cb)
 {
     int32 last_element = 0;
-    int32 chunk_id = 0;
+    uint32 chunk_id = 0;
     chunk_iterate_start(&cb->commands, chunk_id)
         Command* cmd = (Command *) chunk_get_element(&cb->commands, chunk_id);
         bool remove = true;
@@ -614,7 +630,7 @@ void cmd_iterate(AppCmdBuffer* cb)
                     remove = cmd_shader_load(cb, cmd) != NULL;
                 } break;
             case CMD_UI_LOAD: {
-                    remove = cmd_ui_load(cb, cmd) != NULL;
+                    cmd_ui_load(cb, cmd);
                 } break;
             default: {
                 UNREACHABLE();
@@ -634,7 +650,7 @@ void cmd_iterate(AppCmdBuffer* cb)
 
         // @performance This adds some unnecessary overhead.
         // It would be better, if we could define cb->last_element as the limit in the for loop
-        if (chunk_id == cb->last_element) {
+        if (chunk_id == (uint32) cb->last_element) {
             break;
         }
     chunk_iterate_end;

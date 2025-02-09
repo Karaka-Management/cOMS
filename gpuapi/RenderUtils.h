@@ -27,13 +27,13 @@ int32 vertex_degenerate_create(
     // They are alternating every loop BUT since we use references they look the same in code
     // WARNING: Before using we must make sure that the 0 index is defined
     //          The easiest way is to just define a "degenerate" starting point
-    vertices[0] = {{vertices[0 - 1].position.x, vertices[0 - 1].position.y, zindex}, {0, 0}};
-    vertices[1] = {{x, y, zindex}, {0, 0}};
+    vertices[0] = {{vertices[-1].position.x, vertices[-1].position.y, zindex}, {}};
+    vertices[1] = {{x, y, zindex}, {}};
 
     return 2;
 }
 
-inline
+static inline
 void adjust_aligned_position(
     f32* __restrict x, f32* __restrict y,
     f32 width, f32 height,
@@ -50,6 +50,25 @@ void adjust_aligned_position(
         *y -= height;
     } else if (alignment & UI_ALIGN_V_CENTER) {
         *y -= height / 2;
+    }
+}
+
+static inline
+void adjust_aligned_position(
+    v4_f32* vec,
+    byte alignment
+)
+{
+    if (alignment & UI_ALIGN_H_RIGHT) {
+        vec->x -= vec->width;
+    } else if (alignment & UI_ALIGN_H_CENTER) {
+        vec->x -= vec->width / 2;
+    }
+
+    if (alignment & UI_ALIGN_V_TOP) {
+        vec->y -= vec->height;
+    } else if (alignment & UI_ALIGN_V_CENTER) {
+        vec->y -= vec->height / 2;
     }
 }
 
@@ -81,12 +100,15 @@ int32 vertex_line_create(
     f32 norm1 = n1 * n_;
     f32 norm2 = n2 * n_;
 
-    int32 idx = vertex_degenerate_create(vertices, zindex, start.x, start.y);
+    int32 idx = 0;
 
-    vertices[idx++] = {{start.x, start.y, zindex}, {-((f32) rgba), 0.0f}};
-    vertices[idx++] = {{start.x + thickness * norm1, start.y + thickness * norm2, zindex}, {-((f32) rgba), 0.0f}};
-    vertices[idx++] = {{end.x, end.y, zindex}, {-((f32) rgba), 0.0f}};
-    vertices[idx++] = {{end.x + thickness * norm1, end.y + thickness * norm2, zindex}, {-((f32) rgba), 0.0f}};
+    vertices[idx++] = {{start.x, start.y, zindex}, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{start.x + thickness * norm1, start.y + thickness * norm2, zindex}, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{end.x, end.y, zindex}, {-1.0f, BITCAST(rgba, f32)}};
+
+    vertices[idx++] = {{end.x, end.y, zindex}, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{end.x + thickness * norm1, end.y + thickness * norm2, zindex}, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{start.x + thickness * norm1, start.y + thickness * norm2, zindex}, {-1.0f, BITCAST(rgba, f32)}};
 
     return idx;
 }
@@ -97,26 +119,31 @@ inline
 int32 vertex_rect_create(
     Vertex3DTextureColor* __restrict vertices, f32 zindex,
     v4_f32 dimension, byte alignment,
-    uint32 rgba = 0, v2_f32 tex1 = {0}, v2_f32 tex2 = {0}
+    uint32 rgba = 0, v2_f32 tex1 = {}, v2_f32 tex2 = {}
 ) {
     if (alignment) {
-        adjust_aligned_position(&dimension.x, &dimension.y, dimension.width, dimension.height, alignment);
+        adjust_aligned_position(&dimension, alignment);
     }
 
     if (rgba) {
-        tex1.x = -((f32) rgba);
-        tex2.x = -((f32) rgba);
-    }
+        tex1.x = -1.0f;
+        tex1.y = BITCAST(rgba, f32);
 
-    int32 idx = vertex_degenerate_create(vertices, zindex, dimension.x, dimension.y);
+        tex2.x = -1.0f;
+        tex2.y = BITCAST(rgba, f32);
+    }
 
     f32 y_height = dimension.y + dimension.height;
     f32 x_width = dimension.x + dimension.width;
+    int32 idx = 0;
 
-    vertices[idx++] = {{dimension.x, dimension.y, zindex}, {tex1.x, tex1.y}};
+    vertices[idx++] = {{dimension.x, dimension.y, zindex}, tex1};
     vertices[idx++] = {{dimension.x, y_height, zindex}, {tex1.x, tex2.y}};
     vertices[idx++] = {{x_width, dimension.y, zindex}, {tex2.x, tex1.y}};
-    vertices[idx++] = {{x_width, y_height, zindex}, {tex2.x, tex2.y}};
+
+    vertices[idx++] = {{x_width, dimension.y, zindex}, {tex2.x, tex1.y}};
+    vertices[idx++] = {{dimension.x, y_height, zindex}, {tex1.x, tex2.y}};
+    vertices[idx++] = {{x_width, y_height, zindex}, tex2};
 
     return idx;
 }
@@ -214,12 +241,18 @@ v3_int32 vertex_text_create(
     Vertex3DTextureColor* __restrict vertices, f32 zindex,
     v4_f32 dimension, byte alignment,
     const Font* __restrict font, const char* __restrict text,
-    f32 size, uint32 rgba = 0,
-    f32 font_weight = 1.0f
+    f32 size, uint32 rgba = 0
 ) {
-    int32 length = utf8_strlen(text);
-    bool is_ascii = (int32) strlen(text) == length;
+    int32 length = utf8_str_length(text);
+    if (length < 1) {
+        return {};
+    }
+
+    bool is_ascii = (int32) str_length(text) == length;
     f32 scale = size / font->size;
+
+    (void) rgba; // @todo we don't have a way to change colors of text for now due to our reduce Vertex size
+    // To fix this we would have to add an additional 4 bytes for every vertex which we maybe don't want to
 
     // If we do a different alignment we need to pre-calculate the width and height
     if (alignment & (UI_ALIGN_H_RIGHT | UI_ALIGN_H_CENTER | UI_ALIGN_V_TOP | UI_ALIGN_V_CENTER)) {
@@ -233,7 +266,7 @@ v3_int32 vertex_text_create(
             dimension.height = text_calculate_dimensions_height(font, text, scale, length);
         }
 
-        adjust_aligned_position(&dimension.x, &dimension.y, dimension.width, dimension.height, alignment);
+        adjust_aligned_position(&dimension, alignment);
     }
 
     f32 line_height_scaled = font->line_height * scale;
@@ -267,9 +300,9 @@ v3_int32 vertex_text_create(
         if (character != ' ' && character != '\t') {
             // @todo We should probably inline the code here, we might be able to even optimize it then
             idx += vertex_rect_create(
-                vertices, zindex,
+                vertices + idx, zindex,
                 {offset_x, offset_y, glyph->metrics.width * scale, glyph->metrics.height * scale}, 0,
-                rgba, glyph->coords.start, glyph->coords.end
+                0, glyph->coords.start, glyph->coords.end
             );
         }
 

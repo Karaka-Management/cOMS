@@ -8,6 +8,7 @@
 #include "UISelect.h"
 #include "UIInput.h"
 #include "UIText.h"
+#include "UILabel.h"
 #include "UITextarea.h"
 #include "UIImage.h"
 #include "UILink.h"
@@ -16,6 +17,7 @@
 #include "UIPanel.h"
 #include "UITab.h"
 #include "UICursor.h"
+#include "UICustom.h"
 
 constexpr
 int32 ui_element_type_size(UIElementType e)
@@ -27,6 +29,8 @@ int32 ui_element_type_size(UIElementType e)
             return sizeof(UISelect);
         case UI_ELEMENT_TYPE_INPUT:
             return sizeof(UIInput);
+        case UI_ELEMENT_TYPE_LABEL:
+            return sizeof(UILabel);
         case UI_ELEMENT_TYPE_TEXT:
             return sizeof(UIText);
         case UI_ELEMENT_TYPE_TEXTAREA:
@@ -45,9 +49,10 @@ int32 ui_element_type_size(UIElementType e)
             return sizeof(UITab);
         case UI_ELEMENT_TYPE_CURSOR:
             return sizeof(UICursor);
+        case UI_ELEMENT_TYPE_CUSTOM:
+            return sizeof(UICustom);
         default: {
             UNREACHABLE();
-            return 0;
         }
     }
 }
@@ -62,6 +67,8 @@ int32 ui_element_state_size(UIElementType e)
             return sizeof(UISelectState);
         case UI_ELEMENT_TYPE_INPUT:
             return sizeof(UIInputState);
+        case UI_ELEMENT_TYPE_LABEL:
+            return sizeof(UILabelState);
         case UI_ELEMENT_TYPE_TEXT:
             return sizeof(UITextState);
         case UI_ELEMENT_TYPE_TEXTAREA:
@@ -80,9 +87,10 @@ int32 ui_element_state_size(UIElementType e)
             return sizeof(UITabState);
         case UI_ELEMENT_TYPE_CURSOR:
             return sizeof(UICursorState);
+        case UI_ELEMENT_TYPE_CUSTOM:
+            return sizeof(UICustomState);
         default: {
             UNREACHABLE();
-            return 0;
         }
     }
 }
@@ -100,18 +108,24 @@ int32 ui_element_type_to_id(const char* str)
         return UI_ELEMENT_TYPE_TEXTAREA;
     } else if (str_compare("image", str) == 0) {
         return UI_ELEMENT_TYPE_IMAGE;
+    } else if (str_compare("label", str) == 0) {
+        return UI_ELEMENT_TYPE_LABEL;
     } else if (str_compare("text", str) == 0) {
         return UI_ELEMENT_TYPE_TEXT;
     } else if (str_compare("link", str) == 0) {
         return UI_ELEMENT_TYPE_LINK;
     } else if (str_compare("table", str) == 0) {
         return UI_ELEMENT_TYPE_TABLE;
-    } else if (str_compare("view_window", str) == 0) {
+    } else if (str_compare("window", str) == 0) {
         return UI_ELEMENT_TYPE_VIEW_WINDOW;
-    } else if (str_compare("view_panel", str) == 0) {
+    } else if (str_compare("panel", str) == 0) {
         return UI_ELEMENT_TYPE_VIEW_PANEL;
-    } else if (str_compare("view_tab", str) == 0) {
+    } else if (str_compare("tab", str) == 0) {
         return UI_ELEMENT_TYPE_VIEW_TAB;
+    } else if (str_compare("cursor", str) == 0) {
+        return UI_ELEMENT_TYPE_CURSOR;
+    } else if (str_compare("custom", str) == 0) {
+        return UI_ELEMENT_TYPE_CUSTOM;
     }
 
     return -1;

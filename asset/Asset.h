@@ -24,7 +24,7 @@ struct Asset {
     uint32 official_id;
 
     // @performance Maybe if we would set the IS_LOADED_STATE in the enum as the highest bit we could use the state variable and check it with >=
-    int32 is_loaded;
+    atomic_32 int32 is_loaded;
 
     // Describes how much ram/vram the asset uses
     // E.g. vram_size = 0 but ram_size > 0 means that it never uses any gpu memory

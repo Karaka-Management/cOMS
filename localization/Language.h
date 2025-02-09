@@ -23,7 +23,7 @@ void language_from_file_txt(
     const char* path,
     RingMemory* ring
 ) {
-    FileBody file;
+    FileBody file = {};
     file_read(path, &file, ring);
     ASSERT_SIMPLE(file.size);
 

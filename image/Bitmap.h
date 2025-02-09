@@ -45,8 +45,8 @@ struct DIB_BITMAPCOREHEADER {
 #define DIB_BITMAP_TYPE_BITMAPINFOHEADER 40
 struct DIB_BITMAPINFOHEADER {
     uint32 size;
-    int32 width;
-    int32 height;
+    uint32 width;
+    uint32 height;
     uint16 color_planes;
     uint16 bits_per_pixel;
     uint32 compression_method;
@@ -61,8 +61,8 @@ struct DIB_BITMAPINFOHEADER {
 // OR BITMAPINFOHEADER2
 struct DIB_OS22XBITMAPHEADER {
     uint32 size;
-    int32 width;
-    int32 height;
+    uint32 width;
+    uint32 height;
     uint16 color_planes;
     uint16 bits_per_pixel;
     uint32 compression_method;
@@ -123,8 +123,8 @@ struct TOS_CIEXYZTRIPLE {
 #define DIB_BITMAP_TYPE_BITMAPV4HEADER 108
 struct DIB_BITMAPV4HEADER {
     int32 size;
-    int32 width;
-    int32 height;
+    uint32 width;
+    uint32 height;
     uint16 color_planes;
     uint16 bits_per_pixel;
     int32 compression_method;
@@ -148,8 +148,8 @@ struct DIB_BITMAPV4HEADER {
 #define DIB_BITMAP_TYPE_BITMAPV5HEADER 124
 struct DIB_BITMAPV5HEADER {
     int32 size;
-    int32 width;
-    int32 height;
+    uint32 width;
+    uint32 height;
     uint16 color_planes;
     uint16 bits_per_pixel;
     int32 compression_method;

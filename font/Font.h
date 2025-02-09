@@ -49,8 +49,8 @@ void font_init(Font* font, byte* data, int count)
 inline
 Glyph* font_glyph_find(const Font* font, uint32 codepoint)
 {
-    int32 perfect_glyph_pos = codepoint - font->glyphs[0].codepoint;
-    int32 limit = OMS_MIN(perfect_glyph_pos, font->glyph_count - 1);
+    uint32 perfect_glyph_pos = codepoint - font->glyphs[0].codepoint;
+    uint32 limit = OMS_MIN(perfect_glyph_pos, font->glyph_count - 1);
 
     // We try to jump to the correct glyph based on the glyph codepoint
     if (font->glyphs[limit].codepoint == codepoint) {
@@ -81,11 +81,11 @@ void font_from_file_txt(
     RingMemory* ring
 )
 {
-    FileBody file;
+    FileBody file = {};
     file_read(path, &file, ring);
     ASSERT_SIMPLE(file.size);
 
-    char* pos = (char *) file.content;
+    const char* pos = (char *) file.content;
 
     bool start = true;
     char block_name[32];
@@ -121,16 +121,16 @@ void font_from_file_txt(
 
                 *texture_pos++ = '\0';
             } else if (str_compare(block_name, "font_size") == 0) {
-                font->size = strtof(pos, &pos);
+                font->size = str_to_float(pos, &pos);
             } else if (str_compare(block_name, "line_height") == 0) {
-                font->line_height = strtof(pos, &pos);
+                font->line_height = str_to_float(pos, &pos);
             } else if (str_compare(block_name, "image_width") == 0) {
-                image_width = strtoul(pos, &pos, 10);
+                image_width = (int32) str_to_int(pos, &pos);
             } else if (str_compare(block_name, "image_height") == 0) {
-                image_height = strtoul(pos, &pos, 10);
+                image_height = (int32) str_to_int(pos, &pos);
             } else if (str_compare(block_name, "glyph_count") == 0) {
                 // glyph_count has to be the last general element
-                font->glyph_count = strtoul(pos, &pos, 10);
+                font->glyph_count = (uint32) str_to_int(pos, &pos);
                 start = false;
             }
 
@@ -140,9 +140,9 @@ void font_from_file_txt(
             // Parsing glyphs
             // In the text file we don't have to define width and height of the character, we calculate that here
             font->glyphs[glyph_index] = {
-                strtoul(pos, &pos, 10),
-                {0.0f, 0.0f, strtof(++pos, &pos), strtof(++pos, &pos), strtof(++pos, &pos)},
-                {strtof(++pos, &pos), strtof(++pos, &pos), strtof(++pos, &pos), strtof(++pos, &pos)}
+                (uint32) str_to_int(pos, &pos),
+                {0.0f, 0.0f, str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos)},
+                {str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos), str_to_float(++pos, &pos)}
             };
 
             font->glyphs[glyph_index].metrics.width = font->glyphs[glyph_index].coords.end.x - font->glyphs[glyph_index].coords.start.x;
@@ -177,7 +177,7 @@ int32 font_data_size(const Font* font)
 int32 font_from_data(
     const byte* data,
     Font* font,
-    int32 steps = 8
+    [[maybe_unused]] int32 steps = 8
 )
 {
     const byte* pos = data;
@@ -213,7 +213,7 @@ int32 font_from_data(
 int32 font_to_data(
     const Font* font,
     byte* data,
-    int32 steps = 8
+    [[maybe_unused]] int32 steps = 8
 )
 {
     byte* pos = data;

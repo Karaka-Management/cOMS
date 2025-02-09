@@ -99,7 +99,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, DirectSoundSetting* api_settin
 }
 
 inline
-void audio_play(AudioSetting* setting, DirectSoundSetting* api_setting)
+void audio_play(AudioSetting*, DirectSoundSetting* api_setting)
 {
     if (!api_setting->secondary_buffer) {
         return;
@@ -109,7 +109,7 @@ void audio_play(AudioSetting* setting, DirectSoundSetting* api_setting)
 }
 
 inline
-void audio_stop(AudioSetting* setting, DirectSoundSetting* api_setting) {
+void audio_stop(AudioSetting*, DirectSoundSetting* api_setting) {
     if (!api_setting->secondary_buffer) {
         return;
     }

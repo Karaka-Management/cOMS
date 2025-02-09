@@ -20,7 +20,7 @@
 
 void image_from_file(Image* __restrict image, const char* __restrict path, RingMemory* __restrict ring)
 {
-    FileBody file;
+    FileBody file = {};
     file_read(path, &file, ring);
 
     if (str_ends_with(path, ".png")) {

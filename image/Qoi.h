@@ -198,7 +198,7 @@ int32 qoi_decode_4(const byte* data, Image* image)
     v4_byte index[64] = {0};
     int32 run = 0;
 
-    for (int32 px_pos = 0; px_pos < px_len; px_pos += 4) {
+    for (uint32 px_pos = 0; px_pos < px_len; px_pos += 4) {
 		if (run > 0) {
 			--run;
 		} else {
@@ -247,7 +247,7 @@ int32 qoi_decode_3(const byte* data, Image* image)
     v3_byte px = {0, 0, 0};
     int32 run = 0;
 
-	for (int32 px_pos = 0; px_pos < px_len; px_pos += 3) {
+	for (uint32 px_pos = 0; px_pos < px_len; px_pos += 3) {
 		if (run > 0) {
 			--run;
 		} else {

@@ -91,7 +91,7 @@ void queue_enqueue_unique(Queue* queue, const byte* data)
         ASSERT_SIMPLE((uint64_t) tail % 4 == 0);
 
         // @performance we could probably make this faster since we don't need to compare the entire range
-        if (is_equal_aligned(tail, data, queue->element_size) == 0) {
+        if (is_equal(tail, data, queue->element_size) == 0) {
             return;
         }
 

@@ -36,8 +36,8 @@ struct pthread_cond_t {
 */
 
 struct pthread_rwlock_t {
-    volatile int32 readers;
-    volatile int32 writer;
+    atomic_32 int32 readers;
+    atomic_32 int32 writer;
 };
 
 typedef void pthread_mutexattr_t;

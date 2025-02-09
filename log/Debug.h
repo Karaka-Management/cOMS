@@ -83,20 +83,19 @@ struct LogDataArray{
 };
 
 struct DebugContainer {
+    // Used to log memory access (read, write)
     DebugMemoryContainer dmc;
+    LogMemory log_memory;
 
     // Used for logging timings for different sections
     TimingStat* perf_stats;
     spinlock32 perf_stats_spinlock;
 
-    // Required to calculate the "fps"
-    uint64 performance_count_frequency;
-
-    // Used to log memory access (read, write)
-    LogMemory log_memory;
-
     // Used to log general int values (e.g. counter for draw calls etc.)
     int64* counter;
+
+    // Required to calculate the "fps"
+    uint64 performance_count_frequency;
 
     // We are not using FileHandle here since that would require us to include more files
     // These files in return require Debug.h

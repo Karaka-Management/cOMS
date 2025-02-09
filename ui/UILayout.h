@@ -69,7 +69,7 @@ struct UILayout {
     // Total count of the ui_asset vertices
     uint32 vertex_size;
 
-    // @question Should we maybe also hold the font atlas asset here AND the color palette?
+    // @question Should we maybe also hold the font atlas asset here?
 
     // Cache for elements to be used for rendering
     // This is very similar to the currently rendered UI output but may have some empty space between elements
@@ -77,6 +77,7 @@ struct UILayout {
     // WARNING: This memory is shared between different layouts
     // @performance Maybe we could use this also for rendering by setting free vertices and elements currently hidden to 0
     // This would allow us to effectively remove the ui_asset
+    // @bug We currently use ui_mesh (Asset) to also keep track of gpu memory
     uint32 active_vertex_size;
     Vertex3DTextureColor* vertices_active; // Not the data owner (see data above)
 };

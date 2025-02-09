@@ -71,7 +71,7 @@ camera_update_vectors(Camera* camera)
     vec3_normalize(&camera->up);
 }
 
-void camera_rotate(Camera* camera, int32 dx, int32 dy, f32 dt)
+void camera_rotate(Camera* camera, int32 dx, int32 dy)
 {
     camera->state_changes |= CAMERA_STATE_CHANGE_NORMAL;
     camera->orientation.x += dy * camera->sensitivity;
@@ -219,7 +219,6 @@ void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool rela
                         camera->zoom -= velocity;
                     } break;
                 default: {
-                    UNREACHABLE();
                 }
             }
         }

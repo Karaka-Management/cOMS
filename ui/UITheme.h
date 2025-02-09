@@ -8,11 +8,14 @@
 #include "../stdlib/HashMap.h"
 #include "../font/Font.h"
 #include "../system/FileUtils.cpp"
+#include "../sort/Sort.h"
 
 #include "attribute/UIAttribute.h"
 #include "UIElementType.h"
 
 #define UI_THEME_VERSION 1
+
+// @todo We should add some asserts that ensure that the respective structs at least start at a 4byte memory alignment
 
 // @question Currently there is some data duplication in here and in the UIElement.
 //      Not sure if this is how we want this to be or if we want to change this in the future
@@ -37,18 +40,6 @@ inline
 UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
 {
     HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&theme->hash_map, group_name);
-    if (!entry) {
-        ASSERT_SIMPLE(false);
-        return NULL;
-    }
-
-    return (UIAttributeGroup *) (theme->data + entry->value);
-}
-
-inline
-UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name, int32 group_id)
-{
-    HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&theme->hash_map, group_name, group_id);
     if (!entry) {
         ASSERT_SIMPLE(false);
         return NULL;
@@ -82,17 +73,17 @@ void theme_from_file_txt(
     const char* path,
     RingMemory* ring
 ) {
-    FileBody file;
+    FileBody file = {};
     file_read(path, &file, ring);
     ASSERT_SIMPLE(file.size);
 
     const char* pos = (char *) file.content;
 
-    // move past the version string
+    // move past the "version" string
     pos += 8;
 
     // Use version for different handling
-    int32 version = strtol(pos, (char **) &pos, 10); ++pos;
+    [[maybe_unused]] int32 version = (int32) str_to_int(pos, &pos); ++pos;
 
     // We have to find how many groups are defined in the theme file.
     // Therefore we have to do an initial iteration
@@ -113,38 +104,38 @@ void theme_from_file_txt(
     // @performance This is probably horrible since we are not using a perfect hashing function (1 hash -> 1 index)
     //      I wouldn't be surprised if we have a 50% hash overlap (2 hashes -> 1 index)
     hashmap_create(&theme->hash_map, temp_group_count, sizeof(HashEntryInt32), theme->data);
-    int64 data_offset = hashmap_size(&theme->hash_map);
+    int32 data_offset = (int32) hashmap_size(&theme->hash_map);
 
     UIAttributeGroup* temp_group = NULL;
 
     pos = (char *) file.content;
 
-    // move past version string
+    // move past "version" string
     str_move_past(&pos, '\n');
 
-    bool block_open = false;
-    char block_name[28];
     char attribute_name[32];
+    char block_name[HASH_MAP_MAX_KEY_LENGTH];
     bool last_token_newline = false;
+    bool block_open = false;
     while (*pos != '\0') {
         str_skip_whitespace(&pos);
 
-        if (*pos == '\n') {
-            ++pos;
+        if (is_eol(pos)) {
+            pos += is_eol(pos);
 
             // 2 new lines => closing block
             if (last_token_newline) {
                 block_open = false;
-                last_token_newline = false;
-            } else {
-                last_token_newline = true;
             }
+            last_token_newline = !last_token_newline;
 
             continue;
         }
 
         last_token_newline = false;
 
+        // Handle new group
+        /////////////////////////////////////////////////////////
         if (!block_open) {
             str_copy_move_until(&pos, block_name, " \r\n");
 
@@ -154,9 +145,10 @@ void theme_from_file_txt(
                 block_open = true;
 
                 if (temp_group) {
-                    // Before we insert a new group we have to sort the attributes
+                    // Before we insert a new group we have to sort the attributes of the PREVIOUS temp_group
                     // since this makes searching them later on more efficient.
-                    qsort(temp_group + 1, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
+                    sort_introsort(temp_group + 1, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
+                    // @todo This is where we create the Eytzinger order if we want to use it
                 }
 
                 // Insert new group
@@ -170,21 +162,29 @@ void theme_from_file_txt(
             continue;
         }
 
+        // Handle new attribute for previously found group
+        /////////////////////////////////////////////////////////
         str_copy_move_until(&pos, attribute_name, " :\n");
 
         // Skip any white spaces or other delimeter
         str_skip_list(&pos, " \t:", sizeof(" \t:") - 1);
 
-        ASSERT_SIMPLE((*pos != '\0' && *pos != '\n'));
-
         // Parse attribute value
         UIAttribute attribute = {};
         ui_attribute_parse_value(&attribute, attribute_name, pos);
+
+        // @bug How to handle "anim"
+        // We currently just end the block if we encounter it
+        if (attribute.attribute_id == UI_ATTRIBUTE_TYPE_ANIMATION) {
+            block_open = false;
+            continue;
+        }
 
         // Again, currently this if check is redundant but it wasn't in the past and we may need it again in the future.
         if (block_name[0] == '#' || block_name[0] == '.') {
             // Named block
             UIAttribute* attribute_reference = (UIAttribute *) (temp_group + 1);
+            // @question Whe are we even doing this? couldn't we just pass this offset to the ui_attribute_parse_value() function?
             memcpy(
                 attribute_reference + temp_group->attribute_count,
                 &attribute,
@@ -199,7 +199,8 @@ void theme_from_file_txt(
     }
 
     // We still need to sort the last group
-    qsort(temp_group + 1, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
+    sort_introsort(temp_group + 1, temp_group->attribute_count, sizeof(UIAttribute), compare_by_attribute_id);
+    // @todo This is where we create the Eytzinger order if we want to use it
 }
 
 static inline
@@ -208,9 +209,9 @@ void ui_theme_parse_group(HashEntryInt32* entry, byte* data, const byte** pos)
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of theme->data
 
-    UIAttributeGroup* group = (UIAttributeGroup *) data + entry->value;
+    UIAttributeGroup* group = (UIAttributeGroup *) (data + entry->value);
 
-    group->attribute_count = SWAP_ENDIAN_LITTLE(*((int32 *) *pos));
+    group->attribute_count = SWAP_ENDIAN_LITTLE(*((uint32 *) *pos));
     *pos += sizeof(group->attribute_count);
 
     UIAttribute* attribute_reference = (UIAttribute *) (group + 1);
@@ -282,11 +283,10 @@ int32 theme_from_data(
 
     // theme data
     // Layout: first load the size of the group, then load the individual attributes
-    for (int32 i = 0; i < theme->hash_map.buf.count; ++i) {
-        HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry_by_index((HashMap *) &theme->hash_map, i);
-        if (!entry) {
-            continue;
-        }
+    // @performance We are iterating the hashmap twice (hashmap_load and here)
+    uint32 chunk_id = 0;
+    chunk_iterate_start(&theme->hash_map.buf, chunk_id)
+        HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
 
         // This way we now could access the data directly without the silly theme->data + entry->value calc.
         pos = start + entry->value;
@@ -294,17 +294,7 @@ int32 theme_from_data(
         if (pos > max_pos) {
             max_pos = pos;
         }
-
-        // load all the next elements
-        while (entry->next) {
-            pos = start + entry->value;
-            ui_theme_parse_group(entry, theme->data, &pos);
-            if (pos > max_pos) {
-                max_pos = pos;
-            }
-            entry = (HashEntryInt32 *) hashmap_get_entry_by_element((HashMap *) &theme->hash_map, entry->next);
-        }
-    }
+    chunk_iterate_end;
 
     return (int32) (max_pos - data);
 }
@@ -321,13 +311,13 @@ int64 theme_data_size_max(const UIThemeStyle* theme)
 
 // @todo Why do even need **pos, shouldn't it just be *pos
 static inline
-void ui_theme_serialize_group(const HashEntryInt32* entry, byte* data, byte** pos, const byte* start)
+void ui_theme_serialize_group(const HashEntryInt32* entry, byte* data, byte** pos)
 {
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of theme->data
     UIAttributeGroup* group = (UIAttributeGroup *) (data + entry->value);
 
-    *((int32 *) *pos) = SWAP_ENDIAN_LITTLE(group->attribute_count);
+    *((uint32 *) *pos) = SWAP_ENDIAN_LITTLE(group->attribute_count);
     *pos += sizeof(group->attribute_count);
 
     UIAttribute* attribute_reference = (UIAttribute *) (group + 1);
@@ -396,28 +386,16 @@ int32 theme_to_data(
 
     // theme data
     // Layout: first save the size of the group, then save the individual attributes
-    for (uint32 i = 0; i < theme->hash_map.buf.count; ++i) {
-        const HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry_by_index((HashMap *) &theme->hash_map, i);
-        if (!entry) {
-            continue;
-        }
+    uint32 chunk_id = 0;
+    chunk_iterate_start(&theme->hash_map.buf, chunk_id)
+        const HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
 
         pos = start + entry->value;
-        ui_theme_serialize_group(entry, theme->data, &pos, start);
+        ui_theme_serialize_group(entry, theme->data, &pos);
         if (pos > max_pos) {
             max_pos = pos;
         }
-
-        // save all the next elements
-        while (entry->next) {
-            pos = start + entry->value;
-            ui_theme_serialize_group(entry, theme->data, &pos, start);
-            if (pos > max_pos) {
-                max_pos = pos;
-            }
-            entry = (HashEntryInt32 *) hashmap_get_entry_by_element((HashMap *) &theme->hash_map, entry->next);
-        }
-    }
+    chunk_iterate_end;
 
     return (int32) (max_pos - data);
 }

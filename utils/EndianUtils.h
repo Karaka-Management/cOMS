@@ -17,7 +17,7 @@
 
 // Automatically perform endian swap if necessary
 // If we are on little endian (e.g. Win32) we swap big endian data but not little endian
-#if _WIN32 || __LITTLE_ENDIAN
+#if _WIN32 || __LITTLE_ENDIAN__
     #define SWAP_ENDIAN_LITTLE(val) (val)
     #define SWAP_ENDIAN_BIG(val) endian_swap(val)
 #else

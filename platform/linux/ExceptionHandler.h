@@ -17,13 +17,14 @@
 
 #define MAX_STACK_FRAMES 64
 
+// @todo fix nasty fprintf usage
+// @todo should also log backtrace similar to windows version
 void signal_handler(int sig) {
     void *stack_frames[MAX_STACK_FRAMES];
     char **stack_symbols;
     int num_frames;
 
     num_frames = backtrace(stack_frames, MAX_STACK_FRAMES);
-
     stack_symbols = backtrace_symbols(stack_frames, num_frames);
 
     fprintf(stderr, "Error: signal %d:\n", sig);
@@ -53,8 +54,25 @@ void setup_signal_handler() {
     sa.sa_flags = SA_RESTART;
 
     sigaction(SIGSEGV, &sa, NULL);
-
     sigaction(SIGABRT, &sa, NULL);
+}
+
+void print_stack_trace() {
+    void *buffer[100]; // Array to store the return addresses
+    int num_ptrs = backtrace(buffer, 100); // Capture the stack trace
+    char **symbols = backtrace_symbols(buffer, num_ptrs); // Resolve symbols
+
+    if (symbols == NULL) {
+        perror("backtrace_symbols");
+        return;
+    }
+
+    printf("Stack trace:\n");
+    for (int i = 0; i < num_ptrs; i++) {
+        printf("%s\n", symbols[i]); // Print each symbol
+    }
+
+    free(symbols); // Free the memory allocated by backtrace_symbols
 }
 
 #endif

@@ -9,17 +9,31 @@
 #ifndef TOS_STDLIB_SIMD_H
 #define TOS_STDLIB_SIMD_H
 
-#if __aarch64__
+// Adjusts the step size based on the memory alignment
+inline
+int32 intrin_validate_steps(const byte* mem, int32 steps) {
+    if (steps >= 16 && ((uintptr_t) mem & 63) == 0) {
+        return 16;
+    } else if (steps >= 8 && ((uintptr_t) mem & 31) == 0) {
+        return 8;
+    } else if (steps >= 4 && ((uintptr_t) mem & 15) == 0) {
+        return 4;
+    } else {
+        return 1;
+    }
+}
 
+#if __aarch64__
+    #include <arm_neon.h>
 #else
-    // @todo Should get moved to architecture/x86/simd directory
-    #include "simd/SIMD_F32.h"
-    #include "simd/SIMD_F64.h"
-    #include "simd/SIMD_I8.h"
-    #include "simd/SIMD_I16.h"
-    #include "simd/SIMD_I32.h"
-    #include "simd/SIMD_I64.h"
-    #include "simd/SIMD_SVML.h"
+    #include "../architecture/x86/simd/SIMD_F32.h"
+    #include "../architecture/x86/simd/SIMD_F64.h"
+    #include "../architecture/x86/simd/SIMD_I8.h"
+    #include "../architecture/x86/simd/SIMD_I16.h"
+    #include "../architecture/x86/simd/SIMD_I32.h"
+    #include "../architecture/x86/simd/SIMD_I64.h"
+    #include "../architecture/x86/simd/SIMD_SVML.h"
 #endif
+
 
 #endif

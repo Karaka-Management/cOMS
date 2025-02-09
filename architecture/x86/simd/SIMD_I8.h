@@ -12,7 +12,7 @@
 #include <immintrin.h>
 #include <xmmintrin.h>
 
-#include "../Types.h"
+#include "../../../stdlib/Types.h"
 #include "SIMD_F32.h"
 #include "SIMD_I32.h"
 
@@ -885,7 +885,7 @@ bool simd_compare_64(const byte* a, const byte* b)
 }
 
 int simd_compare(const byte* a, const byte* b, uint32 size, uint32 steps = 8) {
-    int32 i = 0;
+    uint32 i = 0;
 
     if (steps == 16) {
         if (size >= 128) {

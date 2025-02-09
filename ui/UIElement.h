@@ -19,6 +19,7 @@ enum UIElementType : byte {
     UI_ELEMENT_TYPE_VIEW_PANEL,
     UI_ELEMENT_TYPE_VIEW_TAB,
     UI_ELEMENT_TYPE_CURSOR,
+    UI_ELEMENT_TYPE_CUSTOM,
     UI_ELEMENT_TYPE_SIZE,
 };
 
@@ -68,7 +69,7 @@ struct UIElement {
 
     // Every element can have a fixed state, which is element type specific
     // This state is shared across all style_type (see below)
-    uint32 state;
+    atomic_32 uint32 state;
 
     // Every element can have multiple implementations for different states (e.g. hover, focus, ...)
     // These implementations are also element type specific and can be found in here

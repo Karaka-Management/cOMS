@@ -28,7 +28,7 @@ typedef HANDLE MMFHandle;
 typedef OVERLAPPED file_overlapped;
 
 struct FileBodyAsync {
-    // doesn't include null termination (same as strlen)
+    // doesn't include null termination (same as str_length)
     uint64 size;
     byte* content;
     OVERLAPPED ov;
@@ -772,7 +772,7 @@ bool file_append(const char* path, const char* file)
     }
 
     DWORD written;
-    DWORD length = (DWORD) strlen(file);
+    DWORD length = (DWORD) str_length(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
         CloseHandle(fp);
         return false;
@@ -794,7 +794,7 @@ file_append(FileHandle fp, const char* file)
     }
 
     DWORD written;
-    DWORD length = (DWORD) strlen(file);
+    DWORD length = (DWORD) str_length(file);
     if (!WriteFile(fp, file, length, &written, NULL)) {
         ASSERT_SIMPLE(false);
         return false;

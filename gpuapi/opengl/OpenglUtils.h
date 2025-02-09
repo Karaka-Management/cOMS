@@ -26,6 +26,21 @@
     #include "../../platform/linux/Window.h"
 #endif
 
+#if DEBUG
+    void gpuapi_error()
+    {
+        GLenum err;
+        while ((err = glGetError()) != GL_NO_ERROR) {
+            LOG_FORMAT(true, "Opengl error: %d", {{LOG_DATA_INT32, (int32 *) &err}});
+            ASSERT_SIMPLE(err == GL_NO_ERROR);
+        }
+    }
+
+    #define ASSERT_GPU_API() gpuapi_error()
+#else
+    #define ASSERT_GPU_API() ((void) 0)
+#endif
+
 struct OpenglFrameData {
     uint32 framebuffer;
     uint32 renderbuffer;
@@ -38,7 +53,7 @@ struct OpenglFrameData {
     Texture* texture_msaa;
 };
 
-void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, const GLchar* message, const void*)
 {
     if (severity < GL_DEBUG_SEVERITY_LOW) {
         return;
@@ -213,15 +228,10 @@ void draw_triangles_3d_textureless(VertexRef* vertices, GLuint buffer, int32 cou
     glVertexAttribPointer(vertices->normal_id, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(f32) * 3));
     glEnableVertexAttribArray(vertices->normal_id);
 
-    // color attribute
-    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), (void *) (sizeof(f32) * 8));
-    glEnableVertexAttribArray(vertices->color_id);
-
     glDrawArrays(GL_TRIANGLES, 0, count);
 
     glDisableVertexAttribArray(vertices->data_id);
     glDisableVertexAttribArray(vertices->normal_id);
-    glDisableVertexAttribArray(vertices->color_id);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
@@ -263,10 +273,6 @@ void draw_triangles_2d(VertexRef* vertices, GLuint buffer, int32 count) {
     // vs glVertexAttribPointer
     glVertexAttribIPointer(vertices->tex_coord_id, 2, GL_UNSIGNED_INT, sizeof(Vertex2D), (void *) (sizeof(f32) * 2));
     glEnableVertexAttribArray(vertices->tex_coord_id);
-
-    // color attribute
-    glVertexAttribPointer(vertices->color_id, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), (void *) (sizeof(f32) * 4));
-    glEnableVertexAttribArray(vertices->color_id);
 
     glDrawArrays(GL_TRIANGLES, 0, count);
 
@@ -389,6 +395,7 @@ void gpuapi_buffer_update_sub(uint32 vbo, int32 offset, int32 size, const void* 
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+    ASSERT_GPU_API();
 
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
 }
@@ -403,25 +410,6 @@ uint32 gpuapi_shaderbuffer_generate(int32 size, const void* data)
     glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_DRAW);
 
     return sbo;
-}
-
-// @todo this is not necessary?! We have a flag to determine the BindTexture Type
-//      Only problem are the parameters
-uint32 gpuapi_upload_color_palette(const byte* palette, int32 count, int32 sampler_id)
-{
-    uint32 texture_id;
-
-    glGenTextures(1, &texture_id);
-    glActiveTexture(GL_TEXTURE0 + sampler_id);
-    glBindTexture(GL_TEXTURE_1D, texture_id);
-
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, count, 0, GL_RGBA,  GL_UNSIGNED_BYTE, palette);
-
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    return texture_id;
 }
 
 inline
@@ -490,21 +478,6 @@ int get_gpu_free_memory()
 
     return available;
 }
-
-void gpuapi_error()
-{
-    GLenum err;
-    while ((err = glGetError()) != GL_NO_ERROR) {
-        LOG_FORMAT(true, "Opengl error: %d", {{LOG_DATA_INT32, (int32 *) &err}});
-        ASSERT_SIMPLE(err == GL_NO_ERROR);
-    }
-}
-
-#if DEBUG
-    #define ASSERT_GPU_API() gpuapi_error()
-#else
-    #define ASSERT_GPU_API() ((void) 0)
-#endif
 
 /*
 void render_9_patch(GLuint texture,

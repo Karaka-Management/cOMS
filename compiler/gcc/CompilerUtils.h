@@ -22,4 +22,60 @@
     #define UNREACHABLE() __builtin_unreachable()
 #endif
 
+#define FORCE_INLINE __attribute__((always_inline))
+
+#define compiler_popcount_32(data) __builtin_popcount((data))
+#define compiler_popcount_64(data) __builtin_popcountl((data))
+#define __restrict __restrict__
+
+#define compiler_prefetch(mem) __builtin_prefetch((mem), 0, 3)
+
+int32 compiler_find_first_bit_r2l(uint64 mask) {
+    if (!mask) {
+        return -1;
+    }
+
+    #if __LITTLE_ENDIAN__
+        return return 63 - __builtin_clzll(mask);
+    #else
+        return __builtin_ctzll(mask);
+    #endif
+}
+
+int32 compiler_find_first_bit_r2l(uint32 mask) {
+    if (!mask) {
+        return -1;
+    }
+
+    #if __LITTLE_ENDIAN__
+        return __builtin_ctz(mask);
+    #else
+        return 31 - __builtin_clz(mask);
+    #endif
+}
+
+int32 compiler_find_first_bit_l2r(uint64 mask) {
+    if (!mask) {
+        return -1;
+    }
+
+    #if __LITTLE_ENDIAN__
+        return return 63 - __builtin_clzll(mask);
+    #else
+        return __builtin_ctzll(mask);
+    #endif
+}
+
+int32 compiler_find_first_bit_l2r(uint32 mask) {
+    if (!mask) {
+        return -1;
+    }
+
+    #if __LITTLE_ENDIAN__
+        return __builtin_ctz(mask);
+    #else
+        return 31 - __builtin_clz(mask);
+    #endif
+}
+
 #endif

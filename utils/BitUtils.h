@@ -11,16 +11,18 @@
 
 //#include <intrin.h>
 #include "../stdlib/Types.h"
+#include "../architecture/Intrinsics.h"
 
 // @todo Replace many of these functions with intrinsic functions
 //      This file can remain but the callers should get adjusted
 //      Obviously we would have to check at runtime if ABM is supported
 
 // Left to right (big endian)
+// "bits" refers to the bits of the data type (e.g. 8, 16, 32, 64)
 #define IS_BIT_SET_L2R(num, pos, bits) ((bool) ((num) & (1 << ((bits - 1) - (pos)))))
-#define BIT_SET_L2R(num, pos, bits) ((num) | ((uint32) 1 << ((bits - 1) - (pos))))
-#define BIT_UNSET_L2R(num, pos, bits) ((num) & ~((uint32) 1 << ((bits - 1) - (pos))))
-#define BIT_FLIP_L2R(num, pos, bits) ((num) ^ ((uint32) 1 << ((bits - 1) - (pos))))
+#define BIT_SET_L2R(num, pos, bits) ((num) | (1U << ((bits - 1) - (pos))))
+#define BIT_UNSET_L2R(num, pos, bits) ((num) & ~(1U << ((bits - 1) - (pos))))
+#define BIT_FLIP_L2R(num, pos, bits) ((num) ^ (1U << ((bits - 1) - (pos))))
 #define BIT_SET_TO_L2R(num, pos, x, bits) ((num) & ~((uint32) 1 << ((bits - 1) - (pos))) | ((uint32) (x) << ((bits - 1) - (pos))))
 #define BITS_GET_8_L2R(num, pos, to_read) (((num) >> (8 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
 #define BITS_GET_16_L2R(num, pos, to_read) (((num) >> (16 - (pos) - (to_read))) & ((1U << (to_read)) - 1))
@@ -35,7 +37,7 @@
 
 // Right to left (little endian)
 #define IS_BIT_SET_R2L(num, pos) ((bool) ((num) & (1 << (pos))))
-#define IS_BIT_SET_64_R2L(num, pos) ((bool) ((num) & (1LL << (pos))))
+#define IS_BIT_SET_64_R2L(num, pos) ((bool) ((num) & (1ULL << (pos))))
 #define BIT_SET_R2L(num, pos) ((num) | ((uint32) 1 << (pos)))
 #define BIT_UNSET_R2L(num, pos) ((num) & ~((uint32) 1 << (pos)))
 #define BIT_FLIP_R2L(num, pos) ((num) ^ ((uint32) 1 << (pos)))
@@ -343,22 +345,30 @@ static const int32 BIT_COUNT_LOOKUP_TABLE[256] = {
     4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
 };
 
-int32 bits_count(uint64 data) {
-    return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
-        + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF]
-        + BIT_COUNT_LOOKUP_TABLE[(data >> 16) & 0xFF]
-        + BIT_COUNT_LOOKUP_TABLE[(data >> 24) & 0xFF]
-        + BIT_COUNT_LOOKUP_TABLE[(data >> 32) & 0xFF]
-        + BIT_COUNT_LOOKUP_TABLE[(data >> 40) & 0xFF]
-        + BIT_COUNT_LOOKUP_TABLE[(data >> 48) & 0xFF]
-        + BIT_COUNT_LOOKUP_TABLE[(data >> 56) & 0xFF];
+int32 bits_count(uint64 data, bool use_abm = false) {
+    if (use_abm) {
+        return (int32) intrin_bits_count_64(data);
+    } else {
+        return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
+            + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF]
+            + BIT_COUNT_LOOKUP_TABLE[(data >> 16) & 0xFF]
+            + BIT_COUNT_LOOKUP_TABLE[(data >> 24) & 0xFF]
+            + BIT_COUNT_LOOKUP_TABLE[(data >> 32) & 0xFF]
+            + BIT_COUNT_LOOKUP_TABLE[(data >> 40) & 0xFF]
+            + BIT_COUNT_LOOKUP_TABLE[(data >> 48) & 0xFF]
+            + BIT_COUNT_LOOKUP_TABLE[(data >> 56) & 0xFF];
+    }
 }
 
-int32 bits_count(uint32 data) {
-    return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
-        + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF]
-        + BIT_COUNT_LOOKUP_TABLE[(data >> 16) & 0xFF]
-        + BIT_COUNT_LOOKUP_TABLE[(data >> 24) & 0xFF];
+int32 bits_count(uint32 data, bool use_abm = false) {
+    if (use_abm) {
+        return intrin_bits_count_32(data);
+    } else {
+        return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
+            + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF]
+            + BIT_COUNT_LOOKUP_TABLE[(data >> 16) & 0xFF]
+            + BIT_COUNT_LOOKUP_TABLE[(data >> 24) & 0xFF];
+    }
 }
 
 int32 bits_count(uint16 data) {

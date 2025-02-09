@@ -13,6 +13,7 @@
 #include <arm_acle.h>
 
 #include "../../stdlib/Types.h"
+#include "../../compiler/CompilerUtils.h"
 
 #define intrin_sqrt_f32(a) svget1_f32(svsqrt_f32(svdup_f32((a))))
 #define intrin_sqrt_f64(a) svget1_f64(svsqrt_f64(svdup_f64((a))))
@@ -35,6 +36,15 @@
 #define intrin_crc32_u32(crc, data) __crc32w((crc), (data))
 #define intrin_crc32_u64(crc, data) __crc32d((crc), (data))
 
-#define intrin_timestamp_counter() ({ uint64_t cntvct; asm volatile("mrs %0, cntvct_el0" : "=r"(cntvct)); cntvct;  })
+#define intrin_bits_count_32(data) compiler_popcount_32((data))
+#define intrin_bits_count_64(data) compiler_popcount_64((data))
+
+#define intrin_prefetch(mem) compiler_prefetch((mem))
+
+#if _WIN32
+    #define intrin_timestamp_counter() ({ uint64_t cntvct; asm volatile("mrs %0, cntvct_el0" : "=r"(cntvct)); cntvct;  })
+#else
+    #define intrin_timestamp_counter() __builtin_readcyclecounter()
+#endif
 
 #endif

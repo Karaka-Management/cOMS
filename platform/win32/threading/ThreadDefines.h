@@ -9,7 +9,7 @@
 #ifndef TOS_PLATFORM_WIN32_THREADING_THREAD_DEFINES_H
 #define TOS_PLATFORM_WIN32_THREADING_THREAD_DEFINES_H
 
-#include <stdio.h>
+#include "../../../stdlib/Types.h"
 #include <windows.h>
 
 #define THREAD_RETURN DWORD WINAPI

@@ -49,14 +49,14 @@ struct AppCmdBuffer {
 #if OPENGL
     #include "../gpuapi/opengl/AppCmdBuffer.h"
 #elif VULKAN
-    inline void* cmd_shader_load(AppCmdBuffer* cb, Command* cmd) { return NULL; }
-    inline void* cmd_shader_load_sync(AppCmdBuffer* cb, void* shader, int32* shader_ids) { return NULL; }
+    inline void* cmd_shader_load(AppCmdBuffer*, Command*) { return NULL; }
+    inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, int32*) { return NULL; }
 #elif DIRECTX
-    inline void* cmd_shader_load(AppCmdBuffer* cb, Command* cmd) { return NULL; }
-    inline void* cmd_shader_load_sync(AppCmdBuffer* cb, void* shader, int32* shader_ids) { return NULL; }
+    inline void* cmd_shader_load(AppCmdBuffer*, Command*) { return NULL; }
+    inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, int32*) { return NULL; }
 #else
-    inline void* cmd_shader_load(AppCmdBuffer* cb, Command* cmd) { return NULL; }
-    inline void* cmd_shader_load_sync(AppCmdBuffer* cb, void* shader, int32* shader_ids) { return NULL; }
+    inline void* cmd_shader_load(AppCmdBuffer*, Command*) { return NULL; }
+    inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, int32*) { return NULL; }
 #endif
 
 #endif

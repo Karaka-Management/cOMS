@@ -51,6 +51,18 @@
 #define intrin_crc32_u32(crc, data) _mm_crc32_u32((crc), (data))
 #define intrin_crc32_u64(crc, data) _mm_crc32_u64((crc), (data))
 
-#define intrin_timestamp_counter() __rdtsc()
+#define intrin_bits_count_32(data) _mm_popcnt_u32((data))
+#define intrin_bits_count_64(data) _mm_popcnt_u64((data))
+
+#define intrin_prefetch(mem) _mm_prefetch((mem))
+
+inline
+uint64 intrin_timestamp_counter() {
+    _mm_mfence();
+    uint64 res = __rdtsc();
+    _mm_mfence();
+
+    return res;
+}
 
 #endif

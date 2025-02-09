@@ -215,7 +215,7 @@ uint8 png_filter_4(const uint8* x, const uint8* a_full, const uint8* b_full, con
     return x[channel] + (uint8) paeth;
 }
 
-void png_filter_reconstruct(uint32 width, uint32 height, uint32 color_type, const uint8* decompressed, uint8* finalized, int32 steps = 8)
+void png_filter_reconstruct(uint32 width, uint32 height, uint32 color_type, const uint8* decompressed, uint8* finalized, [[maybe_unused]] int32 steps = 8)
 {
     uint64 zero = 0;
     uint8* prev_row = (uint8 *) &zero;
@@ -225,7 +225,7 @@ void png_filter_reconstruct(uint32 width, uint32 height, uint32 color_type, cons
     uint8* dest = finalized;
 
     uint8 bytes_per_pixel = color_type == 2 ? 3 : 4;
-    uint8 out_bytes_per_pixel = bytes_per_pixel; // @todo needs changing for tRANS
+    //uint8 out_bytes_per_pixel = bytes_per_pixel; // @todo needs changing for tRANS
 
     for (uint32 y = 0; y < height; ++y) {
         uint8 filter = *decompressed;

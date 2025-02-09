@@ -222,7 +222,7 @@ Asset* thrd_ams_get_reserve_asset_wait(AssetManagementSystem* ams, byte type, co
     ac->ram_size += asset->ram_size;
     ++ac->asset_count;
 
-    DEBUG_MEMORY_RESERVE((uintptr_t) asset, asset->ram_size, 180);
+    DEBUG_MEMORY_RESERVE((uintptr_t) asset, asset->ram_size);
 
     return asset;
 }
@@ -246,7 +246,7 @@ void ams_remove_asset(AssetManagementSystem* ams, AssetComponent* ac, Asset* ass
 }
 
 inline
-void ams_remove_asset_ram(AssetManagementSystem* ams, AssetComponent* ac, Asset* asset)
+void ams_remove_asset_ram(AssetComponent* ac, Asset* asset)
 {
     ac->ram_size -= asset->ram_size;
     chunk_free_elements(
@@ -393,7 +393,7 @@ Asset* ams_reserve_asset(AssetManagementSystem* ams, byte type, const char* name
     ac->ram_size += asset->ram_size;
     ++ac->asset_count;
 
-    DEBUG_MEMORY_RESERVE((uintptr_t) asset, asset->ram_size, 180);
+    DEBUG_MEMORY_RESERVE((uintptr_t) asset, asset->ram_size);
 
     return asset;
 }
@@ -426,7 +426,7 @@ Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, byte type, const char*
     ac->ram_size += asset.ram_size;
     ++ac->asset_count;
 
-    DEBUG_MEMORY_RESERVE((uintptr_t) asset_data, asset.ram_size, 180);
+    DEBUG_MEMORY_RESERVE((uintptr_t) asset_data, asset.ram_size);
 
     return (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) &asset)->value;
 }
@@ -446,7 +446,7 @@ void thrd_ams_update(AssetManagementSystem* ams, uint64 time, uint64 dt)
     }
 
     // Iterate the hash map to find all assets
-    int32 chunk_id = 0;
+    uint32 chunk_id = 0;
     chunk_iterate_start(&ams->hash_map.buf, chunk_id)
         HashEntry* entry = (HashEntry *) chunk_get_element(&ams->hash_map.buf, chunk_id);
         Asset* asset = (Asset *) entry->value;
@@ -475,7 +475,7 @@ void thrd_ams_update(AssetManagementSystem* ams, uint64 time, uint64 dt)
             } else if ((asset->state & ASSET_STATE_RAM_GC)
                 && time - asset->last_access <= dt
             ) {
-                ams_remove_asset_ram(ams, &ams->asset_components[asset->component_id], asset);
+                ams_remove_asset_ram(&ams->asset_components[asset->component_id], asset);
             } else if ((asset->state & ASSET_STATE_VRAM_GC)
                 && time - asset->last_access <= dt
             ) {
@@ -506,7 +506,7 @@ Asset* ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, const cha
     ++ac->asset_count;
 
     Asset* asset = (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) asset_temp)->value;
-    DEBUG_MEMORY_RESERVE((uintptr_t) asset->self, asset->ram_size, 180);
+    DEBUG_MEMORY_RESERVE((uintptr_t) asset->self, asset->ram_size);
 
     return asset;
 }
@@ -537,7 +537,7 @@ Asset* thrd_ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, cons
     ++ac->asset_count;
 
     Asset* asset = (Asset *) hashmap_insert(&ams->hash_map, name, (byte *) asset_temp)->value;
-    DEBUG_MEMORY_RESERVE((uintptr_t) asset->self, asset->ram_size, 180);
+    DEBUG_MEMORY_RESERVE((uintptr_t) asset->self, asset->ram_size);
 
     atomic_set_release(&asset->is_loaded, 1);
 

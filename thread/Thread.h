@@ -10,8 +10,6 @@
 #define TOS_THREADS_THREAD_H
 
 #include <stdio.h>
-#include <stdlib.h>
-
 #include "../stdlib/Types.h"
 #include "Atomic.h"
 
@@ -26,6 +24,7 @@
 
 void thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
 {
+    // @todo test to remove {}
     LOG_LEVEL_2("Thread started", {});
     pthread_create(&worker->thread, NULL, routine, arg);
 }

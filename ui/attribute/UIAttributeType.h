@@ -12,10 +12,15 @@ enum UIAttributeType : uint16 {
     UI_ATTRIBUTE_TYPE_MAX_VALUE,
     UI_ATTRIBUTE_TYPE_MAX_INPUT_LENGTH,
 
-    UI_ATTRIBUTE_TYPE_DIMENSION_X,
-    UI_ATTRIBUTE_TYPE_DIMENSION_Y,
+    UI_ATTRIBUTE_TYPE_POSITION_X,
+    UI_ATTRIBUTE_TYPE_POSITION_Y,
+
     UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH,
     UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT,
+    UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH_MIN,
+    UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT_MIN,
+    UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH_MAX,
+    UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT_MAX,
 
     // Allows elements to overflow their parent while still positioned relative to their parent element
     // e.g. Text in a button (e.g. a cooldown timer of a skill could be positioned below a button)
@@ -36,9 +41,6 @@ enum UIAttributeType : uint16 {
     UI_ATTRIBUTE_TYPE_ALIGN_V,
 
     UI_ATTRIBUTE_TYPE_ZINDEX,
-
-    UI_ATTRIBUTE_TYPE_POSITION_X,
-    UI_ATTRIBUTE_TYPE_POSITION_Y,
     UI_ATTRIBUTE_TYPE_PARENT,
 
     // Sub styles for components
@@ -105,6 +107,13 @@ enum UIAttributeType : uint16 {
     //  Maybe it should use the same system as state dependent values like hover, active, ...
     UI_ATTRIBUTE_TYPE_TRANSITION_ANIMATION,
     UI_ATTRIBUTE_TYPE_TRANSITION_DURATION,
+
+    UI_ATTRIBUTE_TYPE_TEXT_LIMIT,
+
+    // How much memory do we reserve for custom data in this element
+    UI_ATTRIBUTE_TYPE_CACHE_SIZE,
+
+    UI_ATTRIBUTE_TYPE_ANIMATION,
 
     UI_ATTRIBUTE_TYPE_SIZE,
 };

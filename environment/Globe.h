@@ -13,11 +13,10 @@
  * @return f32 A day time ranging from 0.0 to 1.0
  */
 f32 time_of_day(f64 time, f32 day_length) {
-    f64 t = time;
-    t /= day_length;
-    t -= (int32) t;
+    time /= day_length;
+    time -= (int64) time;
 
-    return (f32) t;
+    return (f32) time;
 }
 
 /**

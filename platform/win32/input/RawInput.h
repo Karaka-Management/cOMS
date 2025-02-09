@@ -24,7 +24,7 @@
 // Even if it is nowhere documented (at least not to our knowledge) the GetRawInputDeviceInfoA, GetRawInputBuffer functions required
 // aligned memory. So far we only figured out that 4 bytes works, maybe this needs to be 8 in the future?!
 
-int rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory* ring)
+uint32 rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory* ring)
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
@@ -46,7 +46,7 @@ int rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory*
     int32 mouse_found = 0;
     int32 keyboard_found = 0;
 
-    int32 i;
+    uint32 i;
     for (i = 0; i < device_count; ++i) {
         cb_size = sizeof(RID_DEVICE_INFO);
         RID_DEVICE_INFO rdi;
@@ -100,7 +100,7 @@ int rawinput_init_mousekeyboard(HWND hwnd, Input* __restrict states, RingMemory*
 }
 
 // WARNING: While this works we highly recommend to use hid_init_controllers
-int rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* ring)
+uint32 rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* ring)
 {
     uint32 device_count;
     GetRawInputDeviceList(NULL, &device_count, sizeof(RAWINPUTDEVICELIST));
@@ -120,7 +120,7 @@ int rawinput_init_controllers(HWND hwnd, Input* __restrict states, RingMemory* r
     uint32 cb_size = 256;
     int32 controller_found = 0;
 
-    int32 i;
+    uint32 i;
     for (i = 0; i < device_count; ++i) {
         cb_size = sizeof(RID_DEVICE_INFO);
         RID_DEVICE_INFO rdi;

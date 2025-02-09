@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <windows.h>
 #include <time.h>
-#include "../../log/Debug.cpp"
+#include "../../stdlib/Types.h"
 
 void usleep(uint64 microseconds)
 {
@@ -34,7 +34,7 @@ void usleep(uint64 microseconds)
 }
 
 inline
-time_t system_time()
+uint64 system_time()
 {
     SYSTEMTIME systemTime;
     FILETIME fileTime;
@@ -47,7 +47,7 @@ time_t system_time()
     largeInt.LowPart = fileTime.dwLowDateTime;
     largeInt.HighPart = fileTime.dwHighDateTime;
 
-    return ((time_t) (largeInt.QuadPart / 10000000ULL)) - ((time_t) 11644473600ULL);
+    return ((uint64) (largeInt.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
 }
 
 // doesn't return clock time, only to return time since program start
@@ -58,11 +58,17 @@ uint64 time_mu()
     LARGE_INTEGER counter;
     QueryPerformanceCounter(&counter);
 
-    return (counter.QuadPart * 1000000) / debug_container->performance_count_frequency;
+    static LARGE_INTEGER frequency;
+    QueryPerformanceFrequency(&frequency);
+
+    ASSERT_SIMPLE(counter.QuadPart != frequency.QuadPart);
+    ASSERT_SIMPLE(counter.QuadPart != 1);
+
+    return (counter.QuadPart * 1000000) / frequency.QuadPart;
 }
 
 inline
-time_t unix_epoch_s()
+uint64 unix_epoch_s()
 {
     FILETIME ft;
     GetSystemTimeAsFileTime(&ft);
@@ -71,18 +77,17 @@ time_t unix_epoch_s()
     li.LowPart = ft.dwLowDateTime;
     li.HighPart = ft.dwHighDateTime;
 
-    time_t seconds_since_epoch = (li.QuadPart - 116444736000000000ULL) / 10000000ULL;
-
-    return seconds_since_epoch;
+    return (uint64) (li.QuadPart - 116444736000000000ULL) / 10000000ULL;
 }
 
-static DWORD timespec_to_ms(const timespec* abstime)
+inline
+DWORD timespec_to_ms(const timespec* abstime)
 {
     if (abstime == NULL) {
         return INFINITE;
     }
 
-    time_t seconds_since_epoch = unix_epoch_s();
+    uint64 seconds_since_epoch = unix_epoch_s();
     DWORD t = (DWORD) (((abstime->tv_sec - seconds_since_epoch) * 1000) + (abstime->tv_nsec / 1000000));
 
     return t < 0 ? 1 : t;

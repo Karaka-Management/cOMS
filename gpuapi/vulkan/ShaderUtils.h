@@ -15,18 +15,19 @@
 #include "../../memory/RingMemory.h"
 #include "../../log/Log.h"
 
-inline uint32_t shader_get_uniform_location(VkWriteDescriptorSet* descriptor, VkDevice device, VkCommandBuffer commandBuffer, VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorType descriptorType)
-{
-    VkWriteDescriptorSet descriptorWrite = {};
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = descriptorSet;
-    descriptorWrite.dstBinding = binding;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = descriptorType;
-    descriptorWrite.descriptorCount = 1;
+inline uint32_t shader_get_uniform_location(
+    VkWriteDescriptorSet* descriptor,
+    VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorType descriptorType
+) {
+    descriptor->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptor->dstSet = descriptorSet;
+    descriptor->dstBinding = binding;
+    descriptor->dstArrayElement = 0;
+    descriptor->descriptorType = descriptorType;
+    descriptor->descriptorCount = 1;
 }
 
-inline void shader_set_value(VkDevice device, VkCommandBuffer commandBuffer, VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorType descriptorType, int32_t value)
+inline void shader_set_value(VkDevice device, VkDescriptorSet descriptorSet, uint32_t binding, VkDescriptorType descriptorType, int32_t value)
 {
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = {};  // You should have a buffer holding the value

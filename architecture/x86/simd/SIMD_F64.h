@@ -6,48 +6,47 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_TOS_STDLIB_SIMD_I64_H
-#define TOS_TOS_STDLIB_SIMD_I64_H
+#ifndef TOS_STDLIB_SIMD_F64_H
+#define TOS_STDLIB_SIMD_F64_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>
 
-#include "../Types.h"
-#include "SIMD_F64.h"
+#include "../../../stdlib/Types.h"
 
-struct int64_2 {
+struct f64_2 {
     union {
         #if ARM
-            svint64_t s;
+            svfloat64_t s;
         #else
-            __m128i s;
+            __m128 s;
         #endif
 
-        int64 v[2];
+        f64 v[2];
     };
 };
 
-struct int64_4 {
+struct f64_4 {
     union {
         #if ARM
-            svint64_t s;
+            svfloat64_t s;
         #else
-            __m256i s;
+            __m256 s;
         #endif
 
-        int64 v[4];
+        f64 v[4];
     };
 };
 
-struct int64_8 {
+struct f64_8 {
     union {
         #if ARM
-            svint64_t s;
+            svfloat64_t s;
         #else
-            __m512i s;
+            __m512 s;
         #endif
 
-        int64 v[8];
+        f64 v[8];
     };
 };
 

@@ -13,16 +13,16 @@
 #include <dbghelp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../../log/Debug.cpp"
 
 #ifdef _MSC_VER
     #pragma comment(lib, "dbghelp.lib")
 #endif
 
 void create_minidump(EXCEPTION_POINTERS *exception_pointers) {
-    // Open the dump file
-    HANDLE hFile = CreateFileA("crash_dump.dmp", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE fp = CreateFileA("crash_dump.dmp", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
-    if (hFile == INVALID_HANDLE_VALUE) {
+    if (fp == INVALID_HANDLE_VALUE) {
         return;
     }
 
@@ -35,7 +35,7 @@ void create_minidump(EXCEPTION_POINTERS *exception_pointers) {
     MiniDumpWriteDump(
         GetCurrentProcess(),
         GetCurrentProcessId(),
-        hFile,
+        fp,
         (MINIDUMP_TYPE) (MiniDumpWithDataSegs | MiniDumpWithHandleData | MiniDumpWithModuleHeaders |
             MiniDumpWithUnloadedModules | MiniDumpWithProcessThreadData |
             MiniDumpWithFullMemoryInfo | MiniDumpWithThreadInfo | MiniDumpWithTokenInformation),
@@ -44,62 +44,130 @@ void create_minidump(EXCEPTION_POINTERS *exception_pointers) {
         NULL
     );
 
-    CloseHandle(hFile);
+    CloseHandle(fp);
 }
 
-void print_stack_trace(CONTEXT *context) {
-    // Initialize the SYMBOL_INFO structure
-    SymInitialize(GetCurrentProcess(), NULL, TRUE);
+void log_stack_trace(CONTEXT *context) {
+    HANDLE process = GetCurrentProcess();
+    HANDLE thread = GetCurrentThread();
 
-    STACKFRAME64 stack_frame;
-    memset(&stack_frame, 0, sizeof(STACKFRAME64));
+    // Initialize symbols
+    SymInitialize(process, NULL, TRUE);
 
-    // Determine if we are running on x86 or x64 architecture
-    DWORD machine_type = IMAGE_FILE_MACHINE_I386;
+    // Set symbol options to load line numbers and undecorated names
+    SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
-#ifdef _M_X64
-    machine_type = IMAGE_FILE_MACHINE_AMD64;
+    STACKFRAME64 stack_frame = {};
+    DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
+
+    // Initialize stack frame for x64
     stack_frame.AddrPC.Offset = context->Rip;
-    stack_frame.AddrFrame.Offset = context->Rbp;
-    stack_frame.AddrStack.Offset = context->Rsp;
-#elif _M_IX86
-    stack_frame.AddrPC.Offset = context->Eip;
-    stack_frame.AddrFrame.Offset = context->Ebp;
-    stack_frame.AddrStack.Offset = context->Esp;
-#endif
-
     stack_frame.AddrPC.Mode = AddrModeFlat;
+    stack_frame.AddrFrame.Offset = context->Rbp;
     stack_frame.AddrFrame.Mode = AddrModeFlat;
+    stack_frame.AddrStack.Offset = context->Rsp;
     stack_frame.AddrStack.Mode = AddrModeFlat;
 
-    // Traverse the stack frames
-    while (StackWalk64(
-        machine_type,
-        GetCurrentProcess(),
-        GetCurrentThread(),
-        &stack_frame,
-        context,
-        NULL,
-        SymFunctionTableAccess64,
-        SymGetModuleBase64,
-        NULL)
+    LOG(true, "Stack trace:");
+
+    // Walk the stack
+    while (StackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
+        SymFunctionTableAccess64, SymGetModuleBase64, NULL)
     ) {
-        if (stack_frame.AddrPC.Offset == 0) {
+        DWORD64 address = stack_frame.AddrPC.Offset;
+
+        // Skip invalid addresses
+        if (address == 0) {
             break;
         }
 
-        // Get the symbol for the current stack frame
-        DWORD64 symbol_offset = 0;
-        SYMBOL_INFO *symbol = (SYMBOL_INFO *)malloc(sizeof(SYMBOL_INFO) + 256);
-        symbol->MaxNameLen = 255;
+        // Resolve symbol information
+        char symbol_buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+        PSYMBOL_INFO symbol = (PSYMBOL_INFO) symbol_buffer;
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen = MAX_SYM_NAME;
 
-        SymFromAddr(GetCurrentProcess(), stack_frame.AddrPC.Offset, &symbol_offset, symbol);
+        if (SymFromAddr(process, address, NULL, symbol)) {
+            LOG_FORMAT(true, "Function: %s - Address: %l", {{LOG_DATA_CHAR_STR, symbol->Name}, {LOG_DATA_INT64, &symbol->Address}});
+        } else {
+            LOG_FORMAT(true, "Function: (unknown) - Address: %l", {{LOG_DATA_INT64, &address}});
+        }
 
-        free(symbol);
+        // Resolve file and line number
+        IMAGEHLP_LINE64 line;
+        DWORD displacement = 0;
+        line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+
+        if (SymGetLineFromAddr64(process, address, &displacement, &line)) {
+            LOG_FORMAT(true, "    File: %s, Line: %l", {{LOG_DATA_CHAR_STR, line.FileName}, {LOG_DATA_INT64, &line.LineNumber}});
+        } else {
+            LOG(true, "    File: (unknown), Line: (unknown)");
+        }
+
+        // Print module name
+        IMAGEHLP_MODULE64 module_info;
+        module_info.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
+        if (SymGetModuleInfo64(process, address, &module_info)) {
+            LOG_FORMAT(true, "    Module: %s", {{LOG_DATA_CHAR_STR, module_info.ModuleName}});
+        } else {
+            LOG(true, "    Module: (unknown)");
+        }
     }
 
-    SymCleanup(GetCurrentProcess());
+    LOG_TO_FILE();
+    SymCleanup(process);
+}
+
+void print_stack_trace(CONTEXT *context) {
+    HANDLE process = GetCurrentProcess();
+    HANDLE thread = GetCurrentThread();
+
+    // Initialize symbols
+    SymInitialize(process, NULL, TRUE);
+
+    STACKFRAME64 stack_frame = {};
+    DWORD machine_type = IMAGE_FILE_MACHINE_AMD64;
+
+    // Initialize stack frame for x64
+    stack_frame.AddrPC.Offset = context->Rip;
+    stack_frame.AddrPC.Mode = AddrModeFlat;
+    stack_frame.AddrFrame.Offset = context->Rbp;
+    stack_frame.AddrFrame.Mode = AddrModeFlat;
+    stack_frame.AddrStack.Offset = context->Rsp;
+    stack_frame.AddrStack.Mode = AddrModeFlat;
+
+    printf("Stack trace:\n");
+
+    while (StackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
+        SymFunctionTableAccess64, SymGetModuleBase64, NULL)
+    ) {
+        DWORD64 address = stack_frame.AddrPC.Offset;
+
+        // Resolve symbol information
+        char symbol_buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+        PSYMBOL_INFO symbol = (PSYMBOL_INFO)symbol_buffer;
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen = MAX_SYM_NAME;
+
+        if (SymFromAddr(process, address, NULL, symbol)) {
+            printf("Function: %s - Address: 0x%llx\n", symbol->Name, symbol->Address);
+        } else {
+            printf("Function: (unknown) - Address: 0x%llx\n", address);
+        }
+
+        // Resolve file and line number
+        IMAGEHLP_LINE64 line;
+        DWORD displacement = 0;
+        line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+
+        if (SymGetLineFromAddr64(process, address, &displacement, &line)) {
+            printf("    File: %s, Line: %lu\n", line.FileName, line.LineNumber);
+        } else {
+            printf("    File: (unknown), Line: (unknown)\n");
+        }
+    }
+
+    SymCleanup(process);
 }
 
 #endif

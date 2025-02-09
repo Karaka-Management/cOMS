@@ -12,9 +12,9 @@
 #include "../../../stdlib/Types.h"
 #include "../TimeUtils.h"
 #include "ThreadDefines.h"
-
 #include <windows.h>
 
+inline
 int32 pthread_create(pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg)
 {
     if (thread == NULL || start_routine == NULL) {
@@ -29,6 +29,7 @@ int32 pthread_create(pthread_t* thread, void*, ThreadJobFunc start_routine, void
     return 0;
 }
 
+inline
 int32 pthread_join(pthread_t thread, void**)
 {
     WaitForSingleObject(thread, INFINITE);
@@ -37,6 +38,7 @@ int32 pthread_join(pthread_t thread, void**)
     return 0;
 }
 
+inline
 int32 pthread_detach(pthread_t thread)
 {
     CloseHandle(thread);
@@ -44,6 +46,7 @@ int32 pthread_detach(pthread_t thread)
     return 0;
 }
 
+inline
 int32 pthread_mutex_init(pthread_mutex_t* mutex, pthread_mutexattr_t*)
 {
     if (mutex == NULL) {
@@ -55,6 +58,7 @@ int32 pthread_mutex_init(pthread_mutex_t* mutex, pthread_mutexattr_t*)
     return 0;
 }
 
+inline
 int32 pthread_mutex_destroy(pthread_mutex_t* mutex)
 {
     if (mutex == NULL) {
@@ -66,6 +70,7 @@ int32 pthread_mutex_destroy(pthread_mutex_t* mutex)
     return 0;
 }
 
+inline
 int32 pthread_mutex_lock(pthread_mutex_t* mutex)
 {
     if (mutex == NULL) {
@@ -77,6 +82,7 @@ int32 pthread_mutex_lock(pthread_mutex_t* mutex)
     return 0;
 }
 
+inline
 int32 pthread_mutex_unlock(pthread_mutex_t* mutex)
 {
     if (mutex == NULL) {
@@ -88,6 +94,7 @@ int32 pthread_mutex_unlock(pthread_mutex_t* mutex)
     return 0;
 }
 
+inline
 int32 pthread_cond_init(pthread_cond_t* cond, pthread_condattr_t*)
 {
     if (cond == NULL) {
@@ -99,12 +106,15 @@ int32 pthread_cond_init(pthread_cond_t* cond, pthread_condattr_t*)
     return 0;
 }
 
+inline
 int32 pthread_cond_destroy(pthread_cond_t*)
 {
     /* Windows does not have a destroy for conditionals */
     return 0;
 }
 
+// @question Can't we turn timespec in a typedef of uint64? I would like to avoid the time.h class
+inline
 int32 pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t* mutex, const timespec* abstime)
 {
     if (cond == NULL || mutex == NULL) {
@@ -118,6 +128,7 @@ int32 pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t* mutex, const
     return 0;
 }
 
+inline
 int32 pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex)
 {
     if (cond == NULL || mutex == NULL) {
@@ -127,6 +138,7 @@ int32 pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex)
     return pthread_cond_timedwait(cond, mutex, NULL);
 }
 
+inline
 int32 pthread_cond_signal(pthread_cond_t* cond)
 {
     if (cond == NULL) {
@@ -138,6 +150,7 @@ int32 pthread_cond_signal(pthread_cond_t* cond)
     return 0;
 }
 
+inline
 int32 pthread_cond_broadcast(pthread_cond_t* cond)
 {
     if (cond == NULL) {
@@ -149,6 +162,7 @@ int32 pthread_cond_broadcast(pthread_cond_t* cond)
     return 0;
 }
 
+inline
 int32 pthread_rwlock_init(pthread_rwlock_t* rwlock, const pthread_rwlockattr_t*)
 {
     if (rwlock == NULL) {
@@ -161,11 +175,13 @@ int32 pthread_rwlock_init(pthread_rwlock_t* rwlock, const pthread_rwlockattr_t*)
     return 0;
 }
 
+inline
 int32 pthread_rwlock_destroy(pthread_rwlock_t*)
 {
     return 0;
 }
 
+inline
 int32 pthread_rwlock_rdlock(pthread_rwlock_t* rwlock)
 {
     if (rwlock == NULL) {
@@ -177,6 +193,7 @@ int32 pthread_rwlock_rdlock(pthread_rwlock_t* rwlock)
     return 0;
 }
 
+inline
 int32 pthread_rwlock_tryrdlock(pthread_rwlock_t* rwlock)
 {
     if (rwlock == NULL) {
@@ -186,6 +203,7 @@ int32 pthread_rwlock_tryrdlock(pthread_rwlock_t* rwlock)
     return !TryAcquireSRWLockShared(&rwlock->lock);
 }
 
+inline
 int32 pthread_rwlock_wrlock(pthread_rwlock_t* rwlock)
 {
     if (rwlock == NULL) {
@@ -198,6 +216,7 @@ int32 pthread_rwlock_wrlock(pthread_rwlock_t* rwlock)
     return 0;
 }
 
+inline
 int32 pthread_rwlock_trywrlock(pthread_rwlock_t  *rwlock)
 {
     if (rwlock == NULL) {
@@ -212,6 +231,7 @@ int32 pthread_rwlock_trywrlock(pthread_rwlock_t  *rwlock)
     return ret;
 }
 
+inline
 int32 pthread_rwlock_unlock(pthread_rwlock_t* rwlock)
 {
     if (rwlock == NULL) {
@@ -228,6 +248,7 @@ int32 pthread_rwlock_unlock(pthread_rwlock_t* rwlock)
     return 0;
 }
 
+inline
 uint32 pcthread_get_num_procs()
 {
     SYSTEM_INFO sysinfo;
@@ -236,6 +257,6 @@ uint32 pcthread_get_num_procs()
     return sysinfo.dwNumberOfProcessors;
 }
 
-#define pthread_exit(a) {return (a);}
+#define pthread_exit(a) { return (a); }
 
 #endif

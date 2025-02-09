@@ -19,7 +19,7 @@
 
 void audio_from_file(Audio* __restrict audio, const char* __restrict path, RingMemory* __restrict ring)
 {
-    FileBody file;
+    FileBody file = {};
     file_read(path, &file, ring);
 
     ASSERT_SIMPLE(file.size);

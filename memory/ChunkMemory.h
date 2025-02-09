@@ -15,7 +15,7 @@
 #include "../utils/EndianUtils.h"
 #include "../utils/BitUtils.h"
 #include "../log/Log.h"
-#include "../log/DebugMemory.h"
+#include "../log/Debug.cpp"
 #include "BufferMemory.h"
 #include "../system/Allocator.h"
 #include "../thread/Thread.h"
@@ -85,7 +85,7 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk
     buf->free = (uint64 *) (buf->memory + count * chunk_size);
 
     DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
-    DEBUG_MEMORY_RESERVE((uintptr_t) buf->memory, buf->size, 187);
+    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
@@ -111,18 +111,22 @@ void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, i
     buf->free = (uint64 *) (buf->memory + count * chunk_size);
 
     DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
-    DEBUG_MEMORY_RESERVE((uintptr_t) buf->memory, buf->size, 187);
+    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline
 void chunk_free(ChunkMemory* buf)
 {
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->size);
+
     if (buf->alignment < 2) {
         platform_free((void **) &buf->memory);
     } else {
         platform_aligned_free((void **) &buf->memory);
     }
+
+    buf->size = 0;
+    buf->memory = NULL;
 }
 
 inline
@@ -133,6 +137,10 @@ uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) {
 inline
 byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false)
 {
+    if (element >= buf->count) {
+        return NULL;
+    }
+
     byte* offset = buf->memory + element * buf->chunk_size;
     ASSERT_SIMPLE(offset);
 
@@ -146,33 +154,35 @@ byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false)
 }
 
 // @performance This is a very important function, revisit in the future for optimization (e.g. ABM)
+// @performance Is _BitScanForward faster?
+// @performance We could probably even reduce the number of iterations by only iterating until popcount is reached?
 int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1)
 {
-    int32 free_index = (buf->last_pos + 1) / 64;
-    int32 bit_index = (buf->last_pos + 1) & 63;
+    uint32 free_index = (buf->last_pos + 1) / 64;
+    uint32 bit_index = (buf->last_pos + 1) & 63;
     int32 free_element = -1;
 
-    int32 i = -1;
-    int32 consecutive_free_bits = 0;
+    uint32 i = 0;
+    uint32 consecutive_free_bits = 0;
 
-    while (free_element < 0 && ++i < buf->count) {
+    while (free_element < 0 && i++ <= buf->count) {
         // Skip fully filled ranges
-        if (free_index * 64 + bit_index + elements - consecutive_free_bits >= buf->count) {
-            free_index = 0;
-            bit_index = 0;
+        if (free_index * 64 + bit_index + elements - consecutive_free_bits > buf->count) {
             i += buf->count - (free_index * 64 + bit_index);
             consecutive_free_bits = 0;
+            free_index = 0;
+            bit_index = 0;
         } else if (buf->free[free_index] == 0xFFFFFFFFFFFFFFFF) {
             ++free_index;
             bit_index = 0;
-            i += 63;
+            i += 64;
             consecutive_free_bits = 0;
 
             continue;
         }
 
         // Find first free element
-        while (IS_BIT_SET_64_R2L(buf->free[free_index], bit_index)) {
+        while (IS_BIT_SET_64_R2L(buf->free[free_index], bit_index) && i <= buf->count) {
             consecutive_free_bits = 0;
             ++bit_index;
             ++i;
@@ -187,17 +197,14 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1)
         }
 
         // The previous while may exit with an "overflow", that's why this check is required
-        if (IS_BIT_SET_64_R2L(buf->free[free_index], bit_index)) {
+        if (IS_BIT_SET_64_R2L(buf->free[free_index], bit_index) || i > buf->count) {
             consecutive_free_bits = 0;
 
             continue;
         }
 
         // We found our first free element, let's check if we have enough free space
-        while (!IS_BIT_SET_64_R2L(buf->free[free_index], bit_index)
-            && consecutive_free_bits != elements
-            && free_index * 64 + bit_index + elements - consecutive_free_bits < buf->count
-        ) {
+        do {
             ++i;
             ++consecutive_free_bits;
             ++bit_index;
@@ -208,32 +215,36 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1)
 
                 break;
             }
-        }
+        } while (!IS_BIT_SET_64_R2L(buf->free[free_index], bit_index)
+            && consecutive_free_bits != elements
+            && free_index * 64 + bit_index + elements - consecutive_free_bits <= buf->count
+            && i <= buf->count
+        );
 
         // Do we have enough free bits?
         if (consecutive_free_bits == elements) {
             free_element = free_index * 64 + bit_index - elements;
-            int32 possible_free_index = free_element / 64;
-            int32 possible_bit_index = free_element & 63;
+            uint32 possible_free_index = free_element / 64;
+            uint32 possible_bit_index = free_element & 63;
 
             // Mark as used
             if (elements == 1) {
-                buf->free[possible_free_index] |= (1LL << possible_bit_index);
+                buf->free[possible_free_index] |= (1ULL << possible_bit_index);
             } else {
                 uint32 elements_temp = elements;
-                int64 current_free_index = possible_free_index;
-                int32 current_bit_index = possible_bit_index;
+                uint64 current_free_index = possible_free_index;
+                uint32 current_bit_index = possible_bit_index;
 
-                while (elements > 0) {
+                while (elements_temp > 0) {
                     // Calculate the number of bits we can set in the current 64-bit block
-                    int32 bits_in_current_block = OMS_MIN(64 - current_bit_index, elements);
+                    uint32 bits_in_current_block = OMS_MIN(64 - current_bit_index, elements_temp);
 
                     // Create a mask to set the bits
                     uint64 mask = ((1ULL << bits_in_current_block) - 1) << current_bit_index;
                     buf->free[current_free_index] |= mask;
 
                     // Update the counters and indices
-                    elements -= bits_in_current_block;
+                    elements_temp -= bits_in_current_block;
                     ++current_free_index;
                     current_bit_index = 0;
                 }
@@ -259,7 +270,7 @@ inline
 void chunk_free_element(ChunkMemory* buf, uint64 free_index, int32 bit_index)
 {
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + (free_index * 64 + bit_index) * buf->chunk_size), buf->chunk_size);
-    buf->free[free_index] &= ~(1LL << bit_index);
+    buf->free[free_index] &= ~(1ULL << bit_index);
 }
 
 inline
@@ -267,8 +278,8 @@ void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count 
 {
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size);
 
-    int64 free_index = element / 64;
-    int32 bit_index = element & 63;
+    uint64 free_index = element / 64;
+    uint32 bit_index = element & 63;
 
     if (element == 1) {
         chunk_free_element(buf, free_index, bit_index);
@@ -356,9 +367,11 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
     return buf->size;
 }
 
-#define chunk_iterate_start(buf, chunk_id)                                                      \
-    int32 free_index = 0;                                                                       \
-    int32 bit_index = 0;                                                                        \
+// @performance Is _BitScanForward faster?
+// @performance We could probably even reduce the number of iterations by only iterating until popcount is reached?
+#define chunk_iterate_start(buf, chunk_id) {                                                     \
+    uint32 free_index = 0;                                                                       \
+    uint32 bit_index = 0;                                                                        \
                                                                                                 \
     /* Iterate the chunk memory */                                                              \
     for (; chunk_id < (buf)->count; ++chunk_id) {                                               \
@@ -378,6 +391,6 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
             bit_index = 0;      \
             ++free_index;       \
         }                       \
-    }
+    }}
 
 #endif

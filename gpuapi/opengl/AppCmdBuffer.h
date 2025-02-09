@@ -16,7 +16,7 @@
 #include "../ShaderType.h"
 #include "../../asset/Asset.h"
 
-void* cmd_shader_load(AppCmdBuffer* cb, Command* cmd) {
+void* cmd_shader_load(AppCmdBuffer*, Command*) {
     return NULL;
 }
 

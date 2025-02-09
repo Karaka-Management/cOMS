@@ -16,6 +16,7 @@
 #include "../memory/ChunkMemory.h"
 #include "../utils/StringUtils.h"
 #include "../stdlib/Simd.h"
+#include "../system/Allocator.h"
 
 // If a hash key is longer than the max key length, we use the last N characters of that key
 // The key length is currently chosen to result in 32 byte size for the common case: HashEntryInt32
@@ -119,6 +120,33 @@ struct HashMap {
     // @todo We might want to align the ChunkMemory memory to 8byte, currently it's either 4 or 8 byte depending on the length
     ChunkMemory buf;
 };
+
+void hashmap_alloc(HashMap* hm, int32 count, int32 element_size)
+{
+    byte* data = (byte *) platform_alloc(
+        count * (sizeof(uint16) + element_size)
+        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+    );
+
+    hm->table = (uint16 *) data;
+    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, 8);
+
+    DEBUG_MEMORY_INIT((uintptr_t) hm->buf.memory, hm->buf.size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, hm->buf.size);
+    LOG_LEVEL_2("Allocated HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+}
+
+inline
+void hashmap_free(HashMap* hm)
+{
+    DEBUG_MEMORY_DELETE((uintptr_t) hm->buf.memory, hm->buf.size);
+
+    platform_free((void **) &hm->table);
+
+    hm->table = NULL;
+    hm->buf.size = 0;
+    hm->buf.memory = NULL;
+}
 
 // WARNING: element_size = element size + remaining HashEntry data size
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring)
@@ -439,12 +467,7 @@ HashEntry* hashmap_get_reserve(HashMap* hm, const char* key)
     return entry_new;
 }
 
-inline
-HashEntry* hashmap_get_entry_by_index(HashMap* hm, uint32 index)
-{
-    return hm->table[index] ? (HashEntry *) chunk_get_element(&hm->buf, hm->table[index] - 1, false) : NULL;
-}
-
+// @performance Some places use this in order to iterate the hashmap that is horrible!!! Use the actual iterate function!
 inline
 HashEntry* hashmap_get_entry_by_element(HashMap* hm, uint32 element)
 {
@@ -777,7 +800,7 @@ int32 hashmap_value_size(const HashMap* hm)
 
 // @question Shouldn't we also store the chunk size etc? Currently not done and expected to be correctly initialized.
 inline
-int64 hashmap_dump(const HashMap* hm, byte* data, int32 steps = 8)
+int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps = 8)
 {
     *((uint32 *) data) = SWAP_ENDIAN_LITTLE(hm->buf.count);
     data += sizeof(hm->buf.count);
@@ -843,7 +866,7 @@ int64 hashmap_dump(const HashMap* hm, byte* data, int32 steps = 8)
 
 // WARNING: Requires hashmap_create first
 inline
-int64 hashmap_load(HashMap* hm, const byte* data, int32 steps = 8)
+int64 hashmap_load(HashMap* hm, const byte* data, [[maybe_unused]] int32 steps = 8)
 {
     uint64 count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
     data += sizeof(uint16);
@@ -870,7 +893,7 @@ int64 hashmap_load(HashMap* hm, const byte* data, int32 steps = 8)
     int32 value_size = hashmap_value_size(hm);
 
     // Switch endian AND turn offsets to pointers
-    int32 chunk_id = 0;
+    uint32 chunk_id = 0;
     chunk_iterate_start(&hm->buf, chunk_id)
         HashEntry* entry = (HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, chunk_id);
 

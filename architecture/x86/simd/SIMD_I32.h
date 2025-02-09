@@ -13,8 +13,8 @@
 #include <xmmintrin.h>
 #include <emmintrin.h>
 
-#include "../Types.h"
-#include "../../utils/BitUtils.h"
+#include "../../../stdlib/Types.h"
+#include "../../../utils/BitUtils.h"
 #include "SIMD_F32.h"
 
 // @todo a lot of sse functions require high level (e.g. sse4.1) this needs to be changed to be more general
@@ -1639,7 +1639,7 @@ endian_swap(const int* val, int* result, int32 size, int32 steps)
     }
 }
 
-#if _WIN32 || __LITTLE_ENDIAN
+#if _WIN32 || __LITTLE_ENDIAN__
     #define SWAP_ENDIAN_LITTLE_SIMD(val, result, size, steps) ((void)0)
     #define SWAP_ENDIAN_BIG_SIMD(val, result, size, steps) endian_swap((val), (result), (size), (steps))
 #else

@@ -71,7 +71,7 @@ enum AudioMixerState {
 struct AudioMixer {
     ChunkMemory audio_instances;
     AudioMixerState state_old;
-    int32 state_new;
+    atomic_64 int32 state_new;
 
     uint64 effect;
 
@@ -207,7 +207,7 @@ int32 apply_speed(int16* buffer, uint32 buffer_size, f32 speed) {
 
     // Speed up
     if (speed > 1.0f) {
-        for (int32 i = 0; i < new_size; ++i) {
+        for (uint32 i = 0; i < new_size; ++i) {
             // @bug What if 2 consecutive values fall onto the same int index for stereo. This would break it.
             // The problem is, even by doing this as stereo calculation we would still have the same issue just not on the current value but the next loop
             uint32 src_index = (uint32) (i * speed);
@@ -265,7 +265,7 @@ void apply_flanger(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32
     f32 temp = OMS_TWO_PI * rate / sample_rate;
 
     for (uint32 i = 0; i < buffer_size; ++i) {
-        int32 delay = (int32) (delay_samples * (0.5f + 0.5f * sinf(i * temp)));
+        uint32 delay = (uint32) (delay_samples * (0.5f + 0.5f * sinf(i * temp)));
         if (i >= delay) {
             buffer[i] += (int16) (buffer[i - delay] * 0.5f);
         }
@@ -291,9 +291,9 @@ void apply_distortion(int16* buffer, uint32 buffer_size, f32 gain) {
 void apply_chorus(int16* buffer, uint32 buffer_size, f32 rate, f32 depth, int32 sample_rate) {
     f32 temp = OMS_TWO_PI * rate / sample_rate;
 
-    int32 max_delay = (int32) (depth * sample_rate);
+    uint32 max_delay = (uint32) (depth * sample_rate);
     for (uint32 i = 0; i < buffer_size; ++i) {
-        int32 delay = (int32) (max_delay * (0.5f + 0.5f * sinf(i * temp)));
+        uint32 delay = (uint32) (max_delay * (0.5f + 0.5f * sinf(i * temp)));
         if (i >= delay) {
             buffer[i] += (int16) (buffer[i - delay] * 0.5f);
         }
@@ -307,8 +307,8 @@ void apply_pitch_shift(int16* buffer, uint32 buffer_size, f32 pitch_factor) {
 }
 
 void apply_granular_delay(int16* buffer, uint32 buffer_size, f32 delay, f32 granularity, int32 sample_rate) {
-    int32 delay_samples = (int32) (delay * sample_rate);
-    int32 limit = (int32) (granularity * sample_rate);
+    uint32 delay_samples = (uint32) (delay * sample_rate);
+    uint32 limit = (uint32) (granularity * sample_rate);
 
     for (uint32 i = 0; i < buffer_size; ++i) {
         if (i % limit == 0 && i >= delay_samples) {
@@ -324,7 +324,7 @@ void apply_frequency_modulation(int16* buffer, uint32 buffer_size, f32 mod_freq,
     }
 }
 
-void apply_stereo_panning(int16* buffer, int32 buffer_size, f32 pan) {
+void apply_stereo_panning(int16* buffer, uint32 buffer_size, f32 pan) {
     f32 left_gain = 1.0f - pan;
     f32 right_gain = pan;
 
@@ -482,7 +482,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) {
         }
 
         uint32 sound_sample_count = sound->audio_size / mixer->settings.sample_size;
-        int32 sound_sample_index = sound->sample_index;
+        uint32 sound_sample_index = sound->sample_index;
         int16* audio_data = (int16 *) sound->audio_data;
 
         // Temporary buffer for effects processing
@@ -491,7 +491,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) {
         // Careful, NOT voice since we will probably manually layer them according to their position?
         if (sound->channels == 1) {
             // We make it stereo
-            for (int32 j = 0; j < limit; ++j) {
+            for (uint32 j = 0; j < limit; ++j) {
                 if (sound_sample_index >= sound_sample_count) {
                     if (!(sound->effect & AUDIO_EFFECT_REPEAT)) {
                         limit = j;
@@ -518,7 +518,7 @@ void audio_mixer_mix(AudioMixer* mixer, uint32 size) {
                 limit += sample_adjustment;
             }
         } else {
-            for (int32 j = 0; j < limit; ++j) {
+            for (uint32 j = 0; j < limit; ++j) {
                 if (sound_sample_index >= sound_sample_count) {
                     if (!(sound->effect & AUDIO_EFFECT_REPEAT)) {
                         limit = j;

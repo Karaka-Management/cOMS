@@ -11,9 +11,7 @@
 
 #include "../../stdlib/Types.h"
 #include "../../utils/StringUtils.h"
-#include <stdio.h>
 #include <windows.h>
-#include <string.h>
 
 #define strtok_r strtok_s
 
@@ -31,6 +29,11 @@ uint32 key_to_unicode(byte scan_code, byte vkey, byte keyboard_state[256])
     } else {
         return 0;
     }
+}
+
+void output_char(char c) {
+    HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    WriteFile(hStdout, &c, 1, NULL, NULL);
 }
 
 #endif

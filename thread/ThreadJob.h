@@ -19,8 +19,8 @@
 typedef void (*ThreadPoolJobFunc)(void*);
 
 struct PoolWorker {
-    int32 id;
-    int32 state;
+    atomic_32 int32 id;
+    atomic_32 int32 state;
     void* arg;
     void* result;
     RingMemory ring;
@@ -29,7 +29,7 @@ struct PoolWorker {
 };
 
 struct Worker {
-    int32 state;
+    atomic_32 int32 state;
     pthread_t thread;
 };
 

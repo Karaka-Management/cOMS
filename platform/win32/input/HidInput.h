@@ -23,9 +23,7 @@
 #pragma comment(lib, "hid.lib")
 #pragma comment(lib, "setupapi.lib")
 
-void hid_init_controllers(Input* __restrict states, int32 state_count, RingMemory* ring) {
-
-    HANDLE* controller_handles = NULL;
+void hid_init_controllers(Input* __restrict states, RingMemory* ring) {
 
     // Get the GUID for HID devices
     GUID hid_guid;

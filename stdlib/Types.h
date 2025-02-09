@@ -11,9 +11,12 @@
 
 #include <stdint.h>
 
-#ifdef _MSC_VER
+#if _WIN32
     #include <windows.h>
     typedef SSIZE_T ssize_t;
+#elif __linux__
+    #include <linux/limits.h>
+    #define MAX_PATH PATH_MAX
 #endif
 
 #define ARRAY_COUNT(a) (sizeof(a) / sizeof((a)[0]))
@@ -38,6 +41,10 @@ typedef char sbyte;
 typedef uintptr_t umm;
 typedef intptr_t smm;
 
+// @question consider to implement atomic_16 depending on intrinsic support
+#define atomic_32 alignas(4) volatile
+#define atomic_64 alignas(8) volatile
+
 #define OMS_PI 3.14159265358979323846f
 #define OMS_PI_OVER_TWO (OMS_PI / 2.0f)
 #define OMS_PI_OVER_FOUR (OMS_PI / 4.0f)
@@ -50,10 +57,10 @@ typedef intptr_t smm;
 #define OMS_CLAMP(val, high, low) ((val) < (low) ? (low) : ((val) > (high) ? (high) : (val)))
 
 #define OMS_ABS(a) ((a) > 0 ? (a) : -(a))
-#define OMS_ABS_INT8(a) ((a) & 0x7F)
-#define OMS_ABS_INT16(a) ((a) & 0x7FFF)
-#define OMS_ABS_INT32(a) ((a) & 0x7FFFFFFF)
-#define OMS_ABS_INT64(a) ((a) & 0x7FFFFFFFFFFFFFFF)
+#define OMS_ABS_INT8(a) ((uint8) ((a) & 0x7F))
+#define OMS_ABS_INT16(a) ((uint16) ((a) & 0x7FFF))
+#define OMS_ABS_INT32(a) ((uint32) ((a) & 0x7FFFFFFF))
+#define OMS_ABS_INT64(a) ((uint64) ((a) & 0x7FFFFFFFFFFFFFFF))
 #define OMS_ABS_F32(a) ((f32) (((int32) (a)) & 0x7FFFFFFF))
 #define OMS_ABS_F64(a) ((f64) (((int64) (a)) & 0x7FFFFFFFFFFFFFFF))
 
@@ -67,7 +74,20 @@ typedef intptr_t smm;
 #define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
 #define OMS_CEIL(x) ((x) == (int32)(x) ? (int32)(x) : ((x) > 0 ? (int32)(x) + 1 : (int32)(x)))
 
-#define FLOAT_CAST_EPS 0.001953125
+// Casting between e.g. f32 and int32 without changing bits
+#define BITCAST(x, new_type) bitcast_impl_##new_type(x)
+#define DEFINE_BITCAST_FUNCTION(from_type, to_type) \
+    static inline to_type bitcast_impl_##to_type(from_type src) { \
+        union { from_type src; to_type dst; } u; \
+        u.src = src; \
+        return u.dst; \
+    }
+DEFINE_BITCAST_FUNCTION(f32, uint32)
+DEFINE_BITCAST_FUNCTION(uint32, f32)
+DEFINE_BITCAST_FUNCTION(f64, uint64)
+DEFINE_BITCAST_FUNCTION(uint64, f64)
+
+#define FLOAT_CAST_EPS 0.001953125f
 
 // Modulo function when b is a power of 2
 #define MODULO_2(a, b) ((a) & (b - 1))

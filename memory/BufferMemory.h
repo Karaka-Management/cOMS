@@ -77,7 +77,7 @@ void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 6
     buf->element_alignment = 0;
 
     DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
-    DEBUG_MEMORY_RESERVE((uintptr_t) buf->memory, buf->size, 187);
+    DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
 inline

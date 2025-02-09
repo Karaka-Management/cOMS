@@ -9,13 +9,103 @@
 #ifndef TOS_UTILS_STRING_UTILS_H
 #define TOS_UTILS_STRING_UTILS_H
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-
 #include "../stdlib/Types.h"
 #include "../utils/TestUtils.h"
+
+#define HAS_ZERO(x) (((x) - ((size_t)-1 / 0xFF)) & ~(x) & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1)))
+#define HAS_CHAR(x, c) (HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
+
+inline constexpr
+size_t str_length(const char* str)
+{
+    const char* ptr = str;
+
+    // Align the pointer to the size of size_t
+    for (; (uintptr_t) ptr % sizeof(size_t) != 0; ++ptr) {
+        if (*ptr == '\0') {
+            return ptr - str;
+        }
+    }
+
+    // Check one longword (size_t) at a time
+    const size_t* longword_ptr = (const size_t *) ptr;
+    while (true) {
+        size_t longword = *longword_ptr++;
+        if (HAS_ZERO(longword)) {
+            const char* cp = (const char *) (longword_ptr - 1);
+            if (cp[0] == '\0') return cp - str;
+            if (cp[1] == '\0') return cp + 1 - str;
+            if (cp[2] == '\0') return cp + 2 - str;
+            if (cp[3] == '\0') return cp + 3 - str;
+
+            // Are we using 8bytes for size_t?
+            #if SIZE_MAX > 0xFFFFFFFF
+                if (cp[4] == '\0') return cp + 4 - str;
+                if (cp[5] == '\0') return cp + 5 - str;
+                if (cp[6] == '\0') return cp + 6 - str;
+                if (cp[7] == '\0') return cp + 7 - str;
+            #endif
+        }
+    }
+}
+
+const char* str_find(const char* str, const char* needle) {
+    size_t needle_len = str_length(needle);
+    size_t str_len = str_length(str);
+    size_t limit = str_len - needle_len + 1;
+
+    for (size_t i = 0; i < limit; ++i) {
+        if (str[i] == needle[0] && memcmp(&str[i + 1], &needle[1], needle_len - 1) == 0) {
+            return &str[i];
+        }
+    }
+
+    return NULL;
+}
+
+const char* str_find(const char* str, char needle) {
+    byte target = (byte) needle;
+
+    // Process byte-by-byte until alignment is achieved
+    for (; (uintptr_t) str % sizeof(size_t) != 0; ++str) {
+        if (*str == target) {
+            return str;
+        }
+
+        if (*str == '\0') {
+            return NULL;
+        }
+    }
+
+    // Broadcast the target character to all bytes of a word
+    size_t target_word = target;
+    for (size_t i = 1; i < sizeof(size_t); ++i) {
+        target_word |= target_word << 8;
+    }
+
+    const size_t* word_ptr = (const size_t *) str;
+    while (true) {
+        size_t word = *word_ptr++;
+        if (HAS_CHAR(word, target)) {
+            const char* byte_ptr = (const char *) (word_ptr - 1);
+            for (size_t i = 0; i < sizeof(size_t); ++i) {
+                if (byte_ptr[i] == target) {
+                    return byte_ptr + i;
+                }
+            }
+        }
+
+        if (HAS_ZERO(word)) {
+            const char* byte_ptr = (const char *) (word_ptr - 1);
+            for (size_t i = 0; i < sizeof(size_t); ++i) {
+                if (byte_ptr[i] == '\0') {
+                    return NULL;
+                }
+            }
+        }
+    }
+}
 
 inline
 int32 utf8_encode(uint32 codepoint, char* out)
@@ -53,7 +143,7 @@ int32 utf8_encode(uint32 codepoint, char* out)
 
 inline
 int32 utf8_decode(const char* __restrict in, uint32* __restrict codepoint) {
-    unsigned char ch = (unsigned char) *in;
+    byte ch = (byte) *in;
 
     if (ch <= 0x7F) {
         // 1-byte sequence (ASCII)
@@ -110,11 +200,11 @@ int32 utf8_decode(const uint32 codepoint, char* __restrict out) {
         return 4;
     }
 
-    return -1; // Invalid codepoint
+    return -1;
 }
 
 inline
-int32 utf8_strlen(const char* in) {
+int32 utf8_str_length(const char* in) {
     int32 length = 0;
     int32 bytes;
     uint32 codepoint;
@@ -199,8 +289,150 @@ void wchar_to_char(const char* __restrict str, char* __restrict dest)
     *dest = '\0';
 }
 
+static const bool STR_IS_ALPHA_LOOKUP_TABLE[] = {
+    false, false, false, false, false, false, false, false, // 0-7
+    false, false, false, false, false, false, false, false, // 8-15
+    false, false, false, false, false, false, false, false, // 16-23
+    false, false, false, false, false, false, false, false, // 24-31
+    false, false, false, false, false, false, false, false, // 32-39
+    false, false, false, false, false, false, false, false, // 40-47
+    false, false, false, false, false, false, false, false, // 48-55 ('0'-'7')
+    false, false, false, false, false, false, false, false, // 56-63 ('8'-'9', others)
+    false, true,  true,  true,  true,  true,  true,  true,  // 64-71 ('A'-'G')
+    true,  true,  true,  true,  true,  true,  true,  true,  // 72-79 ('H'-'O')
+    true,  true,  true,  true,  true,  true,  true,  true,  // 80-87 ('P'-'W')
+    true,  true,  true, false, false, false, false, false, // 88-95 ('X'-'Z', others)
+    false, true,  true,  true,  true,  true,  true,  true,  // 96-103 ('a'-'g')
+    true,  true,  true,  true,  true,  true,  true,  true,  // 104-111 ('h'-'o')
+    true,  true,  true,  true,  true,  true,  true,  true,  // 112-119 ('p'-'w')
+    true,  true,  true, false, false, false, false, false, // 120-127 ('x'-'z', others)
+    false, false, false, false, false, false, false, false, // 128-135
+    false, false, false, false, false, false, false, false, // 136-143
+    false, false, false, false, false, false, false, false, // 144-151
+    false, false, false, false, false, false, false, false, // 152-159
+    false, false, false, false, false, false, false, false, // 160-167
+    false, false, false, false, false, false, false, false, // 168-175
+    false, false, false, false, false, false, false, false, // 176-183
+    false, false, false, false, false, false, false, false, // 184-191
+    false, false, false, false, false, false, false, false, // 192-199
+    false, false, false, false, false, false, false, false, // 200-207
+    false, false, false, false, false, false, false, false, // 208-215
+    false, false, false, false, false, false, false, false, // 216-223
+    false, false, false, false, false, false, false, false, // 224-231
+    false, false, false, false, false, false, false, false, // 232-239
+    false, false, false, false, false, false, false, false, // 240-247
+    false, false, false, false, false, false, false, false  // 248-255
+};
+
+inline constexpr
+bool str_is_alpha(char str) {
+    return STR_IS_ALPHA_LOOKUP_TABLE[(byte) str];
+}
+
+inline constexpr
+bool str_is_alpha(const char* str) {
+    while (*str != '\0') {
+        if (!str_is_alpha(*str++)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static const bool STR_IS_NUM_LOOKUP_TABLE[] = {
+    false, false, false, false, false, false, false, false, // 0-7
+    false, false, false, false, false, false, false, false, // 8-15
+    false, false, false, false, false, false, false, false, // 16-23
+    false, false, false, false, false, false, false, false, // 24-31
+    false, false, false, false, false, false, false, false, // 32-39
+    false, false, false, false, false, false, false, false, // 40-47
+    true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
+    true,  true,  false, false, false, false, false, false, // 56-63 ('8'-'9', others)
+    false, true,  false, false, false, false, false, false,  // 64-71 ('A'-'G')
+    false, false, false, false, false, false, false, false,  // 72-79 ('H'-'O')
+    false, false, false, false, false, false, false, false,  // 80-87 ('P'-'W')
+    false, false, false, false, false, false, false, false, // 88-95 ('X'-'Z', others)
+    false, false, false, false, false, false, false, false,  // 96-103 ('a'-'g')
+    false, false, false, false, false, false, false, false,  // 104-111 ('h'-'o')
+    false, false, false, false, false, false, false, false,  // 112-119 ('p'-'w')
+    false, false, false, false, false, false, false, false, // 120-127 ('x'-'z', others)
+    false, false, false, false, false, false, false, false, // 128-135
+    false, false, false, false, false, false, false, false, // 136-143
+    false, false, false, false, false, false, false, false, // 144-151
+    false, false, false, false, false, false, false, false, // 152-159
+    false, false, false, false, false, false, false, false, // 160-167
+    false, false, false, false, false, false, false, false, // 168-175
+    false, false, false, false, false, false, false, false, // 176-183
+    false, false, false, false, false, false, false, false, // 184-191
+    false, false, false, false, false, false, false, false, // 192-199
+    false, false, false, false, false, false, false, false, // 200-207
+    false, false, false, false, false, false, false, false, // 208-215
+    false, false, false, false, false, false, false, false, // 216-223
+    false, false, false, false, false, false, false, false, // 224-231
+    false, false, false, false, false, false, false, false, // 232-239
+    false, false, false, false, false, false, false, false, // 240-247
+    false, false, false, false, false, false, false, false  // 248-255
+};
+
+inline constexpr
+bool str_is_num(char str) {
+    return STR_IS_NUM_LOOKUP_TABLE[(byte) str];
+}
+
+static const bool STR_IS_ALPHANUM_LOOKUP_TABLE[] = {
+    false, false, false, false, false, false, false, false, // 0-7
+    false, false, false, false, false, false, false, false, // 8-15
+    false, false, false, false, false, false, false, false, // 16-23
+    false, false, false, false, false, false, false, false, // 24-31
+    false, false, false, false, false, false, false, false, // 32-39
+    false, false, false, false, false, false, false, false, // 40-47
+    true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
+    true,  true, false, false, false, false, false, false, // 56-63 ('8'-'9', others)
+    false, true,  true,  true,  true,  true,  true,  true,  // 64-71 ('A'-'G')
+    true,  true,  true,  true,  true,  true,  true,  true,  // 72-79 ('H'-'O')
+    true,  true,  true,  true,  true,  true,  true,  true,  // 80-87 ('P'-'W')
+    true,  true,  true, false, false, false, false, false, // 88-95 ('X'-'Z', others)
+    false, true,  true,  true,  true,  true,  true,  true,  // 96-103 ('a'-'g')
+    true,  true,  true,  true,  true,  true,  true,  true,  // 104-111 ('h'-'o')
+    true,  true,  true,  true,  true,  true,  true,  true,  // 112-119 ('p'-'w')
+    true,  true,  true, false, false, false, false, false, // 120-127 ('x'-'z', others)
+    false, false, false, false, false, false, false, false, // 128-135
+    false, false, false, false, false, false, false, false, // 136-143
+    false, false, false, false, false, false, false, false, // 144-151
+    false, false, false, false, false, false, false, false, // 152-159
+    false, false, false, false, false, false, false, false, // 160-167
+    false, false, false, false, false, false, false, false, // 168-175
+    false, false, false, false, false, false, false, false, // 176-183
+    false, false, false, false, false, false, false, false, // 184-191
+    false, false, false, false, false, false, false, false, // 192-199
+    false, false, false, false, false, false, false, false, // 200-207
+    false, false, false, false, false, false, false, false, // 208-215
+    false, false, false, false, false, false, false, false, // 216-223
+    false, false, false, false, false, false, false, false, // 224-231
+    false, false, false, false, false, false, false, false, // 232-239
+    false, false, false, false, false, false, false, false, // 240-247
+    false, false, false, false, false, false, false, false  // 248-255
+};
+
+inline constexpr
+bool str_is_alphanum(char str) {
+    return STR_IS_ALPHANUM_LOOKUP_TABLE[(byte) str];
+}
+
 inline
-bool is_float(const char* str) {
+bool str_is_alphanum(const char* str) {
+    while (*str != '\0') {
+        if (!str_is_alphanum(*str++)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+inline
+bool str_is_float(const char* str) {
     bool has_dot = false;
 
     if (*str == '-' || *str == '+') {
@@ -214,7 +446,7 @@ bool is_float(const char* str) {
             }
 
             has_dot = true;
-        } else if (*str < '0' || *str > '9') {
+        } else if (!str_is_num(*str)) {
             return false;
         }
 
@@ -225,18 +457,14 @@ bool is_float(const char* str) {
 }
 
 inline
-bool is_integer(const char* str) {
-    if (*str == '-' || *str == '+') {
+bool str_is_integer(const char* str) {
+    if (*str == '-' || *str == '+') { [[unlikely]]
         str++;
-    }
-
-    if (*str == '\0') {
-        return false;
     }
 
     bool is_int = false;
     while (*str) {
-        if (*str < '0' || *str > '9') {
+        if (!str_is_num(*str)) {
             return false;
         }
 
@@ -247,100 +475,25 @@ bool is_integer(const char* str) {
     return is_int;
 }
 
-inline
-bool is_hex_color(const char* str)
-{
-    if (str[0] != '#') {
-        return false;
-    }
-
-    ++str;
-
-    while (*str) {
-        if ((*str < 'A' || *str > 'F')
-            || (*str < 'a' || *str > 'f')
-            || (*str < '0' || *str > '9')
-        ) {
-            return false;
-        }
-
-        ++str;
-    }
-
-    return true;
-}
-
-inline
-bool str_is_alpha(char str) {
-    return (str < 'A' || str > 'F')
-        || (str < 'a' || str > 'f');
-}
-
-inline
-bool str_is_num(char str) {
-    return str < '0' || str > '9';
-}
-
-inline
-bool str_is_alphanum(char str) {
-    return (str < 'A' || str > 'F')
-        || (str < 'a' || str > 'f')
-        || (str < '0' || str > '9');
-}
-
-inline
-size_t str_length(const char* str)
-{
-    const char* s = str;
-
-    // Quick check for very short strings
-    while ((uintptr_t) s % sizeof(uintptr_t) != 0) {
-        if (*s == '\0') {
-            return s - str;
-        }
-
-        ++s;
-    }
-
-    // Process words at a time
-    const uintptr_t* word_ptr = (const uintptr_t *) s;
-    const uintptr_t word_mask = (uintptr_t) -1 / 0xFF; // 0x01010101...
-
-    while (true) {
-        uintptr_t word = *word_ptr++;
-        // Detect null byte using word-level operation
-        if ((word - word_mask) & ~word & (word_mask << 7)) {
-            break;
-        }
-    }
-
-    // Backtrack to find the exact null byte
-    s = (const char *) (word_ptr - 1);
-    for (size_t i = 0; i < sizeof(uintptr_t); ++i) {
-        if (s[i] == '\0') {
-            return s + i - str;
-        }
-    }
-
-    return 0;
-}
-
 inline constexpr
-int64 str_to_int(const char* str)
+int64 str_to_int(const char* str, const char** pos = NULL)
 {
-    int64 result = 0;
-
     int64 sign = 1;
     if (*str == '-') {
         sign = -1;
         ++str;
     }
 
-    while (*str >= '0' && *str <= '9') {
+    int64 result = 0;
+    while (str_is_num(*str)) {
         result *= 10;
         result += (*str - '0');
 
         ++str;
+    }
+
+    if (pos) {
+        *pos = str;
     }
 
     return result * sign;
@@ -443,6 +596,61 @@ static const char HEX_TABLE[] = {
     'A', 'B', 'C', 'D', 'E', 'F'
 };
 
+static const bool HEX_LOOKUP_TABLE[256] = {
+    false, false, false, false, false, false, false, false, // 0-7
+    false, false, false, false, false, false, false, false, // 8-15
+    false, false, false, false, false, false, false, false, // 16-23
+    false, false, false, false, false, false, false, false, // 24-31
+    false, false, false, false, false, false, false, false, // 32-39
+    false, false, false, false, false, false, false, false, // 40-47
+    true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
+    true,  true,  false, false, false, false, false, false, // 56-63 ('8'-'9', others)
+    false, true,  true,  true,  true,  true,  true,  false,  // 64-71 ('A'-'G')
+    false, false, false, false, false, false, false, false,  // 72-79 ('H'-'O')
+    false, false, false, false, false, false, false, false,  // 80-87 ('P'-'W')
+    false, false, false, false, false, false, false, false, // 88-95 ('X'-'Z', others)
+    false, false, false, false, false, false, false, false,  // 96-103 ('a'-'g')
+    false, false, false, false, false, false, false, false,  // 104-111 ('h'-'o')
+    false, false, false, false, false, false, false, false,  // 112-119 ('p'-'w')
+    false, false, false, false, false, false, false, false, // 120-127 ('x'-'z', others)
+    false, false, false, false, false, false, false, false, // 128-135
+    false, false, false, false, false, false, false, false, // 136-143
+    false, false, false, false, false, false, false, false, // 144-151
+    false, false, false, false, false, false, false, false, // 152-159
+    false, false, false, false, false, false, false, false, // 160-167
+    false, false, false, false, false, false, false, false, // 168-175
+    false, false, false, false, false, false, false, false, // 176-183
+    false, false, false, false, false, false, false, false, // 184-191
+    false, false, false, false, false, false, false, false, // 192-199
+    false, false, false, false, false, false, false, false, // 200-207
+    false, false, false, false, false, false, false, false, // 208-215
+    false, false, false, false, false, false, false, false, // 216-223
+    false, false, false, false, false, false, false, false, // 224-231
+    false, false, false, false, false, false, false, false, // 232-239
+    false, false, false, false, false, false, false, false, // 240-247
+    false, false, false, false, false, false, false, false  // 248-255
+};
+
+inline
+bool str_is_hex_color(const char* str)
+{
+    if (str[0] != '#') {
+        return false;
+    }
+
+    ++str;
+
+    while (*str) {
+        if (!HEX_LOOKUP_TABLE[(byte) *str]) {
+            return false;
+        }
+
+        ++str;
+    }
+
+    return true;
+}
+
 inline constexpr
 int32 int_to_hex(int64 number, char str[9]) {
     int32 i = -1;
@@ -469,16 +677,13 @@ inline constexpr
 int64 hex_to_int(const char* hex)
 {
     int64 result = 0;
-    while ((*hex >= '0' && *hex <= '9')
-        || (*hex >= 'A' && *hex <= 'F')
-        || (*hex >= 'a' && *hex <= 'f')
-    ) {
+    while (HEX_LOOKUP_TABLE[(byte) *hex]) {
         byte value = *hex++;
-        if (value >= '0' && value <= '9') {
+        if (str_is_num(value)) {
             value = value - '0';
         } else if (value >= 'A' && value <='F') {
             value = value - 'A' + 10;
-        } else if (value >= 'a' && value <='f') {
+        } else {
             value = value - 'a' + 10;
         }
 
@@ -491,15 +696,15 @@ int64 hex_to_int(const char* hex)
 inline
 size_t str_count(const char* __restrict str, const char* __restrict substr)
 {
-    size_t l1 = strlen(str);
-    size_t l2 = strlen(substr);
+    size_t l1 = str_length(str);
+    size_t l2 = str_length(substr);
 
     if (l2 == 0 || l1 < l2) {
         return 0;
     }
 
     size_t count = 0;
-    for (str = strstr(str, substr); str; str = strstr(str + l2, substr)) {
+    for (str = str_find(str, substr); str; str = str_find(str + l2, substr)) {
         ++count;
     }
 
@@ -509,9 +714,9 @@ size_t str_count(const char* __restrict str, const char* __restrict substr)
 inline constexpr
 int32 is_eol(const char* str)
 {
-    if (*str == '\n') {
+    if (*str == '\n') { [[unlikely]]
         return 1;
-    } else if (*str == '\r' && str[1] == '\n') {
+    } else if (*str == '\r' && str[1] == '\n') { [[unlikely]]
         return 2;
     }
 
@@ -536,7 +741,7 @@ int32 str_copy_until(char* __restrict dest, const char* __restrict src, char del
 inline
 void str_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim)
 {
-    size_t len = strlen(delim);
+    size_t len = str_length(delim);
 
     while (*src != '\0') {
         for (int32 i = 0; i < len; ++i) {
@@ -617,7 +822,7 @@ void str_copy_move_until(const char** __restrict src, char* __restrict dest, cha
 inline
 void str_copy_move_until(const char** __restrict src, char* __restrict dest, const char* __restrict delim)
 {
-    size_t len = strlen(delim);
+    size_t len = str_length(delim);
 
     while (**src != '\0') {
         for (size_t i = 0; i < len; ++i) {
@@ -750,14 +955,14 @@ void str_concat_append(
     char* dst,
     int64 data
 ) {
-    size_t dst_len = strlen(dst);
+    size_t dst_len = str_length(dst);
     int_to_str(data, dst + dst_len);
 }
 
 inline void
 str_concat_new(char* dst, const char* src, int64 data)
 {
-    size_t src_len = strlen(src);
+    size_t src_len = str_length(src);
     memcpy(dst, src, src_len);
 
     int_to_str(data, dst + src_len);
@@ -765,15 +970,15 @@ str_concat_new(char* dst, const char* src, int64 data)
 
 inline
 void str_insert(char* __restrict dst, size_t insert_pos, const char* __restrict src) {
-    size_t src_length = strlen(src);
-    size_t dst_length = strlen(dst);
+    size_t src_length = str_length(src);
+    size_t dst_length = str_length(dst);
     memcpy(dst + insert_pos + src_length, dst + insert_pos, dst_length - insert_pos + 1);
     memcpy(dst + insert_pos, src, src_length);
 }
 
 inline
 void str_remove(char* __restrict dst, size_t remove_pos, size_t remove_length) {
-    size_t src_length = strlen(dst);
+    size_t src_length = str_length(dst);
     memmove(dst + remove_pos, dst + remove_pos + remove_length, src_length - (remove_pos + remove_length) + 1);
 }
 
@@ -832,7 +1037,7 @@ void tolower_ascii(char* str)
 }
 
 inline constexpr
-void create_const_name(const unsigned char* name, char* modified_name)
+void create_const_name(const byte* name, char* modified_name)
 {
     size_t i = 0;
     while (*name != '\0') {
@@ -845,7 +1050,7 @@ void create_const_name(const unsigned char* name, char* modified_name)
 }
 
 inline
-void create_const_name(unsigned char* name)
+void create_const_name(byte* name)
 {
     while (*name != '\0') {
         *name = *name == ' ' ? '_' : toupper_ascii(*name);
@@ -928,8 +1133,8 @@ bool str_ends_with(const char* str, const char* suffix) {
         return false;
     }
 
-    size_t str_len = strlen(str);
-    size_t suffix_len = strlen(suffix);
+    size_t str_len = str_length(str);
+    size_t suffix_len = str_length(suffix);
 
     if (suffix_len > str_len) {
         return false;
@@ -944,8 +1149,8 @@ void str_replace(const char* str, const char* __restrict search, const char* __r
         return;
     }
 
-    size_t search_len = strlen(search);
-    size_t replace_len = strlen(replace);
+    size_t search_len = str_length(search);
+    size_t replace_len = str_length(replace);
 
     if (search_len == 0) {
         str_copy_short(result, str);
@@ -955,7 +1160,7 @@ void str_replace(const char* str, const char* __restrict search, const char* __r
     const char* current = str;
     char* result_ptr = result;
 
-    while ((current = strstr(current, search)) != NULL) {
+    while (*current && (current = str_find(current, search)) != NULL) {
         size_t bytes_to_copy = current - str;
         memcpy(result_ptr, str, bytes_to_copy);
         result_ptr += bytes_to_copy;
@@ -970,9 +1175,10 @@ void str_replace(const char* str, const char* __restrict search, const char* __r
     str_copy_short(result_ptr, str);
 }
 
+/*
 void print_bytes(const void* ptr, size_t size)
 {
-    const unsigned char* bytePtr = (const unsigned char *) ptr;
+    const byte* bytePtr = (const byte *) ptr;
 
     size_t count = 0;
 
@@ -988,6 +1194,7 @@ void print_bytes(const void* ptr, size_t size)
         }
     }
 }
+*/
 
 inline constexpr
 bool is_whitespace(char str)
@@ -1032,7 +1239,7 @@ void str_move_to_pos(const char** str, int32 pos)
     if (pos >= 0) {
         *str += pos;
     } else {
-        *str = OMS_MAX(*str + (strlen(*str) - pos), *str);
+        (*str) += OMS_MAX(((int32) str_length(*str) + pos), 0);
     }
 }
 
@@ -1051,9 +1258,7 @@ void str_move_past(const char** str, char delim)
 inline
 void str_move_past_alpha_num(const char** str)
 {
-    while ((**str >= 48 && **str <= 57)
-        || (**str >= 65 && **str <= 90)
-        || (**str >= 97 && **str <= 122)
+    while (str_is_alphanum(**str)
         || **str == 45 || **str == 95
     )  {
         ++(*str);
@@ -1140,7 +1345,7 @@ void hexstr_to_rgba(v4_f32* rgba, const char* hex)
         ++hex;
     }
 
-    uint32 value = (uint32) strtoul(hex, NULL, 16);
+    uint32 value = (uint32) hex_to_int(hex);
     rgba->r = (f32) ((value >> 24) & 0xFF) / 255.0f;
     rgba->g = (f32) ((value >> 16) & 0xFF) / 255.0f;
     rgba->b = (f32) ((value >> 8) & 0xFF) / 255.0f;
@@ -1157,6 +1362,57 @@ void str_pad(const char* input, char* output, char pad, size_t len) {
     for (; i < len; ++i) {
         output[i] = pad;
     }
+}
+
+inline
+f32 str_to_float(const char* str, const char** pos = NULL)
+{
+    const char *p = str;
+    f32 result = 0.0f;
+    int32 sign = 1;
+
+    // Skip leading whitespace
+    while (is_whitespace(*p)) {
+        ++p;
+    }
+
+    // Handle optional sign
+    if (*p == '+' || *p == '-') {
+        sign = (*p == '-') ? -1 : 1;
+        ++p;
+    }
+
+    // Parse integer part
+    while (str_is_num(*p)) {
+        result = result * 10.0f + (*p - '0');
+        ++p;
+    }
+
+    // Parse fractional part
+    if (*p == '.') {
+        int32 decimals = 0;
+        ++p;
+
+        while (str_is_num(*p)) {
+            result = result * 10.0f + (*p - '0');
+            ++decimals;
+            ++p;
+        }
+
+        // Adjust for decimal places and exponent
+        static const float powers_of_ten[] = {
+            1.0f, 10.0f, 100.0f, 1000.0f, 10000.0f, 100000.0f, 1000000.0f
+        };
+
+        result /= powers_of_ten[decimals];
+    }
+
+    // Set end pointer
+    if (pos) {
+        *pos = (char *) p;
+    }
+
+    return sign * result;
 }
 
 inline
@@ -1205,7 +1461,49 @@ int32 float_to_str(f64 value, char* buffer, int32 precision = 5)
         }
     }
 
+    *buffer = '\0';
+
     return (int32) (buffer - start);
+}
+
+inline
+void format_time_hh_mm_ss(char time_str[9], int32 hours, int32 minutes, int32 secs) {
+    time_str[0] = (char) ('0' + (hours / 10));
+    time_str[1] = (char) ('0' + (hours % 10));
+    time_str[2] = ':';
+    time_str[3] = (char) ('0' + (minutes / 10));
+    time_str[4] = (char) ('0' + (minutes % 10));
+    time_str[5] = ':';
+    time_str[6] = (char) ('0' + (secs / 10));
+    time_str[7] = (char) ('0' + (secs % 10));
+    time_str[8] = '\0';
+}
+
+inline
+void format_time_hh_mm_ss(char time_str[9], uint64 time) {
+    int32 hours = (time / 3600) % 24;
+    int32 minutes = (time / 60) % 60;
+    int32 secs = time % 60;
+
+    format_time_hh_mm_ss(time_str, hours, minutes, secs);
+}
+
+inline
+void format_time_hh_mm(char time_str[6], int32 hours, int32 minutes) {
+    time_str[0] = (char) ('0' + (hours / 10));
+    time_str[1] = (char) ('0' + (hours % 10));
+    time_str[2] = ':';
+    time_str[3] = (char) ('0' + (minutes / 10));
+    time_str[4] = (char) ('0' + (minutes % 10));
+    time_str[5] = '\0';
+}
+
+inline
+void format_time_hh_mm(char time_str[6], uint64 time) {
+    int32 hours = (time / 3600) % 24;
+    int32 minutes = (time / 60) % 60;
+
+    format_time_hh_mm(time_str, hours, minutes);
 }
 
 void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) {
@@ -1229,7 +1527,7 @@ void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) {
                     }
                 } break;
                 case 'c': {
-                    *buffer++ = va_arg(args, char);
+                    *buffer++ = (char) va_arg(args, int32);
                 } break;
                 case 'n': {
                     int64 val = va_arg(args, int64);
@@ -1262,6 +1560,11 @@ void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) {
                     }
 
                     buffer += float_to_str(val, buffer, precision);
+                } break;
+                case 'T': {
+                    int64 time = va_arg(args, int64);
+                    format_time_hh_mm_ss(buffer, time);
+                    buffer += 8;
                 } break;
                 default: {
                     // Handle unknown format specifiers
@@ -1305,7 +1608,7 @@ void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __re
                     }
                 } break;
                 case 'c': {
-                    *buffer++ = va_arg(args, char);
+                    *buffer++ = (char) va_arg(args, int32);
                 } break;
                 case 'n': {
                     int64 val = va_arg(args, int64);
@@ -1338,6 +1641,11 @@ void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __re
                     }
 
                     buffer += offset = float_to_str(val, buffer, precision);
+                } break;
+                case 'T': {
+                    int64 time = va_arg(args, int64);
+                    format_time_hh_mm_ss(buffer, time);
+                    buffer += 8;
                 } break;
                 default: {
                     // Handle unknown format specifiers
@@ -1379,7 +1687,7 @@ void sprintf_fast_iter(char* buffer, const char* format, ...) {
                     }
                 } break;
                 case 'c': {
-                    *buffer++ = va_arg(args, char);
+                    *buffer++ = (char) va_arg(args, int32);
                 } break;
                 case 'n': {
                     int64 val = va_arg(args, int64);
@@ -1413,6 +1721,11 @@ void sprintf_fast_iter(char* buffer, const char* format, ...) {
 
                     buffer += float_to_str(val, buffer, precision);
                 } break;
+                case 'T': {
+                    int64 time = va_arg(args, int64);
+                    format_time_hh_mm_ss(buffer, time);
+                    buffer += 8;
+                } break;
                 default: {
                     // Handle unknown format specifiers
                     *buffer++ = '%';
@@ -1425,46 +1738,6 @@ void sprintf_fast_iter(char* buffer, const char* format, ...) {
 
     *buffer = '\0';
     va_end(args);
-}
-
-inline
-void format_time_hh_mm_ss(char* time_str, int32 hours, int32 minutes, int32 secs) {
-    time_str[0] = (char) ('0' + (hours / 10));
-    time_str[1] = (char) ('0' + (hours % 10));
-    time_str[2] = ':';
-    time_str[3] = (char) ('0' + (minutes / 10));
-    time_str[4] = (char) ('0' + (minutes % 10));
-    time_str[5] = ':';
-    time_str[6] = (char) ('0' + (secs / 10));
-    time_str[7] = (char) ('0' + (secs % 10));
-    time_str[8] = '\0';
-}
-
-inline
-void format_time_hh_mm_ss(char* time_str, uint64 time) {
-    int32 hours = (time / 3600) % 24;
-    int32 minutes = (time / 60) % 60;
-    int32 secs = time % 60;
-
-    format_time_hh_mm_ss(time_str, hours, minutes, secs);
-}
-
-inline
-void format_time_hh_mm(char* time_str, int32 hours, int32 minutes) {
-    time_str[0] = (char) ('0' + (hours / 10));
-    time_str[1] = (char) ('0' + (hours % 10));
-    time_str[2] = ':';
-    time_str[3] = (char) ('0' + (minutes / 10));
-    time_str[4] = (char) ('0' + (minutes % 10));
-    time_str[5] = '\0';
-}
-
-inline
-void format_time_hh_mm(char* time_str, uint64 time) {
-    int32 hours = (time / 3600) % 24;
-    int32 minutes = (time / 60) % 60;
-
-    format_time_hh_mm(time_str, hours, minutes);
 }
 
 #endif

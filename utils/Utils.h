@@ -9,61 +9,79 @@
 #ifndef TOS_UTILS_H
 #define TOS_UTILS_H
 
-#include <stdlib.h>
+#include <string.h>
 #include "../stdlib/Types.h"
+#include "../utils/StringUtils.h"
+#include "../compiler/CompilerUtils.h"
+
+#if ARM
+    #if ARM_NEON
+        #include "../architecture/arm/utils/neon/Utils.h"
+    #else
+        #include "../architecture/arm/utils/sve/Utils.h"
+    #endif
+#else
+    #include "../architecture/x86/simd/utils/Utils.h"
+#endif
+
+#if _WIN32
+    #include "../platform/win32/UtilsWin32.h"
+#else
+    #include "../platform/linux/UtilsLinux.h"
+#endif
 
 struct FileBody {
     uint64 size; // doesn't include null termination (same as strlen)
     byte* content;
 };
 
-// @question Do we want to make the size comparison a step variable?
-inline
-bool is_equal_aligned(const byte* region1, const byte* region2, uint64 size)
+FORCE_INLINE
+bool is_equal(const byte* __restrict region1, const byte* __restrict region2, uint64 size)
 {
-    while (size > 4) {
-        if (*(const int32 *) region1 != *(const int32 *) region2) {
-            return false;
-        }
-
-        region1 += 4;
-        region2 += 4;
-        size -= 4;
-    }
-
-    for (; size > 0; --size) {
-        if (region1 != region2) {
-            return false;
-        }
-
-        ++region1;
-        ++region2;
-    }
-
-    return true;
+    return memcmp(region1, region2, size) == 0;
 }
 
-// @question Do we want to make the size comparison a step variable?
-bool is_empty(const byte* region, uint64 size)
-{
-    while (size > 4) {
-        if (*(const int32 *) region != 0) {
-            return false;
-        }
+inline
+void str_output(const char* __restrict str, ...) {
+    if (str_find(str, '%')) {
+        va_list args;
+        char buffer[1024];
+        sprintf_fast(buffer, 1024, str, args);
 
-        region += 4;
-        size -= 4;
+        str = buffer;
     }
 
-    for (; size > 0; --size) {
-        if (region != 0) {
-            return false;
-        }
+    while (*str) {
+        output_char(*str++);
+    }
+}
 
-        ++region;
+inline
+void swap_memory(void* __restrict a, void* __restrict b, size_t size) {
+    byte* p = (byte*) a;
+    byte* q = (byte*) b;
+
+    // Swap in chunks of size_t
+    while (size >= sizeof(size_t)) {
+        size_t tmp = *(size_t *) p;
+        *(size_t *) p = *(size_t *) q;
+        *(size_t *) q = tmp;
+
+        p += sizeof(size_t);
+        q += sizeof(size_t);
+        size -= sizeof(size_t);
     }
 
-    return true;
+    // Swap remaining bytes
+    while (size > 0) {
+        byte tmp = *p;
+        *p = *q;
+        *q = tmp;
+
+        ++p;
+        ++q;
+        --size;
+    }
 }
 
 #endif
