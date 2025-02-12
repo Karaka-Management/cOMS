@@ -14,8 +14,10 @@
 #include "../utils/TestUtils.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/BitUtils.h"
+#include "../compiler/CompilerUtils.h"
 #include "../log/Log.h"
-#include "../log/Debug.cpp"
+#include "../log/Stats.h"
+#include "../log/DebugMemory.h"
 #include "BufferMemory.h"
 #include "../system/Allocator.h"
 #include "../thread/Thread.h"
@@ -35,6 +37,7 @@ struct ChunkMemory {
     uint64* free;
 };
 
+// INFO: A chunk count of 2^n is recommended for maximum performance
 inline
 void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignment = 64)
 {
@@ -153,26 +156,38 @@ byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false)
     return offset;
 }
 
-// @performance This is a very important function, revisit in the future for optimization (e.g. ABM)
-// @performance Is _BitScanForward faster?
-// @performance We could probably even reduce the number of iterations by only iterating until popcount is reached?
 int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1)
 {
+    if ((uint32) (buf->last_pos + 1) >= buf->count) {
+        buf->last_pos = -1;
+    }
+
     uint32 free_index = (buf->last_pos + 1) / 64;
     uint32 bit_index = (buf->last_pos + 1) & 63;
-    int32 free_element = -1;
 
+    // Check standard simple solution
+    if (elements == 1 && !IS_BIT_SET_64_R2L(buf->free[free_index], bit_index)) {
+        buf->free[free_index] |= (1ULL << bit_index);
+        ++buf->last_pos;
+
+        return free_index * 64 + bit_index;
+    }
+
+    int32 free_element = -1;
     uint32 i = 0;
     uint32 consecutive_free_bits = 0;
 
     while (free_element < 0 && i++ <= buf->count) {
-        // Skip fully filled ranges
         if (free_index * 64 + bit_index + elements - consecutive_free_bits > buf->count) {
+            // Go to beginning after overflow
             i += buf->count - (free_index * 64 + bit_index);
             consecutive_free_bits = 0;
             free_index = 0;
             bit_index = 0;
+
+            continue;
         } else if (buf->free[free_index] == 0xFFFFFFFFFFFFFFFF) {
+            // Skip fully filled ranges
             ++free_index;
             bit_index = 0;
             i += 64;
@@ -182,28 +197,10 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1)
         }
 
         // Find first free element
-        while (IS_BIT_SET_64_R2L(buf->free[free_index], bit_index) && i <= buf->count) {
-            consecutive_free_bits = 0;
-            ++bit_index;
-            ++i;
+        // This MUST find a free element, otherwise we wouldn't have gotten here
+        bit_index = compiler_find_first_bit_r2l(~buf->free[free_index]);
 
-            // We still need to check for overflow since our initial bit_index is based on buf->last_pos
-            if (bit_index > 63) {
-                bit_index = 0;
-                ++free_index;
-
-                break;
-            }
-        }
-
-        // The previous while may exit with an "overflow", that's why this check is required
-        if (IS_BIT_SET_64_R2L(buf->free[free_index], bit_index) || i > buf->count) {
-            consecutive_free_bits = 0;
-
-            continue;
-        }
-
-        // We found our first free element, let's check if we have enough free space
+        // Let's check if we have enough free space, we need more than just one free bit
         do {
             ++i;
             ++consecutive_free_bits;

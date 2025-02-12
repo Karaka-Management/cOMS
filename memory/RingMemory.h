@@ -18,7 +18,8 @@
 
 #include "BufferMemory.h"
 #include "../log/Log.h"
-#include "../log/Debug.cpp"
+#include "../log/Stats.h"
+#include "../log/DebugMemory.h"
 #include "../thread/Atomic.h"
 #include "../thread/Semaphore.h"
 #include "../thread/ThreadDefines.h"

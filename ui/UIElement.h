@@ -19,7 +19,13 @@ enum UIElementType : byte {
     UI_ELEMENT_TYPE_VIEW_PANEL,
     UI_ELEMENT_TYPE_VIEW_TAB,
     UI_ELEMENT_TYPE_CURSOR,
+
+    // Uses a callback function for update/rendering
     UI_ELEMENT_TYPE_CUSTOM,
+
+    // Doesn't do anything is handled completely manual
+    UI_ELEMENT_TYPE_MANUAL,
+
     UI_ELEMENT_TYPE_SIZE,
 };
 

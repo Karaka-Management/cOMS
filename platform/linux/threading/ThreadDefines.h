@@ -44,4 +44,7 @@ typedef void pthread_mutexattr_t;
 typedef void pthread_condattr_t;
 typedef void pthread_rwlockattr_t;
 
+// Thread local variable Already exists in c++11
+// #define thread_local __thread
+
 #endif

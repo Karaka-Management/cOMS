@@ -46,6 +46,7 @@ double test_measure_func_time_ns(void (*func)(void *), void *para)
 #define TEST_INIT(test_count)                                                                  \
     do                                                                                         \
     {                                                                                          \
+        setvbuf(stdout, NULL, _IONBF, 0);                                                      \
         SetUnhandledExceptionFilter(test_exception_handler);                                   \
         _test_assert_error_count = 0;                                                          \
         _test_count = 0;                                                                       \
@@ -81,6 +82,7 @@ double test_measure_func_time_ns(void (*func)(void *), void *para)
 #define TEST_INIT(test_count)                                                                  \
     do                                                                                         \
     {                                                                                          \
+        setvbuf(stdout, NULL, _IONBF, 0);                                                      \
         signal(SIGSEGV, test_exception_handler);                                               \
         signal(SIGABRT, test_exception_handler);                                               \
         _test_assert_error_count = 0;                                                          \
@@ -103,19 +105,21 @@ double test_measure_func_time_ns(void (*func)(void *), void *para)
         if (_test_assert_error_count)                                                                      \
         {                                                                                                  \
             printf(                                                                                        \
-                "[NG] %5d   (%5d/%5d)   %s\n",                                                              \
+                "[NG] %5d   (%5d/%5d)   %s\n",                                                             \
                 _test_count, _test_assert_count - _test_assert_error_count, _test_assert_count, __FILE__); \
             for (int i = 0; i < _test_assert_error_count; ++i)                                             \
             {                                                                                              \
-                printf("                               %s\n", _test_log[i]);                                     \
+                printf("                               %s\n", _test_log[i]);                               \
+                fflush(stdout);                                                                            \
             }                                                                                              \
         }                                                                                                  \
         else                                                                                               \
         {                                                                                                  \
             printf(                                                                                        \
-                "[OK] %5d   (%5d/%5d)   %s\n",                                                              \
+                "[OK] %5d   (%5d/%5d)   %s\n",                                                             \
                 _test_count, _test_assert_count - _test_assert_error_count, _test_assert_count, __FILE__); \
         }                                                                                                  \
+        fflush(stdout);                                                                                    \
         free(_test_log);                                                                                   \
         _test_log = NULL;                                                                                  \
         _test_assert_error_count = 0;                                                                      \
@@ -156,18 +160,18 @@ double test_measure_func_time_ns(void (*func)(void *), void *para)
         }                                                               \
     } while (0)
 
-#define ASSERT_EQUALS_WITH_DELTA(a, b, delta)                           \
-    do                                                                  \
-    {                                                                   \
-        ++_test_assert_count;                                           \
-        ++_test_global_assert_count;                                    \
-        if (OMS_ABS((a) - (b)) > (delta))                               \
-        {                                                               \
-            ++_test_global_assert_error_count;                          \
-            snprintf(                                                   \
-                _test_log[_test_assert_error_count++], 1024,            \
-                "%4i: %lld != %lld", __LINE__, (int64)(a), (int64)(b)); \
-        }                                                               \
+#define ASSERT_EQUALS_WITH_DELTA(a, b, delta)                   \
+    do                                                          \
+    {                                                           \
+        ++_test_assert_count;                                   \
+        ++_test_global_assert_count;                            \
+        if (OMS_ABS((a) - (b)) > (delta))                       \
+        {                                                       \
+            ++_test_global_assert_error_count;                  \
+            snprintf(                                           \
+                _test_log[_test_assert_error_count++], 1024,    \
+                "%4i: %f != %f", __LINE__, (f64)(a), (f64)(b)); \
+        }                                                       \
     } while (0)
 
 #define ASSERT_CONTAINS(a, b)                                \
@@ -240,6 +244,25 @@ double test_measure_func_time_ns(void (*func)(void *), void *para)
         }                                                    \
     } while (0)
 
+#define ASSERT_MEMORY_EQUALS(ptr1, ptr2, len)                              \
+    do                                                                     \
+    {                                                                      \
+        ++_test_assert_count;                                              \
+        ++_test_global_assert_count;                                       \
+        const uint8_t *p1 = (const uint8_t *)(ptr1);                       \
+        const uint8_t *p2 = (const uint8_t *)(ptr2);                       \
+        for (uint64_t i = 0; i < (uint64_t)(len); ++i)                     \
+        {                                                                  \
+            if (p1[i] != p2[i])                                            \
+            {                                                              \
+                ++_test_global_assert_error_count;                         \
+                snprintf(_test_log[_test_global_assert_error_count], 1024, \
+                         "%4i: mismatch at offset %lld", __LINE__, i);     \
+                break;                                                     \
+            }                                                              \
+        }                                                                  \
+    } while (0)
+
 #define COMPARE_FUNCTION_TEST_CYCLE(func1, func2, x_percent)                                                      \
     do                                                                                                            \
     {                                                                                                             \
@@ -247,7 +270,7 @@ double test_measure_func_time_ns(void (*func)(void *), void *para)
         ++_test_global_assert_count;                                                                              \
         uint64_t cycles_func1, cycles_func2;                                                                      \
         uint64_t start, end;                                                                                      \
-        int64_t a = 0, b = 0;                                                                                       \
+        int64_t a = 0, b = 0;                                                                                     \
                                                                                                                   \
         /* Measure func1 */                                                                                       \
         start = intrin_timestamp_counter();                                                                       \
@@ -283,7 +306,7 @@ double test_measure_func_time_ns(void (*func)(void *), void *para)
         ++_test_global_assert_count;                                            \
         uint64_t cycles_func;                                                   \
         uint64_t start, end;                                                    \
-        int64_t para = 0;                                                         \
+        int64_t para = 0;                                                       \
                                                                                 \
         /* Measure func */                                                      \
         start = intrin_timestamp_counter();                                     \
@@ -307,7 +330,7 @@ double test_measure_func_time_ns(void (*func)(void *), void *para)
         ++_test_assert_count;                                                             \
         ++_test_global_assert_count;                                                      \
         double time_func1, time_func2;                                                    \
-        int64_t a = 0, b = 0;                                                               \
+        int64_t a = 0, b = 0;                                                             \
                                                                                           \
         /* Measure func1 */                                                               \
         time_func1 = test_measure_func_time_ns(func1, (void *)&a);                        \
@@ -336,7 +359,7 @@ double test_measure_func_time_ns(void (*func)(void *), void *para)
         ++_test_assert_count;                                       \
         ++_test_global_assert_count;                                \
         double time_func;                                           \
-        int64_t para = 0;                                             \
+        int64_t para = 0;                                           \
                                                                     \
         /* Measure func */                                          \
         time_func = test_measure_func_time_ns(func, (void *)&para); \

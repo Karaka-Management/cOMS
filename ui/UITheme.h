@@ -204,46 +204,46 @@ void theme_from_file_txt(
 }
 
 static inline
-void ui_theme_parse_group(HashEntryInt32* entry, byte* data, const byte** pos)
+void ui_theme_parse_group(HashEntryInt32* entry, byte* data, const byte** in)
 {
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of theme->data
 
     UIAttributeGroup* group = (UIAttributeGroup *) (data + entry->value);
 
-    group->attribute_count = SWAP_ENDIAN_LITTLE(*((uint32 *) *pos));
-    *pos += sizeof(group->attribute_count);
+    group->attribute_count = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    *in += sizeof(group->attribute_count);
 
     UIAttribute* attribute_reference = (UIAttribute *) (group + 1);
 
     for (uint32 j = 0; j < group->attribute_count; ++j) {
-        attribute_reference[j].attribute_id = (UIAttributeType) SWAP_ENDIAN_LITTLE(*((uint16 *) *pos));
-        *pos += sizeof(attribute_reference[j].attribute_id);
+        attribute_reference[j].attribute_id = (UIAttributeType) SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+        *in += sizeof(attribute_reference[j].attribute_id);
 
-        attribute_reference[j].datatype = *((UIAttributeDataType *) *pos);
-        *pos += sizeof(attribute_reference[j].datatype);
+        attribute_reference[j].datatype = *((UIAttributeDataType *) *in);
+        *in += sizeof(attribute_reference[j].datatype);
 
         if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
-            attribute_reference[j].value_int = SWAP_ENDIAN_LITTLE(*((int32 *) *pos));
-            *pos += sizeof(attribute_reference[j].value_int);
+            attribute_reference[j].value_int = SWAP_ENDIAN_LITTLE(*((int32 *) *in));
+            *in += sizeof(attribute_reference[j].value_int);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
-            attribute_reference[j].value_float = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
-            *pos += sizeof(attribute_reference[j].value_float);
+            attribute_reference[j].value_float = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
+            *in += sizeof(attribute_reference[j].value_float);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
-            memcpy(attribute_reference[j].value_str, *pos, sizeof(attribute_reference[j].value_str));
-            *pos += sizeof(attribute_reference[j].value_str);
+            memcpy(attribute_reference[j].value_str, *in, sizeof(attribute_reference[j].value_str));
+            *in += sizeof(attribute_reference[j].value_str);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_V4_F32) {
-            attribute_reference[j].value_v4_f32.x = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
-            *pos += sizeof(attribute_reference[j].value_v4_f32.x);
+            attribute_reference[j].value_v4_f32.x = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
+            *in += sizeof(attribute_reference[j].value_v4_f32.x);
 
-            attribute_reference[j].value_v4_f32.y = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
-            *pos += sizeof(attribute_reference[j].value_v4_f32.y);
+            attribute_reference[j].value_v4_f32.y = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
+            *in += sizeof(attribute_reference[j].value_v4_f32.y);
 
-            attribute_reference[j].value_v4_f32.z = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
-            *pos += sizeof(attribute_reference[j].value_v4_f32.z);
+            attribute_reference[j].value_v4_f32.z = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
+            *in += sizeof(attribute_reference[j].value_v4_f32.z);
 
-            attribute_reference[j].value_v4_f32.w = SWAP_ENDIAN_LITTLE(*((f32 *) *pos));
-            *pos += sizeof(attribute_reference[j].value_v4_f32.w);
+            attribute_reference[j].value_v4_f32.w = SWAP_ENDIAN_LITTLE(*((f32 *) *in));
+            *in += sizeof(attribute_reference[j].value_v4_f32.w);
         }
     }
 }
@@ -267,19 +267,17 @@ int32 theme_from_data(
     const byte* __restrict data,
     UIThemeStyle* __restrict theme
 ) {
-    const byte* pos = data;
-    const byte* max_pos = data;
+    const byte* in = data;
 
-    int32 version = *((int32 *) pos);
-    pos += sizeof(version);
+    int32 version = SWAP_ENDIAN_LITTLE(*((int32 *) in));
+    in += sizeof(version);
 
     // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
     // Of course we still need to populate the data using hashmap_load()
     // The value is a int64 (because this is the value of the chunk buffer size but the hashmap only allows int32)
-    hashmap_create(&theme->hash_map, (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) pos)), sizeof(HashEntryInt32), theme->data);
+    hashmap_create(&theme->hash_map, (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)), sizeof(HashEntryInt32), theme->data);
 
-    const byte* start = theme->hash_map.buf.memory;
-    pos += hashmap_load(&theme->hash_map, pos);
+    in += hashmap_load(&theme->hash_map, in);
 
     // theme data
     // Layout: first load the size of the group, then load the individual attributes
@@ -287,16 +285,10 @@ int32 theme_from_data(
     uint32 chunk_id = 0;
     chunk_iterate_start(&theme->hash_map.buf, chunk_id)
         HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
-
-        // This way we now could access the data directly without the silly theme->data + entry->value calc.
-        pos = start + entry->value;
-        ui_theme_parse_group(entry, theme->data, &pos);
-        if (pos > max_pos) {
-            max_pos = pos;
-        }
+        ui_theme_parse_group(entry, theme->data, &in);
     chunk_iterate_end;
 
-    return (int32) (max_pos - data);
+    return (int32) (in - data);
 }
 
 // Calculates the maximum theme size
@@ -311,45 +303,45 @@ int64 theme_data_size_max(const UIThemeStyle* theme)
 
 // @todo Why do even need **pos, shouldn't it just be *pos
 static inline
-void ui_theme_serialize_group(const HashEntryInt32* entry, byte* data, byte** pos)
+void ui_theme_serialize_group(const HashEntryInt32* entry, byte* data, byte** out)
 {
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of theme->data
     UIAttributeGroup* group = (UIAttributeGroup *) (data + entry->value);
 
-    *((uint32 *) *pos) = SWAP_ENDIAN_LITTLE(group->attribute_count);
-    *pos += sizeof(group->attribute_count);
+    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(group->attribute_count);
+    *out += sizeof(group->attribute_count);
 
     UIAttribute* attribute_reference = (UIAttribute *) (group + 1);
 
     for (uint32 j = 0; j < group->attribute_count; ++j) {
-        *((uint16 *) *pos) = SWAP_ENDIAN_LITTLE(attribute_reference[j].attribute_id);
-        *pos += sizeof(attribute_reference[j].attribute_id);
+        *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].attribute_id);
+        *out += sizeof(attribute_reference[j].attribute_id);
 
-        *((byte *) *pos) = attribute_reference[j].datatype;
-        *pos += sizeof(attribute_reference[j].datatype);
+        *((byte *) *out) = attribute_reference[j].datatype;
+        *out += sizeof(attribute_reference[j].datatype);
 
         if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
-            *((int32 *) *pos) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_int);
-            *pos += sizeof(attribute_reference[j].value_int);
+            *((int32 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_int);
+            *out += sizeof(attribute_reference[j].value_int);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
-            *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_float);
-            *pos += sizeof(attribute_reference[j].value_float);
+            *((f32 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_float);
+            *out += sizeof(attribute_reference[j].value_float);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
-            memcpy(*pos, attribute_reference[j].value_str, sizeof(attribute_reference[j].value_str));
-            *pos += sizeof(attribute_reference[j].value_str);
+            memcpy(*out, attribute_reference[j].value_str, sizeof(attribute_reference[j].value_str));
+            *out += sizeof(attribute_reference[j].value_str);
         } else if (attribute_reference[j].datatype == UI_ATTRIBUTE_DATA_TYPE_V4_F32) {
-            *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.x);
-            *pos += sizeof(attribute_reference[j].value_v4_f32.x);
+            *((f32 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.x);
+            *out += sizeof(attribute_reference[j].value_v4_f32.x);
 
-            *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.y);
-            *pos += sizeof(attribute_reference[j].value_v4_f32.y);
+            *((f32 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.y);
+            *out += sizeof(attribute_reference[j].value_v4_f32.y);
 
-            *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.z);
-            *pos += sizeof(attribute_reference[j].value_v4_f32.z);
+            *((f32 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.z);
+            *out += sizeof(attribute_reference[j].value_v4_f32.z);
 
-            *((f32 *) *pos) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.w);
-            *pos += sizeof(attribute_reference[j].value_v4_f32.w);
+            *((f32 *) *out) = SWAP_ENDIAN_LITTLE(attribute_reference[j].value_v4_f32.w);
+            *out += sizeof(attribute_reference[j].value_v4_f32.w);
         }
     }
 }
@@ -373,31 +365,24 @@ int32 theme_to_data(
     const UIThemeStyle* __restrict theme,
     byte* __restrict data
 ) {
-    byte* pos = data;
-    byte* max_pos = data;
+    byte* out = data;
 
     // version
-    *((int32 *) pos) = SWAP_ENDIAN_LITTLE(UI_THEME_VERSION);
-    pos += sizeof(int32);
+    *((int32 *) out) = SWAP_ENDIAN_LITTLE(UI_THEME_VERSION);
+    out += sizeof(int32);
 
     // hashmap
-    byte* start = pos;
-    pos += hashmap_dump(&theme->hash_map, pos);
+    out += hashmap_dump(&theme->hash_map, out);
 
     // theme data
     // Layout: first save the size of the group, then save the individual attributes
     uint32 chunk_id = 0;
     chunk_iterate_start(&theme->hash_map.buf, chunk_id)
         const HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
-
-        pos = start + entry->value;
-        ui_theme_serialize_group(entry, theme->data, &pos);
-        if (pos > max_pos) {
-            max_pos = pos;
-        }
+        ui_theme_serialize_group(entry, theme->data, &out);
     chunk_iterate_end;
 
-    return (int32) (max_pos - data);
+    return (int32) (out - data);
 }
 
 #endif

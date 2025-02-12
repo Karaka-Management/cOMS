@@ -79,7 +79,7 @@ void generate_default_tga_references(const FileBody* file, Tga* tga)
 void image_tga_generate(const FileBody* src_data, Image* image)
 {
     // @performance We are generating the struct and then filling the data.
-    //      There is some asignment/copy overhead
+    //      There is some assignment/copy overhead
     Tga src = {};
     generate_default_tga_references(src_data, &src);
 

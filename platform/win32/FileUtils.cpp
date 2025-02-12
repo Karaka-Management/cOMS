@@ -21,7 +21,7 @@
 #include "../../utils/Utils.h"
 #include "../../utils/TestUtils.h"
 #include "../../memory/RingMemory.h"
-#include "../../log/Log.h"
+#include "../../log/Stats.h"
 
 typedef HANDLE FileHandle;
 typedef HANDLE MMFHandle;

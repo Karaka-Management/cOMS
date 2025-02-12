@@ -149,4 +149,22 @@ void window_close(Window* window)
     DestroyWindow(window->hwnd);
 }
 
+HBITMAP CreateBitmapFromRGBA(HDC hdc, const byte* rgba, int32 width, int32 height) {
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = width;
+    bmi.bmiHeader.biHeight = height;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    void* pbits;
+    HBITMAP hBitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &pbits, NULL, 0);
+    if (hBitmap) {
+        memcpy(pbits, rgba, width * height * 4);
+    }
+
+    return hBitmap;
+}
+
 #endif

@@ -51,6 +51,8 @@ int32 ui_element_type_size(UIElementType e)
             return sizeof(UICursor);
         case UI_ELEMENT_TYPE_CUSTOM:
             return sizeof(UICustom);
+        case UI_ELEMENT_TYPE_MANUAL:
+            return sizeof(UICustom);
         default: {
             UNREACHABLE();
         }
@@ -89,6 +91,8 @@ int32 ui_element_state_size(UIElementType e)
             return sizeof(UICursorState);
         case UI_ELEMENT_TYPE_CUSTOM:
             return sizeof(UICustomState);
+        case UI_ELEMENT_TYPE_MANUAL:
+            return sizeof(UICustomState);
         default: {
             UNREACHABLE();
         }
@@ -126,7 +130,11 @@ int32 ui_element_type_to_id(const char* str)
         return UI_ELEMENT_TYPE_CURSOR;
     } else if (str_compare("custom", str) == 0) {
         return UI_ELEMENT_TYPE_CUSTOM;
+    } else if (str_compare("manual", str) == 0) {
+        return UI_ELEMENT_TYPE_MANUAL;
     }
+
+    ASSERT_SIMPLE(false);
 
     return -1;
 }

@@ -13,7 +13,7 @@
 #include <dbghelp.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../log/Debug.cpp"
+#include "../../log/Log.h"
 
 #ifdef _MSC_VER
     #pragma comment(lib, "dbghelp.lib")

@@ -267,6 +267,8 @@ f32 evaluator_evaluate_function(const char* name, const char* args) {
 }
 
 f32 evaluator_evaluate(const char* expr, int32 variable_count = 0, const EvaluatorVariable* variables = NULL) {
+    ASSERT_SIMPLE(str_length(expr) > 0);
+
     // Handle variables
     char expr_internal[1024];
     char* dest = expr_internal;

@@ -230,7 +230,8 @@
     "uilayout.h": "c",
     "camera.h": "c",
     "stdio.h": "c",
-    "uilabel.h": "c"
+    "uilabel.h": "c",
+    "uiattributedimension.h": "c"
   },
   "C_Cpp.default.cppStandard": "c++20",
   "todo-tree.general.tags": [

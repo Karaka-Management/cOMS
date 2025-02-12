@@ -1353,7 +1353,7 @@ void hexstr_to_rgba(v4_f32* rgba, const char* hex)
 }
 
 inline constexpr
-void str_pad(const char* input, char* output, char pad, size_t len) {
+void str_pad_right(const char* input, char* output, char pad, size_t len) {
     size_t i = 0;
     for (; i < len && input[i] != '\0'; ++i) {
         output[i] = input[i];
@@ -1361,6 +1361,20 @@ void str_pad(const char* input, char* output, char pad, size_t len) {
 
     for (; i < len; ++i) {
         output[i] = pad;
+    }
+}
+
+inline constexpr
+void str_pad_left(const char* input, char* output, char pad, size_t len) {
+    size_t input_len = str_length(input);
+
+    size_t i = 0;
+    for (; i < len - input_len; ++i) {
+        *output++ = pad;
+    }
+
+    for (; i < len && input[i] != '\0'; ++i) {
+        output[i] = input[i];
     }
 }
 

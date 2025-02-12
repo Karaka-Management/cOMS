@@ -29,6 +29,9 @@
 #define __restrict __restrict__
 
 #define compiler_prefetch(mem) __builtin_prefetch((mem), 0, 3)
+#define compiler_prefetch_l1(mem) __builtin_prefetch((mem), 0, 3)
+#define compiler_prefetch_l2(mem) __builtin_prefetch((mem), 0, 2)
+#define compiler_prefetch_l3(mem) __builtin_prefetch((mem), 0, 1)
 
 int32 compiler_find_first_bit_r2l(uint64 mask) {
     if (!mask) {

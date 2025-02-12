@@ -15,6 +15,7 @@
 #include "UIElementType.h"
 #include "UIInput.h"
 #include "UILabel.h"
+#include "UIWindow.h"
 
 // @todo We should add some asserts that ensure that the respective structs at least start at a 4byte memory alignment
 
@@ -39,11 +40,14 @@ void ui_layout_count_direct_children(UIElement* __restrict element, const char* 
             str_move_past(&pos, '\n');
 
             continue;
-        } else if (level <= parent_level || !str_is_alphanum(*pos)) {
+        } else if (level <= parent_level) {
             // We are no longer inside of element
             str_move_past(&pos, '\n');
 
             break;
+        } else if (is_eol(pos)) {
+            pos += is_eol(pos);
+            continue;
         }
 
         str_move_past(&pos, '\n');
@@ -127,6 +131,9 @@ void layout_from_file_txt(
     while (*pos != '\0') {
         // Skip all white spaces
         str_skip_empty(&pos);
+        if (*pos == '\0') {
+            break;
+        }
 
         ++temp_element_count;
 
@@ -153,7 +160,7 @@ void layout_from_file_txt(
 
     // Create root element
     UIElement* root = (UIElement *) element_data;
-    hashmap_insert(&layout->hash_map, ":root", (int32) (element_data - layout->data));
+    hashmap_insert(&layout->hash_map, "root", (int32) (element_data - layout->data));
     ui_layout_count_direct_children(root, pos, -4);
 
     // NOTE: The root element cannot have any animations or vertices
@@ -288,55 +295,55 @@ static
 void ui_layout_serialize_element(
     HashEntryInt32* entry,
     byte* data,
-    byte** pos
+    byte** out
 ) {
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of layout->data
     UIElement* element = (UIElement *) (data + entry->value);
 
-    **pos = element->state_flag;
-    *pos += sizeof(element->state_flag);
+    **out = element->state_flag;
+    *out += sizeof(element->state_flag);
 
-    **pos = element->type;
-    *pos += sizeof(element->type);
+    **out = element->type;
+    *out += sizeof(element->type);
 
-    **pos = element->style_old;
-    *pos += sizeof(element->style_old);
+    **out = element->style_old;
+    *out += sizeof(element->style_old);
 
-    **pos = element->style_new;
-    *pos += sizeof(element->style_new);
+    **out = element->style_new;
+    *out += sizeof(element->style_new);
 
-    *((uint32 *) *pos) = SWAP_ENDIAN_LITTLE(element->parent);
-    *pos += sizeof(element->parent);
+    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->parent);
+    *out += sizeof(element->parent);
 
-    *((uint32 *) *pos) = SWAP_ENDIAN_LITTLE(element->state);
-    *pos += sizeof(element->state);
+    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->state);
+    *out += sizeof(element->state);
 
     // Details
     for (int32 i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
-        *((uint32 *) *pos) = SWAP_ENDIAN_LITTLE(element->style_types[i]);
-        *pos += sizeof(element->style_types[i]);
+        *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->style_types[i]);
+        *out += sizeof(element->style_types[i]);
     }
 
-    *((uint16 *) *pos) = SWAP_ENDIAN_LITTLE(element->children_count);
-    *pos += sizeof(element->children_count);
+    *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(element->children_count);
+    *out += sizeof(element->children_count);
 
     /* We don't save the animation state since that is always 0 in the file
-    memset(*pos, 0, sizeof(element->animation_state));
-    *pos += sizeof(element->animation_state);
+    memset(*out, 0, sizeof(element->animation_state));
+    *out += sizeof(element->animation_state);
     */
 
-    *((uint16 *) *pos) = SWAP_ENDIAN_LITTLE(element->animation_count);
-    *pos += sizeof(element->animation_count);
+    *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(element->animation_count);
+    *out += sizeof(element->animation_count);
 
-    *((uint32 *) *pos) = SWAP_ENDIAN_LITTLE(element->animations);
-    *pos += sizeof(element->animations);
+    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->animations);
+    *out += sizeof(element->animations);
 
-    *((uint16 *) *pos) = SWAP_ENDIAN_LITTLE(element->vertex_count);
-    *pos += sizeof(element->vertex_count);
+    *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(element->vertex_count);
+    *out += sizeof(element->vertex_count);
 
-    *((uint32 *) *pos) = SWAP_ENDIAN_LITTLE(element->vertices_active);
-    *pos += sizeof(element->vertices_active);
+    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->vertices_active);
+    *out += sizeof(element->vertices_active);
 
     // Output dynamic length content directly after UIElement
     //
@@ -347,19 +354,19 @@ void ui_layout_serialize_element(
     //  At this point we may have this data available now (if we save a cached version = layout+theme)
     //  Obviously, this won't have an effect on the current run-tim but would make the memory layout nicer on the next load
     //  It would be kind of a self-optimizing ui layout system :).
-    //  Of course, updating the reference values (uint32) will be challenging since the file pos will still not be the same as the offset due to alignment and padding
+    //  Of course, updating the reference values (uint32) will be challenging since the file out will still not be the same as the offset due to alignment and padding
     //  We would probably need a helper_offset value that gets passed around also as parameter of this function
     //////////////////////////////////////
 
     // Children array
     uint32* children = (uint32 *) (element + 1);
     for (int32 i = 0; i < element->children_count; ++i) {
-        *((uint32 *) *pos) = SWAP_ENDIAN_LITTLE(children[i]);
-        *pos += sizeof(*children);
+        *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(children[i]);
+        *out += sizeof(*children);
     }
 
     // State element data e.g. UIInputState
-    ui_layout_serialize_element_state(element->type, data + element->state, pos);
+    ui_layout_serialize_element_state(element->type, data + element->state, out);
 
     // detailed element data/style_types e.g. UIInput
     // When you create a layout this is should only contain the default style type
@@ -370,32 +377,32 @@ void ui_layout_serialize_element(
             continue;
         }
 
-        ui_layout_serialize_element_detail(element->type, data + element->style_types[i], pos);
+        ui_layout_serialize_element_detail(element->type, data + element->style_types[i], out);
     }
 
     UIAnimation* animations = (UIAnimation *) (data + element->animations);
     int32 element_style_type_size = ui_element_type_size(element->type);
 
     for (int32 i = 0; i < element->animation_count; ++i) {
-        **pos = animations[i].style_old;
-        *pos += sizeof(animations[i].style_old);
+        **out = animations[i].style_old;
+        *out += sizeof(animations[i].style_old);
 
-        **pos = animations[i].style_new;
-        *pos += sizeof(animations[i].style_new);
+        **out = animations[i].style_new;
+        *out += sizeof(animations[i].style_new);
 
-        *((uint16 *) *pos) = SWAP_ENDIAN_LITTLE(animations[i].duration);
-        *pos += sizeof(animations[i].duration);
+        *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(animations[i].duration);
+        *out += sizeof(animations[i].duration);
 
-        **pos = animations[i].anim_type;
-        *pos += sizeof(animations[i].anim_type);
+        **out = animations[i].anim_type;
+        *out += sizeof(animations[i].anim_type);
 
-        **pos = animations[i].keyframe_count;
-        *pos += sizeof(animations[i].keyframe_count);
+        **out = animations[i].keyframe_count;
+        *out += sizeof(animations[i].keyframe_count);
 
         // The keyframes are the element detail information (e.g. UIInput) and they are located after the respective Animation definition
         byte* keyframes = (byte *) (&animations[i] + 1);
         for (int32 j = 0; j < animations[i].keyframe_count; ++j) {
-            ui_layout_serialize_element_detail(element->type, keyframes + j * element_style_type_size, pos);
+            ui_layout_serialize_element_detail(element->type, keyframes + j * element_style_type_size, out);
         }
     }
 }
@@ -404,30 +411,23 @@ int32 layout_to_data(
     const UILayout* __restrict layout,
     byte* __restrict data
 ) {
-    byte* pos = data;
-    byte* max_pos = data;
+    byte* out = data;
 
     // version
-    *((int32 *) pos) = SWAP_ENDIAN_LITTLE(UI_LAYOUT_VERSION);
-    pos += sizeof(int32);
+    *((int32 *) out) = SWAP_ENDIAN_LITTLE(UI_LAYOUT_VERSION);
+    out += sizeof(int32);
 
     // hashmap
-    byte* start = pos;
-    pos += hashmap_dump(&layout->hash_map, pos);
+    out += hashmap_dump(&layout->hash_map, out);
 
     // UIElement data
     uint32 chunk_id = 0;
     chunk_iterate_start(&layout->hash_map.buf, chunk_id)
         HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
-
-        pos = start + entry->value;
-        ui_layout_serialize_element(entry, layout->data, &pos);
-        if (pos > max_pos) {
-            max_pos = pos;
-        }
+        ui_layout_serialize_element(entry, layout->data, &out);
     chunk_iterate_end;
 
-    return (int32) (max_pos - data);
+    return (int32) (out - data);
 }
 
 static
@@ -449,54 +449,53 @@ void ui_layout_unserialize_element_detail(UIElementType type, void* __restrict d
 }
 
 static
-void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** pos)
+void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
 {
     // @performance Are we sure the data is nicely aligned?
     // Probably depends on the from_txt function and the start of layout->data
     UIElement* element = (UIElement *) (data + entry->value);
 
-    element->state_flag = **pos;
-    *pos += sizeof(element->state_flag);
+    element->state_flag = **in;
+    *in += sizeof(element->state_flag);
 
-    element->type = (UIElementType) **pos;
-    *pos += sizeof(element->type);
+    element->type = (UIElementType) **in;
+    *in += sizeof(element->type);
 
-    element->style_old = (UIStyleType) **pos;
-    *pos += sizeof(element->style_old);
+    element->style_old = (UIStyleType) **in;
+    *in += sizeof(element->style_old);
 
-    element->style_new = (UIStyleType) **pos;
-    *pos += sizeof(element->style_new);
+    element->style_new = (UIStyleType) **in;
+    *in += sizeof(element->style_new);
 
-    element->parent = SWAP_ENDIAN_LITTLE(*((uint32 *) *pos));
-    *pos += sizeof(element->parent);
+    element->parent = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    *in += sizeof(element->parent);
 
-    element->state = SWAP_ENDIAN_LITTLE(*((uint32 *) *pos));
-    *pos += sizeof(element->state);
+    element->state = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    *in += sizeof(element->state);
 
     // Details
     for (int32 i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
-        element->style_types[i] = SWAP_ENDIAN_LITTLE(*((uint32 *) *pos));
-        *pos += sizeof(element->style_types[i]);
+        element->style_types[i] = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+        *in += sizeof(element->style_types[i]);
     }
 
-    element->children_count = SWAP_ENDIAN_LITTLE(*((uint16 *) *pos));
-    *pos += sizeof(element->children_count);
+    element->children_count = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+    *in += sizeof(element->children_count);
 
     // @question Do we really have to do that? Shouldn't the animation_state data be 0 anyways or could there be garbage values?
     memset(&element->animation_state, 0, sizeof(element->animation_state));
 
-    element->animation_count = SWAP_ENDIAN_LITTLE(*((uint16 *) *pos));
-    *pos += sizeof(element->animation_count);
+    element->animation_count = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+    *in += sizeof(element->animation_count);
 
-    element->animations = SWAP_ENDIAN_LITTLE(*((uint32 *) *pos));
-    *pos += sizeof(element->animations);
+    element->animations = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    *in += sizeof(element->animations);
 
-    element->vertex_count = SWAP_ENDIAN_LITTLE(*((uint16 *) *pos));
-    *pos += sizeof(element->vertex_count);
+    element->vertex_count = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+    *in += sizeof(element->vertex_count);
 
-    // @bug this needs to be changed?
-    element->vertices_active = SWAP_ENDIAN_LITTLE(*((uint32 *) *pos));
-    *pos += sizeof(element->vertices_active);
+    element->vertices_active = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    *in += sizeof(element->vertices_active);
 
     // Load dynamic length content
     // Some of the content belongs directly after the element but some of it belongs at very specific offsets
@@ -512,12 +511,12 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** pos
     // Children array
     uint32* children = (uint32 *) (element + 1);
     for (int32 i = 0; i < element->children_count; ++i) {
-        children[i] = SWAP_ENDIAN_LITTLE(*((uint32 *) *pos));
-        *pos += sizeof(*children);
+        children[i] = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+        *in += sizeof(*children);
     }
 
     // State element data e.g. UIInputState
-    ui_layout_unserialize_element_state(element->type, data + element->state, pos);
+    ui_layout_unserialize_element_state(element->type, data + element->state, in);
 
     // detailed element data/style_types e.g. UIInput
     for (int32 i = 0; i < UI_STYLE_TYPE_SIZE; ++i) {
@@ -525,32 +524,32 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** pos
             continue;
         }
 
-        ui_layout_unserialize_element_detail(element->type, data + element->style_types[i], pos);
+        ui_layout_unserialize_element_detail(element->type, data + element->style_types[i], in);
     }
 
     UIAnimation* animations = (UIAnimation *) (data + element->animations);
     int32 element_style_type_size = ui_element_type_size(element->type);
 
     for (int32 i = 0; i < element->animation_count; ++i) {
-        animations[i].style_old = (UIStyleType) **pos;
-        *pos += sizeof(animations[i].style_old);
+        animations[i].style_old = (UIStyleType) **in;
+        *in += sizeof(animations[i].style_old);
 
-        animations[i].style_new = (UIStyleType) **pos;
-        *pos += sizeof(animations[i].style_new);
+        animations[i].style_new = (UIStyleType) **in;
+        *in += sizeof(animations[i].style_new);
 
-        animations[i].duration = SWAP_ENDIAN_LITTLE(*((uint16 *) *pos));
-        *pos += sizeof(animations[i].duration);
+        animations[i].duration = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+        *in += sizeof(animations[i].duration);
 
-        animations[i].anim_type = (AnimationEaseType) **pos;
-        *pos += sizeof(animations[i].anim_type);
+        animations[i].anim_type = (AnimationEaseType) **in;
+        *in += sizeof(animations[i].anim_type);
 
-        animations[i].keyframe_count = **pos;
-        *pos += sizeof(animations[i].keyframe_count);
+        animations[i].keyframe_count = **in;
+        *in += sizeof(animations[i].keyframe_count);
 
         // The keyframes are the element detail information (e.g. UIInput) and they are located after the respective Animation definition
         byte* keyframes = (byte *) (&animations[i] + 1);
         for (int32 j = 0; j < animations[i].keyframe_count; ++j) {
-            ui_layout_unserialize_element_detail(element->type, keyframes + j * element_style_type_size, pos);
+            ui_layout_unserialize_element_detail(element->type, keyframes + j * element_style_type_size, in);
         }
     }
 }
@@ -561,33 +560,26 @@ int32 layout_from_data(
     const byte* __restrict data,
     UILayout* __restrict layout
 ) {
-    const byte* pos = data;
-    const byte* max_pos = pos;
+    const byte* in = data;
 
-    int32 version = *((int32 *) pos);
-    pos += sizeof(version);
+    int32 version = SWAP_ENDIAN_LITTLE(*((int32 *) in));
+    in += sizeof(version);
 
     // Prepare hashmap (incl. reserve memory) by initializing it the same way we originally did
     // Of course we still need to populate the data using hashmap_load()
-    hashmap_create(&layout->hash_map, (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) pos)), sizeof(HashEntryInt32), layout->data);
+    hashmap_create(&layout->hash_map, (int32) SWAP_ENDIAN_LITTLE(*((uint32 *) in)), sizeof(HashEntryInt32), layout->data);
 
-    const byte* start = data;
-    pos += hashmap_load(&layout->hash_map, pos);
+    in += hashmap_load(&layout->hash_map, in);
 
     // layout data
     // @performance We are iterating the hashmap twice (hashmap_load and here)
     uint32 chunk_id = 0;
     chunk_iterate_start(&layout->hash_map.buf, chunk_id)
         HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
-
-        pos = start + entry->value;
-        ui_layout_parse_element(entry, layout->data, &pos);
-        if (pos > max_pos) {
-            max_pos = pos;
-        }
+        ui_layout_parse_element(entry, layout->data, &in);
     chunk_iterate_end;
 
-    layout->layout_size = (uint32) (max_pos - data);
+    layout->layout_size = (uint32) (in - data);
 
     return (int32) layout->layout_size;
 }
@@ -630,7 +622,8 @@ void layout_from_theme(
             continue;
         }
 
-        HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, style_entry->key);
+        // +1 to skip '#' or '.'
+        HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, style_entry->key + 1);
         if (!entry) {
             // Couldn't find the base element
             continue;
@@ -643,12 +636,32 @@ void layout_from_theme(
 
         // @todo Continue implementation
         switch (element->type) {
+            case UI_ELEMENT_TYPE_LABEL: {
+                ui_label_state_populate(group, (UILabelState *) (layout->data + element->state));
+                ui_label_element_populate(
+                    layout,
+                    group,
+                    (UILabel *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT]),
+                    parent,
+                    variables
+                );
+            } break;
             case UI_ELEMENT_TYPE_INPUT: {
                 ui_input_state_populate(group, (UIInputState *) (layout->data + element->state));
                 ui_input_element_populate(
                     layout,
                     group,
                     (UIInput *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT]),
+                    parent,
+                    variables
+                );
+            } break;
+            case UI_ELEMENT_TYPE_VIEW_WINDOW: {
+                ui_window_state_populate(group, (UIWindowState *) (layout->data + element->state));
+                ui_window_element_populate(
+                    layout,
+                    group,
+                    (UIWindow *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT]),
                     parent,
                     variables
                 );
@@ -674,7 +687,8 @@ void layout_from_theme(
         }
 
         char pure_name[HASH_MAP_MAX_KEY_LENGTH];
-        str_copy_until(style_entry->key, pure_name, ':');
+        // +1 to skip '#' or '.'
+        str_copy_until(style_entry->key + 1, pure_name, ':');
 
         HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry(&layout->hash_map, pure_name);
         if (!entry) {
@@ -704,11 +718,29 @@ void layout_from_theme(
 
         // @todo Continue implementation
         switch (element->type) {
+            case UI_ELEMENT_TYPE_LABEL: {
+                ui_label_element_populate(
+                    layout,
+                    group,
+                    (UILabel *) (layout->data + element->style_types[style_type]),
+                    parent,
+                    variables
+                );
+            } break;
             case UI_ELEMENT_TYPE_INPUT: {
                 ui_input_element_populate(
                     layout,
                     group,
                     (UIInput *) (layout->data + element->style_types[style_type]),
+                    parent,
+                    variables
+                );
+            } break;
+            case UI_ELEMENT_TYPE_VIEW_WINDOW: {
+                ui_window_element_populate(
+                    layout,
+                    group,
+                    (UIWindow *) (layout->data + element->style_types[style_type]),
                     parent,
                     variables
                 );
@@ -769,7 +801,21 @@ void ui_layout_update(UILayout* layout, UIElement* element) {
     }
 }
 
+// @question We might want to change the names of update/render
+// In some cases it's more like cache/render
+// @question We might want to allow rendering without caching (currently we always rely on the cache)
+// This increases our RAM requirements (every vertex is in cache AND in the asset AND in VRAM)
+// However, this also has the benefit of allowing us to ONLY re-render individual elements
+
+// @performance In our immediate mode solution we decided the update/render based on a bitfield
+// That is very efficient, the code below isn't doing that maybe there is a way to implement that here as well?
+// I don't think so but it would be nice
+// This function caches the vertices
 void ui_layout_update_dfs(UILayout* layout, UIElement* element, byte category = 0) {
+    if (element->type == UI_ELEMENT_TYPE_MANUAL) {
+        return;
+    }
+
     if (element->category == category) {
         ui_layout_update(layout, element);
     }
@@ -785,16 +831,21 @@ uint32 ui_layout_render_dfs(
     UIElement* element, Vertex3DTextureColor* __restrict vertices,
     byte category = 0
 ) {
+    if (element->type == UI_ELEMENT_TYPE_MANUAL) {
+        return 0;
+    }
+
     uint32 vertex_count = 0;
 
-    if (element->category == category) {
+    if (element->vertex_count && element->category == category) {
         memcpy(vertices, layout->vertices_active + element->vertices_active, sizeof(*vertices) * element->vertex_count);
         vertices += element->vertex_count;
         vertex_count += element->vertex_count;
     }
 
+    uint32* children = (uint32 *) (element + 1);
     for (int32 i = 0; i < element->children_count; ++i) {
-        uint32 child_vertex_count = ui_layout_render_dfs(layout, element, vertices, category);
+        uint32 child_vertex_count = ui_layout_render_dfs(layout, (UIElement *) (layout->data + children[i]), vertices, category);
         vertices += child_vertex_count;
         vertex_count += child_vertex_count;
     }
@@ -807,6 +858,10 @@ uint32 ui_layout_update_render_dfs(
     UIElement* __restrict element, Vertex3DTextureColor* __restrict vertices,
     byte category = 0
 ) {
+    if (element->type == UI_ELEMENT_TYPE_MANUAL) {
+        return 0;
+    }
+
     uint32 vertex_count = 0;
 
     if (element->category == category) {
@@ -817,8 +872,9 @@ uint32 ui_layout_update_render_dfs(
         vertex_count += element->vertex_count;
     }
 
+    uint32* children = (uint32 *) (element + 1);
     for (int32 i = 0; i < element->children_count; ++i) {
-        uint32 child_vertex_count = ui_layout_update_render_dfs(layout, element, vertices, category);
+        uint32 child_vertex_count = ui_layout_update_render_dfs(layout, (UIElement *) (layout->data + children[i]), vertices, category);
         vertices += child_vertex_count;
         vertex_count += child_vertex_count;
     }

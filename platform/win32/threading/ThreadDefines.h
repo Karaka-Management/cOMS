@@ -21,6 +21,9 @@ typedef void pthread_rwlockattr_t;
 typedef HANDLE pthread_t;
 typedef CONDITION_VARIABLE pthread_cond_t;
 
+// Thread local variable Already exists in c++11
+// #define thread_local __declspec(thread)
+
 struct pthread_rwlock_t {
     SRWLOCK lock;
     bool exclusive;

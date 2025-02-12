@@ -7,6 +7,7 @@
 #include "../../compiler/CompilerUtils.h"
 #include "UIAttributeType.h"
 #include "UIAttributeDimension.h"
+#include "UIAttributeFont.h"
 
 enum UIAttributeDataType : byte {
     UI_ATTRIBUTE_DATA_TYPE_INT,
@@ -24,6 +25,7 @@ struct UIAttribute {
         // @performance The string makes this struct really large when it is not needed in 95% of the cases
         char value_str[32];
         int32 value_int;
+        uint32 value_uint;
         f32 value_float;
         v4_f32 value_v4_f32;
     };
@@ -218,19 +220,21 @@ void ui_attribute_parse_value(UIAttribute* attr, const char* attribute_name, con
         hexstr_to_rgba(&attr->value_v4_f32, pos);
         attr->datatype = UI_ATTRIBUTE_DATA_TYPE_V4_F32;
     } else {
-        str_copy_until(attr->value_str, value, "\r\n");
+        str_copy_until(value, attr->value_str, "\r\n");
         attr->datatype = UI_ATTRIBUTE_DATA_TYPE_STR;
     }
 }
 
 inline
-void ui_theme_assign_f32(f32* a, const UIAttribute* attr, int32 variable_count, const EvaluatorVariable* variables)
+void ui_theme_assign_f32(f32* a, const UIAttribute* attr, int32 variable_count = 0, const EvaluatorVariable* variables = NULL)
 {
     if (attr->datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
         *a = (f32) attr->value_int;
     } else if (attr->datatype == UI_ATTRIBUTE_DATA_TYPE_F32) {
         *a = (f32) attr->value_float;
     } else if (attr->datatype == UI_ATTRIBUTE_DATA_TYPE_STR) {
+        ASSERT_SIMPLE(str_length(attr->value_str) > 0);
+
         char value[32];
         memcpy(value, attr->value_str, ARRAY_COUNT(attr->value_str));
         *a = (f32) evaluator_evaluate(value, variable_count, variables);
@@ -252,6 +256,31 @@ void ui_theme_assign_dimension(UIAttributeDimension* dimension, const UIAttribut
             } break;
         case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {
                 ui_theme_assign_f32(&dimension->dimension.height, attr, variable_count, variables);
+            } break;
+        default: {
+            UNREACHABLE();
+        }
+    }
+}
+
+inline
+void ui_theme_assign_font(UIAttributeFont* font, const UIAttribute* attr)
+{
+    switch (attr->attribute_id) {
+        case UI_ATTRIBUTE_TYPE_FONT_NAME: {
+                UNREACHABLE();
+            } break;
+        case UI_ATTRIBUTE_TYPE_FONT_COLOR: {
+                font->color = attr->value_uint;
+            } break;
+        case UI_ATTRIBUTE_TYPE_FONT_SIZE: {
+                font->size = attr->value_float;
+            } break;
+        case UI_ATTRIBUTE_TYPE_FONT_WEIGHT: {
+                font->weight = attr->value_float;
+            } break;
+        case UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT: {
+                font->line_height = attr->value_float;
             } break;
         default: {
             UNREACHABLE();

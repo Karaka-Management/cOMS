@@ -31,6 +31,9 @@ typedef SSIZE_T ssize_t;
 #define compiler_popcount_64(data) __popcnt64((data))
 
 #define compiler_prefetch(mem) __prefetch((mem))
+#define compiler_prefetch_l1(mem) __prefetch((mem))
+#define compiler_prefetch_l2(mem) __prefetch((mem))
+#define compiler_prefetch_l3(mem) __prefetch((mem))
 
 inline
 int32 compiler_find_first_bit_r2l(uint64 mask) {
@@ -39,9 +42,7 @@ int32 compiler_find_first_bit_r2l(uint64 mask) {
     }
 
     unsigned long index;
-    _BitScanForward64(&index, mask);
-
-    return index;
+    return _BitScanForward64(&index, mask) ? index : -1;
 }
 
 inline
@@ -51,9 +52,7 @@ int32 compiler_find_first_bit_r2l(uint32 mask) {
     }
 
     unsigned long index;
-    _BitScanForward(&index, mask);
-
-    return index;
+    return _BitScanForward(&index, mask) ? index : -1;
 }
 
 inline
@@ -63,9 +62,7 @@ int32 compiler_find_first_bit_l2r(uint64 mask) {
     }
 
     unsigned long index;
-    _BitScanReverse64(&index, mask);
-
-    return index;
+    return _BitScanReverse64(&index, mask) ? index : -1;
 }
 
 inline
@@ -75,9 +72,7 @@ int32 compiler_find_first_bit_l2r(uint32 mask) {
     }
 
     unsigned long index;
-    _BitScanReverse(&index, mask);
-
-    return index;
+    return _BitScanReverse(&index, mask) ? index : -1;
 }
 
 #endif

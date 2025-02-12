@@ -14,6 +14,7 @@
 #include "../utils/EndianUtils.h"
 #include "../utils/TestUtils.h"
 #include "../log/Log.h"
+#include "../log/Stats.h"
 #include "../log/DebugMemory.h"
 #include "../system/Allocator.h"
 

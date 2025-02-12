@@ -40,6 +40,9 @@
 #define intrin_bits_count_64(data) compiler_popcount_64((data))
 
 #define intrin_prefetch(mem) compiler_prefetch((mem))
+#define intrin_prefetch_l1(mem) compiler_prefetch_l1((mem))
+#define intrin_prefetch_l2(mem) compiler_prefetch_l2((mem))
+#define intrin_prefetch_l3(mem) compiler_prefetch_l3((mem))
 
 #if _WIN32
     #define intrin_timestamp_counter() ({ uint64_t cntvct; asm volatile("mrs %0, cntvct_el0" : "=r"(cntvct)); cntvct;  })

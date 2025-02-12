@@ -180,12 +180,12 @@ void ui_input_element_populate(
 
     // First set all values, which we can set immediately
     for (uint32 i = 0; i < group->attribute_count; ++i) {
-        switch (attributes->attribute_id) {
+        switch (attributes[i].attribute_id) {
             case UI_ATTRIBUTE_TYPE_POSITION_X:
             case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH:
             case UI_ATTRIBUTE_TYPE_POSITION_Y:
             case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {
-                    ui_theme_assign_dimension(&input->dimension, attributes, 6, variables);
+                    ui_theme_assign_dimension(&input->dimension, &attributes[i], 6, variables);
                 } break;
         }
     }

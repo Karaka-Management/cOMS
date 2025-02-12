@@ -13,7 +13,7 @@ struct UIButtonState {
 };
 
 struct UIButton {
-
+    UIAttributeDimension dimension;
 };
 
 void ui_button_state_serialize(const UIButtonState* __restrict state, byte** __restrict pos)

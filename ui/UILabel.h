@@ -51,15 +51,66 @@ void ui_label_element_unserialize(UILabel* __restrict details, const byte** __re
 }
 
 void ui_label_element_populate(
+    UILayout* layout,
     const UIAttributeGroup* __restrict  group,
-    UIElement* __restrict element,
-    UIStyleType style_type,
+    UILabel* __restrict label,
+    UIElement* parent,
     EvaluatorVariable* __restrict variables
 ) {
-    (void *) group;
-    (void *) element;
-    (void) style_type;
-    (void *) variables;
+    if (parent) {
+        // @bug How to ensure that the parent is initialized before the child element
+        // Currently the order of the initialization depends on the theme file, NOT the layout file
+        // We could fix it by loading the style based on the layout order but this would result in many misses when looking up styles
+        //      The reason for these misses are, that often only 1-2 style_types exist per element
+
+        v4_f32* parent_dimension;
+        switch (parent->type) {
+            case UI_ELEMENT_TYPE_VIEW_WINDOW: {
+                    UIWindow* parent_window = (UIWindow *) (layout->data + parent->style_types[UI_STYLE_TYPE_ACTIVE]);
+                    parent_dimension = &parent_window->dimension.dimension;
+                } break;
+            case UI_ELEMENT_TYPE_VIEW_PANEL: {
+                    UIPanel* parent_window = (UIPanel *) (layout->data + parent->style_types[UI_STYLE_TYPE_ACTIVE]);
+                    parent_dimension = &parent_window->dimension.dimension;
+                } break;
+            case UI_ELEMENT_TYPE_BUTTON: {
+                    UIButton* parent_button = (UIButton *) (layout->data + parent->style_types[UI_STYLE_TYPE_ACTIVE]);
+                    parent_dimension = &parent_button->dimension.dimension;
+                } break;
+            case UI_ELEMENT_TYPE_INPUT: {
+                    UIInput* parent_input = (UIInput *) (layout->data + parent->style_types[UI_STYLE_TYPE_ACTIVE]);
+                    parent_dimension = &parent_input->dimension.dimension;
+                } break;
+            default:
+                UNREACHABLE();
+        }
+
+        variables[2].value = parent_dimension->x;
+        variables[3].value = parent_dimension->y;
+        variables[4].value = parent_dimension->width;
+        variables[5].value = parent_dimension->height;
+    }
+
+    UIAttribute* attributes = (UIAttribute *) (group + 1);
+
+    // First set all values, which we can set immediately
+    for (uint32 i = 0; i < group->attribute_count; ++i) {
+        switch (attributes[i].attribute_id) {
+            case UI_ATTRIBUTE_TYPE_POSITION_X:
+            case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH:
+            case UI_ATTRIBUTE_TYPE_POSITION_Y:
+            case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {
+                    ui_theme_assign_dimension(&label->dimension, &attributes[i], 6, variables);
+                } break;
+            case UI_ATTRIBUTE_TYPE_FONT_NAME:
+            case UI_ATTRIBUTE_TYPE_FONT_COLOR:
+            case UI_ATTRIBUTE_TYPE_FONT_SIZE:
+            case UI_ATTRIBUTE_TYPE_FONT_WEIGHT:
+            case UI_ATTRIBUTE_TYPE_FONT_LINE_HEIGHT: {
+                    ui_theme_assign_font(&label->font, &attributes[i]);
+                } break;
+        }
+    }
 }
 
 int32 ui_label_element_update(UILayout* layout, UIElement* element)
