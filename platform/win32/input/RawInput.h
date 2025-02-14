@@ -206,9 +206,9 @@ void input_mouse_position(HWND hwnd, v2_int32* pos)
     }
 }
 
-int32 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32 state_count, uint64 time)
+int16 input_raw_handle(RAWINPUT* __restrict raw, Input* __restrict states, int32 state_count, uint64 time)
 {
-    int32 input_count = 0;
+    int16 input_count = 0;
 
     int32 i = 0;
     if (raw->header.dwType == RIM_TYPEMOUSE) {
@@ -398,7 +398,7 @@ void input_handle(LPARAM lParam, Input* __restrict states, int state_count, Ring
     input_raw_handle((RAWINPUT *) lpb, states, state_count, time);
 }
 
-int32 input_handle_buffered(int32 buffer_size, Input* __restrict states, int state_count, RingMemory* ring, uint64 time)
+int16 input_handle_buffered(int32 buffer_size, Input* __restrict states, int32 state_count, RingMemory* ring, uint64 time)
 {
     uint32 cb_size;
     GetRawInputBuffer(NULL, &cb_size, sizeof(RAWINPUTHEADER));
@@ -411,7 +411,7 @@ int32 input_handle_buffered(int32 buffer_size, Input* __restrict states, int sta
 
     PRAWINPUT raw_input = (PRAWINPUT) ring_get_memory(ring, cb_size, 4);
 
-    int32 input_count = 0;
+    int16 input_count = 0;
     uint32 input;
 
     while (true) {

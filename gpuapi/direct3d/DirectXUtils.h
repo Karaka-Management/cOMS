@@ -11,290 +11,159 @@
 
 #include <windows.h>
 #include <wrl.h>
-
 #include <dxgi1_6.h>
+#include "../../../GameEngine/log/Log.h"
 #include "../../../EngineDependencies/directx/d3d12.h"
 #include "../../../EngineDependencies/directx/d3dx12.h"
 
 #include "../../stdlib/Types.h"
 
-#define FRAME_COUNT 2
+// A more (compile-time) efficient version of the windows macro IID_PPV_ARGS
+#define IID_PPVOID(pointer) __uuidof(**(&pointer)), reinterpret_cast<void**>(&pointer)
 
-struct Window {
-    bool is_fullscreen;
-    int32 width;
-    int32 height;
-    char name[32];
-
-    int32 x;
-    int32 y;
-
-    HWND hwnd;
-
-    // @todo move this out of here to a separate gpuapi struct (same with opengl)
-    Microsoft::WRL::ComPtr<IDXGISwapChain3> m_swapChain;
-
-    Microsoft::WRL::ComPtr<ID3D12Device> device;
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[FRAME_COUNT];
-    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
-    Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
-    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_commandList;
-    Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
-
-    UINT m_rtvDescriptorSize;
-
-    UINT m_frameIndex;
-    HANDLE m_fenceEvent;
-    UINT64 m_fenceValue;
-};
-
-void window_create(Window* window, void* proc)
+bool is_directx_supported(D3D_FEATURE_LEVEL version)
 {
-    WNDPROC wndproc = (WNDPROC) proc;
-    WNDCLASSEX wc = {};
-    HINSTANCE hinstance = GetModuleHandle(0);
-
-    wc.cbSize = sizeof(WNDCLASSEX);
-    wc.style = CS_OWNDC;
-    wc.lpfnWndProc = wndproc;
-    wc.hInstance = hinstance;
-    wc.lpszClassName = (LPCSTR) window->name;
-
-    RegisterClassEx(&wc);
-
-    if (window->is_fullscreen) {
-        window->width  = GetSystemMetrics(SM_CXSCREEN);
-	    window->height = GetSystemMetrics(SM_CYSCREEN);
-
-        DEVMODE screen_settings;
-
-        memset(&screen_settings, 0, sizeof(screen_settings));
-		screen_settings.dmSize       = sizeof(screen_settings);
-		screen_settings.dmPelsWidth  = (unsigned long) window->width;
-		screen_settings.dmPelsHeight = (unsigned long) window->height;
-		screen_settings.dmBitsPerPel = 32;
-		screen_settings.dmFields     = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-
-		ChangeDisplaySettings(&screen_settings, CDS_FULLSCREEN);
-
-        window->x = 0;
-        window->y = 0;
-    }
-
-    window->hwnd = CreateWindowEx((DWORD) NULL,
-        wc.lpszClassName, NULL,
-        WS_OVERLAPPEDWINDOW,
-        window->x, window->y,
-        window->width,
-        window->height,
-        NULL, NULL, hinstance, window
-    );
-
-    //SetWindowLongA(window->hwnd, GWL_STYLE, 0);
-}
-
-void window_open(const Window* window)
-{
-    ShowWindow(window->hwnd, SW_SHOW);
-    SetForegroundWindow(window->hwnd);
-	SetFocus(window->hwnd);
-    ShowCursor(false);
-    UpdateWindow(window->hwnd);
-}
-
-void window_close(Window* window)
-{
-    CloseWindow(window->hwnd);
-}
-
-bool is_directx_12_supported()
-{
-    Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
-    HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&factory));
-    if (FAILED(hr)) {
+    IDXGIFactory6* factory = NULL;
+    if (FAILED(CreateDXGIFactory1(IID_PPVOID(factory)))) {
         return false;
     }
 
-    Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
-    for (UINT adapterIndex = 0;
-        DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(adapterIndex, &adapter);
-        ++adapterIndex)
-    {
-        DXGI_ADAPTER_DESC1 desc;
-        adapter->GetDesc1(&desc);
+    bool is_dx12_supported = false;
 
-        // Skip software adapters
-        if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
+    IDXGIAdapter1* adapter = NULL;
+    for (uint32 i = 0; DXGI_ERROR_NOT_FOUND != factory->EnumAdapters1(i, &adapter); ++i) {
+        DXGI_ADAPTER_DESC1 desc;
+        if (FAILED(adapter->GetDesc1(&desc))) {
+            adapter->Release();
             continue;
         }
 
-        try {
-            if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr))) {
-                return true;
-            }
-        } catch (...) {
-            return false;
+        // Skip software adapters
+        if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
+            adapter->Release();
+            continue;
         }
+
+        // Check for DirectX 12 support
+        if (SUCCEEDED(D3D12CreateDevice(adapter, version, _uuidof(ID3D12Device), NULL))) {
+            is_dx12_supported = true;
+            adapter->Release();
+            break;
+        }
+
+        adapter->Release();
     }
 
-    return false;
+    factory->Release();
+
+    return is_dx12_supported;
 }
 
-void find_hardware_adapter(
-    IDXGIFactory1* factory,
-    IDXGIAdapter1** adapter1,
-    bool use_high_performance_adapter = true
+int32 max_directx_version()
+{
+    if (is_directx_supported(D3D_FEATURE_LEVEL_12_2)) {
+        return 122;
+    } else if (is_directx_supported(D3D_FEATURE_LEVEL_12_1)) {
+        return 121;
+    } else if (is_directx_supported(D3D_FEATURE_LEVEL_12_0)) {
+        return 120;
+    } else if (is_directx_supported(D3D_FEATURE_LEVEL_11_1)) {
+        return 111;
+    } else if (is_directx_supported(D3D_FEATURE_LEVEL_11_0)) {
+        return 110;
+    } else if (is_directx_supported(D3D_FEATURE_LEVEL_10_1)) {
+        return 101;
+    } else if (is_directx_supported(D3D_FEATURE_LEVEL_10_0)) {
+        return 100;
+    } else if (is_directx_supported(D3D_FEATURE_LEVEL_9_3)) {
+        return 93;
+    } else if (is_directx_supported(D3D_FEATURE_LEVEL_9_2)) {
+        return 92;
+    } else if (is_directx_supported(D3D_FEATURE_LEVEL_9_1)) {
+        return 91;
+    } else if (is_directx_supported(D3D_FEATURE_LEVEL_1_0_CORE)) {
+        return 90;
+    }
+
+    return 0;
+}
+
+// Returns frame index
+int32 wait_for_previous_frame(
+    ID3D12Fence* fence, HANDLE fence_event, UINT64* fence_value,
+    ID3D12CommandQueue* command_queue, IDXGISwapChain3* swapchain
+)
+{
+    // WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
+    // This is code implemented as such for simplicity. The D3D12HelloFrameBuffering
+    // sample illustrates how to use fences for efficient resource usage and to
+    // maximize GPU utilization.
+
+    UINT64 fence_value_temp = *fence_value;
+
+    // Signal and increment the fence value.
+    if(FAILED(command_queue->Signal(fence, fence_value_temp))) {
+        LOG(true, "DirectX12 Signal");
+        ASSERT_SIMPLE(false);
+    }
+
+    ++(*fence_value);
+
+    // Wait until the previous frame is finished.
+    if (fence->GetCompletedValue() < fence_value_temp) {
+        if (FAILED(fence->SetEventOnCompletion(fence_value_temp, fence_event))) {
+            LOG(true, "DirectX12 SetEventOnCompletion");
+            ASSERT_SIMPLE(false);
+        }
+
+        WaitForSingleObject(fence_event, INFINITE);
+    }
+
+    return swapchain->GetCurrentBackBufferIndex();
+}
+
+static
+void directx_debug_callback(
+    D3D12_MESSAGE_CATEGORY category,
+    D3D12_MESSAGE_SEVERITY severity,
+    D3D12_MESSAGE_ID id,
+    LPCSTR description,
+    void* context
 ) {
-    *adapter1 = nullptr;
+    // @todo handle severity
+    (void) category;
+    (void) severity;
+    (void) id;
+    (void*) context;
+    /*
+    if ((severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        || (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    ) {
 
-    Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
-    Microsoft::WRL::ComPtr<IDXGIFactory6> factory6;
-
-    if (SUCCEEDED(factory->QueryInterface(IID_PPV_ARGS(&factory6)))) {
-        for (
-            UINT adapterIndex = 0;
-            SUCCEEDED(factory6->EnumAdapterByGpuPreference(
-                adapterIndex,
-                use_high_performance_adapter == true ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_UNSPECIFIED,
-                IID_PPV_ARGS(&adapter)));
-            ++adapterIndex)
-        {
-            DXGI_ADAPTER_DESC1 desc;
-            adapter->GetDesc1(&desc);
-
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
-                // Don't select the Basic Render Driver adapter.
-                continue;
-            }
-
-            // Check to see whether the adapter supports Direct3D 12, but don't create the
-            // actual device yet.
-            if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr))) {
-                break;
-            }
-        }
     }
+    */
 
-    if(adapter.Get() == nullptr) {
-        for (UINT adapterIndex = 0; SUCCEEDED(factory->EnumAdapters1(adapterIndex, &adapter)); ++adapterIndex) {
-            DXGI_ADAPTER_DESC1 desc;
-            adapter->GetDesc1(&desc);
-
-            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) {
-                // Don't select the Basic Render Driver adapter.
-                continue;
-            }
-
-            // Check to see whether the adapter supports Direct3D 12, but don't create the
-            // actual device yet.
-            if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr))) {
-                break;
-            }
-        }
-    }
-
-    *adapter1 = adapter.Detach();
+    LOG(true, description);
+    ASSERT_SIMPLE(false);
 }
 
-void load_pipeline(Window* window)
+void gpuapi_debug_messenger_setup(Microsoft::WRL::ComPtr<ID3D12Device>& device)
 {
-    uint32 factory_flags = 0;
+    Microsoft::WRL::ComPtr<ID3D12InfoQueue1> info_queue;
+    if (FAILED(device.As(&info_queue))) {
+        return;
+    }
 
-    Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
-    CreateDXGIFactory2(factory_flags, IID_PPV_ARGS(&factory));
-
-    Microsoft::WRL::ComPtr<IDXGIAdapter1> hardware_adapter;
-    find_hardware_adapter(factory.Get(), &hardware_adapter);
-
-    D3D12CreateDevice(
-        hardware_adapter.Get(),
-        D3D_FEATURE_LEVEL_11_0,
-        IID_PPV_ARGS(&window->device)
+    // Register the custom debug callback
+    info_queue->RegisterMessageCallback(
+        directx_debug_callback,
+        D3D12_MESSAGE_CALLBACK_FLAG_NONE,
+        NULL, // Context (can be used to pass additional data)
+        NULL // Callback cookie (unused)
     );
 
-    // Describe and create the command queue.
-    D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-    queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-    queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-
-    window->device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&window->m_commandQueue));
-
-    // Describe and create the swap chain.
-    DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-    swapChainDesc.BufferCount = FRAME_COUNT;
-    swapChainDesc.Width = window->width;
-    swapChainDesc.Height = window->height;
-    swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    swapChainDesc.SampleDesc.Count = 1;
-
-    Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
-    factory->CreateSwapChainForHwnd(
-        window->m_commandQueue.Get(),        // Swap chain needs the queue so that it can force a flush on it.
-        window->hwnd,
-        &swapChainDesc,
-        nullptr,
-        nullptr,
-        &swapChain
-    );
-
-    // This sample does not support fullscreen transitions.
-    factory->MakeWindowAssociation(window->hwnd, DXGI_MWA_NO_ALT_ENTER);
-
-    swapChain.As(&window->m_swapChain);
-    window->m_frameIndex = window->m_swapChain->GetCurrentBackBufferIndex();
-
-    // Create descriptor heaps.
-    {
-        // Describe and create a render target view (RTV) descriptor heap.
-        D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-        rtvHeapDesc.NumDescriptors = FRAME_COUNT;
-        rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-        window->device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&window->m_rtvHeap));
-
-        window->m_rtvDescriptorSize = window->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    }
-
-    // Create frame resources.
-    {
-        CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(window->m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
-
-        // Create a RTV for each frame.
-        for (UINT n = 0; n < FRAME_COUNT; n++)
-        {
-            window->m_swapChain->GetBuffer(n, IID_PPV_ARGS(&window->m_renderTargets[n]));
-            window->device->CreateRenderTargetView(window->m_renderTargets[n].Get(), nullptr, rtvHandle);
-            rtvHandle.Offset(1, window->m_rtvDescriptorSize);
-        }
-    }
-
-    window->device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&window->m_commandAllocator));
-}
-
-void load_assets(Window* window)
-{
-    // Create the command list.
-    window->device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, window->m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(&window->m_commandList));
-
-    // Command lists are created in the recording state, but there is nothing
-    // to record yet. The main loop expects it to be closed, so close it now.
-    window->m_commandList->Close();
-
-    // Create synchronization objects.
-    {
-        window->device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&window->m_fence));
-        window->m_fenceValue = 1;
-
-        // Create an event handle to use for frame synchronization.
-        window->m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-        if (window->m_fenceEvent == nullptr) {
-            HRESULT_FROM_WIN32(GetLastError());
-        }
-    }
+    // Set the message count limit to unlimited
+    info_queue->SetMessageCountLimit(0);
 }
 
 #endif

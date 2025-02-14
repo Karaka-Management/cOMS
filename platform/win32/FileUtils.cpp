@@ -185,15 +185,15 @@ file_read(const char* path, FileBody* file, RingMemory* ring = NULL)
             return;
         }
 
-        file->size = size.QuadPart + 1;
+        file->size = size.QuadPart;
     }
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, file->size);
+        file->content = ring_get_memory(ring, file->size + 1);
     }
 
     DWORD bytes_read;
-    if (!ReadFile(fp, file->content, (uint32) file->size - 1, &bytes_read, NULL)) {
+    if (!ReadFile(fp, file->content, (uint32) file->size, &bytes_read, NULL)) {
         CloseHandle(fp);
         file->content = NULL;
 
@@ -203,7 +203,7 @@ file_read(const char* path, FileBody* file, RingMemory* ring = NULL)
     CloseHandle(fp);
 
     file->content[bytes_read] = '\0';
-    file->size = bytes_read + 1;
+    file->size = bytes_read;
 
     LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, bytes_read);
 }

@@ -10,9 +10,12 @@
 #define TOS_GPUAPI_VULKAN_SHADER_H
 
 #include "../../stdlib/Types.h"
+#include <vulkan/vulkan.h>
 
 struct Shader {
-    uint32 id;
+    // @todo Consider to rename to pipeline (also in opengl, directx) if this makes sense.
+    // @question Does this have to be a pointer to the gpuapi->pipeline var?
+    VkPipeline id;
     uint32 locations[7];
     byte data[16];
 };

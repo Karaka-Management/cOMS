@@ -39,7 +39,7 @@ struct UIAttributeGroup {
     //UIAttribute* attributes;
 };
 
-UIAttribute* ui_attribute_from_group(UIAttributeGroup* group, UIAttributeType type)
+UIAttribute* ui_attribute_from_group(const UIAttributeGroup* group, UIAttributeType type)
 {
     if (!group->attribute_count) {
         return NULL;
@@ -194,6 +194,8 @@ int32 ui_attribute_type_to_id(const char* attribute_name)
         return UI_ATTRIBUTE_TYPE_CACHE_SIZE;
     } else if (str_compare(attribute_name, "anim") == 0) {
         return UI_ATTRIBUTE_TYPE_ANIMATION;
+    } else if (str_compare(attribute_name, "vertex_count") == 0) {
+        return UI_ATTRIBUTE_TYPE_VERTEX_COUNT;
     }
 
     ASSERT_SIMPLE(false);
@@ -226,7 +228,7 @@ void ui_attribute_parse_value(UIAttribute* attr, const char* attribute_name, con
 }
 
 inline
-void ui_theme_assign_f32(f32* a, const UIAttribute* attr, int32 variable_count = 0, const EvaluatorVariable* variables = NULL)
+void ui_theme_assign_f32(f32* a, const UIAttribute* attr)
 {
     if (attr->datatype == UI_ATTRIBUTE_DATA_TYPE_INT) {
         *a = (f32) attr->value_int;
@@ -237,25 +239,25 @@ void ui_theme_assign_f32(f32* a, const UIAttribute* attr, int32 variable_count =
 
         char value[32];
         memcpy(value, attr->value_str, ARRAY_COUNT(attr->value_str));
-        *a = (f32) evaluator_evaluate(value, variable_count, variables);
+        *a = (f32) evaluator_evaluate(value);
     }
 }
 
 inline
-void ui_theme_assign_dimension(UIAttributeDimension* dimension, const UIAttribute* attr, int32 variable_count, const EvaluatorVariable* variables)
+void ui_theme_assign_dimension(UIAttributeDimension* dimension, const UIAttribute* attr)
 {
     switch (attr->attribute_id) {
         case UI_ATTRIBUTE_TYPE_POSITION_X: {
-                ui_theme_assign_f32(&dimension->dimension.x, attr, variable_count, variables);
+                ui_theme_assign_f32(&dimension->dimension.x, attr);
             } break;
         case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH: {
-                ui_theme_assign_f32(&dimension->dimension.width, attr, variable_count, variables);
+                ui_theme_assign_f32(&dimension->dimension.width, attr);
             } break;
         case UI_ATTRIBUTE_TYPE_POSITION_Y: {
-                ui_theme_assign_f32(&dimension->dimension.y, attr, variable_count, variables);
+                ui_theme_assign_f32(&dimension->dimension.y, attr);
             } break;
         case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {
-                ui_theme_assign_f32(&dimension->dimension.height, attr, variable_count, variables);
+                ui_theme_assign_f32(&dimension->dimension.height, attr);
             } break;
         default: {
             UNREACHABLE();

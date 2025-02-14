@@ -145,35 +145,37 @@ void ui_input_element_unserialize(UIInput* __restrict details, const byte** __re
 
 void ui_input_element_populate(
     UILayout* layout,
+    UIElement* element,
     const UIAttributeGroup* __restrict  group,
-    UIInput* __restrict input,
-    UIElement* parent,
-    EvaluatorVariable* __restrict variables
+    UIInput* __restrict input
 ) {
-    if (parent) {
+    v4_f32 parent_dimension = {};
+    if (element->parent) {
+        UIElement* parent = element->parent ? (UIElement *) (layout->data + element->parent) : NULL;
         // @bug How to ensure that the parent is initialized before the child element
         // Currently the order of the initialization depends on the theme file, NOT the layout file
         // We could fix it by loading the style based on the layout order but this would result in many misses when looking up styles
         //      The reason for these misses are, that often only 1-2 style_types exist per element
-
-        v4_f32* parent_dimension;
         switch (parent->type) {
             case UI_ELEMENT_TYPE_VIEW_WINDOW: {
                     UIWindow* parent_window = (UIWindow *) (layout->data + parent->style_types[UI_STYLE_TYPE_ACTIVE]);
-                    parent_dimension = &parent_window->dimension.dimension;
+                    parent_dimension = parent_window->dimension.dimension;
                 } break;
             case UI_ELEMENT_TYPE_VIEW_PANEL: {
                     UIPanel* parent_window = (UIPanel *) (layout->data + parent->style_types[UI_STYLE_TYPE_ACTIVE]);
-                    parent_dimension = &parent_window->dimension.dimension;
+                    parent_dimension = parent_window->dimension.dimension;
                 } break;
             default:
                 UNREACHABLE();
         }
+    }
 
-        variables[2].value = parent_dimension->x;
-        variables[3].value = parent_dimension->y;
-        variables[4].value = parent_dimension->width;
-        variables[5].value = parent_dimension->height;
+    if (!element->vertices_active_offset && !element->vertex_count_max) {
+        element->vertices_active_offset = layout->active_vertex_offset;
+        UIAttribute* vertex_attr = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_VERTEX_COUNT);
+        element->vertex_count_max = (uint16) (vertex_attr ? vertex_attr->value_int : 8);
+
+        layout->active_vertex_offset += element->vertex_count_max;
     }
 
     UIAttribute* attributes = (UIAttribute *) (group + 1);
@@ -185,7 +187,7 @@ void ui_input_element_populate(
             case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH:
             case UI_ATTRIBUTE_TYPE_POSITION_Y:
             case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {
-                    ui_theme_assign_dimension(&input->dimension, &attributes[i], 6, variables);
+                    ui_theme_assign_dimension(&input->dimension, &attributes[i]);
                 } break;
         }
     }
@@ -204,7 +206,7 @@ int32 ui_input_element_update(UILayout* layout, UIElement* element)
     // Border
     if (input->border.thickness) {
         idx += vertex_rect_create(
-            layout->vertices_active + element->vertices_active, zindex,
+            layout->vertices_active + element->vertices_active_offset, zindex,
             dimension, input->dimension.alignment,
             input->border.color
         );
@@ -222,7 +224,7 @@ int32 ui_input_element_update(UILayout* layout, UIElement* element)
     // Background
     if (input->background.background_color) {
         idx += vertex_rect_create(
-            layout->vertices_active + element->vertices_active + idx, zindex,
+            layout->vertices_active + element->vertices_active_offset + idx, zindex,
             dimension, input->dimension.alignment,
             input->background.background_color
         );
@@ -238,13 +240,13 @@ int32 ui_input_element_update(UILayout* layout, UIElement* element)
         idx += ui_cursor_element_update(layout, cursor_element);
 
         memcpy(
-            layout->vertices_active + element->vertices_active + idx,
-            layout->vertices_active + cursor_element->vertices_active,
-            cursor_element->vertex_count * sizeof(*(layout->vertices_active))
+            layout->vertices_active + element->vertices_active_offset + idx,
+            layout->vertices_active + cursor_element->vertices_active_offset,
+            cursor_element->vertex_count_active * sizeof(*(layout->vertices_active))
         );
     }
 
-    element->vertex_count = (uint16) idx;
+    element->vertex_count_active = (uint16) idx;
 
     return idx;
 }

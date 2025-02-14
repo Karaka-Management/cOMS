@@ -43,17 +43,16 @@ struct AppCmdBuffer {
     Queue* assets_to_load;
     Queue* files_to_load;
     AudioMixer* mixer;
-    GpuApiType gpu_api;
+    GpuApiType gpu_api_type;
+    void* gpu_api;
 };
 
 #if OPENGL
     #include "../gpuapi/opengl/AppCmdBuffer.h"
 #elif VULKAN
-    inline void* cmd_shader_load(AppCmdBuffer*, Command*) { return NULL; }
-    inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, int32*) { return NULL; }
+    #include "../gpuapi/vulkan/AppCmdBuffer.h"
 #elif DIRECTX
-    inline void* cmd_shader_load(AppCmdBuffer*, Command*) { return NULL; }
-    inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, int32*) { return NULL; }
+    #include "../gpuapi/direct3d/AppCmdBuffer.h"
 #else
     inline void* cmd_shader_load(AppCmdBuffer*, Command*) { return NULL; }
     inline void* cmd_shader_load_sync(AppCmdBuffer*, void*, int32*) { return NULL; }

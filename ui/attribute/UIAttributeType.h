@@ -114,6 +114,10 @@ enum UIAttributeType : uint16 {
 
     UI_ATTRIBUTE_TYPE_ANIMATION,
 
+    // What is the max amount of possible vertices for an element
+    // This is used to reserve memory in our vertex cache
+    UI_ATTRIBUTE_TYPE_VERTEX_COUNT,
+
     UI_ATTRIBUTE_TYPE_SIZE,
 };
 

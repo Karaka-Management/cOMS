@@ -52,14 +52,16 @@ enum UIElementState : byte {
 struct UIElement {
     // @see UIElementState
     byte state_flag;
+
+    // Used for grouping ui elements (e.g. const ui elements, fairly static elements, dynamic elements)
+    // Children are still checked even if a parent doesn't match the category (e.g. a static window may still have dynamic content)
+    byte category;
+
     UIElementType type;
 
     // Used to keep track of the current state (= _old) and the next state or state we are transitioning into
     UIStyleType style_old;
     UIStyleType style_new;
-
-    // Used for grouping ui elements (e.g. const ui elements, fairly static elements, dynamic elements)
-    byte category;
 
     f32 zindex;
 
@@ -111,15 +113,15 @@ struct UIElement {
     // Cache
     //////////////////////////////////////
 
-    // We cache the last UI element rendering for re-use in the next frame
-    // @question There might be custom UI elements which need more than 2^16 vertices
-    uint16 vertex_count;
-
     // The max vertex count is defined in the theme file
     uint16 vertex_count_max;
 
+    // We cache the last UI element rendering for re-use in the next frame
+    // @question There might be custom UI elements which need more than 2^16 vertices
+    uint16 vertex_count_active;
+
     // Offset into the vertex array (NOT in bytes but in vertices)
-    uint32 vertices_active;
+    uint32 vertices_active_offset;
 };
 
 #endif

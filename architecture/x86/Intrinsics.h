@@ -54,9 +54,9 @@
 #define intrin_bits_count_32(data) _mm_popcnt_u32((data))
 #define intrin_bits_count_64(data) _mm_popcnt_u64((data))
 
-#define intrin_prefetch_l1(mem) _mm_prefetch((mem), _MM_HINT_T0)
-#define intrin_prefetch_l2(mem) _mm_prefetch((mem), _MM_HINT_T1)
-#define intrin_prefetch_l3(mem) _mm_prefetch((mem), _MM_HINT_T2)
+#define intrin_prefetch_l1(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T0)
+#define intrin_prefetch_l2(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T1)
+#define intrin_prefetch_l3(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T2)
 
 inline
 uint64 intrin_timestamp_counter() {

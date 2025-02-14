@@ -11,6 +11,7 @@
 
 #include "../../utils/TestUtils.h"
 #include <basetsd.h>
+#include <intrin.h>
 
 #define PACKED_STRUCT  __pragma(pack(push, 1))
 #define UNPACKED_STRUCT __pragma(pack(pop))
@@ -73,6 +74,11 @@ int32 compiler_find_first_bit_l2r(uint32 mask) {
 
     unsigned long index;
     return _BitScanReverse(&index, mask) ? index : -1;
+}
+
+inline
+void compiler_cpuid(int32 cpuInfo[4], int32 function_id) {
+    __cpuidex(cpuInfo, function_id, 0);
 }
 
 #endif

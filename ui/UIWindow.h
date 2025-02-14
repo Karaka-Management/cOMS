@@ -62,31 +62,36 @@ void ui_window_element_unserialize(UIWindow* __restrict details, const byte** __
 
 void ui_window_element_populate(
     UILayout* layout,
+    UIElement* element,
     const UIAttributeGroup* __restrict  group,
-    UIWindow* __restrict window,
-    UIElement* parent,
-    EvaluatorVariable* __restrict variables
+    UIWindow* __restrict window
 ) {
-    if (parent) {
+    v4_f32 parent_dimension = {};
+    if (element->parent) {
+        UIElement* parent = element->parent ? (UIElement *) (layout->data + element->parent) : NULL;
         // @bug How to ensure that the parent is initialized before the child element
         // Currently the order of the initialization depends on the theme file, NOT the layout file
         // We could fix it by loading the style based on the layout order but this would result in many misses when looking up styles
         //      The reason for these misses are, that often only 1-2 style_types exist per element
 
-        v4_f32* parent_dimension;
         switch (parent->type) {
             case UI_ELEMENT_TYPE_VIEW_PANEL: {
                     UIPanel* parent_window = (UIPanel *) (layout->data + parent->style_types[UI_STYLE_TYPE_ACTIVE]);
-                    parent_dimension = &parent_window->dimension.dimension;
+                    parent_dimension = parent_window->dimension.dimension;
                 } break;
             default:
                 UNREACHABLE();
         }
+    }
 
-        variables[2].value = parent_dimension->x;
-        variables[3].value = parent_dimension->y;
-        variables[4].value = parent_dimension->width;
-        variables[5].value = parent_dimension->height;
+    if (!element->vertices_active_offset && !element->vertex_count_max) {
+        element->vertices_active_offset = layout->active_vertex_offset;
+        UIAttribute* vertex_attr = ui_attribute_from_group(group, UI_ATTRIBUTE_TYPE_VERTEX_COUNT);
+
+        // @todo Strongly depends on the window components (e.g. title bar, close button, ...)
+        element->vertex_count_max = (uint16) (vertex_attr ? vertex_attr->value_int : 8);
+
+        layout->active_vertex_offset += element->vertex_count_max;
     }
 
     UIAttribute* attributes = (UIAttribute *) (group + 1);
@@ -98,7 +103,7 @@ void ui_window_element_populate(
             case UI_ATTRIBUTE_TYPE_DIMENSION_WIDTH:
             case UI_ATTRIBUTE_TYPE_POSITION_Y:
             case UI_ATTRIBUTE_TYPE_DIMENSION_HEIGHT: {
-                    ui_theme_assign_dimension(&window->dimension, &attributes[i], 6, variables);
+                    ui_theme_assign_dimension(&window->dimension, &attributes[i]);
                 } break;
         }
     }

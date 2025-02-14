@@ -64,7 +64,7 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
 }
 
 inline
-void change_viewport(int16 width, int16 height, int32 offset_x = 0, int32 offset_y = 0)
+void change_viewport(int32 width, int32 height, int32 offset_x = 0, int32 offset_y = 0)
 {
     glViewport(offset_x, offset_y, width, height);
 }

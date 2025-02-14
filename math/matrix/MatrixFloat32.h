@@ -416,40 +416,6 @@ void mat3vec3_mult(const f32* __restrict matrix, const f32* __restrict vector, f
     result[2] = matrix[6] * vector[0] + matrix[7] * vector[1] + matrix[8] * vector[2];
 }
 
-// @question could simple mul add sse be faster?
-void mat3vec3_mult_sse(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result)
-{
-    __m128 vec = _mm_load_ps(vector);
-    vec = _mm_insert_ps(vec, _mm_setzero_ps(), 0x30); // vec[3] = 0
-
-    for (int32 i = 0; i < 3; ++i) {
-        __m128 row = _mm_load_ps(&matrix[i * 3]);
-        row = _mm_insert_ps(row, _mm_setzero_ps(), 0x30);  // row[3] = 0
-
-        __m128 dot = _mm_dp_ps(row, vec, 0xF1);
-
-        result[i] = _mm_cvtss_f32(dot);
-    }
-}
-
-// @question could simple mul add sse be faster?
-void mat3vec3_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, f32* __restrict result)
-{
-    for (int32 i = 0; i < 3; ++i) {
-        __m128 dot = _mm_dp_ps(matrix[i], *vector, 0xF1);
-
-        result[i] = _mm_cvtss_f32(dot);
-    }
-}
-
-// @question could simple mul add sse be faster?
-void mat3vec3_mult_sse(const __m128* __restrict matrix, const __m128* __restrict vector, __m128* __restrict result)
-{
-    for (int32 i = 0; i < 4; ++i) {
-        result[i] = _mm_dp_ps(matrix[i], *vector, 0xF1);
-    }
-}
-
 inline
 void mat4vec4_mult(const f32* __restrict matrix, const f32* __restrict vector, f32* __restrict result)
 {
@@ -514,146 +480,32 @@ void mat4mat4_mult(const f32* __restrict a, const f32* __restrict b, f32* __rest
     result[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15];
 }
 
-void mat4mat4_mult(const f32* __restrict a, const f32* __restrict b, f32* __restrict result, int32 steps)
-{
-    if (steps > 1) {
-        // @todo check http://fhtr.blogspot.com/2010/02/4x4-f32-matrix-multiplication-using.html
-        // @question could simple mul add sse be faster?
-        // Load rows of matrix a
-        __m128 a_1 = _mm_load_ps(a);
-        __m128 a_2 = _mm_load_ps(&a[4]);
-        __m128 a_3 = _mm_load_ps(&a[8]);
-        __m128 a_4 = _mm_load_ps(&a[12]);
-
-        // Load columns of matrix b
-        __m128 b_1 = _mm_load_ps(b);
-        __m128 b_2 = _mm_load_ps(&b[4]);
-        __m128 b_3 = _mm_load_ps(&b[8]);
-        __m128 b_4 = _mm_load_ps(&b[12]);
-
-        _mm_storeu_ps(&result[0],
-            _mm_add_ps(
-                _mm_add_ps(
-                    _mm_mul_ps(_mm_shuffle_ps(a_1, a_1, _MM_SHUFFLE(0, 0, 0, 0)), b_1),
-                    _mm_mul_ps(_mm_shuffle_ps(a_1, a_1, _MM_SHUFFLE(1, 1, 1, 1)), b_2)
-                ),
-                _mm_add_ps(
-                    _mm_mul_ps(_mm_shuffle_ps(a_1, a_1, _MM_SHUFFLE(2, 2, 2, 2)), b_3),
-                    _mm_mul_ps(_mm_shuffle_ps(a_1, a_1, _MM_SHUFFLE(3, 3, 3, 3)), b_4)
-                )
-            )
-        );
-
-        _mm_storeu_ps(&result[4],
-            _mm_add_ps(
-                _mm_add_ps(
-                    _mm_mul_ps(_mm_shuffle_ps(a_2, a_2, _MM_SHUFFLE(0, 0, 0, 0)), b_1),
-                    _mm_mul_ps(_mm_shuffle_ps(a_2, a_2, _MM_SHUFFLE(1, 1, 1, 1)), b_2)
-                ),
-                _mm_add_ps(
-                    _mm_mul_ps(_mm_shuffle_ps(a_2, a_2, _MM_SHUFFLE(2, 2, 2, 2)), b_3),
-                    _mm_mul_ps(_mm_shuffle_ps(a_2, a_2, _MM_SHUFFLE(3, 3, 3, 3)), b_4)
-                )
-            )
-        );
-
-        _mm_storeu_ps(&result[8],
-            _mm_add_ps(
-                _mm_add_ps(
-                    _mm_mul_ps(_mm_shuffle_ps(a_3, a_3, _MM_SHUFFLE(0, 0, 0, 0)), b_1),
-                    _mm_mul_ps(_mm_shuffle_ps(a_3, a_3, _MM_SHUFFLE(1, 1, 1, 1)), b_2)
-                ),
-                _mm_add_ps(
-                    _mm_mul_ps(_mm_shuffle_ps(a_3, a_3, _MM_SHUFFLE(2, 2, 2, 2)), b_3),
-                    _mm_mul_ps(_mm_shuffle_ps(a_3, a_3, _MM_SHUFFLE(3, 3, 3, 3)), b_4)
-                )
-            )
-        );
-
-        _mm_storeu_ps(&result[12],
-            _mm_add_ps(
-                _mm_add_ps(
-                    _mm_mul_ps(_mm_shuffle_ps(a_4, a_4, _MM_SHUFFLE(0, 0, 0, 0)), b_1),
-                    _mm_mul_ps(_mm_shuffle_ps(a_4, a_4, _MM_SHUFFLE(1, 1, 1, 1)), b_2)
-                ),
-                _mm_add_ps(
-                    _mm_mul_ps(_mm_shuffle_ps(a_4, a_4, _MM_SHUFFLE(2, 2, 2, 2)), b_3),
-                    _mm_mul_ps(_mm_shuffle_ps(a_4, a_4, _MM_SHUFFLE(3, 3, 3, 3)), b_4)
-                )
-            )
-        );
-    } else {
-        mat4mat4_mult(a, b, result);
-    }
-}
-
-void mat4mat4_mult_sse(const __m128* __restrict a, const __m128* __restrict b_transposed, f32* __restrict result)
-{
-    __m128 dot;
-
-    // @question could simple mul add sse be faster?
-    // b1
-    dot = _mm_dp_ps(a[0], b_transposed[0], 0xF1);
-    result[0] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[1], b_transposed[0], 0xF1);
-    result[1] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[2], b_transposed[0], 0xF1);
-    result[2] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[3], b_transposed[0], 0xF1);
-    result[3] = _mm_cvtss_f32(dot);
-
-    // b2
-    dot = _mm_dp_ps(a[0], b_transposed[1], 0xF1);
-    result[4] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[1], b_transposed[1], 0xF1);
-    result[5] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[2], b_transposed[1], 0xF1);
-    result[6] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[3], b_transposed[1], 0xF1);
-    result[7] = _mm_cvtss_f32(dot);
-
-    // b3
-    dot = _mm_dp_ps(a[0], b_transposed[2], 0xF1);
-    result[8] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[1], b_transposed[2], 0xF1);
-    result[9] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[2], b_transposed[2], 0xF1);
-    result[10] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[3], b_transposed[2], 0xF1);
-    result[11] = _mm_cvtss_f32(dot);
-
-    // b4
-    dot = _mm_dp_ps(a[0], b_transposed[3], 0xF1);
-    result[12] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[1], b_transposed[3], 0xF1);
-    result[13] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[2], b_transposed[3], 0xF1);
-    result[14] = _mm_cvtss_f32(dot);
-
-    dot = _mm_dp_ps(a[3], b_transposed[3], 0xF1);
-    result[15] = _mm_cvtss_f32(dot);
-}
-
 inline
-void mat4mat4_mult_sse(const __m128* __restrict a, const __m128* __restrict b_transpose, __m128* __restrict result)
+void mat4mat4_mult_simd(const f32* __restrict a, const f32* __restrict b, f32* __restrict result)
 {
-    for (int32 i = 0; i < 4; ++i) {
-        result[i] = _mm_mul_ps(a[0], b_transpose[i]);
+    __m128 row1 = _mm_loadu_ps(&b[0]);
+    __m128 row2 = _mm_loadu_ps(&b[4]);
+    __m128 row3 = _mm_loadu_ps(&b[8]);
+    __m128 row4 = _mm_loadu_ps(&b[12]);
 
-        for (int32 j = 1; j < 4; ++j) {
-            result[i] = _mm_add_ps(_mm_mul_ps(a[j], b_transpose[4 * j + i]), result[i]);
-        }
+    for (int32 i = 3; i >= 0; --i) {
+        __m128 vW = _mm_loadu_ps(&a[i * 4]);
+
+        __m128 vX = _mm_shuffle_ps(vW, vW, _MM_SHUFFLE(0, 0, 0, 0));
+        __m128 vY = _mm_shuffle_ps(vW, vW, _MM_SHUFFLE(1, 1, 1, 1));
+        __m128 vZ = _mm_shuffle_ps(vW, vW, _MM_SHUFFLE(2, 2, 2, 2));
+        vW = _mm_shuffle_ps(vW, vW, _MM_SHUFFLE(3, 3, 3, 3));
+
+        vX = _mm_mul_ps(vX, row1);
+        vY = _mm_mul_ps(vY, row2);
+        vZ = _mm_mul_ps(vZ, row3);
+        vW = _mm_mul_ps(vW, row4);
+
+        vX = _mm_add_ps(vX, vZ);
+        vY = _mm_add_ps(vY, vW);
+        vX = _mm_add_ps(vX, vY);
+
+        _mm_storeu_ps(&result[i * 4], vX);
     }
 }
 
@@ -863,7 +715,7 @@ void mat4_translate(f32* matrix, f32 dx, f32 dy, f32 dz)
     mat4mat4_mult(temp, translation_matrix, matrix);
 }
 
-void mat4_translate(f32* matrix, f32 dx, f32 dy, f32 dz, int32 steps)
+void mat4_translate_simd(f32* matrix, f32 dx, f32 dy, f32 dz)
 {
     alignas(64) f32 temp[16];
     memcpy(temp, matrix, sizeof(f32) * 16);
@@ -874,7 +726,7 @@ void mat4_translate(f32* matrix, f32 dx, f32 dy, f32 dz, int32 steps)
     translation_matrix[8] = 0.0f;   translation_matrix[9] = 0.0f;   translation_matrix[10] = 1.0f;  translation_matrix[11] = dz;
     translation_matrix[12] = 0.0f; translation_matrix[13] = 0.0f; translation_matrix[14] = 0.0f; translation_matrix[15] = 1.0f;
 
-    mat4mat4_mult(temp, translation_matrix, matrix, steps);
+    mat4mat4_mult_simd(temp, translation_matrix, matrix);
 }
 
 inline

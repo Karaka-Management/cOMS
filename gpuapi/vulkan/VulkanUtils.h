@@ -34,8 +34,8 @@ PACKED_STRUCT;
 // The reason for the packing is that sometimes we want to use it as an array
 // I am only packing it on the off chance there is some funky behaviour.
 struct VulkanQueueFamilyIndices {
-    uint32 graphics_family;
-    uint32 present_family;
+    int32 graphics_family;
+    int32 present_family;
 };
 UNPACKED_STRUCT;
 
@@ -116,39 +116,28 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
         || (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     ) {
         LOG(true, debug_callback_data->pMessage);
+        ASSERT_SIMPLE(false);
     }
 
     return VK_FALSE;
 }
 
-void vulkan_populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT* create_info)
+void gpuapi_debug_messenger_setup(VkInstance instance, VkDebugUtilsMessengerEXT* debug_messenger)
 {
-    create_info->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    create_info->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    create_info->messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    create_info->pfnUserCallback = vulkan_debug_callback;
-}
+    // @question Why do I need this twice (see other definition)
+    VkDebugUtilsMessengerCreateInfoEXT create_info = {};
+    create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    create_info.pfnUserCallback = vulkan_debug_callback;
 
-VkResult vulkan_debug_utils_messenger_create(
-    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* create_info,
-    const VkAllocationCallbacks* allocator, VkDebugUtilsMessengerEXT* debug_messenger
-) {
     PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-
     if (!func) {
         ASSERT_SIMPLE(func);
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
+        return;
     }
 
-    return func(instance, create_info, allocator, debug_messenger);
-}
-
-void vulkan_debug_messenger_setup(VkInstance instance, VkDebugUtilsMessengerEXT* debug_messenger)
-{
-    VkDebugUtilsMessengerCreateInfoEXT create_info = {};
-    vulkan_populate_debug_messenger_create_info(&create_info);
-
-    if (vulkan_debug_utils_messenger_create(instance, &create_info, NULL, debug_messenger) != VK_SUCCESS) {
+    if (func(instance, &create_info, NULL, debug_messenger) != VK_SUCCESS) {
         ASSERT_SIMPLE(false);
     }
 }
@@ -164,6 +153,8 @@ void vulkan_instance_create(
     ) {
         LOG_FORMAT(true, "Vulkan validation_layer missing: %d", {{LOG_DATA_CHAR_STR, (void *) validation_layers[-err - 1]}});
         ASSERT_SIMPLE(false);
+
+        return;
     }
 
     if (extension_count
@@ -171,6 +162,8 @@ void vulkan_instance_create(
     ) {
         LOG_FORMAT(true, "Vulkan extension missing: %d", {{LOG_DATA_CHAR_STR, (void *) extensions[-err - 1]}});
         ASSERT_SIMPLE(false);
+
+        return;
     }
 
     VkApplicationInfo app_info = {};
@@ -188,12 +181,17 @@ void vulkan_instance_create(
     create_info.enabledExtensionCount = extension_count;
     create_info.ppEnabledExtensionNames = extensions;
 
-    VkDebugUtilsMessengerCreateInfoEXT debug_create_info = {};
     if (validation_layer_count) {
         create_info.enabledLayerCount = validation_layer_count;
         create_info.ppEnabledLayerNames = validation_layers;
 
-        vulkan_populate_debug_messenger_create_info(&debug_create_info);
+        // @question Why do I need this twice (see other definition)
+        VkDebugUtilsMessengerCreateInfoEXT debug_create_info = {};
+        debug_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        debug_create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        debug_create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        debug_create_info.pfnUserCallback = vulkan_debug_callback;
+
         create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT *) &debug_create_info;
     }
 
@@ -218,6 +216,7 @@ void vulkan_surface_create(VkInstance instance, VkSurfaceKHR* surface, Window* w
             return;
         }
     #elif __linux__
+        // @todo implement
     #endif
 }
 
@@ -265,7 +264,7 @@ void vulkan_available_extensions(RingMemory* ring) {
 
 VulkanQueueFamilyIndices vulkan_find_queue_families(VkPhysicalDevice physical_device, VkSurfaceKHR surface, RingMemory* ring)
 {
-    VulkanQueueFamilyIndices indices = {};
+    VulkanQueueFamilyIndices indices = { -1, -1 };
     uint32 queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, NULL);
 
@@ -274,17 +273,24 @@ VulkanQueueFamilyIndices vulkan_find_queue_families(VkPhysicalDevice physical_de
 
     for (uint32 i = 0; i < queue_family_count; ++i) {
         if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            indices.graphics_family = i + 1;
+            indices.graphics_family = i;
         }
 
         VkBool32 present_support = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support);
 
-        if (present_support) {
-            indices.present_family = i + 1;
+        VkResult result;
+        if ((result = vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support)) != VK_SUCCESS) {
+            LOG_FORMAT(true, "Vulkan vkGetPhysicalDeviceSurfaceSupportKHR: %d", LOG_DATA_INT32, (int32 *) &result);
+            ASSERT_SIMPLE(false);
+
+            return indices;
         }
 
-        if (indices.graphics_family && indices.present_family) {
+        if (present_support) {
+            indices.present_family = i;
+        }
+
+        if (indices.graphics_family >= 0 && indices.present_family >= 0) {
             break;
         }
     }
@@ -326,7 +332,7 @@ bool vulkan_is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR su
         swap_chain_adequate = swap_chain_support.format_size && swap_chain_support.present_modes;
     }
 
-    return indices.graphics_family && indices.present_family
+    return indices.graphics_family >= 0 && indices.present_family >= 0
         && extensions_supported && swap_chain_adequate;
 }
 
@@ -404,8 +410,6 @@ void gpuapi_create_logical_device(
     vkGetDeviceQueue(*device, indices.present_family, 0, present_queue);
 }
 
-// WARNING: swapchain_images needs to already have reserved enough memory
-// @todo How can we ensure swapchain_images has enough but not too much space?
 // @question Do we need to handle old swapchains?
 void vulkan_swap_chain_create(
     VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface,
@@ -486,11 +490,15 @@ void vulkan_swap_chain_create(
     if ((result = vkCreateSwapchainKHR(device, &create_info, NULL, swapchain)) != VK_SUCCESS) {
         LOG_FORMAT(true, "Vulkan vkCreateSwapchainKHR: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
+
+        return;
     }
 
     memcpy(swapchain_image_format, &surface_format->format, sizeof(VkFormat));
 }
 
+// WARNING: swapchain_images needs to already have reserved enough memory
+// @todo How can we ensure swapchain_images has enough but not too much space?
 void vulkan_swap_chain_images_create(
     VkDevice device, VkSwapchainKHR swapchain,
     VkImage** swapchain_images, uint32* swapchain_image_count,
@@ -531,27 +539,27 @@ void vulkan_image_views_create(
     }
 }
 
-void create_render_pass(
+void vulkan_render_pass_create(
     VkDevice device, VkRenderPass* render_pass, VkFormat swapchain_image_format
 ) {
-    VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = swapchain_image_format;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    VkAttachmentDescription color_attachment = {};
+    color_attachment.format = swapchain_image_format;
+    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    VkAttachmentReference colorAttachmentRef = {};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    VkAttachmentReference color_attachment_ref = {};
+    color_attachment_ref.attachment = 0;
+    color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkSubpassDescription subpass = {};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pColorAttachments = &color_attachment_ref;
 
     VkSubpassDependency dependency = {};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -561,139 +569,20 @@ void create_render_pass(
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-    VkRenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = 1;
-    renderPassInfo.pAttachments = &colorAttachment;
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
+    VkRenderPassCreateInfo render_pass_info = {};
+    render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    render_pass_info.attachmentCount = 1;
+    render_pass_info.pAttachments = &color_attachment;
+    render_pass_info.subpassCount = 1;
+    render_pass_info.pSubpasses = &subpass;
+    render_pass_info.dependencyCount = 1;
+    render_pass_info.pDependencies = &dependency;
 
     VkResult result;
-    if ((result = vkCreateRenderPass(device, &renderPassInfo, NULL, render_pass)) != VK_SUCCESS) {
+    if ((result = vkCreateRenderPass(device, &render_pass_info, NULL, render_pass)) != VK_SUCCESS) {
         LOG_FORMAT(true, "Vulkan vkCreateRenderPass: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
     }
-}
-
-// @todo This is very similar to program_make in opengl. Consider to rename opengl
-void vulkan_pipeline_create(
-    VkDevice device,
-    VkShaderModule vertex_shader,
-    VkShaderModule fragment_shader,
-    [[maybe_unused]] VkShaderModule geometry_shader,
-    VkPipeline* pipeline,
-    VkPipelineLayout* pipeline_layout,
-    VkRenderPass render_pass
-)
-{
-    uint32 stage_count = 0;
-    VkPipelineShaderStageCreateInfo shaderStages[3];
-
-    VkPipelineShaderStageCreateInfo vs_stage_create = {};
-    vs_stage_create.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vs_stage_create.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vs_stage_create.module = vertex_shader;
-    vs_stage_create.pName = "main";
-    ++stage_count;
-
-    VkPipelineShaderStageCreateInfo fs_stage_create = {};
-    fs_stage_create.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fs_stage_create.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fs_stage_create.module = fragment_shader;
-    fs_stage_create.pName = "main";
-    ++stage_count;
-
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
-    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-    VkPipelineViewportStateCreateInfo viewportState = {};
-    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.scissorCount = 1;
-
-    VkPipelineRasterizationStateCreateInfo rasterizer = {};
-    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-    rasterizer.depthBiasEnable = VK_FALSE;
-
-    VkPipelineMultisampleStateCreateInfo multisampling = {};
-    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
-
-    VkPipelineColorBlendStateCreateInfo colorBlending = {};
-    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable = VK_FALSE;
-    colorBlending.logicOp = VK_LOGIC_OP_COPY;
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
-    colorBlending.blendConstants[0] = 0.0f;
-    colorBlending.blendConstants[1] = 0.0f;
-    colorBlending.blendConstants[2] = 0.0f;
-    colorBlending.blendConstants[3] = 0.0f;
-
-    VkDynamicState dynamicStates[] = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-    };
-
-    VkPipelineDynamicStateCreateInfo dynamicState = {};
-    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicState.dynamicStateCount = ARRAY_COUNT(dynamicStates);
-    dynamicState.pDynamicStates = dynamicStates;
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 0;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-
-    VkResult result;
-    if ((result = vkCreatePipelineLayout(device, &pipelineLayoutInfo, NULL, pipeline_layout)) != VK_SUCCESS) {
-        LOG_FORMAT(true, "Vulkan vkCreatePipelineLayout: %d", LOG_DATA_INT32, (int32 *) &result);
-        ASSERT_SIMPLE(false);
-    }
-
-    VkGraphicsPipelineCreateInfo pipelineInfo = {};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = stage_count;
-    pipelineInfo.pStages = shaderStages;
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = *pipeline_layout;
-    pipelineInfo.renderPass = render_pass;
-    pipelineInfo.subpass = 0;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
-    if ((result = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, pipeline)) != VK_SUCCESS) {
-        LOG_FORMAT(true, "Vulkan vkCreateGraphicsPipelines: %d", LOG_DATA_INT32, (int32 *) &result);
-        ASSERT_SIMPLE(false);
-    }
-
-    vkDestroyShaderModule(device, vertex_shader, NULL);
-    vkDestroyShaderModule(device, fragment_shader, NULL);
 }
 
 // @todo consider to rename to same name as opengl
@@ -731,13 +620,13 @@ void vulkan_command_pool_create(
 ) {
     VulkanQueueFamilyIndices queue_family_indices = vulkan_find_queue_families(physical_device, surface, ring);
 
-    VkCommandPoolCreateInfo poolInfo = {};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = queue_family_indices.graphics_family;
+    VkCommandPoolCreateInfo pool_info = {};
+    pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    pool_info.queueFamilyIndex = queue_family_indices.graphics_family;
 
     VkResult result;
-    if ((result = vkCreateCommandPool(device, &poolInfo, NULL, command_pool)) != VK_SUCCESS) {
+    if ((result = vkCreateCommandPool(device, &pool_info, NULL, command_pool)) != VK_SUCCESS) {
         LOG_FORMAT(true, "Vulkan vkCreateCommandPool: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
     }
@@ -745,14 +634,14 @@ void vulkan_command_pool_create(
 
 void vulkan_command_buffer_create(VkDevice device, VkCommandBuffer* command_buffer, VkCommandPool command_pool)
 {
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = command_pool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = 1;
+    VkCommandBufferAllocateInfo alloc_info = {};
+    alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    alloc_info.commandPool = command_pool;
+    alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc_info.commandBufferCount = 1;
 
     VkResult result;
-    if ((result = vkAllocateCommandBuffers(device, &allocInfo, command_buffer)) != VK_SUCCESS) {
+    if ((result = vkAllocateCommandBuffers(device, &alloc_info, command_buffer)) != VK_SUCCESS) {
         LOG_FORMAT(true, "Vulkan vkAllocateCommandBuffers: %d", LOG_DATA_INT32, (int32 *) &result);
         ASSERT_SIMPLE(false);
     }
@@ -760,70 +649,22 @@ void vulkan_command_buffer_create(VkDevice device, VkCommandBuffer* command_buff
 
 void vulkan_sync_objects_create(VkDevice device, VkSemaphore* image_available_semaphore, VkSemaphore* render_finished_semaphore, VkFence* in_flight_fence)
 {
-    VkSemaphoreCreateInfo semaphoreInfo = {};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    VkSemaphoreCreateInfo semaphore_info = {};
+    semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    VkFenceCreateInfo fence_info = {};
+    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
     VkResult result;
-    if ((result = vkCreateSemaphore(device, &semaphoreInfo, NULL, image_available_semaphore)) != VK_SUCCESS
-        || (result = vkCreateSemaphore(device, &semaphoreInfo, NULL, render_finished_semaphore)) != VK_SUCCESS
-        || (result = vkCreateFence(device, &fenceInfo, NULL, in_flight_fence)) != VK_SUCCESS
+    if ((result = vkCreateSemaphore(device, &semaphore_info, NULL, image_available_semaphore)) != VK_SUCCESS
+        || (result = vkCreateSemaphore(device, &semaphore_info, NULL, render_finished_semaphore)) != VK_SUCCESS
+        || (result = vkCreateFence(device, &fence_info, NULL, in_flight_fence)) != VK_SUCCESS
     ) {
         LOG_FORMAT(true, "Vulkan vulkan_sync_objects_create: %d", LOG_DATA_INT32, (int32 *) &result);
 
         ASSERT_SIMPLE(false);
     }
 }
-/*
-void vulkan_command_buffer_record(
-     VkCommandBuffer command_buffer
-) {
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-    if (vkBeginCommandBuffer(command_buffer, &beginInfo) != VK_SUCCESS) {
-        ASSERT_SIMPLE(false);
-    }
-
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;
-    renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = swapChainExtent;
-
-    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
-
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast<float>(swapChainExtent.width);
-    viewport.height = static_cast<float>(swapChainExtent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = swapChainExtent;
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-
-    vkCmdEndRenderPass(commandBuffer);
-
-    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-        ASSERT_SIMPLE(false);
-    }
-}
-*/
 #endif

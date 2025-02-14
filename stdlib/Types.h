@@ -42,6 +42,8 @@ typedef uintptr_t umm;
 typedef intptr_t smm;
 
 // @question consider to implement atomic_16 depending on intrinsic support
+#define atomic_8 volatile
+#define atomic_16 alignas(2) volatile
 #define atomic_32 alignas(4) volatile
 #define atomic_64 alignas(8) volatile
 

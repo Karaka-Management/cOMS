@@ -126,7 +126,7 @@ Asset* cmd_texture_create(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
     }
 
     Texture* texture = (Texture *) asset->self;
-    if (cb->gpu_api == GPU_API_TYPE_OPENGL
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
         && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
         image_flip_vertical(cb->thrd_mem_vol, &texture->image);
@@ -157,7 +157,7 @@ Asset* cmd_font_create(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
     }
 
     Font* font = (Font *) asset->self;
-    if (cb->gpu_api == GPU_API_TYPE_OPENGL) {
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL) {
         font_invert_coordinates(font);
     }
 
@@ -369,7 +369,7 @@ inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
 
     // Setup basic texture
     Texture* texture = (Texture *) asset->self;
-    if (cb->gpu_api == GPU_API_TYPE_OPENGL
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
         && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
         image_flip_vertical(cb->mem_vol, &texture->image);
@@ -393,7 +393,7 @@ inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, const char* name) {
 
     // Setup basic texture
     Texture* texture = (Texture *) asset->self;
-    if (cb->gpu_api == GPU_API_TYPE_OPENGL
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
         && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
         image_flip_vertical(cb->mem_vol, &texture->image);
@@ -419,7 +419,7 @@ inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id) {
 
     // Setup font
     Font* font = (Font *) asset->self;
-    if (cb->gpu_api == GPU_API_TYPE_OPENGL) {
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL) {
         font_invert_coordinates(font);
     }
 
@@ -441,7 +441,7 @@ inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, const char* name) {
 
     // Setup font
     Font* font = (Font *) asset->self;
-    if (cb->gpu_api == GPU_API_TYPE_OPENGL) {
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL) {
         font_invert_coordinates(font);
     }
 
@@ -483,10 +483,9 @@ UIThemeStyle* cmd_theme_load_sync(
 inline
 void cmd_layout_populate_sync(
     AppCmdBuffer*,
-    UILayout* layout, const UIThemeStyle* theme,
-    const Camera* camera
+    UILayout* layout, const UIThemeStyle* theme
 ) {
-    layout_from_theme(layout, theme, camera);
+    layout_from_theme(layout, theme);
 }
 
 inline
@@ -504,9 +503,16 @@ UILayout* cmd_ui_load_sync(
         return NULL;
     }
 
-    cmd_layout_populate_sync(cb, layout, general_theme, camera);
+    cmd_layout_populate_sync(cb, layout, general_theme);
     cmd_theme_load_sync(cb, theme, theme_path);
-    cmd_layout_populate_sync(cb, layout, theme, camera);
+    cmd_layout_populate_sync(cb, layout, theme);
+
+    UIElement* root = layout_get_element(layout, "root");
+    UIWindow* default_style = (UIWindow *) layout_get_element_style(layout, root, UI_STYLE_TYPE_DEFAULT);
+    if (default_style) {
+        default_style->dimension.dimension.width = camera->viewport_width;
+        default_style->dimension.dimension.height = camera->viewport_height;
+    }
 
     return layout;
 }

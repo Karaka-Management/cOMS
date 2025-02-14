@@ -35,6 +35,11 @@ struct Vertex3DColorIndex {
     f32 color;
 };
 
+struct Vertex3DColor {
+    v3_f32 position;
+    v4_f32 color;
+};
+
 struct Vertex2D {
     v2_f32 position;
     v2_f32 tex_coord;

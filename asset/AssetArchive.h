@@ -214,6 +214,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     if (element->type == 0) {
         asset = thrd_ams_reserve_asset(ams, (byte) component_id, id_str, element->uncompressed);
         asset->official_id = id;
+        asset->ram_size = element->uncompressed;
 
         FileBody file = {};
         file.content = asset->self;

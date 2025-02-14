@@ -60,11 +60,8 @@ static void test_layout_from_theme() {
     theme2.data = (byte *) platform_alloc(2 * MEGABYTE);
     theme_from_file_txt(&theme2, "./../../GameEditor/assets/themes/default/scene1.themetxt", &ring);
 
-    Camera camera = {};
-    camera.viewport_width = 1024;
-    camera.viewport_height = 768;
-    layout_from_theme(&layout, &theme1, &camera);
-    layout_from_theme(&layout, &theme2, &camera);
+    layout_from_theme(&layout, &theme1);
+    layout_from_theme(&layout, &theme2);
 
     UIElement* element = layout_get_element(&layout, "cmd_window");
     ASSERT_NOT_EQUALS(element, NULL);

@@ -23,7 +23,7 @@ int32 shader_type_index(ShaderType type)
         case SHADER_TYPE_FRAGMENT:
             return GL_FRAGMENT_SHADER;
         default:
-            return 0;
+            UNREACHABLE();
     }
 }
 

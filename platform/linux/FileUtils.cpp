@@ -242,14 +242,14 @@ void file_read(const char* path, FileBody* file, RingMemory* ring) {
             return;
         }
 
-        file->size = file_stat.st_size + 1;
+        file->size = file_stat.st_size;
     }
 
     if (ring != NULL) {
-        file->content = ring_get_memory(ring, file->size);
+        file->content = ring_get_memory(ring, file->size + 1);
     }
 
-    ssize_t bytes_read = read(fp, file->content, file->size - 1);
+    ssize_t bytes_read = read(fp, file->content, file->size);
     if (bytes_read != file->size) {
         close(fp);
         file->content = NULL;

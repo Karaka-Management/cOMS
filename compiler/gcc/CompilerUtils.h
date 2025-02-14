@@ -81,4 +81,22 @@ int32 compiler_find_first_bit_l2r(uint32 mask) {
     #endif
 }
 
+/*
+#include <cpuid.h>
+
+static inline
+void cpuid(int32 cpuInfo[4], int32 function_id) {
+    __cpuid(function_id, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
+}
+*/
+
+inline
+void compiler_cpuid(int32 cpuInfo[4], int32 function_id) {
+    asm volatile(
+        "cpuid"
+        : "=a" (cpuInfo[0]), "=b" (cpuInfo[1]), "=c" (cpuInfo[2]), "=d" (cpuInfo[3])
+        : "a" (function_id)
+    );
+}
+
 #endif

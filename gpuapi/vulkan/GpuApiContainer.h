@@ -12,6 +12,8 @@
 #include "../../stdlib/Types.h"
 #include <vulkan/vulkan.h>
 
+#define FRAME_LAG 2
+
 struct GpuApiContainer {
     VkInstance instance;
     VkSurfaceKHR surface;
@@ -19,11 +21,11 @@ struct GpuApiContainer {
     VkSwapchainKHR swapchain;
     uint32 swapchain_image_count;
     VkFormat swapchain_image_format;
-    VkImage* swapchain_images;                  // swapchain_image_count
-    VkImageView* swapchain_image_views;         // swapchain_image_count
-    VkFramebuffer* swapchain_framebuffers;      // swapchain_image_count
+    VkImage* swapchain_images;             // length = swapchain_image_count
+    VkImageView* swapchain_image_views;    // length = swapchain_image_count
+    VkFramebuffer* swapchain_framebuffers; // length = swapchain_image_count
     VkExtent2D swapchain_extent;
-    VkPipelineLayout pipelineLayout;
+    VkPipelineLayout pipeline_layout;
     VkQueue graphics_queue;
     VkQueue present_queue;
     VkRenderPass render_pass;
@@ -33,6 +35,10 @@ struct GpuApiContainer {
     VkSemaphore image_available_semaphore;
     VkSemaphore render_finished_semaphore;
     VkFence in_flight_fence;
+
+    #if DEBUG || INTERNAL
+        VkDebugUtilsMessengerEXT debug_messenger;
+    #endif
 };
 
 #endif

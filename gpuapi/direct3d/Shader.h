@@ -10,9 +10,11 @@
 #define TOS_GPUAPI_DIRECT3D_SHADER_H
 
 #include "../../stdlib/Types.h"
+#include <d3d12.h>
+#include <wrl.h>
 
 struct Shader {
-    uint32 id;
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> id;
     uint32 locations[7];
     byte data[16];
 };

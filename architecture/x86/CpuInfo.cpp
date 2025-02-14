@@ -13,45 +13,15 @@
 #include <stdint.h>
 #include "../../stdlib/Types.h"
 #include "../CpuInfo.h"
+#include "../../compiler/CompilerUtils.h"
 
-#ifdef _MSC_VER
-    #include <intrin.h>
-
-    static inline
-    void cpuid(int32 cpuInfo[4], int32 function_id) {
-        __cpuidex(cpuInfo, function_id, 0);
-    }
-#else
-    /*
-    #include <cpuid.h>
-
-    static inline
-    void cpuid(int32 cpuInfo[4], int32 function_id) {
-        __cpuid(function_id, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
-    }
-    */
-
-    static inline
-    void cpuid(int32 cpuInfo[4], int32 function_id) {
-        asm volatile(
-            "cpuid"
-            : "=a" (cpuInfo[0]), "=b" (cpuInfo[1]), "=c" (cpuInfo[2]), "=d" (cpuInfo[3])
-            : "a" (function_id)
-        );
-    }
-#endif
-
-inline
-int32 svcntw() {
-    return 0;
-}
+#define svcntw() 0
 
 uint64 cpu_info_features() {
     uint64 feature_bitfield = 0;
     int32 cpuInfo[4] = {0};
 
-    // Query function 0x00000001
-    cpuid(cpuInfo, 0x00000001);
+    compiler_cpuid(cpuInfo, 0x00000001);
     uint32 ecx = (uint32) cpuInfo[2];
     uint32 edx = (uint32) cpuInfo[3];
 
@@ -84,8 +54,7 @@ uint64 cpu_info_features() {
     if (edx & (1 << 25)) feature_bitfield |= CPU_FEATURE_SSE;
     if (edx & (1 << 26)) feature_bitfield |= CPU_FEATURE_SSE2;
 
-    // Query function 0x00000007
-    cpuid(cpuInfo, 0x00000007);
+    compiler_cpuid(cpuInfo, 0x00000007);
     uint32 ebx = (uint32) cpuInfo[1];
     uint32 ecx7 = (uint32) cpuInfo[2];
 
@@ -107,8 +76,7 @@ uint64 cpu_info_features() {
     // Map ECX features
     if (ecx7 & (1 << 0)) feature_bitfield |= CPU_FEATURE_PREFETCHWT1;
 
-    // Query extended function 0x80000001
-    cpuid(cpuInfo, 0x80000001);
+    compiler_cpuid(cpuInfo, 0x80000001);
     uint32 ecx81 = (uint32) cpuInfo[2];
     uint32 edx81 = (uint32) cpuInfo[3];
 
@@ -141,7 +109,7 @@ void cpu_info_cache(byte level, CpuCacheInfo* cache) {
     cache->line_size = 0;
 
     int32 regs[4];
-    cpuid(regs, (0x04 << 8) | level);
+    compiler_cpuid(regs, (0x04 << 8) | level);
     eax = regs[0];
     ebx = regs[1];
     ecx = regs[2];

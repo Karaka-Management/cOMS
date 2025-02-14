@@ -159,12 +159,12 @@ HBITMAP CreateBitmapFromRGBA(HDC hdc, const byte* rgba, int32 width, int32 heigh
     bmi.bmiHeader.biCompression = BI_RGB;
 
     void* pbits;
-    HBITMAP hBitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &pbits, NULL, 0);
-    if (hBitmap) {
+    HBITMAP hbitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, &pbits, NULL, 0);
+    if (hbitmap) {
         memcpy(pbits, rgba, width * height * 4);
     }
 
-    return hBitmap;
+    return hbitmap;
 }
 
 #endif

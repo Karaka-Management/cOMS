@@ -9,43 +9,87 @@
 #ifndef TOS_GPUAPI_DIRECTX_SHADER_UTILS_H
 #define TOS_GPUAPI_DIRECTX_SHADER_UTILS_H
 
+#include <windows.h>
 #include <d3d12.h>
+#include <dxgi1_6.h>
+#include <wrl.h>
 #include <d3dcompiler.h>
+#include "../../../EngineDependencies/directx/d3d12.h"
+#include "../../../EngineDependencies/directx/d3dx12.h"
 
 #include "../../stdlib/Types.h"
 #include "../../memory/RingMemory.h"
 #include "../../log/Log.h"
+#include "../ShaderType.h"
 
-D3D12_SHADER_BYTECODE shader_make(ID3D12Device* device, const char* source, int32 source_size, RingMemory* ring)
+#pragma comment(lib, "d3dcompiler.lib")
+
+const char* shader_type_index(ShaderType type)
 {
-    // Create the shader object (bytecode)
-    D3D12_SHADER_BYTECODE shaderBytecodeDesc = {};
-    shaderBytecodeDesc.pShaderBytecode = source;
-    shaderBytecodeDesc.BytecodeLength = source_size;
+    switch (type) {
+        case SHADER_TYPE_VERTEX:
+            return "vs_5_0";
+        case SHADER_TYPE_FRAGMENT:
+            return "ps_5_0";
+        default:
+            UNREACHABLE();
+    }
+}
 
-    return shaderBytecodeDesc;
+Microsoft::WRL::ComPtr<ID3DBlob> shader_make(const char* type, const char* source, int32 source_size)
+{
+    #if DEBUG || INTERNAL
+        uint32 compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+    #else
+        uint32 compileFlags = 0;
+    #endif
+
+    Microsoft::WRL::ComPtr<ID3DBlob> blob;
+    Microsoft::WRL::ComPtr<ID3DBlob> errMsgs;
+    if (FAILED(D3DCompile2(source, source_size, NULL, NULL, NULL, "main", type, compileFlags, 0, 0, NULL, 0, blob.GetAddressOf(), errMsgs.GetAddressOf()))) {
+        LOG(true, "DirectX12 D3DCompile2");
+        ASSERT_SIMPLE(false);
+    }
+
+    return blob;
 }
 
 ID3D12PipelineState* program_make(
     ID3D12Device* device,
-    D3D12_SHADER_BYTECODE vertex_shader,
-    D3D12_SHADER_BYTECODE fragment_shader,
-    D3D12_SHADER_BYTECODE geometry_shader
+    Microsoft::WRL::ComPtr<ID3D12PipelineState>& pipeline_state,
+    ID3D12RootSignature* root_signature,
+    ID3DBlob* vertex_shader,
+    ID3DBlob* fragment_shader,
+    ID3DBlob*
 ) {
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-    psoDesc.VS = vertex_shader;
-    psoDesc.PS = fragment_shader;
-    psoDesc.GS = geometry_shader;
+    // @todo We need to find a way to do this somewhere else:
+    D3D12_INPUT_ELEMENT_DESC input_element_info[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    };
 
-    ID3D12PipelineState* pipelineState = NULL;
-    HRESULT hr = device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState));
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_state_info = {};
+    pipeline_state_info.InputLayout = { input_element_info, _countof(input_element_info) };
+    pipeline_state_info.pRootSignature = root_signature;
+    pipeline_state_info.VS = CD3DX12_SHADER_BYTECODE(vertex_shader);
+    pipeline_state_info.PS = CD3DX12_SHADER_BYTECODE(fragment_shader);
+    pipeline_state_info.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    pipeline_state_info.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    pipeline_state_info.DepthStencilState.DepthEnable = FALSE;
+    pipeline_state_info.DepthStencilState.StencilEnable = FALSE;
+    pipeline_state_info.SampleMask = UINT_MAX;
+    pipeline_state_info.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pipeline_state_info.NumRenderTargets = 1;
+    pipeline_state_info.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pipeline_state_info.SampleDesc.Count = 1;
 
-    if (FAILED(hr)) {
-        LOG(true, "Failed to create program");
-        return NULL;
+    if (FAILED(device->CreateGraphicsPipelineState(&pipeline_state_info, IID_PPV_ARGS(&pipeline_state)))) {
+        LOG(true, "DirectX12 CreateGraphicsPipelineState");
+        ASSERT_SIMPLE(false);
     }
 
-    return pipelineState;
+    return pipeline_state.Get();
 }
 
 inline

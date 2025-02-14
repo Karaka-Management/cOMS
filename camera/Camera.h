@@ -39,8 +39,6 @@ struct Camera {
     f32 sensitivity;
     f32 zoom;
 
-    // @question Consider to make these f32 values.
-    // Yes, this uses obviously more space BUT we use these values very often in vertex calculations and always have to cast it
     uint16 viewport_width;
     uint16 viewport_height;
 
@@ -49,9 +47,9 @@ struct Camera {
     f32 zfar;
     f32 aspect;
 
-    f32 view[16];
-    f32 projection[16];
-    f32 orth[16];
+    alignas(64) f32 view[16];
+    alignas(64) f32 projection[16];
+    alignas(64) f32 orth[16];
 };
 
 void
@@ -228,11 +226,12 @@ void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool rela
 inline
 void camera_orth_matrix_lh(Camera* __restrict camera)
 {
-    mat4_identity(camera->orth);
+    //mat4_identity(camera->orth);
+    camera->orth[15] = 1.0f;
     mat4_ortho_sparse_lh(
         camera->orth,
-        0, camera->viewport_width,
-        0, camera->viewport_height,
+        0.0f, (f32) camera->viewport_width,
+        0.0f, (f32) camera->viewport_height,
         camera->znear,
         camera->zfar
     );
@@ -241,11 +240,12 @@ void camera_orth_matrix_lh(Camera* __restrict camera)
 inline
 void camera_orth_matrix_rh(Camera* __restrict camera)
 {
-    mat4_identity(camera->orth);
+    //mat4_identity(camera->orth);
+    camera->orth[15] = 1.0f;
     mat4_ortho_sparse_rh(
         camera->orth,
-        0, camera->viewport_width,
-        0, camera->viewport_height,
+        0.0f, (f32) camera->viewport_width,
+        0.0f, (f32) camera->viewport_height,
         camera->znear,
         camera->zfar
     );
@@ -254,7 +254,8 @@ void camera_orth_matrix_rh(Camera* __restrict camera)
 inline
 void camera_projection_matrix_lh(Camera* __restrict camera)
 {
-    mat4_identity(camera->projection);
+    //mat4_identity(camera->projection);
+    camera->projection[15] = 1.0f;
     mat4_perspective_sparse_lh(
         camera->projection,
         camera->fov,
@@ -267,7 +268,8 @@ void camera_projection_matrix_lh(Camera* __restrict camera)
 inline
 void camera_projection_matrix_rh(Camera* __restrict camera)
 {
-    mat4_identity(camera->projection);
+    //mat4_identity(camera->projection);
+    camera->projection[15] = 1.0f;
     mat4_perspective_sparse_rh(
         camera->projection,
         camera->fov,

@@ -18,6 +18,7 @@
 #include "UIWindow.h"
 
 // @todo We should add some asserts that ensure that the respective structs at least start at a 4byte memory alignment
+// @performance We are prefetching stuff but we are not yet ensuring data is cache line aligned. We should align each UIElements, element specific data
 
 // Doesn't change the position of pos outside of the function, since lookahead
 static
@@ -339,11 +340,14 @@ void ui_layout_serialize_element(
     *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->animations);
     *out += sizeof(element->animations);
 
-    *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(element->vertex_count);
-    *out += sizeof(element->vertex_count);
+    *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(element->vertex_count_max);
+    *out += sizeof(element->vertex_count_max);
 
-    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->vertices_active);
-    *out += sizeof(element->vertices_active);
+    *((uint16 *) *out) = SWAP_ENDIAN_LITTLE(element->vertex_count_active);
+    *out += sizeof(element->vertex_count_active);
+
+    *((uint32 *) *out) = SWAP_ENDIAN_LITTLE(element->vertices_active_offset);
+    *out += sizeof(element->vertices_active_offset);
 
     // Output dynamic length content directly after UIElement
     //
@@ -491,11 +495,14 @@ void ui_layout_parse_element(HashEntryInt32* entry, byte* data, const byte** in)
     element->animations = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
     *in += sizeof(element->animations);
 
-    element->vertex_count = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
-    *in += sizeof(element->vertex_count);
+    element->vertex_count_max = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+    *in += sizeof(element->vertex_count_max);
 
-    element->vertices_active = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
-    *in += sizeof(element->vertices_active);
+    element->vertex_count_active = SWAP_ENDIAN_LITTLE(*((uint16 *) *in));
+    *in += sizeof(element->vertex_count_active);
+
+    element->vertices_active_offset = SWAP_ENDIAN_LITTLE(*((uint32 *) *in));
+    *in += sizeof(element->vertices_active_offset);
 
     // Load dynamic length content
     // Some of the content belongs directly after the element but some of it belongs at very specific offsets
@@ -589,18 +596,8 @@ int32 layout_from_data(
 
 void layout_from_theme(
     UILayout* __restrict layout,
-    const UIThemeStyle* __restrict theme,
-    const Camera* __restrict camera
+    const UIThemeStyle* __restrict theme
 ) {
-    EvaluatorVariable variables[] = {
-        { "vw", (f32) camera->viewport_width },
-        { "vh", (f32) camera->viewport_height },
-        { "px", 0.0 }, // Placeholder for parent values
-        { "py", 0.0 }, // Placeholder for parent values
-        { "pw", 0.0 }, // Placeholder for parent values
-        { "ph", 0.0 }, // Placeholder for parent values
-    };
-
     // @todo Handle animations
     // @todo Handle vertices_active offset
     if (theme->font) {
@@ -632,7 +629,6 @@ void layout_from_theme(
         // Populate default element
         UIElement* element = (UIElement *) (layout->data + entry->value);
         UIAttributeGroup* group = (UIAttributeGroup *) (theme->data + style_entry->value);
-        UIElement* parent = element->parent ? (UIElement *) (layout->data + element->parent) : NULL;
 
         // @todo Continue implementation
         switch (element->type) {
@@ -640,30 +636,27 @@ void layout_from_theme(
                 ui_label_state_populate(group, (UILabelState *) (layout->data + element->state));
                 ui_label_element_populate(
                     layout,
+                    element,
                     group,
-                    (UILabel *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT]),
-                    parent,
-                    variables
+                    (UILabel *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT])
                 );
             } break;
             case UI_ELEMENT_TYPE_INPUT: {
                 ui_input_state_populate(group, (UIInputState *) (layout->data + element->state));
                 ui_input_element_populate(
                     layout,
+                    element,
                     group,
-                    (UIInput *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT]),
-                    parent,
-                    variables
+                    (UIInput *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT])
                 );
             } break;
             case UI_ELEMENT_TYPE_VIEW_WINDOW: {
                 ui_window_state_populate(group, (UIWindowState *) (layout->data + element->state));
                 ui_window_element_populate(
                     layout,
+                    element,
                     group,
-                    (UIWindow *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT]),
-                    parent,
-                    variables
+                    (UIWindow *) (layout->data + element->style_types[UI_STYLE_TYPE_DEFAULT])
                 );
             } break;
         }
@@ -714,35 +707,31 @@ void layout_from_theme(
 
         // Populate element style_types
         UIAttributeGroup* group = (UIAttributeGroup *) (theme->data + style_entry->value);
-        UIElement* parent = element->parent ? (UIElement *) (layout->data + element->parent) : NULL;
 
         // @todo Continue implementation
         switch (element->type) {
             case UI_ELEMENT_TYPE_LABEL: {
                 ui_label_element_populate(
                     layout,
+                    element,
                     group,
-                    (UILabel *) (layout->data + element->style_types[style_type]),
-                    parent,
-                    variables
+                    (UILabel *) (layout->data + element->style_types[style_type])
                 );
             } break;
             case UI_ELEMENT_TYPE_INPUT: {
                 ui_input_element_populate(
                     layout,
+                    element,
                     group,
-                    (UIInput *) (layout->data + element->style_types[style_type]),
-                    parent,
-                    variables
+                    (UIInput *) (layout->data + element->style_types[style_type])
                 );
             } break;
             case UI_ELEMENT_TYPE_VIEW_WINDOW: {
                 ui_window_element_populate(
                     layout,
+                    element,
                     group,
-                    (UIWindow *) (layout->data + element->style_types[style_type]),
-                    parent,
-                    variables
+                    (UIWindow *) (layout->data + element->style_types[style_type])
                 );
             } break;
         }
@@ -807,12 +796,17 @@ void ui_layout_update(UILayout* layout, UIElement* element) {
 // This increases our RAM requirements (every vertex is in cache AND in the asset AND in VRAM)
 // However, this also has the benefit of allowing us to ONLY re-render individual elements
 
+// @performance Profile our prefetching, no sure if it is actually helpful or harmful
+
 // @performance In our immediate mode solution we decided the update/render based on a bitfield
 // That is very efficient, the code below isn't doing that maybe there is a way to implement that here as well?
 // I don't think so but it would be nice
 // This function caches the vertices
 void ui_layout_update_dfs(UILayout* layout, UIElement* element, byte category = 0) {
-    if (element->type == UI_ELEMENT_TYPE_MANUAL) {
+    if (element->type == UI_ELEMENT_TYPE_MANUAL
+        || !(element->state_flag & UI_ELEMENT_STATE_VISIBLE)
+        || !(element->state_flag & UI_ELEMENT_STATE_CHANGED)
+    ) {
         return;
     }
 
@@ -820,9 +814,14 @@ void ui_layout_update_dfs(UILayout* layout, UIElement* element, byte category = 
         ui_layout_update(layout, element);
     }
 
-    uint32* children = (uint32 *) (element + 1);
-    for (int32 i = 0; i < element->children_count; ++i) {
-        ui_layout_update(layout, (UIElement *) (layout->data + children[i]));
+    if (element->children_count) {
+        uint32* children = (uint32 *) (element + 1);
+        for (int32 i = 0; i < element->children_count - 1; ++i) {
+            intrin_prefetch_l2(layout->data + children[i + 1]);
+            ui_layout_update(layout, (UIElement *) (layout->data + children[i]));
+        }
+
+        ui_layout_update(layout, (UIElement *) (layout->data + children[element->children_count - 1]));
     }
 }
 
@@ -831,21 +830,31 @@ uint32 ui_layout_render_dfs(
     UIElement* element, Vertex3DTextureColor* __restrict vertices,
     byte category = 0
 ) {
-    if (element->type == UI_ELEMENT_TYPE_MANUAL) {
+    if (element->type == UI_ELEMENT_TYPE_MANUAL
+        || !(element->state_flag & UI_ELEMENT_STATE_VISIBLE)
+    ) {
         return 0;
     }
 
     uint32 vertex_count = 0;
 
-    if (element->vertex_count && element->category == category) {
-        memcpy(vertices, layout->vertices_active + element->vertices_active, sizeof(*vertices) * element->vertex_count);
-        vertices += element->vertex_count;
-        vertex_count += element->vertex_count;
+    if (element->vertex_count_active && element->category == category) {
+        memcpy(vertices, layout->vertices_active + element->vertices_active_offset, sizeof(*vertices) * element->vertex_count_active);
+        vertices += element->vertex_count_active;
+        vertex_count += element->vertex_count_active;
     }
 
-    uint32* children = (uint32 *) (element + 1);
-    for (int32 i = 0; i < element->children_count; ++i) {
-        uint32 child_vertex_count = ui_layout_render_dfs(layout, (UIElement *) (layout->data + children[i]), vertices, category);
+    if (element->children_count) {
+        uint32* children = (uint32 *) (element + 1);
+        for (int32 i = 0; i < element->children_count - 1; ++i) {
+            intrin_prefetch_l2(layout->data + children[i + 1]);
+
+            uint32 child_vertex_count = ui_layout_render_dfs(layout, (UIElement *) (layout->data + children[i]), vertices, category);
+            vertices += child_vertex_count;
+            vertex_count += child_vertex_count;
+        }
+
+        uint32 child_vertex_count = ui_layout_render_dfs(layout, (UIElement *) (layout->data + children[element->children_count - 1]), vertices, category);
         vertices += child_vertex_count;
         vertex_count += child_vertex_count;
     }
@@ -858,7 +867,9 @@ uint32 ui_layout_update_render_dfs(
     UIElement* __restrict element, Vertex3DTextureColor* __restrict vertices,
     byte category = 0
 ) {
-    if (element->type == UI_ELEMENT_TYPE_MANUAL) {
+    if (element->type == UI_ELEMENT_TYPE_MANUAL
+        || !(element->state_flag & UI_ELEMENT_STATE_VISIBLE)
+    ) {
         return 0;
     }
 
@@ -867,14 +878,22 @@ uint32 ui_layout_update_render_dfs(
     if (element->category == category) {
         ui_layout_update(layout, element);
 
-        memcpy(vertices, layout->vertices_active + element->vertices_active, sizeof(*vertices) * element->vertex_count);
-        vertices += element->vertex_count;
-        vertex_count += element->vertex_count;
+        memcpy(vertices, layout->vertices_active + element->vertices_active_offset, sizeof(*vertices) * element->vertex_count_active);
+        vertices += element->vertex_count_active;
+        vertex_count += element->vertex_count_active;
     }
 
-    uint32* children = (uint32 *) (element + 1);
-    for (int32 i = 0; i < element->children_count; ++i) {
-        uint32 child_vertex_count = ui_layout_update_render_dfs(layout, (UIElement *) (layout->data + children[i]), vertices, category);
+    if (element->children_count) {
+        uint32* children = (uint32 *) (element + 1);
+        for (int32 i = 0; i < element->children_count - 1; ++i) {
+            intrin_prefetch_l2(layout->data + children[i + 1]);
+
+            uint32 child_vertex_count = ui_layout_update_render_dfs(layout, (UIElement *) (layout->data + children[i]), vertices, category);
+            vertices += child_vertex_count;
+            vertex_count += child_vertex_count;
+        }
+
+        uint32 child_vertex_count = ui_layout_update_render_dfs(layout, (UIElement *) (layout->data + children[element->children_count - 1]), vertices, category);
         vertices += child_vertex_count;
         vertex_count += child_vertex_count;
     }
@@ -908,18 +927,30 @@ void* layout_get_element_state(const UILayout* layout, UIElement* element)
 inline
 void* layout_get_element_style(const UILayout* layout, UIElement* element, UIStyleType style_type)
 {
+    if (!element) {
+        return NULL;
+    }
+
     return layout->data + element->style_types[style_type];
 }
 
 inline
 UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element)
 {
+    if (!element) {
+        return NULL;
+    }
+
     return (UIElement *) (layout->data + element->parent);
 }
 
 inline
 UIElement* layout_get_element_child(const UILayout* layout, UIElement* element, uint16 child)
 {
+    if (!element) {
+        return NULL;
+    }
+
     uint16* children = (uint16 *) (element + 1);
     return (UIElement *) (layout->data + children[child]);
 }

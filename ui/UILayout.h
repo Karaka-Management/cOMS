@@ -10,6 +10,36 @@
 
 #define UI_LAYOUT_VERSION 1
 
+///////////////////////////////
+// UIElement
+// ============================
+// child_offset 1
+// child_offset 2
+// ...
+// ============================
+// UIElementState
+// ============================
+// UIElementStyle Active
+// UIElementStyle Default
+// ...
+// ============================
+
+// ...
+// Somewhere else in the buffer
+// ...
+
+// UIAnimation 1 - Info
+// ============================
+// UIAnimation 1 - Keyframe 1
+// UIAnimation 1 - Keyframe 2
+// ...
+// ============================
+// UIAnimation 2
+// ============================
+// ...
+// ============================
+
+
 // Modified for every scene
 struct UILayout {
     // This array has the size of the game window and represents in color codes where interactible ui elements are
@@ -67,7 +97,7 @@ struct UILayout {
     Asset* ui_asset;
 
     // Total count of the ui_asset vertices
-    uint32 vertex_size;
+    uint32 vertex_count_max;
 
     // @question Should we maybe also hold the font atlas asset here?
 
@@ -75,11 +105,11 @@ struct UILayout {
     // This is very similar to the currently rendered UI output but may have some empty space between elements
     // The reason for this is that some elements may need different vertex counts for different states (e.g. input field)
     // WARNING: This memory is shared between different layouts
-    // @performance Maybe we could use this also for rendering by setting free vertices and elements currently hidden to 0
-    // This would allow us to effectively remove the ui_asset
-    // @bug We currently use ui_mesh (Asset) to also keep track of gpu memory
     uint32 active_vertex_size;
     Vertex3DTextureColor* vertices_active; // Not the data owner (see data above)
+
+    // Used during the initialization so that every element knows where we currently are during the setup process
+    uint32 active_vertex_offset;
 };
 
 #endif
