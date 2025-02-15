@@ -69,9 +69,9 @@ VkShaderModule shader_make(VkDevice device, const char* source, int32 source_siz
 }
 
 inline
-void pipeline_use(VkCommandBuffer command_list, VkPipeline pipeline)
+void pipeline_use(VkCommandBuffer command_buffer, VkPipeline pipeline)
 {
-    vkCmdBindPipeline(command_list, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 }
 
 VkPipeline program_make(

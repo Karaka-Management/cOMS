@@ -10,21 +10,22 @@
 #define TOS_GPUAPI_DIRECTX_UTILS_H
 
 #include <windows.h>
-#include <wrl.h>
+#include <d3d12.h>
 #include <dxgi1_6.h>
+#include <d3dcommon.h>
 #include "../../../GameEngine/log/Log.h"
-#include "../../../EngineDependencies/directx/d3d12.h"
-#include "../../../EngineDependencies/directx/d3dx12.h"
+// #include "../../../EngineDependencies/directx/d3d12.h"
+// #include "../../../EngineDependencies/directx/d3dx12.h"
 
 #include "../../stdlib/Types.h"
 
 // A more (compile-time) efficient version of the windows macro IID_PPV_ARGS
-#define IID_PPVOID(pointer) __uuidof(**(&pointer)), reinterpret_cast<void**>(&pointer)
+#define IID_PPVOID(pointer) __uuidof(**(pointer)), (void **) (pointer)
 
 bool is_directx_supported(D3D_FEATURE_LEVEL version)
 {
     IDXGIFactory6* factory = NULL;
-    if (FAILED(CreateDXGIFactory1(IID_PPVOID(factory)))) {
+    if (FAILED(CreateDXGIFactory1(IID_PPVOID(&factory)))) {
         return false;
     }
 
@@ -91,7 +92,7 @@ int32 max_directx_version()
 // Returns frame index
 int32 wait_for_previous_frame(
     ID3D12Fence* fence, HANDLE fence_event, UINT64* fence_value,
-    ID3D12CommandQueue* command_queue, IDXGISwapChain3* swapchain
+    ID3D12CommandQueue* graphics_queue, IDXGISwapChain3* swapchain
 )
 {
     // WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
@@ -102,7 +103,7 @@ int32 wait_for_previous_frame(
     UINT64 fence_value_temp = *fence_value;
 
     // Signal and increment the fence value.
-    if(FAILED(command_queue->Signal(fence, fence_value_temp))) {
+    if(FAILED(graphics_queue->Signal(fence, fence_value_temp))) {
         LOG(true, "DirectX12 Signal");
         ASSERT_SIMPLE(false);
     }
@@ -147,10 +148,10 @@ void directx_debug_callback(
     ASSERT_SIMPLE(false);
 }
 
-void gpuapi_debug_messenger_setup(Microsoft::WRL::ComPtr<ID3D12Device>& device)
+void gpuapi_debug_messenger_setup(ID3D12Device* device)
 {
-    Microsoft::WRL::ComPtr<ID3D12InfoQueue1> info_queue;
-    if (FAILED(device.As(&info_queue))) {
+    ID3D12InfoQueue1* info_queue;
+    if (FAILED(device->QueryInterface(IID_PPVOID(&info_queue)))) {
         return;
     }
 
@@ -164,6 +165,16 @@ void gpuapi_debug_messenger_setup(Microsoft::WRL::ComPtr<ID3D12Device>& device)
 
     // Set the message count limit to unlimited
     info_queue->SetMessageCountLimit(0);
+
+    info_queue->Release();
+}
+
+inline
+void gpuapi_create_logical_device(ID3D12Device** device) {
+    if (FAILED(D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_11_0, IID_PPVOID(device)))) {
+        LOG(true, "DirectX12 D3D12CreateDevice");
+        ASSERT_SIMPLE(false);
+    }
 }
 
 #endif

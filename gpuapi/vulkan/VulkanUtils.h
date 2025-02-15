@@ -411,7 +411,7 @@ void gpuapi_create_logical_device(
 }
 
 // @question Do we need to handle old swapchains?
-void vulkan_swap_chain_create(
+void gpuapi_swapchain_create(
     VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface,
     VkSwapchainKHR* swapchain, VkFormat* swapchain_image_format, VkExtent2D* swapchain_extent,
     Window* window, RingMemory* ring
@@ -499,7 +499,7 @@ void vulkan_swap_chain_create(
 
 // WARNING: swapchain_images needs to already have reserved enough memory
 // @todo How can we ensure swapchain_images has enough but not too much space?
-void vulkan_swap_chain_images_create(
+void vulkan_swapchain_images_create(
     VkDevice device, VkSwapchainKHR swapchain,
     VkImage** swapchain_images, uint32* swapchain_image_count,
     BufferMemory* buf
@@ -586,9 +586,9 @@ void vulkan_render_pass_create(
 }
 
 // @todo consider to rename to same name as opengl
-// WARNING: swapchain_framebuffers needs to be initialized
+// WARNING: framebuffers needs to be initialized
 void vulkan_framebuffer_create(
-    VkDevice device, VkFramebuffer* swapchain_framebuffers,
+    VkDevice device, VkFramebuffer* framebuffers,
     VkImageView* swapchain_image_views, uint32 swapchain_image_count, VkExtent2D swapchain_extent,
     VkRenderPass render_pass
 ) {
@@ -607,7 +607,7 @@ void vulkan_framebuffer_create(
         framebufferInfo.height = swapchain_extent.height;
         framebufferInfo.layers = 1;
 
-        if ((result = vkCreateFramebuffer(device, &framebufferInfo, NULL, &swapchain_framebuffers[i])) != VK_SUCCESS) {
+        if ((result = vkCreateFramebuffer(device, &framebufferInfo, NULL, &framebuffers[i])) != VK_SUCCESS) {
             LOG_FORMAT(true, "Vulkan vkCreateFramebuffer: %d", LOG_DATA_INT32, (int32 *) &result);
             ASSERT_SIMPLE(false);
         }

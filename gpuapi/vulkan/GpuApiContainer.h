@@ -23,7 +23,7 @@ struct GpuApiContainer {
     VkFormat swapchain_image_format;
     VkImage* swapchain_images;             // length = swapchain_image_count
     VkImageView* swapchain_image_views;    // length = swapchain_image_count
-    VkFramebuffer* swapchain_framebuffers; // length = swapchain_image_count
+    VkFramebuffer* framebuffers; // length = swapchain_image_count
     VkExtent2D swapchain_extent;
     VkPipelineLayout pipeline_layout;
     VkQueue graphics_queue;

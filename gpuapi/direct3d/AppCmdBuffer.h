@@ -20,7 +20,6 @@
 #include <windows.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
-#include <wrl.h>
 
 void* cmd_shader_load(AppCmdBuffer*, Command*) {
     return NULL;
@@ -31,7 +30,10 @@ void* cmd_shader_load_sync(AppCmdBuffer* cb, Shader* shader, int32* shader_ids) 
 
     GpuApiContainer* gpu_api = (GpuApiContainer *) cb->gpu_api;
 
-    Microsoft::WRL::ComPtr<ID3DBlob> shader_assets[SHADER_TYPE_SIZE];
+    ID3DBlob* shader_assets[SHADER_TYPE_SIZE];
+    for (int32 i = 0; i < SHADER_TYPE_SIZE; ++i) {
+        shader_assets[i] = NULL;
+    }
 
     for (int32 i = 0; i < SHADER_TYPE_SIZE; ++i) {
         if (!shader_ids[i]) {
@@ -61,8 +63,8 @@ void* cmd_shader_load_sync(AppCmdBuffer* cb, Shader* shader, int32* shader_ids) 
 
     // Make shader/program
     shader->id = program_make(
-        gpu_api->device.Get(), gpu_api->pipeline_state, gpu_api->root_signature.Get(),
-        shader_assets[0].Get(), shader_assets[1].Get(), shader_assets[2].Get()
+        gpu_api->device, &gpu_api->pipeline, gpu_api->pipeline_layout,
+        shader_assets[0], shader_assets[1], shader_assets[2]
     );
 
     return NULL;
