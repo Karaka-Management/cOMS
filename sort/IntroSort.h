@@ -6,7 +6,7 @@
 #include "HeapSort.h"
 #include "QuickSort.h"
 
-void introsort(void* arr, size_t num, size_t size, int32 (*compare)(const void*, const void*), size_t depth_limit) {
+void introsort(void* arr, size_t num, size_t size, int32 (*compare)(const void* __restrict, const void* __restrict), size_t depth_limit) noexcept {
     byte* base = (byte*) arr;
 
     // Use InsertionSort for small subarrays

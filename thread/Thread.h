@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "../stdlib/Types.h"
+#include "../log/Log.h"
 #include "Atomic.h"
 
 #if _WIN32
@@ -24,8 +25,7 @@
 
 void thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
 {
-    // @todo test to remove {}
-    LOG_LEVEL_2("Thread started", {});
+    LOG_2("Thread started");
     pthread_create(&worker->thread, NULL, routine, arg);
 }
 
@@ -33,7 +33,7 @@ void thread_stop(Worker* worker)
 {
     atomic_set_acquire(&worker->state, 0);
     pthread_join(worker->thread, NULL);
-    LOG_LEVEL_2("Thread ended", {});
+    LOG_2("Thread ended");
 }
 
 #endif

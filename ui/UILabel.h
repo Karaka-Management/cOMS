@@ -127,7 +127,7 @@ int32 ui_label_element_update(UILayout* layout, UIElement* element)
     UILabelState* state = (UILabelState *) (layout->data  + element->state);
 
     return vertex_text_create(
-        layout->vertices_active + element->vertices_active_offset, element->zindex,
+        layout->vertices_active + element->vertices_active_offset, element->zindex, -1,
         label->dimension.dimension, label->font.alignment,
         layout->font, state->content,
         label->font.size, label->font.color

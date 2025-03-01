@@ -27,6 +27,7 @@
 #include "../ui/UILayout.h"
 #include "../ui/UILayout.cpp"
 #include "../ui/UITheme.h"
+#include "../log/Log.h"
 #include "../scene/SceneInfo.h"
 #include "../system/FileUtils.cpp"
 #include "../compiler/CompilerUtils.h"
@@ -39,7 +40,7 @@ void cmd_buffer_create(AppCmdBuffer* cb, BufferMemory* buf, int32 commands_count
     chunk_init(&cb->commands, buf, commands_count, sizeof(Command), 64);
     pthread_mutex_init(&cb->mutex, NULL);
 
-    LOG_LEVEL_2("Created AppCmdBuffer: %n B", {{LOG_DATA_UINT64, &cb->commands.size}});
+    LOG_FORMAT_2("Created AppCmdBuffer: %n B", {{LOG_DATA_UINT64, &cb->commands.size}});
 }
 
 // This doesn't load the asset directly but tells (most likely) a worker thread to load an asset
@@ -404,10 +405,13 @@ inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, const char* name) {
     return asset;
 }
 
-inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id) {
+inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id)
+{
     // Check if asset already loaded
     char id_str[9];
     int_to_hex(asset_id, id_str);
+
+    PROFILE_VERBOSE(PROFILE_CMD_FONT_LOAD_SYNC, id_str);
 
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, id_str);
 
@@ -428,7 +432,10 @@ inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id) {
     return asset;
 }
 
-inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, const char* name) {
+inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, const char* name)
+{
+    PROFILE_VERBOSE(PROFILE_CMD_FONT_LOAD_SYNC, name);
+
     // Check if asset already loaded
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, name);
 
@@ -452,14 +459,15 @@ inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, const char* name) {
 
 inline
 UILayout* cmd_layout_load_sync(
-    AppCmdBuffer* cb,
-    UILayout* layout, const char* layout_path
+    AppCmdBuffer* __restrict cb,
+    UILayout* __restrict layout, const char* __restrict layout_path
 ) {
+    PROFILE_VERBOSE(PROFILE_CMD_LAYOUT_LOAD_SYNC, layout_path);
     FileBody layout_file = {};
     file_read(layout_path, &layout_file, cb->mem_vol);
 
     if (!layout_file.content) {
-        LOG_FORMAT(layout_file.content == NULL, "Failed loading layout \"%s\"\n", {{LOG_DATA_CHAR_STR, &layout_path}});
+        LOG_FORMAT_1("Failed loading layout \"%s\"\n", {{LOG_DATA_CHAR_STR, &layout_path}});
         return NULL;
     }
 
@@ -470,9 +478,11 @@ UILayout* cmd_layout_load_sync(
 
 inline
 UIThemeStyle* cmd_theme_load_sync(
-    AppCmdBuffer* cb,
-    UIThemeStyle* theme, const char* theme_path
+    AppCmdBuffer* __restrict cb,
+    UIThemeStyle* __restrict theme, const char* __restrict theme_path
 ) {
+    PROFILE_VERBOSE(PROFILE_CMD_THEME_LOAD_SYNC, theme_path);
+
     FileBody theme_file = {};
     file_read(theme_path, &theme_file, cb->mem_vol);
     theme_from_data(theme_file.content, theme);
@@ -496,6 +506,7 @@ UILayout* cmd_ui_load_sync(
     UIThemeStyle* __restrict theme, const char* __restrict theme_path,
     const Camera* __restrict camera
 ) {
+    PROFILE_VERBOSE(PROFILE_CMD_UI_LOAD_SYNC, layout_path);
     if (!cmd_layout_load_sync(cb, layout, layout_path)) {
         // We have to make sure that at least the font is set
         layout->font = general_theme->font;
@@ -534,7 +545,7 @@ UILayout* cmd_ui_load(AppCmdBuffer* __restrict cb, const Command* __restrict cmd
     char* theme_path = (char *) pos;
     str_move_to((const char **) &pos, '\0'); ++pos;
 
-    Camera* camera = (Camera *) *((uintptr_t *) pos);
+    const Camera* camera = (Camera *) *((uintptr_t *) pos);
 
     return cmd_ui_load_sync(
         cb,
@@ -592,6 +603,7 @@ void thrd_cmd_ui_load(
 //      If we do it right then and DON'T defer it, this would also solve the first question
 void cmd_iterate(AppCmdBuffer* cb)
 {
+    PROFILE(PROFILE_CMD_ITERATE);
     int32 last_element = 0;
     uint32 chunk_id = 0;
     chunk_iterate_start(&cb->commands, chunk_id)

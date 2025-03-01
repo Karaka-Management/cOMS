@@ -60,7 +60,7 @@ struct BitWalk {
 };
 
 inline
-void bits_walk(BitWalk* stream, uint32 bits_to_walk)
+void bits_walk(BitWalk* stream, uint32 bits_to_walk) noexcept
 {
     stream->bit_pos += bits_to_walk;
     stream->pos += stream->bit_pos / 8;
@@ -68,7 +68,7 @@ void bits_walk(BitWalk* stream, uint32 bits_to_walk)
 }
 
 inline
-void bits_flush(BitWalk* stream)
+void bits_flush(BitWalk* stream) noexcept
 {
     if (stream->bit_pos > 0) {
         stream->bit_pos = 0;
@@ -286,7 +286,7 @@ void bits_flush(BitWalk* stream)
 // }
 
 static
-inline int32 find_first_set_bit(int32 value) {
+inline int32 find_first_set_bit(int32 value) noexcept {
     if (value == 0) {
         return 0;
     }
@@ -294,27 +294,27 @@ inline int32 find_first_set_bit(int32 value) {
     #if __GNUC__ || __clang__
         return __builtin_ffs(value);
     #elif _MSC_VER
-        unsigned long index; // For _BitScanForward, an unsigned long is expected
+        unsigned long index;
         if (_BitScanForward(&index, value)) {
-            return (int32) index + 1; // Convert to 1-based index
+            return (int32) index + 1;
         } else {
-            return 0; // No set bit found
+            return 0;
         }
     #else
-        int32 index = 1; // Start at 1 for 1-based index
+        int32 index = 1;
         while (value) {
             if (value & 1) {
                 return index;
             }
-            value >>= 1; // Shift right to check the next bit
+            value >>= 1;
             index++;
         }
-        return 0; // No set bit found
+        return 0;
     #endif
 }
 
 inline
-uint32 bits_reverse(uint32 data, uint32 count)
+uint32 bits_reverse(uint32 data, uint32 count) noexcept
 {
     uint32 reversed = 0;
     for (uint32 i = 0; i <= (count / 2); ++i) {
@@ -345,7 +345,7 @@ static const int32 BIT_COUNT_LOOKUP_TABLE[256] = {
     4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
 };
 
-int32 bits_count(uint64 data, bool use_abm = false) {
+int32 bits_count(uint64 data, bool use_abm = false) noexcept {
     if (use_abm) {
         return (int32) intrin_bits_count_64(data);
     } else {
@@ -360,7 +360,7 @@ int32 bits_count(uint64 data, bool use_abm = false) {
     }
 }
 
-int32 bits_count(uint32 data, bool use_abm = false) {
+int32 bits_count(uint32 data, bool use_abm = false) noexcept {
     if (use_abm) {
         return intrin_bits_count_32(data);
     } else {
@@ -371,12 +371,12 @@ int32 bits_count(uint32 data, bool use_abm = false) {
     }
 }
 
-int32 bits_count(uint16 data) {
+int32 bits_count(uint16 data) noexcept {
     return BIT_COUNT_LOOKUP_TABLE[data & 0xFF]
         + BIT_COUNT_LOOKUP_TABLE[(data >> 8) & 0xFF];
 }
 
-int32 bits_count(uint8 data) {
+int32 bits_count(uint8 data) noexcept {
     return BIT_COUNT_LOOKUP_TABLE[data];
 }
 

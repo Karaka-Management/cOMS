@@ -30,7 +30,7 @@ struct Glyph {
 
 struct Font {
     uint32 glyph_count;
-    char texture_name[32];
+    char texture_name[32]; // @question Do we even need this
     f32 size;              // Default font size at which the font renders best
     f32 line_height;       // How tall is a single line (mostly important for multiple lines)
 
@@ -46,8 +46,9 @@ void font_init(Font* font, byte* data, int count)
     font->glyph_count = count;
 }
 
+// @performance replace with Eytzinger (obviously we would also have to change the order in the font font file itself)
 inline
-Glyph* font_glyph_find(const Font* font, uint32 codepoint)
+Glyph* font_glyph_find(const Font* font, uint32 codepoint) noexcept
 {
     uint32 perfect_glyph_pos = codepoint - font->glyphs[0].codepoint;
     uint32 limit = OMS_MIN(perfect_glyph_pos, font->glyph_count - 1);
@@ -250,8 +251,8 @@ int32 font_to_data(
     return size;
 }
 
-inline
-f32 font_line_height(Font* font, f32 size)
+FORCE_INLINE
+f32 font_line_height(Font* font, f32 size) noexcept
 {
     return font->line_height * size / font->size;
 }

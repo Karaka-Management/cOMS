@@ -20,6 +20,10 @@
 
 #include <locale.h>
 #include <sys/resource.h>
+#include <X11/Xlib.h>
+#include <X11/extensions/Xrandr.h>
+
+// -lX11 -lXrandr
 
 // @todo Implement own line by line file reading
 
@@ -96,7 +100,7 @@ int32 network_info_get(NetworkInfo* info) {
 
     FileBody file = {};
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 4; ++i) {
         sprintf_fast(path, "/sys/class/net/eth%d", i);
 
         if (stat(path, &st) == 0) {
@@ -172,6 +176,38 @@ void ram_info_get(RamInfo* info) {
     info->memory = total_memory / 1024;
 }
 
+RamChannelType ram_channel_info() {
+    FILE* fp;
+    char buffer[128];
+    int32 ram_module_count = 0;
+    int32 dual_channel_capable = 0;
+
+    fp = popen("dmidecode -t memory | grep 'Channel'", "r");
+    if (fp == NULL) {
+        return RAM_CHANNEL_TYPE_FAILED;
+    }
+
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        if (strstr(buffer, "ChannelA") || strstr(buffer, "ChannelB")) {
+            ++ram_module_count;
+            dual_channel_capable = 1;
+        } else if (strstr(buffer, "Channel")) {
+            ++ram_module_count;
+        }
+    }
+    pclose(fp);
+
+    if (ram_module_count == 1) {
+        return RAM_CHANNEL_TYPE_SINGLE_CHANNEL;
+    } else if (ram_module_count == 2 && dual_channel_capable) {
+        return RAM_CHANNEL_TYPE_DUAL_CHANNEL;
+    } else if (ram_module_count == 2 && !dual_channel_capable) {
+        return RAM_CHANNEL_TYPE_CAN_UPGRADE;
+    } else {
+        return RAM_CHANNEL_TYPE_FAILED;
+    }
+}
+
 uint32 gpu_info_get(GpuInfo* info) {
     FILE* fp = popen("lspci | grep VGA", "r");
     if (fp == NULL) {
@@ -193,7 +229,7 @@ uint32 gpu_info_get(GpuInfo* info) {
         // @todo this is Wrong
         info[count].vram = 2048;
 
-        count++;
+        ++count;
     }
 
     fclose(fp);
@@ -221,7 +257,7 @@ uint32 display_info_get(DisplayInfo* info) {
                 info[count].height = height;
                 info[count].hz = hz;
                 info[count].is_primary = str_find(line, "primary");
-                count++;
+                ++count;
             }
         }
     }
@@ -229,6 +265,46 @@ uint32 display_info_get(DisplayInfo* info) {
     fclose(fp);
 
     return count;
+}
+
+bool is_dedicated_gpu_connected() {
+    Display* display = XOpenDisplay(NULL);
+    if (!display) {
+        return 0;
+    }
+
+    Window root = DefaultRootWindow(display);
+    XRRScreenResources* screenResources = XRRGetScreenResources(display, root);
+    if (!screenResources) {
+        XCloseDisplay(display);
+        return 0;
+    }
+
+    for (int i = 0; i < screenResources->noutput; i++) {
+        XRROutputInfo* outputInfo = XRRGetOutputInfo(display, screenResources, screenResources->outputs[i]);
+        if (outputInfo && outputInfo->connection == RR_Connected) {
+            XRRProviderInfo* providerInfo = XRRGetProviderInfo(display, screenResources, outputInfo->provider);
+            if (providerInfo && providerInfo->name) {
+                if (strstr(providerInfo->name, "NVIDIA")
+                    || strstr(providerInfo->name, "AMD")
+                    || strstr(providerInfo->name, "Intel")
+                ) {
+                    XRRFreeOutputInfo(outputInfo);
+                    XRRFreeProviderInfo(providerInfo);
+                    XRRFreeScreenResources(screenResources);
+                    XCloseDisplay(display);
+                    return true;
+                }
+            }
+            XRRFreeProviderInfo(providerInfo);
+        }
+        XRRFreeOutputInfo(outputInfo);
+    }
+
+    XRRFreeScreenResources(screenResources);
+    XCloseDisplay(display);
+
+    return false;
 }
 
 #endif

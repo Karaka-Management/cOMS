@@ -17,7 +17,7 @@
 #define HAS_CHAR(x, c) (HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
 
 inline constexpr
-size_t str_length(const char* str)
+size_t str_length(const char* str) noexcept
 {
     const char* ptr = str;
 
@@ -50,7 +50,7 @@ size_t str_length(const char* str)
     }
 }
 
-const char* str_find(const char* str, const char* needle) {
+const char* str_find(const char* str, const char* needle) noexcept {
     size_t needle_len = str_length(needle);
     size_t str_len = str_length(str);
     size_t limit = str_len - needle_len + 1;
@@ -64,7 +64,7 @@ const char* str_find(const char* str, const char* needle) {
     return NULL;
 }
 
-const char* str_find(const char* str, char needle) {
+const char* str_find(const char* str, char needle) noexcept {
     byte target = (byte) needle;
 
     // Process byte-by-byte until alignment is achieved
@@ -108,7 +108,7 @@ const char* str_find(const char* str, char needle) {
 }
 
 inline
-int32 utf8_encode(uint32 codepoint, char* out)
+int32 utf8_encode(uint32 codepoint, char* out) noexcept
 {
     if (codepoint <= 0x7F) {
         // 1-byte sequence: 0xxxxxxx
@@ -142,7 +142,7 @@ int32 utf8_encode(uint32 codepoint, char* out)
 }
 
 inline
-int32 utf8_decode(const char* __restrict in, uint32* __restrict codepoint) {
+int32 utf8_decode(const char* __restrict in, uint32* __restrict codepoint) noexcept {
     byte ch = (byte) *in;
 
     if (ch <= 0x7F) {
@@ -171,7 +171,7 @@ int32 utf8_decode(const char* __restrict in, uint32* __restrict codepoint) {
 }
 
 inline
-int32 utf8_decode(const uint32 codepoint, char* __restrict out) {
+int32 utf8_decode(const uint32 codepoint, char* __restrict out) noexcept {
     if (codepoint <= 0x7F) {
         // 1-byte sequence (ASCII)
         out[0] = (char) codepoint;
@@ -204,7 +204,7 @@ int32 utf8_decode(const uint32 codepoint, char* __restrict out) {
 }
 
 inline
-int32 utf8_str_length(const char* in) {
+int32 utf8_str_length(const char* in) noexcept {
     int32 length = 0;
     int32 bytes;
     uint32 codepoint;
@@ -223,7 +223,7 @@ int32 utf8_str_length(const char* in) {
 }
 
 inline
-void string_to_utf8(const uint32* in, char* out) {
+void string_to_utf8(const uint32* in, char* out) noexcept {
     char buffer[5] = {0};
     while (*in) {
         int32 len = utf8_encode(*in, buffer);
@@ -236,7 +236,7 @@ void string_to_utf8(const uint32* in, char* out) {
 }
 
 inline
-int32 utf8_get_char_at(const char* in, int32 index) {
+int32 utf8_get_char_at(const char* in, int32 index) noexcept {
     int32 i = 0;
     int32 bytes_consumed;
     uint32 codepoint;
@@ -259,7 +259,7 @@ int32 utf8_get_char_at(const char* in, int32 index) {
 }
 
 inline
-void wchar_to_char(wchar_t* str)
+void wchar_to_char(wchar_t* str) noexcept
 {
     char* src = (char*) str;
     char* dest = src;
@@ -276,7 +276,7 @@ void wchar_to_char(wchar_t* str)
 }
 
 inline
-void wchar_to_char(const char* __restrict str, char* __restrict dest)
+void wchar_to_char(const char* __restrict str, char* __restrict dest) noexcept
 {
     while (*str != '\0' && str[1] != '\0') {
         if (*str != '\0') {
@@ -325,12 +325,12 @@ static const bool STR_IS_ALPHA_LOOKUP_TABLE[] = {
 };
 
 inline constexpr
-bool str_is_alpha(char str) {
+bool str_is_alpha(char str) noexcept {
     return STR_IS_ALPHA_LOOKUP_TABLE[(byte) str];
 }
 
 inline constexpr
-bool str_is_alpha(const char* str) {
+bool str_is_alpha(const char* str) noexcept {
     while (*str != '\0') {
         if (!str_is_alpha(*str++)) {
             return false;
@@ -376,7 +376,7 @@ static const bool STR_IS_NUM_LOOKUP_TABLE[] = {
 };
 
 inline constexpr
-bool str_is_num(char str) {
+bool str_is_num(char str) noexcept {
     return STR_IS_NUM_LOOKUP_TABLE[(byte) str];
 }
 
@@ -416,12 +416,12 @@ static const bool STR_IS_ALPHANUM_LOOKUP_TABLE[] = {
 };
 
 inline constexpr
-bool str_is_alphanum(char str) {
+bool str_is_alphanum(char str) noexcept {
     return STR_IS_ALPHANUM_LOOKUP_TABLE[(byte) str];
 }
 
 inline
-bool str_is_alphanum(const char* str) {
+bool str_is_alphanum(const char* str) noexcept {
     while (*str != '\0') {
         if (!str_is_alphanum(*str++)) {
             return false;
@@ -432,7 +432,7 @@ bool str_is_alphanum(const char* str) {
 }
 
 inline
-bool str_is_float(const char* str) {
+bool str_is_float(const char* str) noexcept {
     bool has_dot = false;
 
     if (*str == '-' || *str == '+') {
@@ -457,7 +457,7 @@ bool str_is_float(const char* str) {
 }
 
 inline
-bool str_is_integer(const char* str) {
+bool str_is_integer(const char* str) noexcept {
     if (*str == '-' || *str == '+') { [[unlikely]]
         str++;
     }
@@ -476,7 +476,7 @@ bool str_is_integer(const char* str) {
 }
 
 inline constexpr
-int64 str_to_int(const char* str, const char** pos = NULL)
+int64 str_to_int(const char* str, const char** pos = NULL) noexcept
 {
     int64 sign = 1;
     if (*str == '-') {
@@ -500,7 +500,7 @@ int64 str_to_int(const char* str, const char** pos = NULL)
 }
 
 inline
-int32 int_to_str(int64 number, char str[15], const char thousands)
+int32 int_to_str(int64 number, char str[15], const char thousands) noexcept
 {
     if (number == 0) {
         *str++ = '0';
@@ -543,7 +543,7 @@ int32 int_to_str(int64 number, char str[15], const char thousands)
 }
 
 inline constexpr
-int32 int_to_str(int64 number, char str[12]) {
+int32 int_to_str(int64 number, char str[12]) noexcept {
     int32 i = -1;
     int64 sign = number;
 
@@ -572,7 +572,7 @@ int32 int_to_str(int64 number, char str[12]) {
 }
 
 inline constexpr
-int32 uint_to_str(uint64 number, char str[12]) {
+int32 uint_to_str(uint64 number, char str[12]) noexcept {
     int32 i = -1;
 
     do {
@@ -632,7 +632,7 @@ static const bool HEX_LOOKUP_TABLE[256] = {
 };
 
 inline
-bool str_is_hex_color(const char* str)
+bool str_is_hex_color(const char* str) noexcept
 {
     if (str[0] != '#') {
         return false;
@@ -652,7 +652,7 @@ bool str_is_hex_color(const char* str)
 }
 
 inline constexpr
-int32 int_to_hex(int64 number, char str[9]) {
+int32 int_to_hex(int64 number, char str[9]) noexcept {
     int32 i = -1;
     uint64 n = (uint64) number;
 
@@ -674,7 +674,7 @@ int32 int_to_hex(int64 number, char str[9]) {
 }
 
 inline constexpr
-int64 hex_to_int(const char* hex)
+int64 hex_to_int(const char* hex) noexcept
 {
     int64 result = 0;
     while (HEX_LOOKUP_TABLE[(byte) *hex]) {
@@ -694,7 +694,7 @@ int64 hex_to_int(const char* hex)
 }
 
 inline
-size_t str_count(const char* __restrict str, const char* __restrict substr)
+size_t str_count(const char* __restrict str, const char* __restrict substr) noexcept
 {
     size_t l1 = str_length(str);
     size_t l2 = str_length(substr);
@@ -712,7 +712,7 @@ size_t str_count(const char* __restrict str, const char* __restrict substr)
 }
 
 inline constexpr
-int32 is_eol(const char* str)
+int32 is_eol(const char* str) noexcept
 {
     if (*str == '\n') { [[unlikely]]
         return 1;
@@ -724,7 +724,7 @@ int32 is_eol(const char* str)
 }
 
 inline
-int32 str_copy_until(char* __restrict dest, const char* __restrict src, char delim)
+int32 str_copy_until(char* __restrict dest, const char* __restrict src, char delim) noexcept
 {
     int32 len = 0;
     while (*src != delim && *src != '\0') {
@@ -739,7 +739,7 @@ int32 str_copy_until(char* __restrict dest, const char* __restrict src, char del
 
 // @todo Inconsistent parameter order of dest and src with other functions
 inline
-void str_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim)
+void str_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim) noexcept
 {
     size_t len = str_length(delim);
 
@@ -758,7 +758,7 @@ void str_copy_until(const char* __restrict src, char* __restrict dest, const cha
 }
 
 inline
-void str_copy_short(char* __restrict dest, const char* __restrict src, int32 length)
+void str_copy_short(char* __restrict dest, const char* __restrict src, int32 length) noexcept
 {
     int32 i = -1;
     while (*src != '\0' && ++i < length) {
@@ -769,7 +769,7 @@ void str_copy_short(char* __restrict dest, const char* __restrict src, int32 len
 }
 
 inline
-void str_copy_short(char* __restrict dest, const char* __restrict src)
+void str_copy_short(char* __restrict dest, const char* __restrict src) noexcept
 {
     while (*src != '\0') {
         *dest++ = *src++;
@@ -779,7 +779,7 @@ void str_copy_short(char* __restrict dest, const char* __restrict src)
 }
 
 inline
-void str_copy_long(char* __restrict dest, const char* __restrict src)
+void str_copy_long(char* __restrict dest, const char* __restrict src) noexcept
 {
     char* d = dest;
     const char *s = src;
@@ -809,7 +809,7 @@ void str_copy_long(char* __restrict dest, const char* __restrict src)
 }
 
 inline
-void str_copy_move_until(const char** __restrict src, char* __restrict dest, char delim)
+void str_copy_move_until(const char** __restrict src, char* __restrict dest, char delim) noexcept
 {
     while (**src != delim && **src != '\0') {
         *dest++ = **src;
@@ -820,7 +820,7 @@ void str_copy_move_until(const char** __restrict src, char* __restrict dest, cha
 }
 
 inline
-void str_copy_move_until(const char** __restrict src, char* __restrict dest, const char* __restrict delim)
+void str_copy_move_until(const char** __restrict src, char* __restrict dest, const char* __restrict delim) noexcept
 {
     size_t len = str_length(delim);
 
@@ -840,7 +840,7 @@ void str_copy_move_until(const char** __restrict src, char* __restrict dest, con
 }
 
 inline
-int32 strcpy_to_eol(const char* src, char* dst)
+int32 strcpy_to_eol(const char* src, char* dst) noexcept
 {
     int32 offset = 0;
     while (!is_eol(src) && *src != '\0')  {
@@ -854,7 +854,7 @@ int32 strcpy_to_eol(const char* src, char* dst)
 }
 
 inline
-char* strsep(const char** sp, const char* sep)
+char* strsep(const char** sp, const char* sep) noexcept
 {
     char* p, *s;
 
@@ -879,7 +879,7 @@ str_concat_new(
     char* dst,
     const char* src1,
     const char* src2
-) {
+) noexcept {
     while (*src1) { *dst++ = *src1++; }
     while (*src2) { *dst++ = *src2++; }
 
@@ -887,7 +887,7 @@ str_concat_new(
 }
 
 inline void
-str_concat_append(char* dst, const char* src)
+str_concat_append(char* dst, const char* src) noexcept
 {
     while (*dst) {
         ++dst;
@@ -897,7 +897,7 @@ str_concat_append(char* dst, const char* src)
 }
 
 inline void
-str_concat_new(char* dst, const char* src1, const char* src2, const char* src3)
+str_concat_new(char* dst, const char* src1, const char* src2, const char* src3) noexcept
 {
     while (*src1) { *dst++ = *src1++; }
     while (*src2) { *dst++ = *src2++; }
@@ -907,7 +907,7 @@ str_concat_new(char* dst, const char* src1, const char* src2, const char* src3)
 }
 
 inline int64
-str_concat_append(char* dst, size_t dst_length, const char* src, size_t src_length)
+str_concat_append(char* dst, size_t dst_length, const char* src, size_t src_length) noexcept
 {
     memcpy(&dst[dst_length], src, src_length);
     dst[dst_length + src_length] = '\0';
@@ -916,7 +916,7 @@ str_concat_append(char* dst, size_t dst_length, const char* src, size_t src_leng
 }
 
 inline void
-str_concat_append(char* dst, size_t dst_length, const char* src)
+str_concat_append(char* dst, size_t dst_length, const char* src) noexcept
 {
     str_copy_short(&dst[dst_length], src);
 }
@@ -926,7 +926,7 @@ str_concat_new(
     char* dst,
     const char* src1, size_t src1_length,
     const char* src2, size_t src2_length
-) {
+) noexcept {
     memcpy(dst, src1, src1_length);
     dst += src1_length;
 
@@ -943,7 +943,7 @@ void str_concat_new(
     char* dst,
     const char* src, size_t src_length,
     int64 data
-) {
+) noexcept {
     memcpy(dst, src, src_length);
     int32 len = int_to_str(data, dst + src_length);
 
@@ -954,13 +954,13 @@ inline
 void str_concat_append(
     char* dst,
     int64 data
-) {
+) noexcept {
     size_t dst_len = str_length(dst);
     int_to_str(data, dst + dst_len);
 }
 
 inline void
-str_concat_new(char* dst, const char* src, int64 data)
+str_concat_new(char* dst, const char* src, int64 data) noexcept
 {
     size_t src_len = str_length(src);
     memcpy(dst, src, src_len);
@@ -969,7 +969,7 @@ str_concat_new(char* dst, const char* src, int64 data)
 }
 
 inline
-void str_insert(char* __restrict dst, size_t insert_pos, const char* __restrict src) {
+void str_insert(char* __restrict dst, size_t insert_pos, const char* __restrict src) noexcept {
     size_t src_length = str_length(src);
     size_t dst_length = str_length(dst);
     memcpy(dst + insert_pos + src_length, dst + insert_pos, dst_length - insert_pos + 1);
@@ -977,13 +977,13 @@ void str_insert(char* __restrict dst, size_t insert_pos, const char* __restrict 
 }
 
 inline
-void str_remove(char* __restrict dst, size_t remove_pos, size_t remove_length) {
+void str_remove(char* __restrict dst, size_t remove_pos, size_t remove_length) noexcept {
     size_t src_length = str_length(dst);
     memmove(dst + remove_pos, dst + remove_pos + remove_length, src_length - (remove_pos + remove_length) + 1);
 }
 
 inline
-char* strtok(char* str, const char* __restrict delim, char* *key) {
+char* strtok(char* str, const char* __restrict delim, char* *key) noexcept {
     char* result;
     if (str == NULL) {
         str = *key;
@@ -1007,13 +1007,13 @@ char* strtok(char* str, const char* __restrict delim, char* *key) {
 }
 
 inline constexpr
-char toupper_ascii(char c)
+char toupper_ascii(char c) noexcept
 {
     return c - 32 * (c >= 'a' && c <= 'z');
 }
 
 inline
-void toupper_ascii(char* str)
+void toupper_ascii(char* str) noexcept
 {
     while (*str != '\0') {
         *str -= 32 * (*str >= 'a' && *str <= 'z');
@@ -1022,13 +1022,13 @@ void toupper_ascii(char* str)
 }
 
 inline constexpr
-char tolower_ascii(char c)
+char tolower_ascii(char c) noexcept
 {
     return c + 32 * (c >= 'A' && c <= 'Z');
 }
 
 inline
-void tolower_ascii(char* str)
+void tolower_ascii(char* str) noexcept
 {
     while (*str != '\0') {
         *str += 32 * (*str >= 'A' && *str <= 'Z');
@@ -1036,31 +1036,32 @@ void tolower_ascii(char* str)
     }
 }
 
-inline constexpr
-void create_const_name(const byte* name, char* modified_name)
+constexpr inline
+bool str_contains(const char* haystack, const char* needle) noexcept
 {
-    size_t i = 0;
-    while (*name != '\0') {
-        modified_name[i] = *name == ' ' ? '_' : toupper_ascii(*name);
-        ++name;
-        ++i;
+    // @performance would it make sense to only check until haystack - strlen(needle)?
+    // I'm not sure the strlen overhead is worth it
+    while (*haystack != '\0') {
+        const char* p1 = haystack;
+        const char* p2 = needle;
+
+        while (*p1 != '\0' && *p2 != '\0' && *p1 == *p2) {
+            ++p1;
+            ++p2;
+        }
+
+        if (*p2 == '\0') {
+            return true;
+        }
+
+        ++haystack;
     }
 
-    modified_name[i] = '\0';
-}
-
-inline
-void create_const_name(byte* name)
-{
-    while (*name != '\0') {
-        *name = *name == ' ' ? '_' : toupper_ascii(*name);
-    }
-
-    *name = '\0';
+    return false;
 }
 
 constexpr inline
-int32 str_compare(const char* str1, const char* str2)
+int32 str_compare(const char* str1, const char* str2) noexcept
 {
     byte c1, c2;
 
@@ -1072,7 +1073,7 @@ int32 str_compare(const char* str1, const char* str2)
     return c1 - c2;
 }
 
-int32 str_compare(const char* str1, const char* str2, size_t n)
+int32 str_compare(const char* str1, const char* str2, size_t n) noexcept
 {
     byte c1 = '\0';
     byte c2 = '\0';
@@ -1128,7 +1129,7 @@ int32 str_compare(const char* str1, const char* str2, size_t n)
 }
 
 inline constexpr
-bool str_ends_with(const char* str, const char* suffix) {
+bool str_ends_with(const char* str, const char* suffix) noexcept {
     if (!str || !suffix) {
         return false;
     }
@@ -1144,7 +1145,7 @@ bool str_ends_with(const char* str, const char* suffix) {
 }
 
 // WARNING: result needs to have the correct length
-void str_replace(const char* str, const char* __restrict search, const char* __restrict replace, char* result) {
+void str_replace(const char* str, const char* __restrict search, const char* __restrict replace, char* result) noexcept {
     if (str == NULL || search == NULL || replace == NULL || result == NULL) {
         return;
     }
@@ -1197,13 +1198,13 @@ void print_bytes(const void* ptr, size_t size)
 */
 
 inline constexpr
-bool is_whitespace(char str)
+bool is_whitespace(char str) noexcept
 {
     return str == ' ' || str == '\t';
 }
 
 inline
-int32 str_to_eol(const char* str)
+int32 str_to_eol(const char* str) noexcept
 {
     int32 offset = 0;
     while (!is_eol(str) && *str++ != '\0')  {
@@ -1214,7 +1215,7 @@ int32 str_to_eol(const char* str)
 }
 
 inline
-int32 str_to(const char* str, char delim)
+int32 str_to(const char* str, char delim) noexcept
 {
     int32 offset = 0;
     while (*str != delim && *str++ != '\0')  {
@@ -1225,7 +1226,7 @@ int32 str_to(const char* str, char delim)
 }
 
 inline
-void str_move_to(const char** str, char delim)
+void str_move_to(const char** str, char delim) noexcept
 {
     while (**str != delim && **str != '\0')  {
         ++(*str);
@@ -1234,17 +1235,15 @@ void str_move_to(const char** str, char delim)
 
 // Negative pos counts backwards
 inline
-void str_move_to_pos(const char** str, int32 pos)
+void str_move_to_pos(const char** str, int32 pos) noexcept
 {
-    if (pos >= 0) {
-        *str += pos;
-    } else {
-        (*str) += OMS_MAX(((int32) str_length(*str) + pos), 0);
-    }
+    *str += pos >= 0
+        ? pos
+        : OMS_MAX(((int32) str_length(*str) + pos), 0);
 }
 
 inline
-void str_move_past(const char** str, char delim)
+void str_move_past(const char** str, char delim) noexcept
 {
     while (**str != delim && **str != '\0')  {
         ++(*str);
@@ -1256,7 +1255,7 @@ void str_move_past(const char** str, char delim)
 }
 
 inline
-void str_move_past_alpha_num(const char** str)
+void str_move_past_alpha_num(const char** str) noexcept
 {
     while (str_is_alphanum(**str)
         || **str == 45 || **str == 95
@@ -1266,13 +1265,13 @@ void str_move_past_alpha_num(const char** str)
 }
 
 inline
-bool str_is_comment(const char* str)
+bool str_is_comment(const char* str) noexcept
 {
     return (*str == '/' && str[1] == '/') || (*str == '/' && str[1] == '*');
 }
 
 inline
-void str_skip(const char** str, char delim)
+void str_skip(const char** str, char delim) noexcept
 {
     while (**str && **str == delim)  {
         ++(*str);
@@ -1280,7 +1279,7 @@ void str_skip(const char** str, char delim)
 }
 
 inline
-void str_skip_whitespace(const char** str)
+void str_skip_whitespace(const char** str) noexcept
 {
     while (**str && (**str == ' ' || **str == '\t'))  {
         ++(*str);
@@ -1288,7 +1287,7 @@ void str_skip_whitespace(const char** str)
 }
 
 inline
-void str_skip_empty(const char** str)
+void str_skip_empty(const char** str) noexcept
 {
     while (**str == ' ' || **str == '\t' || **str == '\n' || **str == '\r')  {
         ++(*str);
@@ -1296,7 +1295,7 @@ void str_skip_empty(const char** str)
 }
 
 inline
-void str_skip_non_empty(const char** str)
+void str_skip_non_empty(const char** str) noexcept
 {
     while (**str != ' ' && **str != '\t' && **str != '\n' && **str != '\0')  {
         ++(*str);
@@ -1304,7 +1303,7 @@ void str_skip_non_empty(const char** str)
 }
 
 inline
-void str_skip_list(const char** __restrict str, const char* __restrict delim, int32 len)
+void str_skip_list(const char** __restrict str, const char* __restrict delim, int32 len) noexcept
 {
     bool run = true;
     while (run && **str != '\0') {
@@ -1322,7 +1321,7 @@ void str_skip_list(const char** __restrict str, const char* __restrict delim, in
 }
 
 inline
-void str_skip_until_list(const char** __restrict str, const char* __restrict delim)
+void str_skip_until_list(const char** __restrict str, const char* __restrict delim) noexcept
 {
     while (**str != '\0') {
         const char* delim_temp = delim;
@@ -1339,7 +1338,7 @@ void str_skip_until_list(const char** __restrict str, const char* __restrict del
 }
 
 inline
-void hexstr_to_rgba(v4_f32* rgba, const char* hex)
+void hexstr_to_rgba(v4_f32* rgba, const char* hex) noexcept
 {
     if (*hex == '#') {
         ++hex;
@@ -1353,7 +1352,7 @@ void hexstr_to_rgba(v4_f32* rgba, const char* hex)
 }
 
 inline constexpr
-void str_pad_right(const char* input, char* output, char pad, size_t len) {
+void str_pad_right(const char* input, char* output, char pad, size_t len) noexcept {
     size_t i = 0;
     for (; i < len && input[i] != '\0'; ++i) {
         output[i] = input[i];
@@ -1365,7 +1364,7 @@ void str_pad_right(const char* input, char* output, char pad, size_t len) {
 }
 
 inline constexpr
-void str_pad_left(const char* input, char* output, char pad, size_t len) {
+void str_pad_left(const char* input, char* output, char pad, size_t len) noexcept {
     size_t input_len = str_length(input);
 
     size_t i = 0;
@@ -1379,7 +1378,7 @@ void str_pad_left(const char* input, char* output, char pad, size_t len) {
 }
 
 inline
-f32 str_to_float(const char* str, const char** pos = NULL)
+f32 str_to_float(const char* str, const char** pos = NULL) noexcept
 {
     const char *p = str;
     f32 result = 0.0f;
@@ -1430,7 +1429,7 @@ f32 str_to_float(const char* str, const char** pos = NULL)
 }
 
 inline
-int32 float_to_str(f64 value, char* buffer, int32 precision = 5)
+int32 float_to_str(f64 value, char* buffer, int32 precision = 5) noexcept
 {
     ASSERT_SIMPLE(precision < 6);
 
@@ -1481,7 +1480,7 @@ int32 float_to_str(f64 value, char* buffer, int32 precision = 5)
 }
 
 inline
-void format_time_hh_mm_ss(char time_str[9], int32 hours, int32 minutes, int32 secs) {
+void format_time_hh_mm_ss(char time_str[9], int32 hours, int32 minutes, int32 secs) noexcept {
     time_str[0] = (char) ('0' + (hours / 10));
     time_str[1] = (char) ('0' + (hours % 10));
     time_str[2] = ':';
@@ -1494,7 +1493,7 @@ void format_time_hh_mm_ss(char time_str[9], int32 hours, int32 minutes, int32 se
 }
 
 inline
-void format_time_hh_mm_ss(char time_str[9], uint64 time) {
+void format_time_hh_mm_ss(char time_str[9], uint64 time) noexcept {
     int32 hours = (time / 3600) % 24;
     int32 minutes = (time / 60) % 60;
     int32 secs = time % 60;
@@ -1503,7 +1502,7 @@ void format_time_hh_mm_ss(char time_str[9], uint64 time) {
 }
 
 inline
-void format_time_hh_mm(char time_str[6], int32 hours, int32 minutes) {
+void format_time_hh_mm(char time_str[6], int32 hours, int32 minutes) noexcept {
     time_str[0] = (char) ('0' + (hours / 10));
     time_str[1] = (char) ('0' + (hours % 10));
     time_str[2] = ':';
@@ -1513,14 +1512,14 @@ void format_time_hh_mm(char time_str[6], int32 hours, int32 minutes) {
 }
 
 inline
-void format_time_hh_mm(char time_str[6], uint64 time) {
+void format_time_hh_mm(char time_str[6], uint64 time) noexcept {
     int32 hours = (time / 3600) % 24;
     int32 minutes = (time / 60) % 60;
 
     format_time_hh_mm(time_str, hours, minutes);
 }
 
-void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) {
+void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) noexcept {
     va_list args;
     va_start(args, format);
 
@@ -1594,7 +1593,7 @@ void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) {
     va_end(args);
 }
 
-void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __restrict format, ...) {
+void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __restrict format, ...) noexcept {
     va_list args;
     va_start(args, format);
 
@@ -1677,7 +1676,7 @@ void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __re
 }
 
 // There are situations where you only want to replace a certain amount of %
-void sprintf_fast_iter(char* buffer, const char* format, ...) {
+void sprintf_fast_iter(char* buffer, const char* format, ...) noexcept {
     va_list args;
     va_start(args, format);
 

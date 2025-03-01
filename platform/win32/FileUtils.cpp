@@ -22,6 +22,7 @@
 #include "../../utils/TestUtils.h"
 #include "../../memory/RingMemory.h"
 #include "../../log/Stats.h"
+#include "../../log/PerformanceProfiler.h"
 
 typedef HANDLE FileHandle;
 typedef HANDLE MMFHandle;
@@ -60,7 +61,7 @@ void file_mmf_close(MMFHandle fh) {
 }
 
 inline
-void relative_to_absolute(const char* rel, char* path)
+void relative_to_absolute(const char* __restrict rel, char* __restrict path)
 {
     char self_path[MAX_PATH];
     int32 self_path_length = GetModuleFileNameA(NULL, self_path, MAX_PATH);
@@ -88,6 +89,8 @@ void relative_to_absolute(const char* rel, char* path)
 inline uint64
 file_size(const char* path)
 {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+
     // @performance Profile against fseek strategy
     FileHandle fp;
     if (*path == '.') {
@@ -130,6 +133,8 @@ file_size(const char* path)
 inline
 bool file_exists(const char* path)
 {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+
     DWORD file_attr;
 
     if (*path == '.') {
@@ -145,8 +150,10 @@ bool file_exists(const char* path)
 }
 
 inline void
-file_read(const char* path, FileBody* file, RingMemory* ring = NULL)
+file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __restrict ring = NULL)
 {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+
     FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
@@ -210,8 +217,10 @@ file_read(const char* path, FileBody* file, RingMemory* ring = NULL)
 
 // @question Do we really need length? we have file.size we could use as we do in a function above
 inline
-void file_read(const char* path, FileBody* file, uint64 offset, uint64 length = MAX_UINT64, RingMemory* ring = NULL)
+void file_read(const char* __restrict path, FileBody* __restrict file, uint64 offset, uint64 length = MAX_UINT64, RingMemory* __restrict ring = NULL)
 {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+
     FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
@@ -294,7 +303,7 @@ void file_read(const char* path, FileBody* file, uint64 offset, uint64 length = 
 }
 
 inline
-void file_read(FileHandle fp, FileBody* file, uint64 offset = 0, uint64 length = MAX_UINT64, RingMemory* ring = NULL)
+void file_read(FileHandle fp, FileBody* __restrict file, uint64 offset = 0, uint64 length = MAX_UINT64, RingMemory* __restrict ring = NULL)
 {
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
@@ -348,8 +357,8 @@ void file_read(FileHandle fp, FileBody* file, uint64 offset = 0, uint64 length =
 inline
 bool file_read_line(
     FileHandle fp,
-    char* line_buffer, size_t buffer_size,
-    char internal_buffer[512], ssize_t* internal_buffer_size, char** internal_pos
+    char* __restrict line_buffer, size_t buffer_size,
+    char internal_buffer[512], ssize_t* __restrict internal_buffer_size, char** internal_pos
 ) {
     if (!(*internal_pos)) {
         *internal_pos = internal_buffer;
@@ -397,62 +406,11 @@ bool file_read_line(
     return true;
 }
 
-inline uint64
-file_read_struct(const char* path, void* file, uint32 size)
-{
-    FileHandle fp;
-    if (*path == '.') {
-        char full_path[MAX_PATH];
-        relative_to_absolute(path, full_path);
-
-        fp = CreateFileA((LPCSTR) full_path,
-            GENERIC_READ,
-            FILE_SHARE_READ,
-            NULL,
-            OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL,
-            NULL
-        );
-    } else {
-        fp = CreateFileA((LPCSTR) path,
-            GENERIC_READ,
-            FILE_SHARE_READ,
-            NULL,
-            OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL,
-            NULL
-        );
-    }
-
-    if (fp == INVALID_HANDLE_VALUE) {
-        return 0;
-    }
-
-    LARGE_INTEGER fsize;
-    if (!GetFileSizeEx(fp, &fsize)) {
-        CloseHandle(fp);
-
-        return 0;
-    }
-
-    DWORD read;
-    ASSERT_SIMPLE(fsize.QuadPart > size);
-    if (!ReadFile(fp, file, (uint32) size, &read, NULL)) {
-        CloseHandle(fp);
-
-        return 0;
-    }
-
-    CloseHandle(fp);
-
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_READ, read);
-
-    return read;
-}
-
 inline bool
-file_write(const char* path, const FileBody* file)
+file_write(const char* __restrict path, const FileBody* __restrict file)
 {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+
     FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
@@ -495,50 +453,11 @@ file_write(const char* path, const FileBody* file)
     return true;
 }
 
-inline bool
-file_write_struct(const char* path, const void* file, uint32 size)
-{
-    FileHandle fp;
-    if (*path == '.') {
-        char full_path[MAX_PATH];
-        relative_to_absolute(path, full_path);
-
-        fp = CreateFileA((LPCSTR) full_path,
-            GENERIC_WRITE,
-            0,
-            NULL,
-            CREATE_ALWAYS,
-            FILE_ATTRIBUTE_NORMAL,
-            NULL
-        );
-    } else {
-        fp = CreateFileA((LPCSTR) path,
-            GENERIC_WRITE,
-            0,
-            NULL,
-            CREATE_ALWAYS,
-            FILE_ATTRIBUTE_NORMAL,
-            NULL
-        );
-    }
-
-    DWORD written;
-    ASSERT_SIMPLE(size < MAX_UINT32);
-    if (!WriteFile(fp, file, size, &written, NULL)) {
-        CloseHandle(fp);
-        return false;
-    }
-
-    CloseHandle(fp);
-
-    LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
-
-    return true;
-}
-
 inline void
-file_copy(const char* src, const char* dst)
+file_copy(const char* __restrict src, const char* __restrict dst)
 {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, src);
+
     if (*src == '.') {
         char src_full_path[MAX_PATH];
         relative_to_absolute(src, src_full_path);
@@ -604,10 +523,10 @@ HANDLE file_append_handle(const char* path)
 inline
 bool file_read_async(
     FileHandle fp,
-    FileBodyAsync* file,
+    FileBodyAsync* __restrict file,
     uint64_t offset = 0,
     uint64_t length = MAX_UINT64,
-    RingMemory* ring = NULL
+    RingMemory* __restrict ring = NULL
 ) {
     LARGE_INTEGER size;
     if (!GetFileSizeEx(fp, &size)) {
@@ -741,8 +660,10 @@ FileHandle file_read_async_handle(const char* path)
     return fp;
 }
 
-bool file_append(const char* path, const char* file)
+bool file_append(const char* __restrict path, const char* __restrict file)
 {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+
     FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];
@@ -788,6 +709,8 @@ bool file_append(const char* path, const char* file)
 inline bool
 file_append(FileHandle fp, const char* file)
 {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, file);
+
     if (fp == INVALID_HANDLE_VALUE) {
         ASSERT_SIMPLE(false);
         return false;
@@ -808,6 +731,8 @@ file_append(FileHandle fp, const char* file)
 inline bool
 file_append(FileHandle fp, const char* file, size_t length)
 {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, file);
+
     if (fp == INVALID_HANDLE_VALUE) {
         ASSERT_SIMPLE(false);
         return false;
@@ -825,8 +750,10 @@ file_append(FileHandle fp, const char* file, size_t length)
 }
 
 inline bool
-file_append(const char* path, const FileBody* file)
+file_append(const char* __restrict path, const FileBody* __restrict file)
 {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+
     FileHandle fp;
     if (*path == '.') {
         char full_path[MAX_PATH];

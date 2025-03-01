@@ -49,7 +49,7 @@ UIAttributeGroup* theme_style_group(UIThemeStyle* theme, const char* group_name)
 }
 
 static inline
-int compare_by_attribute_id(const void* a, const void* b) {
+int compare_by_attribute_id(const void* __restrict a, const void* __restrict b) noexcept {
     UIAttribute* attr_a = (UIAttribute *) a;
     UIAttribute* attr_b = (UIAttribute *) b;
 
@@ -267,6 +267,7 @@ int32 theme_from_data(
     const byte* __restrict data,
     UIThemeStyle* __restrict theme
 ) {
+    PROFILE_VERBOSE(PROFILE_THEME_FROM_THEME, "");
     const byte* in = data;
 
     int32 version = SWAP_ENDIAN_LITTLE(*((int32 *) in));

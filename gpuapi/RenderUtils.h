@@ -18,17 +18,17 @@
 #include "../ui/UIAlignment.h"
 #include "../architecture/Intrinsics.h"
 
-inline
+FORCE_INLINE
 int32 vertex_degenerate_create(
-    Vertex3DTextureColor* __restrict vertices, f32 zindex,
+    Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex,
     f32 x, f32 y
-) {
+) noexcept {
     // Degenerate triangles
     // They are alternating every loop BUT since we use references they look the same in code
     // WARNING: Before using we must make sure that the 0 index is defined
     //          The easiest way is to just define a "degenerate" starting point
-    vertices[0] = {{vertices[-1].position.x, vertices[-1].position.y, zindex}, {}};
-    vertices[1] = {{x, y, zindex}, {}};
+    vertices[0] = {{vertices[-1].position.x, vertices[-1].position.y, zindex}, -1, {}};
+    vertices[1] = {{x, y, zindex}, -1, {}};
 
     return 2;
 }
@@ -38,7 +38,7 @@ void adjust_aligned_position(
     f32* __restrict x, f32* __restrict y,
     f32 width, f32 height,
     byte alignment
-)
+) noexcept
 {
     if (alignment & UI_ALIGN_H_RIGHT) {
         *x -= width;
@@ -57,7 +57,7 @@ static inline
 void adjust_aligned_position(
     v4_f32* vec,
     byte alignment
-)
+) noexcept
 {
     if (alignment & UI_ALIGN_H_RIGHT) {
         vec->x -= vec->width;
@@ -74,10 +74,10 @@ void adjust_aligned_position(
 
 inline
 int32 vertex_line_create(
-    Vertex3DTextureColor* __restrict vertices, f32 zindex,
+    Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex,
     v2_f32 start, v2_f32 end, f32 thickness, byte alignment,
     uint32 rgba = 0
-) {
+) noexcept {
     if (alignment & UI_ALIGN_H_RIGHT) {
         start.x -= thickness;
         end.x -= thickness;
@@ -102,13 +102,13 @@ int32 vertex_line_create(
 
     int32 idx = 0;
 
-    vertices[idx++] = {{start.x, start.y, zindex}, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{start.x + thickness * norm1, start.y + thickness * norm2, zindex}, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{end.x, end.y, zindex}, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{start.x, start.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{start.x + thickness * norm1, start.y + thickness * norm2, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{end.x, end.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
 
-    vertices[idx++] = {{end.x, end.y, zindex}, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{end.x + thickness * norm1, end.y + thickness * norm2, zindex}, {-1.0f, BITCAST(rgba, f32)}};
-    vertices[idx++] = {{start.x + thickness * norm1, start.y + thickness * norm2, zindex}, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{end.x, end.y, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{end.x + thickness * norm1, end.y + thickness * norm2, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
+    vertices[idx++] = {{start.x + thickness * norm1, start.y + thickness * norm2, zindex}, -1, {-1.0f, BITCAST(rgba, f32)}};
 
     return idx;
 }
@@ -117,10 +117,11 @@ int32 vertex_line_create(
 // Individual meshes without degenerates might be faster
 inline
 int32 vertex_rect_create(
-    Vertex3DTextureColor* __restrict vertices, f32 zindex,
+    Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     uint32 rgba = 0, v2_f32 tex1 = {}, v2_f32 tex2 = {}
-) {
+) noexcept {
+    PROFILE(PROFILE_VERTEX_RECT_CREATE);
     if (alignment) {
         adjust_aligned_position(&dimension, alignment);
     }
@@ -137,13 +138,13 @@ int32 vertex_rect_create(
     f32 x_width = dimension.x + dimension.width;
     int32 idx = 0;
 
-    vertices[idx++] = {{dimension.x, dimension.y, zindex}, tex1};
-    vertices[idx++] = {{dimension.x, y_height, zindex}, {tex1.x, tex2.y}};
-    vertices[idx++] = {{x_width, dimension.y, zindex}, {tex2.x, tex1.y}};
+    vertices[idx++] = {{dimension.x, dimension.y, zindex}, sampler, tex1};
+    vertices[idx++] = {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}};
+    vertices[idx++] = {{x_width, dimension.y, zindex}, sampler, {tex2.x, tex1.y}};
 
-    vertices[idx++] = {{x_width, dimension.y, zindex}, {tex2.x, tex1.y}};
-    vertices[idx++] = {{dimension.x, y_height, zindex}, {tex1.x, tex2.y}};
-    vertices[idx++] = {{x_width, y_height, zindex}, tex2};
+    vertices[idx++] = {{x_width, dimension.y, zindex}, sampler, {tex2.x, tex1.y}};
+    vertices[idx++] = {{dimension.x, y_height, zindex}, sampler, {tex1.x, tex2.y}};
+    vertices[idx++] = {{x_width, y_height, zindex}, sampler, tex2};
 
     return idx;
 }
@@ -151,7 +152,7 @@ int32 vertex_rect_create(
 static inline
 f32 text_calculate_dimensions_height(
     const Font* __restrict font, const char* __restrict text, f32 scale, int32 length
-) {
+) noexcept {
     f32 line_height = font->line_height * scale;
     f32 y = line_height;
 
@@ -169,7 +170,7 @@ f32 text_calculate_dimensions_height(
 static inline
 f32 text_calculate_dimensions_width(
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
-) {
+) noexcept {
     f32 x = 0;
     f32 offset_x = 0;
 
@@ -200,7 +201,7 @@ static inline
 void text_calculate_dimensions(
     f32* __restrict width, f32* __restrict height,
     const Font* __restrict font, const char* __restrict text, bool is_ascii, f32 scale, int32 length
-) {
+) noexcept {
     f32 line_height = font->line_height * scale;
     f32 x = 0;
     f32 y = line_height;
@@ -238,11 +239,12 @@ void text_calculate_dimensions(
 // @todo We should be able to cut off text at an arbitrary position, not just at a line_height incremental
 // we could probably get the MIN of the glyph height and the remaining window height
 v3_int32 vertex_text_create(
-    Vertex3DTextureColor* __restrict vertices, f32 zindex,
+    Vertex3DSamplerTextureColor* __restrict vertices, f32 zindex, int32 sampler,
     v4_f32 dimension, byte alignment,
     const Font* __restrict font, const char* __restrict text,
     f32 size, uint32 rgba = 0
-) {
+) noexcept {
+    PROFILE(PROFILE_VERTEX_TEXT_CREATE);
     int32 length = utf8_str_length(text);
     if (length < 1) {
         return {};
@@ -300,7 +302,7 @@ v3_int32 vertex_text_create(
         if (character != ' ' && character != '\t') {
             // @todo We should probably inline the code here, we might be able to even optimize it then
             idx += vertex_rect_create(
-                vertices + idx, zindex,
+                vertices + idx, zindex, sampler,
                 {offset_x, offset_y, glyph->metrics.width * scale, glyph->metrics.height * scale}, 0,
                 0, glyph->coords.start, glyph->coords.end
             );

@@ -174,7 +174,7 @@ struct Input {
 };
 
 inline
-void input_init(Input* input, uint8 size, void* callback_data, BufferMemory* buf)
+void input_init(Input* input, uint8 size, void* callback_data, BufferMemory* buf) noexcept
 {
     // Init input
     input->callback_data = callback_data;
@@ -197,7 +197,7 @@ void input_init(Input* input, uint8 size, void* callback_data, BufferMemory* buf
 }
 
 inline
-void input_clean_state(InputKey* active_keys, KeyPressType press_status = KEY_PRESS_TYPE_RELEASED)
+void input_clean_state(InputKey* active_keys, KeyPressType press_status = KEY_PRESS_TYPE_RELEASED) noexcept
 {
     if (press_status) {
         for (int32 i = 0; i < MAX_KEY_PRESS_TYPES; ++i) {
@@ -211,7 +211,7 @@ void input_clean_state(InputKey* active_keys, KeyPressType press_status = KEY_PR
 }
 
 inline
-bool input_action_exists(const InputKey* active_keys, int16 key, KeyPressType press_type = KEY_PRESS_TYPE_PRESSED)
+bool input_action_exists(const InputKey* active_keys, int16 key, KeyPressType press_type = KEY_PRESS_TYPE_PRESSED) noexcept
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state == press_type)
         || (active_keys[1].scan_code == key && active_keys[1].key_state == press_type)
@@ -227,7 +227,7 @@ bool input_action_exists(const InputKey* active_keys, int16 key, KeyPressType pr
 }
 
 inline
-bool input_is_down(const InputKey* active_keys, int16 key)
+bool input_is_down(const InputKey* active_keys, int16 key) noexcept
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state != KEY_PRESS_TYPE_RELEASED)
         || (active_keys[1].scan_code == key && active_keys[1].key_state != KEY_PRESS_TYPE_RELEASED)
@@ -242,7 +242,7 @@ bool input_is_down(const InputKey* active_keys, int16 key)
 }
 
 inline
-bool input_is_pressed(const InputKey* active_keys, int16 key)
+bool input_is_pressed(const InputKey* active_keys, int16 key) noexcept
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state == KEY_PRESS_TYPE_PRESSED)
         || (active_keys[1].scan_code == key && active_keys[1].key_state == KEY_PRESS_TYPE_PRESSED)
@@ -257,7 +257,7 @@ bool input_is_pressed(const InputKey* active_keys, int16 key)
 }
 
 inline
-bool input_is_held(const InputKey* active_keys, int16 key)
+bool input_is_held(const InputKey* active_keys, int16 key) noexcept
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state == KEY_PRESS_TYPE_HELD)
         || (active_keys[1].scan_code == key && active_keys[1].key_state == KEY_PRESS_TYPE_HELD)
@@ -273,7 +273,7 @@ bool input_is_held(const InputKey* active_keys, int16 key)
 }
 
 inline
-bool input_is_released(const InputKey* active_keys, int16 key)
+bool input_is_released(const InputKey* active_keys, int16 key) noexcept
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state == KEY_PRESS_TYPE_RELEASED)
         || (active_keys[1].scan_code == key && active_keys[1].key_state == KEY_PRESS_TYPE_RELEASED)
@@ -289,7 +289,7 @@ bool input_is_released(const InputKey* active_keys, int16 key)
 }
 
 inline
-bool input_was_down(const InputKey* active_keys, int16 key)
+bool input_was_down(const InputKey* active_keys, int16 key) noexcept
 {
     return (active_keys[0].scan_code == key && active_keys[0].key_state == KEY_PRESS_TYPE_RELEASED)
         || (active_keys[1].scan_code == key && active_keys[1].key_state == KEY_PRESS_TYPE_RELEASED)
@@ -308,7 +308,7 @@ inline
 bool inputs_are_down(
     const InputKey* active_keys,
     int16 key0, int16 key1 = 0, int16 key2 = 0, int16 key3 = 0, int16 key4 = 0
-) {
+) noexcept {
     return (key0 != 0 && input_is_down(active_keys, key0))
         && (key1 == 0 || input_is_down(active_keys, key1))
         && (key2 == 0 || input_is_down(active_keys, key2))
@@ -316,7 +316,7 @@ bool inputs_are_down(
         && (key4 == 0 || input_is_down(active_keys, key4));
 }
 
-void input_add_callback(InputMapping* mapping, uint8 hotkey, InputCallback callback)
+void input_add_callback(InputMapping* mapping, uint8 hotkey, InputCallback callback) noexcept
 {
     mapping->hotkeys[hotkey].callback = callback;
 }
@@ -329,7 +329,7 @@ input_add_hotkey(
     InputMapping* mapping, uint8 hotkey,
     int16 key0, int16 key1 = 0, int16 key2 = 0,
     KeyPressType press_type = KEY_PRESS_TYPE_PRESSED
-)
+) noexcept
 {
     int32 count = 0;
 
@@ -356,7 +356,7 @@ input_add_hotkey(
 }
 
 inline
-bool hotkey_is_active(const uint16* active_hotkeys, uint16 hotkey)
+bool hotkey_is_active(const uint16* active_hotkeys, uint16 hotkey) noexcept
 {
     return active_hotkeys[0] == hotkey
         || active_hotkeys[1] == hotkey
@@ -368,7 +368,7 @@ bool hotkey_is_active(const uint16* active_hotkeys, uint16 hotkey)
 // similar to hotkey_is_active but instead of just performing a lookup in the input_hotkey_state created results
 // this is actively checking the current input state (not the hotkey state)
 inline
-bool hotkey_keys_are_active(const InputKey* active_keys, const InputMapping* mapping, uint16 hotkey)
+bool hotkey_keys_are_active(const InputKey* active_keys, const InputMapping* mapping, uint16 hotkey) noexcept
 {
     int16 key0 = mapping->hotkeys[(hotkey - 1)].scan_codes[0];
     int16 key1 = mapping->hotkeys[(hotkey - 1)].scan_codes[1];
@@ -398,7 +398,7 @@ bool hotkey_keys_are_active(const InputKey* active_keys, const InputMapping* map
 }
 
 inline
-void input_set_state(InputKey* __restrict active_keys, const InputKey* __restrict new_key)
+void input_set_state(InputKey* __restrict active_keys, const InputKey* __restrict new_key) noexcept
 {
     InputKey* free_state = NULL;
 
@@ -432,7 +432,7 @@ void input_set_state(InputKey* __restrict active_keys, const InputKey* __restric
 // We need to poll them and then check the old state against this new state (annoying but necessary)
 // Mice are fully supported by RawInput and are fairly generalized in terms of their buttons -> no special function needed
 inline
-void input_set_controller_state(Input* input, ControllerInput* controller, uint64 time)
+void input_set_controller_state(Input* input, ControllerInput* controller, uint64 time) noexcept
 {
     // Check active keys that might need to be set to inactive
     for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
@@ -506,7 +506,7 @@ void input_set_controller_state(Input* input, ControllerInput* controller, uint6
     input->general_states |= INPUT_STATE_GENERAL_BUTTON_CHANGE;
 }
 
-void input_hotkey_state(Input* input)
+void input_hotkey_state(Input* input) noexcept
 {
     InputState* state = &input->state;
     memset(state->active_hotkeys, 0, sizeof(uint16) * MAX_KEY_PRESSES);
@@ -630,7 +630,7 @@ void input_hotkey_state(Input* input)
 }
 
 // @todo We probably need a way to unset a specific key and hotkey after processing it
-bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32 dt = 0.0f) {
+bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32 dt = 0.0f) noexcept {
     for (int32 i = 0; i < MAX_KEY_PRESS_TYPES; ++i) {
         if (state->active_keys[i].scan_code == key) {
             return (f32) (time - state->active_keys[i].time) / 1000.0f >= (dt == 0.0f ? INPUT_LONG_PRESS_DURATION : dt);
@@ -641,7 +641,7 @@ bool input_key_is_longpress(const InputState* state, int16 key, uint64 time, f32
 }
 
 // @todo I wrote this code at 9am after staying awake for the whole night and that is how that code looks like... fix it!
-bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f32 dt = 0.0f) {
+bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f32 dt = 0.0f) noexcept {
     bool is_longpress = false;
     for (int32 i = 0; i < MAX_KEY_PRESSES; ++i) {
         if (input->state.active_hotkeys[i] != hotkey) {
@@ -688,7 +688,7 @@ bool input_hotkey_is_longpress(const Input* input, uint8 hotkey, uint64 time, f3
     return is_longpress;
 }
 
-uint32 input_get_typed_character(InputState* state, uint64 time, uint64 dt)
+uint32 input_get_typed_character(InputState* state, uint64 time, uint64 dt) noexcept
 {
     byte keyboard_state[256] = {};
     for (int32 key_state = 0; key_state < MAX_KEY_PRESS_TYPES; ++key_state) {

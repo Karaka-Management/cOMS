@@ -15,6 +15,11 @@
 #include "Spinlock.h"
 
 inline
+void spinlock_init(spinlock32* lock) {
+    lock = 0;
+}
+
+inline
 void spinlock_start(spinlock32* lock, int32 delay = 10) {
     while (InterlockedExchange(lock, 1) != 0) {
         usleep(delay);

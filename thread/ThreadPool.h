@@ -60,12 +60,12 @@ static THREAD_RETURN thread_pool_worker(void* arg)
 
         atomic_increment_relaxed(&pool->working_cnt);
         atomic_set_release(&work->state, 2);
-        LOG_LEVEL_2("ThreadPool worker started", {});
+        LOG_FORMAT_2("ThreadPool worker started", {});
         work->func(work);
-        LOG_LEVEL_2("ThreadPool worker ended", {});
+        LOG_FORMAT_2("ThreadPool worker ended", {});
         // At the end of a thread the ring memory automatically is considered freed
         DEBUG_MEMORY_FREE((uintptr_t) work->ring.memory, work->ring.size);
-        LOG_LEVEL_2("Freed thread RingMemory: %n B", {{LOG_DATA_UINT64, &work->ring.size}});
+        LOG_FORMAT_2("Freed thread RingMemory: %n B", {{LOG_DATA_UINT64, &work->ring.size}});
         atomic_set_release(&work->state, 1);
 
         // Job gets marked after completion -> can be overwritten now

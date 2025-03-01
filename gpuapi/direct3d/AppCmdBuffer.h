@@ -10,12 +10,12 @@
 #define TOS_GPUAPI_DIRECTX_APP_CMD_BUFFER_H
 
 #include "../../stdlib/Types.h"
+#include "../../log/PerformanceProfiler.h"
 #include "Shader.h"
 #include "ShaderUtils.h"
 #include "../ShaderType.h"
 #include "../../asset/Asset.h"
 #include "../../command/AppCmdBuffer.h"
-#include "GpuApiContainer.h"
 
 #include <windows.h>
 #include <d3d12.h>
@@ -25,10 +25,12 @@ void* cmd_shader_load(AppCmdBuffer*, Command*) {
     return NULL;
 }
 
-void* cmd_shader_load_sync(AppCmdBuffer* cb, Shader* shader, int32* shader_ids) {
+void* cmd_shader_load_sync(
+    AppCmdBuffer* __restrict cb, Shader* __restrict shader, const int32* __restrict shader_ids,
+    ID3D12Device* __restrict device, ID3D12PipelineState** __restrict pipeline, ID3D12RootSignature* __restrict pipeline_layout
+) {
+    PROFILE_VERBOSE(PROFILE_CMD_SHADER_LOAD_SYNC, "");
     char asset_id[9];
-
-    GpuApiContainer* gpu_api = (GpuApiContainer *) cb->gpu_api;
 
     ID3DBlob* shader_assets[SHADER_TYPE_SIZE];
     for (int32 i = 0; i < SHADER_TYPE_SIZE; ++i) {
@@ -62,8 +64,8 @@ void* cmd_shader_load_sync(AppCmdBuffer* cb, Shader* shader, int32* shader_ids) 
     }
 
     // Make shader/program
-    shader->id = program_make(
-        gpu_api->device, &gpu_api->pipeline, gpu_api->pipeline_layout,
+    shader->id = pipeline_make(
+        device, pipeline, pipeline_layout,
         shader_assets[0], shader_assets[1], shader_assets[2]
     );
 

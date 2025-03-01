@@ -36,8 +36,8 @@ struct Huffman {
 
 // We could combine this function with the one below but this would introduce a if != 0 check for the frequency
 // I would assume the current version is faster since we avoid a branch
-inline
-HuffmanNode* huffman_node_create(Huffman* hf, int32 frequency, byte character, HuffmanNode* left, HuffmanNode* right)
+static inline
+HuffmanNode* huffman_node_create(Huffman* hf, int32 frequency, byte character, HuffmanNode* left, HuffmanNode* right) noexcept
 {
     HuffmanNode* node = hf->pool + hf->node_count++;
     node->character = character;
@@ -47,8 +47,8 @@ HuffmanNode* huffman_node_create(Huffman* hf, int32 frequency, byte character, H
 }
 
 // Same as other function but frequency = 0
-inline
-HuffmanNode* huffman_node_create(Huffman* hf, byte character, HuffmanNode* left, HuffmanNode* right)
+static inline
+HuffmanNode* huffman_node_create(Huffman* hf, byte character, HuffmanNode* left, HuffmanNode* right) noexcept
 {
     HuffmanNode* node = hf->pool + hf->node_count++;
     node->left = left;
@@ -58,8 +58,8 @@ HuffmanNode* huffman_node_create(Huffman* hf, byte character, HuffmanNode* left,
     return node;
 }
 
-inline
-void huffman_node_insert(Huffman* hf, HuffmanNode* node)
+static inline
+void huffman_node_insert(Huffman* hf, HuffmanNode* node) noexcept
 {
     int32 child_id;
     int32 parent_id = hf->pq_end++;
@@ -72,7 +72,8 @@ void huffman_node_insert(Huffman* hf, HuffmanNode* node)
     hf->pq[parent_id] = node;
 }
 
-HuffmanNode* huffman_node_remove(Huffman* hf)
+static
+HuffmanNode* huffman_node_remove(Huffman* hf) noexcept
 {
     int32 parent_id = 1;
     int32 left_child_id;
@@ -99,7 +100,8 @@ HuffmanNode* huffman_node_remove(Huffman* hf)
     return min_node;
 }
 
-int64 huffman_code_build(Huffman* hf, HuffmanNode* root, char* code, int32 length, char* code_buffer, int32* buffer_position)
+static
+int64 huffman_code_build(Huffman* hf, HuffmanNode* root, char* code, int32 length, char* code_buffer, int32* buffer_position) noexcept
 {
     if (root->character) {
         code[length] = 0;
@@ -114,7 +116,7 @@ int64 huffman_code_build(Huffman* hf, HuffmanNode* root, char* code, int32 lengt
     code[length] = '1'; huffman_code_build(hf, root->right, code, length + 1, code_buffer, buffer_position);
 }
 
-void huffman_init(Huffman* hf, const byte* in)
+void huffman_init(Huffman* hf, const byte* in) noexcept
 {
     int32 frequency[256] = {0};
     int32 buffer_position = 0;
@@ -174,7 +176,7 @@ void huffman_load(Huffman* hf, const byte* in)
 }
 
 inline
-int64 huffman_encode(Huffman* hf, const byte* in, byte* out)
+int64 huffman_encode(Huffman* hf, const byte* in, byte* out) noexcept
 {
     uint64 bit_length = 0;
     int32 pos_bit = 0;
@@ -202,7 +204,7 @@ int64 huffman_encode(Huffman* hf, const byte* in, byte* out)
 }
 
 inline
-int64 huffman_decode(Huffman* hf, const byte* in, byte* out, uint64 bit_length)
+int64 huffman_decode(Huffman* hf, const byte* in, byte* out, uint64 bit_length) noexcept
 {
     HuffmanNode* current = hf->pq[1];
     int32 pos_bit = 0;

@@ -61,28 +61,28 @@ void queue_init(Queue* queue, byte* buf, uint64 element_count, uint32 element_si
 }
 
 inline
-void queue_free(Queue* queue)
+void queue_free(Queue* queue) noexcept
 {
     ring_free((RingMemory *) queue);
 }
 
 inline
-bool queue_is_empty(Queue* queue) {
+bool queue_is_empty(Queue* queue) noexcept {
     return queue->head == queue->tail;
 }
 
 inline
-bool queue_set_empty(Queue* queue) {
+bool queue_set_empty(Queue* queue) noexcept {
     return queue->head = queue->tail;
 }
 
 inline
-bool queue_is_full(Queue* queue) {
+bool queue_is_full(Queue* queue) noexcept {
     return !ring_commit_safe((RingMemory *) queue, queue->element_size, queue->alignment);
 }
 
 inline
-void queue_enqueue_unique(Queue* queue, const byte* data)
+void queue_enqueue_unique(Queue* queue, const byte* data) noexcept
 {
     ASSERT_SIMPLE((uint64_t) data % 4 == 0);
 
@@ -107,7 +107,7 @@ void queue_enqueue_unique(Queue* queue, const byte* data)
 }
 
 inline
-byte* queue_enqueue(Queue* queue, byte* data)
+byte* queue_enqueue(Queue* queue, byte* data) noexcept
 {
     byte* mem = ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
     memcpy(mem, data, queue->element_size);
@@ -117,7 +117,7 @@ byte* queue_enqueue(Queue* queue, byte* data)
 }
 
 inline
-byte* queue_enqueue_safe(Queue* queue, byte* data)
+byte* queue_enqueue_safe(Queue* queue, byte* data) noexcept
 {
     if(queue_is_full(queue)) {
         return NULL;
@@ -132,7 +132,7 @@ byte* queue_enqueue_safe(Queue* queue, byte* data)
 
 // WARNING: Only useful for single producer single consumer
 inline
-byte* queue_enqueue_wait_atomic(Queue* queue, byte* data)
+byte* queue_enqueue_wait_atomic(Queue* queue, byte* data) noexcept
 {
     while (!ring_commit_safe_atomic((RingMemory *) queue, queue->alignment)) {}
 
@@ -145,7 +145,7 @@ byte* queue_enqueue_wait_atomic(Queue* queue, byte* data)
 
 // WARNING: Only useful for single producer single consumer
 inline
-byte* queue_enqueue_safe_atomic(Queue* queue, byte* data)
+byte* queue_enqueue_safe_atomic(Queue* queue, byte* data) noexcept
 {
     if (!ring_commit_safe_atomic((RingMemory *) queue, queue->alignment)) {
         return NULL;
@@ -159,19 +159,19 @@ byte* queue_enqueue_safe_atomic(Queue* queue, byte* data)
 }
 
 inline
-byte* queue_enqueue_start(Queue* queue)
+byte* queue_enqueue_start(Queue* queue) noexcept
 {
     return ring_get_memory_nomove((RingMemory *) queue, queue->element_size, queue->alignment);
 }
 
 inline
-void queue_enqueue_end(Queue* queue)
+void queue_enqueue_end(Queue* queue) noexcept
 {
     ring_move_pointer((RingMemory *) queue, &queue->head, queue->element_size, queue->alignment);
 }
 
 inline
-bool queue_dequeue(Queue* queue, byte* data)
+bool queue_dequeue(Queue* queue, byte* data) noexcept
 {
     if (queue->head == queue->tail) {
         return false;
@@ -190,7 +190,7 @@ bool queue_dequeue(Queue* queue, byte* data)
 
 // WARNING: Only useful for single producer single consumer
 inline
-bool queue_dequeue_atomic(Queue* queue, byte* data)
+bool queue_dequeue_atomic(Queue* queue, byte* data) noexcept
 {
     if ((uint64) atomic_get_acquire_release((void **) &queue->head) == (uint64) queue->tail) {
         return false;
@@ -208,7 +208,7 @@ bool queue_dequeue_atomic(Queue* queue, byte* data)
 }
 
 inline
-byte* queue_dequeue_keep(Queue* queue)
+byte* queue_dequeue_keep(Queue* queue) noexcept
 {
     if (queue->head == queue->tail) {
         return NULL;
@@ -221,13 +221,13 @@ byte* queue_dequeue_keep(Queue* queue)
 }
 
 inline
-byte* queue_dequeue_start(Queue* queue)
+byte* queue_dequeue_start(Queue* queue) noexcept
 {
     return queue->tail;
 }
 
 inline
-void queue_dequeue_end(Queue* queue)
+void queue_dequeue_end(Queue* queue) noexcept
 {
     ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 }

@@ -206,7 +206,7 @@ int32 ui_input_element_update(UILayout* layout, UIElement* element)
     // Border
     if (input->border.thickness) {
         idx += vertex_rect_create(
-            layout->vertices_active + element->vertices_active_offset, zindex,
+            layout->vertices_active + element->vertices_active_offset, zindex, -1,
             dimension, input->dimension.alignment,
             input->border.color
         );
@@ -224,7 +224,7 @@ int32 ui_input_element_update(UILayout* layout, UIElement* element)
     // Background
     if (input->background.background_color) {
         idx += vertex_rect_create(
-            layout->vertices_active + element->vertices_active_offset + idx, zindex,
+            layout->vertices_active + element->vertices_active_offset + idx, zindex, -1,
             dimension, input->dimension.alignment,
             input->background.background_color
         );

@@ -67,4 +67,18 @@ struct SystemInfo {
     int32 language;
 };
 
+enum RamChannelType {
+    RAM_CHANNEL_TYPE_FAILED,
+    RAM_CHANNEL_TYPE_SINGLE_CHANNEL,
+    RAM_CHANNEL_TYPE_CAN_UPGRADE,
+    RAM_CHANNEL_TYPE_DUAL_CHANNEL,
+};
+
+enum DriveType {
+    DRIVE_TYPE_UNKNOWN,
+    DRIVE_TYPE_NVME,
+    DRIVE_TYPE_SSD,
+    DRIVE_TYPE_HDD,
+};
+
 #endif

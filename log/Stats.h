@@ -5,6 +5,9 @@
 #include "../stdlib/Types.h"
 #include "../thread/Atomic.h"
 
+// @question See PerformanceProfiler (hashmap) and implement same here
+// The problem with that is, the hash map is much slower
+// and we probably want to maybe use this (at least partially) in release mode?
 #ifndef DEBUG_COUNTER
     #define DEBUG_COUNTER 1
     enum DebugCounter {
@@ -13,6 +16,8 @@
         DEBUG_COUNTER_DRIVE_READ,
         DEBUG_COUNTER_DRIVE_WRITE,
 
+        DEBUG_COUNTER_GPU_UPLOAD,
+
         DEBUG_COUNTER_SIZE
     };
 #endif
@@ -20,7 +25,7 @@
 static atomic_64 int64* _stats_counter = NULL;
 
 inline
-void reset_counter(int32 id)
+void reset_counter(int32 id) noexcept
 {
     if (!_stats_counter) {
         return;
@@ -30,7 +35,7 @@ void reset_counter(int32 id)
 }
 
 inline
-void log_increment(int32 id, int64 by = 1)
+void log_increment(int32 id, int64 by = 1) noexcept
 {
     if (!_stats_counter) {
         return;
@@ -40,7 +45,7 @@ void log_increment(int32 id, int64 by = 1)
 }
 
 inline
-void log_counter(int32 id, int64 value)
+void log_counter(int32 id, int64 value) noexcept
 {
     if (!_stats_counter) {
         return;

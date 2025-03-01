@@ -444,6 +444,7 @@ int32 mixer_effects_stereo()
 }
 
 void audio_mixer_mix(AudioMixer* mixer, uint32 size) {
+    PROFILE(PROFILE_AUDIO_MIXER_MIX);
     memset(mixer->settings.buffer, 0, size);
 
     mixer->settings.sample_buffer_size = 0;

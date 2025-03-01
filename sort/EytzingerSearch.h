@@ -7,7 +7,7 @@
 // @performance We could optimize eytzinger by using 1 based index
 // Consider this https://en.algorithmica.org/hpc/data-structures/binary-search/
 
-void eytzinger_rearrange(byte* arr, byte* temp, size_t start, size_t* index, size_t num, size_t size) {
+void eytzinger_rearrange(byte* arr, byte* temp, size_t start, size_t* index, size_t num, size_t size) noexcept {
     if (start >= num) {
         return;
     }

@@ -43,7 +43,7 @@ typedef HRESULT WINAPI IAudioClient_GetService_t(IAudioClient*, REFIID, void**);
 void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
     HMODULE ole32 = LoadLibraryExA((LPCSTR) "ole32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!ole32) {
-        LOG(true, "Wasapi: Couldn't load ole32.dll\n");
+        LOG_1("Wasapi: Couldn't load ole32.dll\n");
 
         return;
     }
@@ -52,14 +52,14 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
     CoCreateInstance_t* co_create_instance = (CoCreateInstance_t *) GetProcAddress(ole32, "CoCreateInstance");
 
     if (!co_initialize_ex || !co_create_instance) {
-        LOG(true, "Wasapi: ole32 function binding failed\n");
+        LOG_1("Wasapi: ole32 function binding failed\n");
 
         return;
     }
 
     HMODULE mmdevapi = LoadLibraryExA((LPCSTR) "mmdevapi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!mmdevapi) {
-        LOG(true, "Wasapi: Couldn't load mmdevapi.dll\n");
+        LOG_1("Wasapi: Couldn't load mmdevapi.dll\n");
 
         return;
     }
@@ -68,14 +68,14 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
     IMMDevice_Activate_t* IMMDevice_Activate = (IMMDevice_Activate_t *) GetProcAddress(mmdevapi, "IMMDevice_Activate");
 
     if (!IMMDeviceEnumerator_GetDefaultAudioEndpoint || !IMMDevice_Activate) {
-        LOG(true, "Wasapi: mmdevapi function binding failed\n");
+        LOG_1("Wasapi: mmdevapi function binding failed\n");
 
         return;
     }
 
     HMODULE audioclient = LoadLibraryExA((LPCSTR) "audioclient.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!audioclient) {
-        LOG(true, "Wasapi: Couldn't load audioclient.dll\n");
+        LOG_1("Wasapi: Couldn't load audioclient.dll\n");
 
         return;
     }
@@ -87,14 +87,14 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
     IAudioClient_GetService_t* pIAudioClient_GetService = (IAudioClient_GetService_t *) GetProcAddress(audioclient, "IAudioClient_GetService");
 
     if (!pIAudioClient_GetMixFormat || !pIAudioClient_Initialize || !pIAudioClient_Start || !pIAudioClient_Stop || !pIAudioClient_GetService) {
-        LOG(true, "Wasapi: audioclient function binding failed\n");
+        LOG_1("Wasapi: audioclient function binding failed\n");
 
         return;
     }
 
     HRESULT hr = co_initialize_ex(NULL, COINIT_MULTITHREADED);
     if (FAILED(hr)) {
-        LOG(true, "Wasapi: Wasapi initialize failed\n");
+        LOG_1("Wasapi: Wasapi initialize failed\n");
 
         return;
     }
@@ -104,14 +104,14 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
 
     hr  = co_create_instance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void **) &enumerator);
     if (FAILED(hr)) {
-        LOG(true, "Wasapi: Wasapi CreateInstance failed\n");
+        LOG_1("Wasapi: Wasapi CreateInstance failed\n");
 
         return;
     }
 
     hr  = IMMDeviceEnumerator_GetDefaultAudioEndpoint(enumerator, eRender, eConsole, &device);
     if (FAILED(hr)) {
-        LOG(true, "Wasapi: Wasapi DefaultAudioEndpoint failed\n");
+        LOG_1("Wasapi: Wasapi DefaultAudioEndpoint failed\n");
 
         enumerator->Release();
 
@@ -120,7 +120,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
 
     hr = IMMDevice_Activate(device, IID_IAudioClient, CLSCTX_ALL, NULL, (void **) &api_setting->audio_handle);
     if (FAILED(hr)) {
-        LOG(true, "Wasapi: Wasapi DeviceActivate failed\n");
+        LOG_1("Wasapi: Wasapi DeviceActivate failed\n");
 
         device->Release();
         enumerator->Release();
@@ -171,6 +171,7 @@ void audio_free(AudioSetting* setting, WasapiSetting* api_setting)
 inline
 uint32 audio_buffer_fillable(const AudioSetting* setting, const WasapiSetting* api_setting)
 {
+    PROFILE(PROFILE_AUDIO_BUFFER_FILLABLE);
     if (!api_setting->audio_handle) {
         return 0;
     }
@@ -186,6 +187,7 @@ uint32 audio_buffer_fillable(const AudioSetting* setting, const WasapiSetting* a
 
 inline
 void audio_play_buffer(AudioSetting* setting, WasapiSetting* api_setting) {
+    PROFILE(PROFILE_AUDIO_PLAY_BUFFER);
     if (!api_setting->audio_handle || setting->sample_buffer_size == 0) {
         return;
     }

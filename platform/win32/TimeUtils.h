@@ -16,16 +16,10 @@
 
 void usleep(uint64 microseconds)
 {
-    if ((microseconds % 1000) == 0) {
-        Sleep((DWORD) (microseconds / 1000));
-        return;
-    }
-
-    LARGE_INTEGER frequency;
+    LARGE_INTEGER frequency, start, end;
     QueryPerformanceFrequency(&frequency);
-
-    LARGE_INTEGER start, end;
     QueryPerformanceCounter(&start);
+
     long long target = start.QuadPart + (microseconds * frequency.QuadPart) / 1000000;
 
     do {

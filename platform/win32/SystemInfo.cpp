@@ -28,6 +28,8 @@
 #include <winnls.h>
 #include <wingdi.h>
 #include <hidsdi.h>
+#include <setupapi.h>
+#include <cfgmgr32.h>
 
 // @performance Do we really need all these libs, can't we simplify that?!
 // At least we should dynamically load them, this way the application won't crash if the lib doesn't exist
@@ -38,6 +40,9 @@
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "Ws2_32.lib")
+#pragma comment(lib, "setupapi.lib")
+#pragma comment(lib, "cfgmgr32.lib")
+#pragma comment(lib, "comsuppw.lib")
 
 uint64 system_private_memory_usage()
 {
@@ -359,6 +364,93 @@ void ram_info_get(RamInfo* info) {
     info->memory = (uint32) (statex.ullTotalPhys / (1024 * 1024));
 }
 
+RamChannelType ram_channel_info() {
+    HRESULT hres;
+    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
+    if (FAILED(hres)) {
+        return RAM_CHANNEL_TYPE_FAILED;
+    }
+
+    hres = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
+    if (FAILED(hres)) {
+        CoUninitialize();
+
+        return RAM_CHANNEL_TYPE_FAILED;
+    }
+
+    IWbemLocator *pLoc = NULL;
+    hres = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID *)&pLoc);
+    if (FAILED(hres)) {
+        CoUninitialize();
+
+        return RAM_CHANNEL_TYPE_FAILED;
+    }
+
+    IWbemServices *pSvc = NULL;
+    hres = pLoc->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pSvc);
+    if (FAILED(hres)) {
+        pLoc->Release();
+        CoUninitialize();
+
+        return RAM_CHANNEL_TYPE_FAILED;
+    }
+
+    hres = CoSetProxyBlanket(pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+    if (FAILED(hres)) {
+        pSvc->Release();
+        pLoc->Release();
+        CoUninitialize();
+
+        return RAM_CHANNEL_TYPE_FAILED;
+    }
+
+    IEnumWbemClassObject* pEnumerator = NULL;
+    hres = pSvc->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_PhysicalMemory"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
+    if (FAILED(hres)) {
+        pSvc->Release();
+        pLoc->Release();
+        CoUninitialize();
+
+        return RAM_CHANNEL_TYPE_FAILED;
+    }
+
+    IWbemClassObject *pclsObj = NULL;
+    ULONG uReturn = 0;
+    int32 ram_module_count = 0;
+    int32 dual_channel_capable = 0;
+
+    while (pEnumerator) {
+        hres = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
+        if (uReturn == 0) break;
+
+        VARIANT vtProp;
+        hres = pclsObj->Get(L"BankLabel", 0, &vtProp, 0, 0);
+        if (SUCCEEDED(hres)) {
+            ++ram_module_count;
+            if (wcscmp(vtProp.bstrVal, L"BANK 0") == 0 || wcscmp(vtProp.bstrVal, L"BANK 1") == 0) {
+                dual_channel_capable = 1;
+            }
+
+            VariantClear(&vtProp);
+        }
+        pclsObj->Release();
+    }
+
+    pSvc->Release();
+    pLoc->Release();
+    CoUninitialize();
+
+    if (ram_module_count == 1) {
+        return RAM_CHANNEL_TYPE_SINGLE_CHANNEL;
+    } else if (ram_module_count == 2 && dual_channel_capable) {
+        return RAM_CHANNEL_TYPE_DUAL_CHANNEL;
+    } else if (ram_module_count == 2 && !dual_channel_capable) {
+        return RAM_CHANNEL_TYPE_CAN_UPGRADE;
+    } else {
+        return RAM_CHANNEL_TYPE_FAILED;
+    }
+}
+
 uint32 gpu_info_get(GpuInfo* info) {
     IDXGIFactory *pFactory = NULL;
     IDXGIAdapter *pAdapter = NULL;
@@ -382,7 +474,7 @@ uint32 gpu_info_get(GpuInfo* info) {
         info[i].vram = (uint32) (adapterDesc.DedicatedVideoMemory / (1024 * 1024));
 
         pAdapter->Release();
-        i++;
+        ++i;
     }
 
     pFactory->Release();
@@ -413,6 +505,29 @@ uint32 display_info_get(DisplayInfo* info) {
     }
 
     return i;
+}
+
+bool is_dedicated_gpu_connected() {
+    DISPLAY_DEVICEA displayDevice;
+    displayDevice.cb = sizeof(DISPLAY_DEVICEA);
+    for (int32 i = 0; EnumDisplayDevicesA(NULL, i, &displayDevice, 0); ++i) {
+        if (displayDevice.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) {
+            DISPLAY_DEVICEA gpuDevice;
+            gpuDevice.cb = sizeof(DISPLAY_DEVICEA);
+            if (EnumDisplayDevicesA(displayDevice.DeviceName, 0, &gpuDevice, 0)) {
+                if (gpuDevice.DeviceID
+                    && (str_contains(gpuDevice.DeviceID, "PCI\\VEN_10DE") // Nvidia
+                        || str_contains(gpuDevice.DeviceID, "PCI\\VEN_1002") // AMD
+                        || str_contains(gpuDevice.DeviceID, "PCI\\VEN_8086") // Intel
+                    )
+                ) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
 }
 
 #endif

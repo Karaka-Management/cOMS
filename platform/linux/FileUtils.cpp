@@ -25,6 +25,7 @@
 #include "../../utils/Utils.h"
 #include "../../utils/TestUtils.h"
 #include "../../memory/RingMemory.h"
+#include "../../log/PerformanceProfiler.h"
 
 #ifndef MAX_PATH
     #define MAX_PATH PATH_MAX
@@ -80,7 +81,7 @@ void file_mmf_close(MMFHandle fh) {
 }
 
 inline
-void relative_to_absolute(const char* rel, char* path)
+void relative_to_absolute(const char* __restrict rel, char* __restrict path)
 {
     char self_path[MAX_PATH];
     int32 self_path_length = readlink("/proc/self/exe", self_path, MAX_PATH - 1);
@@ -142,6 +143,8 @@ FileHandle file_append_handle(const char* path) {
 
 inline
 bool file_exists(const char* path) {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+
     struct stat buffer;
     const char* full_path = path;
     char abs_path[MAX_PATH];
@@ -155,7 +158,9 @@ bool file_exists(const char* path) {
 }
 
 inline
-bool file_copy(const char* src, const char* dst) {
+bool file_copy(const char* __restrict src, const char* __restrict dst) {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, src);
+
     char src_full_path[MAX_PATH];
     char dst_full_path[MAX_PATH];
 
@@ -207,7 +212,9 @@ bool file_copy(const char* src, const char* dst) {
 }
 
 inline
-void file_read(const char* path, FileBody* file, RingMemory* ring) {
+void file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __restrict ring = NULL) {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+
     char full_path[MAX_PATH];
     const char* abs_path = path;
 
@@ -271,8 +278,8 @@ void file_read(const char* path, FileBody* file, RingMemory* ring) {
 // Since the mentality of this function is to be called consecutively we do it this way.
 bool file_read_line(
     FileHandle fp,
-    char* line_buffer, size_t buffer_size,
-    char internal_buffer[512], ssize_t* internal_buffer_size, char** internal_pos
+    char* __restrict line_buffer, size_t buffer_size,
+    char internal_buffer[512], ssize_t* __restrict internal_buffer_size, char** internal_pos
 ) {
     if (!(*internal_pos)) {
         *internal_pos = internal_buffer;
@@ -320,7 +327,9 @@ bool file_read_line(
 }
 
 inline
-bool file_write(const char* path, const FileBody* file) {
+bool file_write(const char* __restrict path, const FileBody* __restrict file) {
+    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+
     int32 fd;
     char full_path[PATH_MAX];
 
@@ -360,7 +369,7 @@ void file_close_handle(FileHandle fp)
 inline
 void self_path(char* path) {
     size_t len = readlink("/proc/self/exe", path, PATH_MAX);
-    if (len > 0) {
+    if (len > 0) { [[likely]]
         path[len] = '\0';
     } else {
         path[0] = '\0';

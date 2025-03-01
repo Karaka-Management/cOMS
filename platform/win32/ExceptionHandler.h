@@ -68,7 +68,7 @@ void log_stack_trace(CONTEXT *context) {
     stack_frame.AddrStack.Offset = context->Rsp;
     stack_frame.AddrStack.Mode = AddrModeFlat;
 
-    LOG(true, "Stack trace:");
+    LOG_1("Stack trace:");
 
     // Walk the stack
     while (StackWalk64(machine_type, process, thread, &stack_frame, context, NULL,
@@ -88,9 +88,9 @@ void log_stack_trace(CONTEXT *context) {
         symbol->MaxNameLen = MAX_SYM_NAME;
 
         if (SymFromAddr(process, address, NULL, symbol)) {
-            LOG_FORMAT(true, "Function: %s - Address: %l", {{LOG_DATA_CHAR_STR, symbol->Name}, {LOG_DATA_INT64, &symbol->Address}});
+            LOG_FORMAT_1("Function: %s - Address: %l", {{LOG_DATA_CHAR_STR, symbol->Name}, {LOG_DATA_INT64, &symbol->Address}});
         } else {
-            LOG_FORMAT(true, "Function: (unknown) - Address: %l", {{LOG_DATA_INT64, &address}});
+            LOG_FORMAT_1("Function: (unknown) - Address: %l", {{LOG_DATA_INT64, &address}});
         }
 
         // Resolve file and line number
@@ -99,18 +99,18 @@ void log_stack_trace(CONTEXT *context) {
         line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
         if (SymGetLineFromAddr64(process, address, &displacement, &line)) {
-            LOG_FORMAT(true, "    File: %s, Line: %l", {{LOG_DATA_CHAR_STR, line.FileName}, {LOG_DATA_INT64, &line.LineNumber}});
+            LOG_FORMAT_1("    File: %s, Line: %l", {{LOG_DATA_CHAR_STR, line.FileName}, {LOG_DATA_INT64, &line.LineNumber}});
         } else {
-            LOG(true, "    File: (unknown), Line: (unknown)");
+            LOG_1("    File: (unknown), Line: (unknown)");
         }
 
         // Print module name
         IMAGEHLP_MODULE64 module_info;
         module_info.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
         if (SymGetModuleInfo64(process, address, &module_info)) {
-            LOG_FORMAT(true, "    Module: %s", {{LOG_DATA_CHAR_STR, module_info.ModuleName}});
+            LOG_FORMAT_1("    Module: %s", {{LOG_DATA_CHAR_STR, module_info.ModuleName}});
         } else {
-            LOG(true, "    Module: (unknown)");
+            LOG_1("    Module: (unknown)");
         }
     }
 

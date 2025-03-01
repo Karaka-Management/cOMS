@@ -24,11 +24,11 @@ struct DebugContainer {
     #endif
     LogMemory* log_memory;
 
-    PerformanceProfileResult* perf_stats;
-
     atomic_64 int64* stats_counter;
 
+    PerformanceProfileResult* perf_stats;
     PerformanceProfiler** perf_current_scope;
+    int32* perf_active;
 };
 
 #endif

@@ -34,6 +34,7 @@ inline
 void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
+    PROFILE_VERBOSE(PROFILE_BUFFER_ALLOC, "");
 
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)
@@ -49,7 +50,7 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 
     DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
-    LOG_LEVEL_2("Allocated BufferMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_FORMAT_2("Allocated BufferMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 }
 
 inline
@@ -82,7 +83,7 @@ void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 6
 }
 
 inline
-void buffer_reset(BufferMemory* buf)
+void buffer_reset(BufferMemory* buf) noexcept
 {
     // @bug aren't we wasting element 0 (see get_memory, we are not using 0 only next element)
     DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->head - buf->memory);
@@ -90,7 +91,7 @@ void buffer_reset(BufferMemory* buf)
 }
 
 inline
-byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4, bool zeroed = false)
+byte* buffer_get_memory(BufferMemory* buf, uint64 size, int32 aligned = 4, bool zeroed = false) noexcept
 {
     ASSERT_SIMPLE(size <= buf->size);
 

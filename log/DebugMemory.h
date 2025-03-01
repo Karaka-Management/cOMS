@@ -57,7 +57,7 @@ enum MemoryDebugType {
 };
 
 inline
-DebugMemory* debug_memory_find(uintptr_t start)
+DebugMemory* debug_memory_find(uintptr_t start) noexcept
 {
     for (uint64 i = 0; i < _dmc->memory_size; ++i) {
         if (_dmc->memory_stats[i].start <= start
@@ -70,7 +70,7 @@ DebugMemory* debug_memory_find(uintptr_t start)
     return NULL;
 }
 
-void debug_memory_init(uintptr_t start, uint64 size)
+void debug_memory_init(uintptr_t start, uint64 size) noexcept
 {
     if (!start || !_dmc) {
         return;
@@ -101,7 +101,7 @@ void debug_memory_init(uintptr_t start, uint64 size)
     ++_dmc->memory_element_idx;
 }
 
-void debug_memory_log(uintptr_t start, uint64 size, int32 type, const char* function)
+void debug_memory_log(uintptr_t start, uint64 size, int32 type, const char* function) noexcept
 {
     if (!start || !_dmc) {
         return;
@@ -133,7 +133,7 @@ void debug_memory_log(uintptr_t start, uint64 size, int32 type, const char* func
     }
 }
 
-void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* function)
+void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* function) noexcept
 {
     if (!start || !_dmc) {
         return;
@@ -160,7 +160,7 @@ void debug_memory_reserve(uintptr_t start, uint64 size, int32 type, const char* 
 }
 
 // undo reserve
-void debug_memory_free(uintptr_t start)
+void debug_memory_free(uintptr_t start) noexcept
 {
     if (!start || !_dmc) {
         return;
@@ -182,7 +182,7 @@ void debug_memory_free(uintptr_t start)
 
 // @bug This probably requires thread safety
 inline
-void debug_memory_reset()
+void debug_memory_reset() noexcept
 {
     if (!_dmc) {
         return;

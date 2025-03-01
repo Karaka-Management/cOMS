@@ -28,6 +28,8 @@ typedef SSIZE_T ssize_t;
 
 #define FORCE_INLINE __forceinline
 
+#define compiler_debug_print(message) OutputDebugStringA((message))
+
 #define compiler_popcount_32(data) __popcnt((data))
 #define compiler_popcount_64(data) __popcnt64((data))
 
@@ -37,7 +39,7 @@ typedef SSIZE_T ssize_t;
 #define compiler_prefetch_l3(mem) __prefetch((mem))
 
 inline
-int32 compiler_find_first_bit_r2l(uint64 mask) {
+int32 compiler_find_first_bit_r2l(uint64 mask) noexcept {
     if (!mask) {
         return -1;
     }
@@ -47,7 +49,7 @@ int32 compiler_find_first_bit_r2l(uint64 mask) {
 }
 
 inline
-int32 compiler_find_first_bit_r2l(uint32 mask) {
+int32 compiler_find_first_bit_r2l(uint32 mask) noexcept {
     if (!mask) {
         return -1;
     }
@@ -57,7 +59,7 @@ int32 compiler_find_first_bit_r2l(uint32 mask) {
 }
 
 inline
-int32 compiler_find_first_bit_l2r(uint64 mask) {
+int32 compiler_find_first_bit_l2r(uint64 mask) noexcept {
     if (!mask) {
         return -1;
     }
@@ -67,7 +69,7 @@ int32 compiler_find_first_bit_l2r(uint64 mask) {
 }
 
 inline
-int32 compiler_find_first_bit_l2r(uint32 mask) {
+int32 compiler_find_first_bit_l2r(uint32 mask) noexcept {
     if (!mask) {
         return -1;
     }
@@ -77,7 +79,7 @@ int32 compiler_find_first_bit_l2r(uint32 mask) {
 }
 
 inline
-void compiler_cpuid(int32 cpuInfo[4], int32 function_id) {
+void compiler_cpuid(int32 cpuInfo[4], int32 function_id) noexcept {
     __cpuidex(cpuInfo, function_id, 0);
 }
 

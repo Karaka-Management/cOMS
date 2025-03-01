@@ -567,6 +567,8 @@ int32 layout_from_data(
     const byte* __restrict data,
     UILayout* __restrict layout
 ) {
+    PROFILE_VERBOSE(PROFILE_LAYOUT_FROM_DATA, "");
+
     const byte* in = data;
 
     int32 version = SWAP_ENDIAN_LITTLE(*((int32 *) in));
@@ -598,6 +600,8 @@ void layout_from_theme(
     UILayout* __restrict layout,
     const UIThemeStyle* __restrict theme
 ) {
+    PROFILE_VERBOSE(PROFILE_LAYOUT_FROM_THEME, "");
+
     // @todo Handle animations
     // @todo Handle vertices_active offset
     if (theme->font) {
@@ -827,7 +831,7 @@ void ui_layout_update_dfs(UILayout* layout, UIElement* element, byte category = 
 
 uint32 ui_layout_render_dfs(
     UILayout* layout,
-    UIElement* element, Vertex3DTextureColor* __restrict vertices,
+    UIElement* element, Vertex3DSamplerTextureColor* __restrict vertices,
     byte category = 0
 ) {
     if (element->type == UI_ELEMENT_TYPE_MANUAL
@@ -864,7 +868,7 @@ uint32 ui_layout_render_dfs(
 
 uint32 ui_layout_update_render_dfs(
     UILayout* layout,
-    UIElement* __restrict element, Vertex3DTextureColor* __restrict vertices,
+    UIElement* __restrict element, Vertex3DSamplerTextureColor* __restrict vertices,
     byte category = 0
 ) {
     if (element->type == UI_ELEMENT_TYPE_MANUAL
@@ -902,13 +906,13 @@ uint32 ui_layout_update_render_dfs(
 }
 
 inline
-uint32 layout_element_from_location(UILayout* layout, uint16 x, uint16 y)
+uint32 layout_element_from_location(UILayout* layout, uint16 x, uint16 y) noexcept
 {
     return layout->ui_chroma_codes[layout->width * y / 4 + x / 4];
 }
 
 inline
-UIElement* layout_get_element(const UILayout* __restrict layout, const char* __restrict element)
+UIElement* layout_get_element(const UILayout* __restrict layout, const char* __restrict element) noexcept
 {
     HashEntryInt32* entry = (HashEntryInt32 *) hashmap_get_entry((HashMap *) &layout->hash_map, element);
     if (!entry) {
@@ -919,13 +923,13 @@ UIElement* layout_get_element(const UILayout* __restrict layout, const char* __r
 }
 
 inline
-void* layout_get_element_state(const UILayout* layout, UIElement* element)
+void* layout_get_element_state(const UILayout* layout, UIElement* element) noexcept
 {
     return layout->data + element->state;
 }
 
 inline
-void* layout_get_element_style(const UILayout* layout, UIElement* element, UIStyleType style_type)
+void* layout_get_element_style(const UILayout* layout, UIElement* element, UIStyleType style_type) noexcept
 {
     if (!element) {
         return NULL;
@@ -935,7 +939,7 @@ void* layout_get_element_style(const UILayout* layout, UIElement* element, UISty
 }
 
 inline
-UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element)
+UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element) noexcept
 {
     if (!element) {
         return NULL;
@@ -945,7 +949,7 @@ UIElement* layout_get_element_parent(const UILayout* layout, UIElement* element)
 }
 
 inline
-UIElement* layout_get_element_child(const UILayout* layout, UIElement* element, uint16 child)
+UIElement* layout_get_element_child(const UILayout* layout, UIElement* element, uint16 child) noexcept
 {
     if (!element) {
         return NULL;

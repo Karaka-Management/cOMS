@@ -10,10 +10,13 @@
 #define TOS_GPUAPI_OPENGL_SHADER_H
 
 #include "../../stdlib/Types.h"
+#include "OpenglDescriptorSetLayoutBinding.h"
 
 struct Shader {
     uint32 id;
-    uint32 locations[7];
+
+    OpenglDescriptorSetLayoutBinding descriptor_set_layout[7];
+
     byte data[16];
 };
 

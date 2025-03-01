@@ -852,7 +852,7 @@ void opengl_destroy(Window* window)
     ReleaseDC(window->hwnd, window->hdc);
 }
 
-void opengl_init(Window* window, int32 multisample = 0)
+void opengl_instance_create(Window* window, int32 multisample = 0)
 {
     gl_extensions_load();
 

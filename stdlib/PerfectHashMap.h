@@ -119,7 +119,7 @@ void perfect_hashmap_create(PerfectHashMap* hm, int32 count, int32 element_size,
         0, true
     );
 
-    LOG_LEVEL_2("Created PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_FORMAT_2("Created PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
@@ -129,7 +129,7 @@ void perfect_hashmap_create(PerfectHashMap* hm, int32 count, int32 element_size,
     hm->entry_size = element_size;
     hm->hash_entries = buf;
 
-    LOG_LEVEL_2("Created PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_FORMAT_2("Created PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
 }
 
 // Calculates how large a hashmap will be

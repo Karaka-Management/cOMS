@@ -131,6 +131,8 @@ AssetArchiveElement* asset_archive_element_find(const AssetArchive* archive, int
 
 void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* buf, RingMemory* ring, int32 steps = 8)
 {
+    PROFILE_VERBOSE(PROFILE_ASSET_ARCHIVE_LOAD, path);
+
     archive->fd = file_read_handle(path);
     if (!archive->fd) {
         return;
@@ -167,7 +169,7 @@ void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* b
     file_read(archive->fd, &file, 0, file.size);
     asset_archive_header_load(&archive->header, file.content, steps);
 
-    LOG_LEVEL_2(
+    LOG_FORMAT_2(
         "Loaded AssetArchive %s with %d assets",
         {{LOG_DATA_CHAR_STR, (void *) path}, {LOG_DATA_UINT32, (void *) &archive->header.asset_count}}
     );
@@ -180,14 +182,6 @@ void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* b
 // The only problem is that we need to pass the pointer to this int in the thrd_queue since we queue the files to load there
 Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetManagementSystem* ams, RingMemory* ring)
 {
-    // @todo add calculation from element->type to ams index. Probably requires an app specific conversion function
-
-    // We have to mask 0x00FFFFFF since the highest bits define the archive id, not the element id
-    AssetArchiveElement* element = &archive->header.asset_element[id & 0x00FFFFFF];
-
-    byte component_id = archive->asset_type_map[element->type];
-    //AssetComponent* ac = &ams->asset_components[component_id];
-
     // Create a string representation from the asset id
     // We can't just use the asset id, since an int can have a \0 between high byte and low byte
     // @question We maybe can switch the AMS to work with ints as keys.
@@ -195,6 +189,15 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     // that are not stored in the asset archive (e.g. color palette, which is generated at runtime).
     char id_str[9];
     int_to_hex(id, id_str);
+
+    PROFILE_VERBOSE(PROFILE_ASSET_ARCHIVE_ASSET_LOAD, id_str);
+    // @todo add calculation from element->type to ams index. Probably requires an app specific conversion function
+
+    // We have to mask 0x00FFFFFF since the highest bits define the archive id, not the element id
+    AssetArchiveElement* element = &archive->header.asset_element[id & 0x00FFFFFF];
+
+    byte component_id = archive->asset_type_map[element->type];
+    //AssetComponent* ac = &ams->asset_components[component_id];
 
     Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
 
@@ -301,7 +304,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     // the main program should still be able to do some work if possible
     thrd_ams_set_loaded(asset);
 
-    LOG_LEVEL_2(
+    LOG_FORMAT_2(
         "Asset %d loaded from archive %d for AMS %d with %n B compressed and %n B uncompressed",
         {{LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}}
     );

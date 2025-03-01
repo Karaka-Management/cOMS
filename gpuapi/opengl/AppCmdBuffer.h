@@ -10,6 +10,7 @@
 #define TOS_GPUAPI_OPENGL_APP_CMD_BUFFER_H
 
 #include "../../stdlib/Types.h"
+#include "../../log/PerformanceProfiler.h"
 #include "OpenglUtils.h"
 #include "Shader.h"
 #include "ShaderUtils.h"
@@ -21,7 +22,8 @@ void* cmd_shader_load(AppCmdBuffer*, Command*) {
     return NULL;
 }
 
-void* cmd_shader_load_sync(AppCmdBuffer* cb, Shader* shader, int32* shader_ids) {
+void* cmd_shader_load_sync(AppCmdBuffer* __restrict cb, Shader* __restrict shader, const int32* __restrict shader_ids) {
+    PROFILE_VERBOSE(PROFILE_CMD_SHADER_LOAD_SYNC, "");
     char asset_id[9];
 
     int32 shader_assets[SHADER_TYPE_SIZE];
@@ -56,7 +58,7 @@ void* cmd_shader_load_sync(AppCmdBuffer* cb, Shader* shader, int32* shader_ids) 
     }
 
     // Make shader/program
-    shader->id = program_make(
+    shader->id = pipeline_make(
         shader_assets[0], shader_assets[1], shader_assets[2],
         cb->mem_vol
     );

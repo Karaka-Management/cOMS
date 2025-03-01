@@ -59,7 +59,7 @@
 #define intrin_prefetch_l3(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T2)
 
 inline
-uint64 intrin_timestamp_counter() {
+uint64 intrin_timestamp_counter() noexcept {
     _mm_mfence();
     uint64 res = __rdtsc();
     _mm_mfence();

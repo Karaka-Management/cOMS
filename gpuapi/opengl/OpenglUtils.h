@@ -16,6 +16,7 @@
 #include "../../image/Image.cpp"
 #include "../../utils/StringUtils.h"
 #include "../../log/Log.h"
+#include "../../log/Stats.h"
 #include "../../system/FileUtils.cpp"
 #include "../RenderUtils.h"
 #include "Opengl.h"
@@ -31,7 +32,7 @@
     {
         GLenum err;
         while ((err = glGetError()) != GL_NO_ERROR) {
-            LOG_FORMAT(true, "Opengl error: %d", {{LOG_DATA_INT32, (int32 *) &err}});
+            LOG_FORMAT_1("Opengl error: %d", {{LOG_DATA_INT32, (int32 *) &err}});
             ASSERT_SIMPLE(err == GL_NO_ERROR);
         }
     }
@@ -59,7 +60,7 @@ void opengl_debug_callback(GLenum, GLenum, GLuint, GLenum severity, GLsizei, con
         return;
     }
 
-    LOG(true, message);
+    LOG_1(message);
     ASSERT_SIMPLE(false);
 }
 

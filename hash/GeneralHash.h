@@ -12,7 +12,8 @@
 #include "../stdlib/Types.h"
 
 inline constexpr
-uint64 hash_djb2(const char* key) {
+uint64 hash_djb2(const char* key) noexcept
+{
     uint64 hash = 5381;
     int32 c;
 
@@ -24,7 +25,7 @@ uint64 hash_djb2(const char* key) {
 }
 
 inline
-uint64 hash_sdbm(const byte* key)
+uint64 hash_sdbm(const byte* key) noexcept
 {
     uint64 hash = 0;
     int32 c;
@@ -37,7 +38,7 @@ uint64 hash_sdbm(const byte* key)
 }
 
 inline
-uint64 hash_lose_lose(const byte* key)
+uint64 hash_lose_lose(const byte* key) noexcept
 {
 	uint64 hash = 0;
 	int32 c;
@@ -50,7 +51,7 @@ uint64 hash_lose_lose(const byte* key)
 }
 
 inline
-uint64 hash_polynomial_rolling(const char* str)
+uint64 hash_polynomial_rolling(const char* str) noexcept
 {
     const int32 p = 31;
     const int32 m = 1000000009;
@@ -67,7 +68,7 @@ uint64 hash_polynomial_rolling(const char* str)
 }
 
 inline
-uint64 hash_fnv1a(const char* str)
+uint64 hash_fnv1a(const char* str) noexcept
 {
     const uint64 FNV_OFFSET_BASIS = 14695981039346656037UL;
     const uint64 FNV_PRIME = 1099511628211UL;
@@ -83,7 +84,7 @@ uint64 hash_fnv1a(const char* str)
 }
 
 inline
-uint32 hash_oat(const char* str)
+uint32 hash_oat(const char* str) noexcept
 {
     uint32 hash = 0;
 
@@ -101,7 +102,7 @@ uint32 hash_oat(const char* str)
 }
 
 inline
-uint32 hash_ejb(const char* str)
+uint32 hash_ejb(const char* str) noexcept
 {
 	const uint32 PRIME1 = 37;
 	const uint32 PRIME2 = 1048583;
@@ -116,7 +117,8 @@ uint32 hash_ejb(const char* str)
 
 #define ROTL32(x, r) ((x) << (r)) | ((x) >> (32 - (r)))
 inline constexpr
-uint32 hash_murmur3_32(const byte* key, size_t len, uint32 seed = 0) {
+uint32 hash_murmur3_32(const byte* key, size_t len, uint32 seed = 0) noexcept
+{
     uint32 h = seed;
     uint32 k;
 
@@ -164,7 +166,8 @@ uint32 hash_murmur3_32(const byte* key, size_t len, uint32 seed = 0) {
 }
 
 #define ROTL64(x, r) ((x) << (r)) | ((x) >> (64 - (r)))
-uint64 hash_murmur3_64(const void* key, size_t len, uint64 seed = 0) {
+uint64 hash_murmur3_64(const void* key, size_t len, uint64 seed = 0) noexcept
+{
     const uint64 c1 = 0x87c37b91114253d5ULL;
     const uint64 c2 = 0x4cf5ad432745937fULL;
 
@@ -288,7 +291,7 @@ uint64 hash_murmur3_64(const void* key, size_t len, uint64 seed = 0) {
 ////////////////////////////////////
 
 inline constexpr
-uint64 hash_djb2_seeded(const char* key, int32 seed)
+uint64 hash_djb2_seeded(const char* key, int32 seed) noexcept
 {
     uint64 hash = 5381;
     int32 c;
@@ -301,7 +304,7 @@ uint64 hash_djb2_seeded(const char* key, int32 seed)
 }
 
 inline
-uint64 hash_sdbm_seeded(const char* key, int32 seed)
+uint64 hash_sdbm_seeded(const char* key, int32 seed) noexcept
 {
     uint64 hash = 0;
     int32 c;
@@ -314,7 +317,7 @@ uint64 hash_sdbm_seeded(const char* key, int32 seed)
 }
 
 inline
-uint64 hash_lose_lose_seeded(const char* key, int32 seed)
+uint64 hash_lose_lose_seeded(const char* key, int32 seed) noexcept
 {
 	uint64 hash = 0;
 	int32 c;
@@ -327,7 +330,7 @@ uint64 hash_lose_lose_seeded(const char* key, int32 seed)
 }
 
 inline
-uint64 hash_polynomial_rolling_seeded(const char* str, int32 seed)
+uint64 hash_polynomial_rolling_seeded(const char* str, int32 seed) noexcept
 {
     const int32 p = 31;
     const int32 m = 1000000009;
@@ -344,7 +347,7 @@ uint64 hash_polynomial_rolling_seeded(const char* str, int32 seed)
 }
 
 inline
-uint64 hash_fnv1a_seeded(const char* str, int32 seed)
+uint64 hash_fnv1a_seeded(const char* str, int32 seed) noexcept
 {
     const uint64 FNV_OFFSET_BASIS = 14695981039346656037UL;
     const uint64 FNV_PRIME = 1099511628211UL;
@@ -360,7 +363,7 @@ uint64 hash_fnv1a_seeded(const char* str, int32 seed)
 }
 
 inline
-uint64 hash_oat_seeded(const char* str, int32 seed)
+uint64 hash_oat_seeded(const char* str, int32 seed) noexcept
 {
     uint64 hash = 0;
 
@@ -378,7 +381,7 @@ uint64 hash_oat_seeded(const char* str, int32 seed)
 }
 
 inline
-uint64 hash_ejb_seeded(const char* str, int32 seed)
+uint64 hash_ejb_seeded(const char* str, int32 seed) noexcept
 {
 	const uint64 PRIME1 = 37;
 	const uint64 PRIME2 = 1048583;
@@ -392,7 +395,7 @@ uint64 hash_ejb_seeded(const char* str, int32 seed)
 }
 
 inline
-uint32 intrin_hash(uint64 a, uint64 b = 0)
+uint32 intrin_hash(uint64 a, uint64 b = 0) noexcept
 {
     uint8 seed[16] = {
         0xaa, 0x9b, 0xbd, 0xb8, 0xa1, 0x98, 0xac, 0x3f, 0x1f, 0x94, 0x07, 0xb3, 0x8c, 0x27, 0x93, 0x69,

@@ -52,8 +52,8 @@ struct Camera {
     alignas(64) f32 orth[16];
 };
 
-void
-camera_update_vectors(Camera* camera)
+static inline
+void camera_update_vectors(Camera* camera) noexcept
 {
     f32 cos_ori_x = cosf(OMS_DEG2RAD(camera->orientation.x));
     camera->front.x = cos_ori_x * cosf(OMS_DEG2RAD(camera->orientation.y));
@@ -69,32 +69,34 @@ camera_update_vectors(Camera* camera)
     vec3_normalize(&camera->up);
 }
 
-void camera_rotate(Camera* camera, int32 dx, int32 dy)
+void camera_rotate(Camera* camera, int32 dx, int32 dy) noexcept
 {
     camera->state_changes |= CAMERA_STATE_CHANGE_NORMAL;
     camera->orientation.x += dy * camera->sensitivity;
     camera->orientation.y -= dx * camera->sensitivity;
 
-    if (true) {
-        if (camera->orientation.x > 89.0f) {
-            camera->orientation.x = 89.0f;
-        } else if (camera->orientation.x < -89.0f) {
-            camera->orientation.x = -89.0f;
-        }
+    if (camera->orientation.x > 89.0f) {
+        camera->orientation.x = 89.0f;
+    } else if (camera->orientation.x < -89.0f) {
+        camera->orientation.x = -89.0f;
+    }
 
-        if (camera->orientation.y > 360.0f) {
-            camera->orientation.y -= 360.0f;
-        } else if (camera->orientation.y < -360.0f) {
-            camera->orientation.y += 360.0f;
-        }
+    if (camera->orientation.y > 360.0f) {
+        camera->orientation.y -= 360.0f;
+    } else if (camera->orientation.y < -360.0f) {
+        camera->orientation.y += 360.0f;
     }
 
     camera_update_vectors(camera);
 }
 
 // you can have up to 4 camera movement inputs at the same time
-void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool relative_to_world = true)
-{
+void camera_movement(
+    Camera* __restrict camera,
+    CameraMovement* __restrict movement,
+    f32 dt,
+    bool relative_to_world = true
+) noexcept {
     camera->state_changes |= CAMERA_STATE_CHANGE_NORMAL;
     f32 velocity = camera->speed * dt;
 
@@ -224,7 +226,7 @@ void camera_movement(Camera* camera, CameraMovement* movement, f32 dt, bool rela
 }
 
 inline
-void camera_orth_matrix_lh(Camera* __restrict camera)
+void camera_orth_matrix_lh(Camera* __restrict camera) noexcept
 {
     //mat4_identity(camera->orth);
     camera->orth[15] = 1.0f;
@@ -238,7 +240,7 @@ void camera_orth_matrix_lh(Camera* __restrict camera)
 }
 
 inline
-void camera_orth_matrix_rh(Camera* __restrict camera)
+void camera_orth_matrix_rh(Camera* __restrict camera) noexcept
 {
     //mat4_identity(camera->orth);
     camera->orth[15] = 1.0f;
@@ -252,7 +254,7 @@ void camera_orth_matrix_rh(Camera* __restrict camera)
 }
 
 inline
-void camera_projection_matrix_lh(Camera* __restrict camera)
+void camera_projection_matrix_lh(Camera* __restrict camera) noexcept
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
@@ -266,7 +268,7 @@ void camera_projection_matrix_lh(Camera* __restrict camera)
 }
 
 inline
-void camera_projection_matrix_rh(Camera* __restrict camera)
+void camera_projection_matrix_rh(Camera* __restrict camera) noexcept
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
@@ -282,7 +284,7 @@ void camera_projection_matrix_rh(Camera* __restrict camera)
 // This is usually not used, since it is included in the view matrix
 // expects the identity matrix
 inline
-void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, f32* translation)
+void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, f32* translation) noexcept
 {
     translation[12] = camera->location.x;
     translation[13] = camera->location.y;
@@ -290,7 +292,7 @@ void camera_translation_matrix_sparse_rh(const Camera* __restrict camera, f32* t
 }
 
 inline
-void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* translation)
+void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* translation) noexcept
 {
     translation[3] = camera->location.x;
     translation[7] = camera->location.y;
@@ -298,7 +300,7 @@ void camera_translation_matrix_sparse_lh(const Camera* __restrict camera, f32* t
 }
 
 void
-camera_view_matrix_lh(Camera* __restrict camera)
+camera_view_matrix_lh(Camera* __restrict camera) noexcept
 {
     v3_f32 zaxis = { camera->front.x, camera->front.y, camera->front.z };
 
@@ -330,7 +332,7 @@ camera_view_matrix_lh(Camera* __restrict camera)
 }
 
 void
-camera_view_matrix_rh(Camera* __restrict camera)
+camera_view_matrix_rh(Camera* __restrict camera) noexcept
 {
     v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 

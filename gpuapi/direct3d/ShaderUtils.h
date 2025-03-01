@@ -44,7 +44,7 @@ ID3DBlob* shader_make(const char* type, const char* source, int32 source_size)
     ID3DBlob* blob;
     ID3DBlob* errMsgs;
     if (FAILED(D3DCompile2(source, source_size, NULL, NULL, NULL, "main", type, compileFlags, 0, 0, NULL, 0, &blob, &errMsgs))) {
-        LOG(true, "DirectX12 D3DCompile2");
+        LOG_1("DirectX12 D3DCompile2");
         ASSERT_SIMPLE(false);
     }
 
@@ -55,7 +55,7 @@ ID3DBlob* shader_make(const char* type, const char* source, int32 source_size)
     return blob;
 }
 
-ID3D12PipelineState* program_make(
+ID3D12PipelineState* pipeline_make(
     ID3D12Device* device,
     ID3D12PipelineState** pipeline,
     ID3D12RootSignature* pipeline_layout,
@@ -118,7 +118,7 @@ ID3D12PipelineState* program_make(
     pipeline_state_info.SampleDesc.Count = 1;
 
     if (FAILED(device->CreateGraphicsPipelineState(&pipeline_state_info, IID_PPV_ARGS(pipeline)))) {
-        LOG(true, "DirectX12 CreateGraphicsPipelineState");
+        LOG_1("DirectX12 CreateGraphicsPipelineState");
         ASSERT_SIMPLE(false);
     }
 

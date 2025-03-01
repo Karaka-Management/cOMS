@@ -9,6 +9,7 @@
 #ifndef TOS_GPUAPI_DIRECTX_UTILS_H
 #define TOS_GPUAPI_DIRECTX_UTILS_H
 
+#include "../../stdlib/Types.h"
 #include <windows.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
@@ -16,8 +17,7 @@
 #include "../../../GameEngine/log/Log.h"
 // #include "../../../EngineDependencies/directx/d3d12.h"
 // #include "../../../EngineDependencies/directx/d3dx12.h"
-
-#include "../../stdlib/Types.h"
+#include "FramesInFlightContainer.h"
 
 // A more (compile-time) efficient version of the windows macro IID_PPV_ARGS
 #define IID_PPVOID(pointer) __uuidof(**(pointer)), (void **) (pointer)
@@ -91,33 +91,33 @@ int32 max_directx_version()
 
 // Returns frame index
 int32 wait_for_previous_frame(
-    ID3D12Fence* fence, HANDLE fence_event, UINT64* fence_value,
+    FramesInFlightContainer* frames_in_flight,
     ID3D12CommandQueue* graphics_queue, IDXGISwapChain3* swapchain
 )
 {
-    // WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
+    // @todo WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
     // This is code implemented as such for simplicity. The D3D12HelloFrameBuffering
     // sample illustrates how to use fences for efficient resource usage and to
     // maximize GPU utilization.
 
-    UINT64 fence_value_temp = *fence_value;
+    UINT64 fence_value_temp = frames_in_flight->fence_value;
 
     // Signal and increment the fence value.
-    if(FAILED(graphics_queue->Signal(fence, fence_value_temp))) {
-        LOG(true, "DirectX12 Signal");
+    if(FAILED(graphics_queue->Signal(frames_in_flight->fence, fence_value_temp))) {
+        LOG_1("DirectX12 Signal");
         ASSERT_SIMPLE(false);
     }
 
-    ++(*fence_value);
+    ++frames_in_flight->fence_value;
 
     // Wait until the previous frame is finished.
-    if (fence->GetCompletedValue() < fence_value_temp) {
-        if (FAILED(fence->SetEventOnCompletion(fence_value_temp, fence_event))) {
-            LOG(true, "DirectX12 SetEventOnCompletion");
+    if (frames_in_flight->fence->GetCompletedValue() < fence_value_temp) {
+        if (FAILED(frames_in_flight->fence->SetEventOnCompletion(fence_value_temp, frames_in_flight->fence_event))) {
+            LOG_1("DirectX12 SetEventOnCompletion");
             ASSERT_SIMPLE(false);
         }
 
-        WaitForSingleObject(fence_event, INFINITE);
+        WaitForSingleObject(frames_in_flight->fence_event, INFINITE);
     }
 
     return swapchain->GetCurrentBackBufferIndex();
@@ -144,7 +144,7 @@ void directx_debug_callback(
     }
     */
 
-    LOG(true, description);
+    LOG_1(description);
     ASSERT_SIMPLE(false);
 }
 
@@ -172,7 +172,7 @@ void gpuapi_debug_messenger_setup(ID3D12Device* device)
 inline
 void gpuapi_create_logical_device(ID3D12Device** device) {
     if (FAILED(D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_11_0, IID_PPVOID(device)))) {
-        LOG(true, "DirectX12 D3D12CreateDevice");
+        LOG_1("DirectX12 D3D12CreateDevice");
         ASSERT_SIMPLE(false);
     }
 }

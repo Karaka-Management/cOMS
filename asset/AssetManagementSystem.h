@@ -46,7 +46,7 @@ void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 asset_compo
     ams->asset_component_count = asset_component_count;
     ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), 64, true);
 
-    LOG_LEVEL_2("Created AMS for %n assets", {{LOG_DATA_INT32, &count}});
+    LOG_FORMAT_2("Created AMS for %n assets", {{LOG_DATA_INT32, &count}});
 }
 
 inline
@@ -57,7 +57,7 @@ void ams_component_create(AssetComponent* ac, BufferMemory* buf, int32 chunk_siz
     chunk_init(&ac->asset_memory, buf, count, chunk_size, 64);
     pthread_mutex_init(&ac->mutex, NULL);
 
-    LOG_LEVEL_2("Created AMS Component for %n assets and %n B = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}, {LOG_DATA_UINT64, &ac->asset_memory.size}});
+    LOG_FORMAT_2("Created AMS Component for %n assets and %n B = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}, {LOG_DATA_UINT64, &ac->asset_memory.size}});
 }
 
 inline
@@ -74,7 +74,7 @@ void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32
 
     pthread_mutex_init(&ac->mutex, NULL);
 
-    LOG_LEVEL_2("Created AMS Component for %n assets and %n B = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}, {LOG_DATA_UINT64, &ac->asset_memory.size}});
+    LOG_FORMAT_2("Created AMS Component for %n assets and %n B = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}, {LOG_DATA_UINT64, &ac->asset_memory.size}});
 }
 
 inline

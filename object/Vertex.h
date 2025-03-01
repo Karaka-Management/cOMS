@@ -23,6 +23,14 @@ struct Vertex3DNormal {
     v3_f32 normal;
 };
 
+struct Vertex3DSamplerTextureColor {
+    v3_f32 position;
+    int32 sampler;
+
+    // If negative = color, positive = texture
+    v2_f32 texture_color;
+};
+
 struct Vertex3DTextureColor {
     v3_f32 position;
 

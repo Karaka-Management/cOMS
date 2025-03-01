@@ -64,7 +64,7 @@ void thrd_ring_free(ThreadedRingMemory* ring)
 }
 
 inline
-byte* thrd_ring_calculate_position(ThreadedRingMemory* ring, uint64 size, byte aligned = 4)
+byte* thrd_ring_calculate_position(ThreadedRingMemory* ring, uint64 size, byte aligned = 4) noexcept
 {
     pthread_mutex_lock(&ring->mutex);
     byte* result = ring_calculate_position((RingMemory *) ring, size, aligned);
@@ -74,7 +74,7 @@ byte* thrd_ring_calculate_position(ThreadedRingMemory* ring, uint64 size, byte a
 }
 
 inline
-void thrd_ring_reset(ThreadedRingMemory* ring)
+void thrd_ring_reset(ThreadedRingMemory* ring) noexcept
 {
     pthread_mutex_lock(&ring->mutex);
     ring_reset((RingMemory *) ring);
@@ -82,14 +82,14 @@ void thrd_ring_reset(ThreadedRingMemory* ring)
 }
 
 // Moves a pointer based on the size you want to consume (new position = after consuming size)
-void thrd_ring_move_pointer(ThreadedRingMemory* ring, byte** pos, uint64 size, byte aligned = 4)
+void thrd_ring_move_pointer(ThreadedRingMemory* ring, byte** pos, uint64 size, byte aligned = 4) noexcept
 {
     pthread_mutex_lock(&ring->mutex);
     ring_move_pointer((RingMemory *) ring, pos, size, aligned);
     pthread_mutex_unlock(&ring->mutex);
 }
 
-byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned = 4, bool zeroed = false)
+byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned = 4, bool zeroed = false) noexcept
 {
     pthread_mutex_lock(&ring->mutex);
     byte* result = ring_get_memory((RingMemory *) ring, size, aligned, zeroed);
@@ -99,7 +99,7 @@ byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned =
 }
 
 // Same as ring_get_memory but DOESN'T move the head
-byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* ring, uint64 size, byte aligned = 4, bool zeroed = false)
+byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* ring, uint64 size, byte aligned = 4, bool zeroed = false) noexcept
 {
     pthread_mutex_lock(&ring->mutex);
     byte* result = ring_get_memory_nomove((RingMemory *) ring, size, aligned, zeroed);
@@ -111,7 +111,7 @@ byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* ring, uint64 size, byte al
 // Used if the ring only contains elements of a certain size
 // This way you can get a certain element
 inline
-byte* thrd_ring_get_element(ThreadedRingMemory* ring, uint64 element, uint64 size)
+byte* thrd_ring_get_element(ThreadedRingMemory* ring, uint64 element, uint64 size) noexcept
 {
     pthread_mutex_lock(&ring->mutex);
     byte* result = ring_get_element((RingMemory *) ring, element, size);
@@ -124,7 +124,7 @@ byte* thrd_ring_get_element(ThreadedRingMemory* ring, uint64 element, uint64 siz
  * Checks if one additional element can be inserted without overwriting the tail index
  */
 inline
-bool thrd_ring_commit_safe(ThreadedRingMemory* ring, uint64 size, byte aligned = 4)
+bool thrd_ring_commit_safe(ThreadedRingMemory* ring, uint64 size, byte aligned = 4) noexcept
 {
     pthread_mutex_lock(&ring->mutex);
     bool result = ring_commit_safe((RingMemory *) ring, size, aligned);
@@ -134,19 +134,19 @@ bool thrd_ring_commit_safe(ThreadedRingMemory* ring, uint64 size, byte aligned =
 }
 
 inline
-void thrd_ring_force_head_update(const ThreadedRingMemory* ring)
+void thrd_ring_force_head_update(const ThreadedRingMemory* ring) noexcept
 {
     _mm_clflush(ring->head);
 }
 
 inline
-void thrd_ring_force_tail_update(const ThreadedRingMemory* ring)
+void thrd_ring_force_tail_update(const ThreadedRingMemory* ring) noexcept
 {
     _mm_clflush(ring->tail);
 }
 
 inline
-int64 thrd_ring_dump(ThreadedRingMemory* ring, byte* data)
+int64 thrd_ring_dump(ThreadedRingMemory* ring, byte* data) noexcept
 {
     pthread_mutex_lock(&ring->mutex);
     int64 result = ring_dump((RingMemory *) ring, data);

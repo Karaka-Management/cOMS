@@ -24,6 +24,9 @@
 
 #define FORCE_INLINE __attribute__((always_inline))
 
+#include <unistd.h>
+#define compiler_debug_print(message) while (*message++) { write(STDOUT_FILENO, (message), 1); }
+
 #define compiler_popcount_32(data) __builtin_popcount((data))
 #define compiler_popcount_64(data) __builtin_popcountl((data))
 #define __restrict __restrict__
@@ -33,7 +36,7 @@
 #define compiler_prefetch_l2(mem) __builtin_prefetch((mem), 0, 2)
 #define compiler_prefetch_l3(mem) __builtin_prefetch((mem), 0, 1)
 
-int32 compiler_find_first_bit_r2l(uint64 mask) {
+int32 compiler_find_first_bit_r2l(uint64 mask) noexcept {
     if (!mask) {
         return -1;
     }
@@ -45,7 +48,7 @@ int32 compiler_find_first_bit_r2l(uint64 mask) {
     #endif
 }
 
-int32 compiler_find_first_bit_r2l(uint32 mask) {
+int32 compiler_find_first_bit_r2l(uint32 mask) noexcept {
     if (!mask) {
         return -1;
     }
@@ -57,7 +60,7 @@ int32 compiler_find_first_bit_r2l(uint32 mask) {
     #endif
 }
 
-int32 compiler_find_first_bit_l2r(uint64 mask) {
+int32 compiler_find_first_bit_l2r(uint64 mask) noexcept {
     if (!mask) {
         return -1;
     }
@@ -69,7 +72,7 @@ int32 compiler_find_first_bit_l2r(uint64 mask) {
     #endif
 }
 
-int32 compiler_find_first_bit_l2r(uint32 mask) {
+int32 compiler_find_first_bit_l2r(uint32 mask) noexcept {
     if (!mask) {
         return -1;
     }
@@ -91,7 +94,7 @@ void cpuid(int32 cpuInfo[4], int32 function_id) {
 */
 
 inline
-void compiler_cpuid(int32 cpuInfo[4], int32 function_id) {
+void compiler_cpuid(int32 cpuInfo[4], int32 function_id) noexcept {
     asm volatile(
         "cpuid"
         : "=a" (cpuInfo[0]), "=b" (cpuInfo[1]), "=c" (cpuInfo[2]), "=d" (cpuInfo[3])

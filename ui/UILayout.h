@@ -106,7 +106,7 @@ struct UILayout {
     // The reason for this is that some elements may need different vertex counts for different states (e.g. input field)
     // WARNING: This memory is shared between different layouts
     uint32 active_vertex_size;
-    Vertex3DTextureColor* vertices_active; // Not the data owner (see data above)
+    Vertex3DSamplerTextureColor* vertices_active; // Not the data owner (see data above)
 
     // Used during the initialization so that every element knows where we currently are during the setup process
     uint32 active_vertex_offset;

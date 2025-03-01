@@ -33,14 +33,14 @@
 // @performance I feel like there is some more optimization possible by handling fully transparent pixels in a special way
 // @todo We need to implement monochrome handling, which is very important for game assets that often use monochrome assets for all kinds of things (e.g. translucency)
 
-const byte optable[128] = {
+static const byte optable[128] = {
     0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
     2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
     3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
     3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3
 };
 
-int32 qoi_encode(const Image* image, byte* data)
+int32 qoi_encode(const Image* image, byte* data) noexcept
 {
     byte* start = data;
     data += image_header_to_data(image, data);
@@ -191,7 +191,8 @@ int32 qoi_encode(const Image* image, byte* data)
 	return (int32) (data - start);
 }
 
-int32 qoi_decode_4(const byte* data, Image* image)
+static
+int32 qoi_decode_4(const byte* data, Image* image) noexcept
 {
     uint32 px_len = image->width * image->height * 4;
     v4_byte px = {0, 0, 0, 255};
@@ -241,7 +242,8 @@ int32 qoi_decode_4(const byte* data, Image* image)
     return px_len;
 }
 
-int32 qoi_decode_3(const byte* data, Image* image)
+static
+int32 qoi_decode_3(const byte* data, Image* image) noexcept
 {
 	uint32 px_len = image->width * image->height * 3;
     v3_byte px = {0, 0, 0};
@@ -288,7 +290,7 @@ int32 qoi_decode_3(const byte* data, Image* image)
     return px_len;
 }
 
-int32 qoi_decode(const byte* data, Image* image)
+int32 qoi_decode(const byte* data, Image* image) noexcept
 {
     int32 header_length = image_header_from_data(data, image);
 

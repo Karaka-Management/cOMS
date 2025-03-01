@@ -11,13 +11,32 @@
 
 #include "../stdlib/Types.h"
 #include "../compiler/CompilerUtils.h"
+#include "../architecture/Intrinsics.h"
 #include "../utils/StringUtils.h"
 #include "../platform/win32/TimeUtils.h"
+
+/**
+ * The logging is both using file logging and in-memory logging.
+ * Debug builds also log to the debug console, or alternative standard output if no dedicated debug console is available
+ */
 
 #define LOG_DATA_ARRAY 5
 
 #ifndef LOG_LEVEL
-    #define LOG_LEVEL 0
+    // 0 = no logging at all
+    // 1 = release logging
+    // 2 = internal logging
+    // 3 = debug logging
+    // 4 = most verbose (probably has significant performance impacts)
+    #if DEBUG
+        #define LOG_LEVEL 3
+    #elif INTERNAL
+        #define LOG_LEVEL 2
+    #elif RELEASE
+        #define LOG_LEVEL 1
+    #else
+        #define LOG_LEVEL 0
+    #endif
 #endif
 
 #ifndef MAX_LOG_LENGTH
@@ -62,6 +81,11 @@ struct LogMessage {
     int32 line;
     uint64 time;
     char* message;
+
+    // We use this element to force a new line when saving the log to the file
+    // This is MUCH faster compared to iteratively export every log message with a new line
+    // The new line makes it much easier to manually read the log file (especially during development)
+    char newline;
 };
 
 struct LogData {
@@ -74,7 +98,7 @@ struct LogDataArray{
 };
 
 // @bug This probably requires thread safety
-byte* log_get_memory()
+byte* log_get_memory() noexcept
 {
     if (_log_memory->pos + MAX_LOG_LENGTH > _log_memory->size) {
         _log_memory->pos = 0;
@@ -88,6 +112,7 @@ byte* log_get_memory()
     return offset;
 }
 
+// @performance This should only be called async to avoid blocking (e.g. render loop)
 void log_to_file()
 {
     // we don't log an empty log pool
@@ -117,9 +142,9 @@ void log_to_file()
     #endif
 }
 
-void log(const char* str, bool should_log, const char* file, const char* function, int32 line)
+void log(const char* str, const char* file, const char* function, int32 line)
 {
-    if (!should_log || !_log_memory) {
+    if (!_log_memory) {
         return;
     }
 
@@ -127,12 +152,13 @@ void log(const char* str, bool should_log, const char* file, const char* functio
     while (len > 0) {
         LogMessage* msg = (LogMessage *) log_get_memory();
 
-        // Fill file
+        // Dump to file
         msg->file = file;
         msg->function = function;
         msg->line = line;
         msg->message = (char *) (msg + 1);
         msg->time = system_time();
+        msg->newline = '\n';
 
         int32 message_length = (int32) OMS_MIN(MAX_LOG_LENGTH - sizeof(LogMessage) - 1, len);
 
@@ -141,6 +167,12 @@ void log(const char* str, bool should_log, const char* file, const char* functio
         str += message_length;
         len -= MAX_LOG_LENGTH - sizeof(LogMessage);
 
+        #if DEBUG
+            // In debug mode we always output the log message to the debug console
+            compiler_debug_print(msg->message);
+            compiler_debug_print("\n");
+        #endif
+
         if (_log_memory->size - _log_memory->pos < MAX_LOG_LENGTH) {
             log_to_file();
             _log_memory->pos = 0;
@@ -148,16 +180,16 @@ void log(const char* str, bool should_log, const char* file, const char* functio
     }
 }
 
-void log(const char* format, LogDataArray data, bool should_log, const char* file, const char* function, int32 line)
+void log(const char* format, LogDataArray data, const char* file, const char* function, int32 line)
 {
     ASSERT_SIMPLE(str_length(format) + str_length(file) + str_length(function) + 50 < MAX_LOG_LENGTH);
 
-    if (!should_log || !_log_memory) {
+    if (!_log_memory) {
         return;
     }
 
     if (data.data[0].type == LOG_DATA_VOID) {
-        log(format, should_log, file, function, line);
+        log(format, file, function, line);
         return;
     }
 
@@ -167,6 +199,7 @@ void log(const char* format, LogDataArray data, bool should_log, const char* fil
     msg->line = line;
     msg->message = (char *) (msg + 1);
     msg->time = system_time();
+    msg->newline = '\n';
 
     char temp_format[MAX_LOG_LENGTH];
     str_copy_short(msg->message, format);
@@ -214,25 +247,245 @@ void log(const char* format, LogDataArray data, bool should_log, const char* fil
         }
     }
 
+    #if DEBUG
+        // In debug mode we always output the log message to the debug console
+        compiler_debug_print(msg->message);
+        compiler_debug_print("\n");
+    #endif
+
     if (_log_memory->size - _log_memory->pos < MAX_LOG_LENGTH) {
         log_to_file();
         _log_memory->pos = 0;
     }
 }
 
-#define LOG(should_log, str) log((str), (should_log), __FILE__, __func__, __LINE__)
-#define LOG_FORMAT(should_log, format, ...) log((format), LogDataArray{__VA_ARGS__}, (should_log), __FILE__, __func__, __LINE__)
 #define LOG_TO_FILE() log_to_file()
 
-#if LOG_LEVEL == 2
-    #define LOG_LEVEL_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, true, __FILE__, __func__, __LINE__)
-    #define LOG_LEVEL_2(format, ...) log((format), LogDataArray{__VA_ARGS__}, true, __FILE__, __func__, __LINE__)
+#if LOG_LEVEL == 4
+    // Complete logging
+    #define LOG_1(str) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_2(str) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_3(str) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_4(str) log((str), __FILE__, __func__, __LINE__)
+
+    #define LOG_FORMAT_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_2(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_3(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_4(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+
+    #define LOG_TRUE_1(should_log, str) if ((should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_2(should_log, str) if ((should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_3(should_log, str) if ((should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_4(should_log, str) if ((should_log)) log((str), __FILE__, __func__, __LINE__)
+
+    #define LOG_FALSE_1(should_log, str) if (!(should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_2(should_log, str) if (!(should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_3(should_log, str) if (!(should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_4(should_log, str) if (!(should_log)) log((str), __FILE__, __func__, __LINE__)
+
+    #define LOG_FORMAT_TRUE_1(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_TRUE_2(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_TRUE_3(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_TRUE_4(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+
+    #define LOG_FORMAT_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_FALSE_2(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_FALSE_3(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_FALSE_4(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+
+    #define LOG_IF_1(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
+    #define LOG_IF_2(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
+    #define LOG_IF_3(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
+    #define LOG_IF_4(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
+
+    #define LOG_CYCLE_START(var_name) uint64 var_name##_start_time = intrin_timestamp_counter()
+    #define LOG_CYCLE_END(var_name, format) \
+        uint64 var_name##_duration = (uint64) (intrin_timestamp_counter() - var_name##_start_time); \
+        LOG_FORMAT_1((format), {{LOG_DATA_UINT64, &var_name##_duration}})
+
+    // Only intended for manual debugging
+    // Of course a developer could always use printf but by providing this option,
+    // we hope to avoid the situation where someone forgets to remove the printf
+    // By using this macro we at least ensure it gets removed from the release build
+    #define DEBUG_VERBOSE(str) compiler_debug_print((str))
+    #define DEBUG_FORMAT_VERBOSE(format, ...) \
+    ({ \
+        char debug_str[1024]; \
+        sprintf_fast(&debug_str, 1024, format, __VA_ARGS__); \
+        compiler_debug_print((debug_str)); \
+    })
+#elif LOG_LEVEL == 3
+    #define LOG_1(str) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_2(str) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_3(str) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_4(str) ((void) 0)
+
+    #define LOG_FORMAT_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_2(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_3(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_4(format, ...) ((void) 0)
+
+    #define LOG_TRUE_1(should_log, str) if ((should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_2(should_log, str) if ((should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_3(should_log, str) if ((should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_4(should_log, str) ((void) 0)
+
+    #define LOG_FALSE_1(should_log, str) if (!(should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_2(should_log, str) if (!(should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_3(should_log, str) if (!(should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_4(should_log, str) ((void) 0)
+
+    #define LOG_FORMAT_TRUE_1(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_TRUE_2(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_TRUE_3(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_TRUE_4(should_log, format, ...) ((void) 0)
+
+    #define LOG_FORMAT_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_FALSE_2(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_FALSE_3(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_FALSE_4(should_log, format, ...) ((void) 0)
+
+    #define LOG_IF_1(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
+    #define LOG_IF_2(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
+    #define LOG_IF_3(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
+    // Only logs on failure
+    #define LOG_IF_4(expr, str_succeeded, str_failed) if (!(expr)) log((str_succeeded), __FILE__, __func__, __LINE__)
+
+    #define LOG_CYCLE_START(var_name) uint64 var_name##_start_time = intrin_timestamp_counter()
+    #define LOG_CYCLE_END(var_name, format) \
+        uint64 var_name##_duration = (uint64) (intrin_timestamp_counter() - var_name##_start_time); \
+        LOG_FORMAT_1((format), {{LOG_DATA_UINT64, &var_name##_duration}})
+
+    #define DEBUG_VERBOSE(str) ((void) 0)
+    #define DEBUG_FORMAT_VERBOSE(str, ...) ((void) 0)
+#elif LOG_LEVEL == 2
+    #define LOG_1(str) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_2(str) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_3(str) ((void) 0)
+    #define LOG_4(str) ((void) 0)
+
+    #define LOG_FORMAT_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_2(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_3(format, ...) ((void) 0)
+    #define LOG_FORMAT_4(format, ...) ((void) 0)
+
+    #define LOG_TRUE_1(should_log, str) if ((should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_2(should_log, str) if ((should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_3(should_log, str) ((void) 0)
+    #define LOG_TRUE_4(should_log, str) ((void) 0)
+
+    #define LOG_FALSE_1(should_log, str) if (!(should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_2(should_log, str) if (!(should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_3(should_log, str) ((void) 0)
+    #define LOG_FALSE_4(should_log, str) ((void) 0)
+
+    #define LOG_FORMAT_TRUE_1(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_TRUE_2(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_TRUE_3(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_TRUE_4(should_log, format, ...) ((void) 0)
+
+    #define LOG_FORMAT_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_FALSE_2(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_FALSE_3(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_FALSE_4(should_log, format, ...) ((void) 0)
+
+    #define LOG_IF_1(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
+    #define LOG_IF_2(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
+    // Only logs on failure
+    #define LOG_IF_3(expr, str_succeeded, str_failed) if (!(expr)) log((str_succeeded), __FILE__, __func__, __LINE__)
+    #define LOG_IF_4(expr, str_succeeded, str_failed) ((void) 0)
+
+    #define LOG_CYCLE_START(var_name) uint64 var_name##_start_time = intrin_timestamp_counter()
+    #define LOG_CYCLE_END(var_name, format) \
+        uint64 var_name##_duration = (uint64) (intrin_timestamp_counter() - var_name##_start_time); \
+        LOG_FORMAT_1((format), {{LOG_DATA_UINT64, &var_name##_duration}})
+
+    #define DEBUG_VERBOSE(str) ((void) 0)
+    #define DEBUG_FORMAT_VERBOSE(str, ...) ((void) 0)
 #elif LOG_LEVEL == 1
-    #define LOG_LEVEL_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, true, __FILE__, __func__, __LINE__)
-    #define LOG_LEVEL_2(format, ...) ((void) 0)
+    #define LOG_1(str) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_2(str) ((void) 0)
+    #define LOG_3(str) ((void) 0)
+    #define LOG_4(str) ((void) 0)
+
+    #define LOG_FORMAT_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_2(format, ...) ((void) 0)
+    #define LOG_FORMAT_3(format, ...) ((void) 0)
+    #define LOG_FORMAT_4(format, ...) ((void) 0)
+
+    #define LOG_TRUE_1(should_log, str) if ((should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_TRUE_2(should_log, str) ((void) 0)
+    #define LOG_TRUE_3(should_log, str) ((void) 0)
+    #define LOG_TRUE_4(should_log, str) ((void) 0)
+
+    #define LOG_FALSE_1(should_log, str) if (!(should_log)) log((str), __FILE__, __func__, __LINE__)
+    #define LOG_FALSE_2(should_log, str) ((void) 0)
+    #define LOG_FALSE_3(should_log, str) ((void) 0)
+    #define LOG_FALSE_4(should_log, str) ((void) 0)
+
+    #define LOG_FORMAT_TRUE_1(should_log, format, ...) if ((should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_TRUE_2(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_TRUE_3(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_TRUE_4(should_log, format, ...) ((void) 0)
+
+    #define LOG_FORMAT_FALSE_1(should_log, format, ...) if (!(should_log)) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)
+    #define LOG_FORMAT_FALSE_2(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_FALSE_3(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_FALSE_4(should_log, format, ...) ((void) 0)
+
+    #define LOG_IF_1(expr, str_succeeded, str_failed) if ((expr)) { log((str_succeeded), __FILE__, __func__, __LINE__); } else { log((str_succeeded), __FILE__, __func__, __LINE__); }
+    // Only logs on failure
+    #define LOG_IF_2(expr, str_succeeded, str_failed) if (!(expr)) log((str_succeeded), __FILE__, __func__, __LINE__)
+    #define LOG_IF_3(expr, str_succeeded, str_failed) ((void) 0)
+    #define LOG_IF_4(expr, str_succeeded, str_failed) ((void) 0)
+
+    #define LOG_CYCLE_START(var_name) ((void) 0)
+    #define LOG_CYCLE_END(var_name, format) ((void) 0)
+
+    #define DEBUG_VERBOSE(str) ((void) 0)
+    #define DEBUG_FORMAT_VERBOSE(str, ...) ((void) 0)
 #elif LOG_LEVEL == 0
-    #define LOG_LEVEL_1(format, ...) ((void) 0)
-    #define LOG_LEVEL_2(format, ...) ((void) 0)
+    // No logging whatsoever
+    #define LOG_1(str) ((void) 0)
+    #define LOG_2(str) ((void) 0)
+    #define LOG_3(str) ((void) 0)
+    #define LOG_4(str) ((void) 0)
+
+    #define LOG_FORMAT_1(format, ...) ((void) 0)
+    #define LOG_FORMAT_2(format, ...) ((void) 0)
+    #define LOG_FORMAT_3(format, ...) ((void) 0)
+    #define LOG_FORMAT_4(format, ...) ((void) 0)
+
+    #define LOG_TRUE_1(should_log, str) ((void) 0)
+    #define LOG_TRUE_2(should_log, str) ((void) 0)
+    #define LOG_TRUE_3(should_log, str) ((void) 0)
+    #define LOG_TRUE_4(should_log, str) ((void) 0)
+
+    #define LOG_FALSE_1(should_log, str) ((void) 0)
+    #define LOG_FALSE_2(should_log, str) ((void) 0)
+    #define LOG_FALSE_3(should_log, str) ((void) 0)
+    #define LOG_FALSE_4(should_log, str) ((void) 0)
+
+    #define LOG_FORMAT_TRUE_1(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_TRUE_2(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_TRUE_3(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_TRUE_4(should_log, format, ...) ((void) 0)
+
+    #define LOG_FORMAT_FALSE_1(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_FALSE_2(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_FALSE_3(should_log, format, ...) ((void) 0)
+    #define LOG_FORMAT_FALSE_4(should_log, format, ...) ((void) 0)
+
+    #define LOG_IF_1(expr, str_succeeded, str_failed) ((void) 0)
+    #define LOG_IF_2(expr, str_succeeded, str_failed) ((void) 0)
+    #define LOG_IF_3(expr, str_succeeded, str_failed) ((void) 0)
+    #define LOG_IF_4(expr, str_succeeded, str_failed) ((void) 0)
+
+    #define LOG_CYCLE_START(var_name) ((void) 0)
+    #define LOG_CYCLE_END(var_name, format) ((void) 0)
+
+    #define DEBUG_VERBOSE(str) ((void) 0)
+    #define DEBUG_FORMAT_VERBOSE(str, ...) ((void) 0)
 #endif
 
 #endif

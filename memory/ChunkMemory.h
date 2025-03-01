@@ -43,6 +43,7 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
 {
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
+    PROFILE_VERBOSE(PROFILE_CHUNK_ALLOC, "");
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
@@ -63,7 +64,7 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
 
     DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
-    LOG_LEVEL_2("Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_FORMAT_2("Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 }
 
 inline
@@ -133,12 +134,12 @@ void chunk_free(ChunkMemory* buf)
 }
 
 inline
-uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) {
+uint32 chunk_id_from_memory(const ChunkMemory* buf, const byte* pos) noexcept {
     return (uint32) ((uintptr_t) pos - (uintptr_t) buf->memory) / buf->chunk_size;
 }
 
 inline
-byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false)
+byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false) noexcept
 {
     if (element >= buf->count) {
         return NULL;
@@ -156,7 +157,7 @@ byte* chunk_get_element(ChunkMemory* buf, uint64 element, bool zeroed = false)
     return offset;
 }
 
-int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1)
+int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) noexcept
 {
     if ((uint32) (buf->last_pos + 1) >= buf->count) {
         buf->last_pos = -1;
@@ -237,7 +238,7 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1)
                     uint32 bits_in_current_block = OMS_MIN(64 - current_bit_index, elements_temp);
 
                     // Create a mask to set the bits
-                    uint64 mask = ((1ULL << bits_in_current_block) - 1) << current_bit_index;
+                    uint64 mask = ((1ULL << (bits_in_current_block & 63)) - 1) << current_bit_index | ((bits_in_current_block >> 6) * ((uint64_t)-1));
                     buf->free[current_free_index] |= mask;
 
                     // Update the counters and indices
@@ -264,14 +265,14 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1)
 }
 
 inline
-void chunk_free_element(ChunkMemory* buf, uint64 free_index, int32 bit_index)
+void chunk_free_element(ChunkMemory* buf, uint64 free_index, int32 bit_index) noexcept
 {
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + (free_index * 64 + bit_index) * buf->chunk_size), buf->chunk_size);
     buf->free[free_index] &= ~(1ULL << bit_index);
 }
 
 inline
-void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count = 1)
+void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count = 1) noexcept
 {
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size);
 
@@ -359,7 +360,7 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
 
     buf->free = (uint64 *) (buf->memory + buf->count * buf->chunk_size);
 
-    LOG_LEVEL_2("Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_FORMAT_2("Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 
     return buf->size;
 }

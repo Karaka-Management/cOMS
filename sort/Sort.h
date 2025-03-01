@@ -8,7 +8,7 @@
 #include "InsertionSort.h"
 
 inline
-void sort_introsort(void* arr, size_t num, size_t size, int32 (*compare)(const void*, const void*)) {
+void sort_introsort(void* arr, size_t num, size_t size, int32 (*compare)(const void* __restrict, const void* __restrict) noexcept) noexcept {
     size_t depth_limit = 0;
     for (size_t n = num; n > 0; n >>= 1) {
         ++depth_limit;
@@ -20,14 +20,14 @@ void sort_introsort(void* arr, size_t num, size_t size, int32 (*compare)(const v
 }
 
 inline
-void sort_quicksort(void* arr, size_t num, size_t size, int32 (*compare)(const void*, const void*)) {
+void sort_quicksort(void* arr, size_t num, size_t size, int32 (*compare)(const void* __restrict, const void* __restrict) noexcept) noexcept {
     quicksort(arr, size, 0, num - 1, compare);
 }
 
 #define sort_heapsort heapsort
 #define sort_insertionsort insertionsort
 
-int32 sort_compare_int32(const void* a, const void* b) {
+int32 sort_compare_int32(const void* __restrict a, const void* __restrict b) noexcept {
     return (*(int32 *) a) - (*(int32 *) b);
 }
 

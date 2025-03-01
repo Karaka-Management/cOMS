@@ -6,15 +6,15 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_OPENGL_GPU_API_CONTAINER_H
-#define TOS_GPUAPI_OPENGL_GPU_API_CONTAINER_H
+#ifndef TOS_GPUAPI_OPENGL_FRAMES_IN_FLIGHT_CONTAINER_H
+#define TOS_GPUAPI_OPENGL_FRAMES_IN_FLIGHT_CONTAINER_H
 
 #include "../../stdlib/Types.h"
 #include "OpenglUtils.h"
 
-struct GpuApiContainer {
-    uint32 frames_in_flight;
-    uint32 framebuffer_idx;
+struct FramesInFlightContainer {
+    uint32 count;
+    uint32 index;
     OpenglFrameData* framebuffers;
     GLsync framebuffer_sync;
 };
