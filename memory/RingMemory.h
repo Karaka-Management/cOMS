@@ -48,6 +48,7 @@ void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
     PROFILE_VERBOSE(PROFILE_RING_ALLOC, "");
+    LOG_FORMAT_1("Allocating RingMemory: %n B", {{LOG_DATA_UINT64, &size}});
 
     ring->memory = alignment < 2
         ? (byte *) platform_alloc(size)
@@ -63,7 +64,7 @@ void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
 
     DEBUG_MEMORY_INIT((uintptr_t) ring->memory, ring->size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, ring->size);
-    LOG_FORMAT_2("Allocated RingMemory: %n B", {{LOG_DATA_UINT64, &ring->size}});
+    LOG_FORMAT_1("Allocated RingMemory: %n B", {{LOG_DATA_UINT64, &ring->size}});
 }
 
 inline

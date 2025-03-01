@@ -35,6 +35,7 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
     PROFILE_VERBOSE(PROFILE_BUFFER_ALLOC, "");
+    LOG_FORMAT_1("Allocating BufferMemory: %n B", {{LOG_DATA_UINT64, &size}});
 
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)
@@ -50,7 +51,6 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 
     DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
-    LOG_FORMAT_2("Allocated BufferMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 }
 
 inline

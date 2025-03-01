@@ -42,28 +42,27 @@ struct AssetManagementSystem {
 inline
 void ams_create(AssetManagementSystem* ams, BufferMemory* buf, int32 asset_component_count, int32 count)
 {
+    LOG_FORMAT_1("Create AMS for %n assets", {{LOG_DATA_INT32, &count}});
     hashmap_create(&ams->hash_map, count, sizeof(HashEntry) + sizeof(Asset), buf);
     ams->asset_component_count = asset_component_count;
     ams->asset_components = (AssetComponent *) buffer_get_memory(buf, asset_component_count * sizeof(AssetComponent), 64, true);
-
-    LOG_FORMAT_2("Created AMS for %n assets", {{LOG_DATA_INT32, &count}});
 }
 
 inline
 void ams_component_create(AssetComponent* ac, BufferMemory* buf, int32 chunk_size, int32 count)
 {
     ASSERT_SIMPLE(chunk_size);
+    LOG_FORMAT_1("Create AMS Component for %n assets and %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}});
 
     chunk_init(&ac->asset_memory, buf, count, chunk_size, 64);
     pthread_mutex_init(&ac->mutex, NULL);
-
-    LOG_FORMAT_2("Created AMS Component for %n assets and %n B = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}, {LOG_DATA_UINT64, &ac->asset_memory.size}});
 }
 
 inline
 void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32 count)
 {
     ASSERT_SIMPLE(chunk_size);
+    LOG_FORMAT_1("Create AMS Component for %n assets and %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}});
 
     ac->asset_memory.count = count;
     ac->asset_memory.chunk_size = chunk_size;
@@ -73,8 +72,6 @@ void ams_component_create(AssetComponent* ac, byte* buf, int32 chunk_size, int32
     ac->asset_memory.free = (uint64 *) (ac->asset_memory.memory + ac->asset_memory.chunk_size * count);
 
     pthread_mutex_init(&ac->mutex, NULL);
-
-    LOG_FORMAT_2("Created AMS Component for %n assets and %n B = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_UINT32, &chunk_size}, {LOG_DATA_UINT64, &ac->asset_memory.size}});
 }
 
 inline
@@ -439,6 +436,7 @@ Asset* thrd_ams_reserve_asset(AssetManagementSystem* ams, byte type, const char*
 // @todo don't use uint64 for time, use uint32 and use relative time to start of program
 void thrd_ams_update(AssetManagementSystem* ams, uint64 time, uint64 dt)
 {
+    PROFILE(PROFILE_AMS_UPDATE);
     for (int32 i = 0; i < ams->asset_component_count; ++i) {
         ams->asset_components[i].vram_size = 0;
         ams->asset_components[i].ram_size = 0;
@@ -447,7 +445,7 @@ void thrd_ams_update(AssetManagementSystem* ams, uint64 time, uint64 dt)
 
     // Iterate the hash map to find all assets
     uint32 chunk_id = 0;
-    chunk_iterate_start(&ams->hash_map.buf, chunk_id)
+    chunk_iterate_start(&ams->hash_map.buf, chunk_id) {
         HashEntry* entry = (HashEntry *) chunk_get_element(&ams->hash_map.buf, chunk_id);
         Asset* asset = (Asset *) entry->value;
 
@@ -482,7 +480,7 @@ void thrd_ams_update(AssetManagementSystem* ams, uint64 time, uint64 dt)
                 ams->asset_components[asset->component_id].vram_size -= asset->vram_size;
             }
         }
-    chunk_iterate_end;
+    } chunk_iterate_end;
 }
 
 Asset* ams_insert_asset(AssetManagementSystem* ams, Asset* asset_temp, const char* name)

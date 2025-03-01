@@ -292,6 +292,7 @@ int32 qoi_decode_3(const byte* data, Image* image) noexcept
 
 int32 qoi_decode(const byte* data, Image* image) noexcept
 {
+	LOG_3("QOI decode image");
     int32 header_length = image_header_from_data(data, image);
 
     const int32 channels = (image->image_settings & IMAGE_SETTING_CHANNEL_COUNT);

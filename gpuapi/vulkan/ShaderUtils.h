@@ -53,6 +53,7 @@ void shader_set_value(VkDevice device, VkDescriptorSet descriptorSet, uint32_t b
 inline
 VkShaderModule shader_make(VkDevice device, const char* source, int32 source_size)
 {
+    LOG_1("Create shader");
     // Create shader module create info
     VkShaderModuleCreateInfo create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -69,6 +70,8 @@ VkShaderModule shader_make(VkDevice device, const char* source, int32 source_siz
 
         return VK_NULL_HANDLE;
     }
+
+    LOG_1("Created shader");
 
     return shader_module;
 }
@@ -196,6 +199,8 @@ VkPipeline pipeline_make(
     VkShaderModule vertex_shader, VkShaderModule fragment_shader,
     VkShaderModule
 ) {
+    PROFILE_VERBOSE(PROFILE_PIPELINE_MAKE, "");
+    LOG_1("Create pipeline");
     VkPipelineShaderStageCreateInfo vertex_shader_stage_info = {};
     vertex_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertex_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -312,6 +317,8 @@ VkPipeline pipeline_make(
 
     vkDestroyShaderModule(device, fragment_shader, NULL);
     vkDestroyShaderModule(device, vertex_shader, NULL);
+
+    LOG_1("Created pipeline");
 
     // @question Do we want to return the value or the pointer?
     // I think the value is already a pointer?

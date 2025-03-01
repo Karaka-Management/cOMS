@@ -204,7 +204,7 @@ int32 font_from_data(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) font->glyphs,
         (int32 *) font->glyphs,
-        font->glyph_count * sizeof(Glyph) / 4, // everything in here is 4 bytes -> super easy to swap
+        font->glyph_count * sizeof(Glyph) / 4, // everything in here is 4 bytes -> easy to swap
         steps
     );
 
@@ -244,7 +244,7 @@ int32 font_to_data(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) file.content,
         (int32 *) file.content,
-        size / 4, // everything in here is 4 bytes -> super easy to swap
+        size / 4, // everything in here is 4 bytes -> easy to swap
         steps
     );
 

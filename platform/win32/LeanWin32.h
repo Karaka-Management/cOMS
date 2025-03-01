@@ -32,7 +32,7 @@
     #define NOKERNEL 1
     //#define NOUSER 0
     #define NONLS 1
-    #define NOMB 1
+    //#define NOMB 1
     #define NOMEMMGR 1
     #define NOMETAFILE 1
     #define NOMINMAX 1

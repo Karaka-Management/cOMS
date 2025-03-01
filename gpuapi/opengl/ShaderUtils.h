@@ -205,8 +205,9 @@ int32 shader_program_optimize(const char* input, char* output)
     return (int32) (write_ptr - output);
 }
 
-GLuint shader_make(GLenum type, const char* source, RingMemory* ring)
+GLuint shader_make(GLenum type, const char* source)
 {
+    LOG_1("Create shader");
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, (GLchar **) &source, NULL);
     glCompileShader(shader);
@@ -219,14 +220,17 @@ GLuint shader_make(GLenum type, const char* source, RingMemory* ring)
             GLint length;
             glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
 
-            GLchar* info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
-
+            GLchar info[4096];
+            length = OMS_MIN(length, ARRAY_COUNT(info) - 1);
+            info[length] = '\0';
             glGetShaderInfoLog(shader, length, NULL, info);
             LOG_1(info);
 
             ASSERT_SIMPLE(false);
         }
     #endif
+
+    LOG_1("Created shader");
 
     return shader;
 }
@@ -243,9 +247,10 @@ int32 program_get_size(uint32 program)
 GLuint pipeline_make(
     GLuint vertex_shader,
     GLuint fragment_shader,
-    GLint geometry_shader,
-    RingMemory* ring
+    GLint geometry_shader
 ) {
+    PROFILE_VERBOSE(PROFILE_PIPELINE_MAKE, "");
+    LOG_1("Create pipeline");
     GLuint program = glCreateProgram();
 
     if (geometry_shader > -1) {
@@ -265,8 +270,9 @@ GLuint pipeline_make(
             GLint length;
             glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
 
-            GLchar *info = (GLchar *) ring_get_memory(ring, length * sizeof(GLchar));
-
+            GLchar info[4096];
+            length = OMS_MIN(length, ARRAY_COUNT(info) - 1);
+            info[length] = '\0';
             glGetProgramInfoLog(program, length, NULL, info);
             LOG_1(info);
 
@@ -289,6 +295,8 @@ GLuint pipeline_make(
 
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
+
+    LOG_1("Created pipeline");
 
     return program;
 }

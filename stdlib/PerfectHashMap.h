@@ -111,6 +111,7 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, i
 // WARNING: element_size = element size + remaining HashEntry data size
 void perfect_hashmap_create(PerfectHashMap* hm, int32 count, int32 element_size, BufferMemory* buf)
 {
+    LOG_FORMAT_1("Create PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     hm->map_size = count;
     hm->entry_size = element_size;
     hm->hash_entries = buffer_get_memory(
@@ -118,18 +119,15 @@ void perfect_hashmap_create(PerfectHashMap* hm, int32 count, int32 element_size,
         count * element_size,
         0, true
     );
-
-    LOG_FORMAT_2("Created PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
 void perfect_hashmap_create(PerfectHashMap* hm, int32 count, int32 element_size, byte* buf)
 {
+    LOG_FORMAT_1("Create PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     hm->map_size = count;
     hm->entry_size = element_size;
     hm->hash_entries = buf;
-
-    LOG_FORMAT_2("Created PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
 }
 
 // Calculates how large a hashmap will be
@@ -284,13 +282,11 @@ bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 
 
     // Find all keys
     int32 key_index = 0;
-    for (int32 i = 0; i < hm->buf.count; ++i) {
-        const HashEntry* entry = (HashEntry *) hashmap_get_entry_by_index((HashMap *) hm, i);
-        while (entry != NULL) {
-            keys[key_index++] = entry->key;
-            entry = (HashEntry *) hashmap_get_entry_by_element((HashMap *) hm, entry->next);
-        }
-    }
+    uint32 chunk_id = 0;
+    chunk_iterate_start(&hm->buf, chunk_id) {
+        HashEntry* entry = (HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, chunk_id);
+        keys[key_index++] = entry->key;
+    } chunk_iterate_end;
 
     // Check if we can turn it into a perfect hash map
     PerfectHashMap* is_perfect = perfect_hashmap_prepare(phm, keys, key_index, seed_trys, ring);
@@ -299,13 +295,11 @@ bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 
     }
 
     // Fill perfect hash map
-    for (int32 i = 0; i < hm->buf.count; ++i) {
-        const HashEntry* entry = (HashEntry *) hashmap_get_entry_by_index((HashMap *) hm, i);
-        while (entry != NULL) {
-            perfect_hashmap_insert(phm, entry->key, entry->value);
-            entry = (HashEntry *) hashmap_get_entry_by_element((HashMap *) hm, entry->next);
-        }
-    }
+    chunk_id = 0;
+    chunk_iterate_start(&hm->buf, chunk_id) {
+        HashEntry* entry = (HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, chunk_id);
+        perfect_hashmap_insert(phm, entry->key, entry->value);
+    } chunk_iterate_end;
 
     return true;
 }

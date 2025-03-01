@@ -106,7 +106,7 @@ void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) header->asset_element,
         (int32 *) header->asset_element,
-        header->asset_count * sizeof(AssetArchiveElement) / 4, // everything is 4 bytes -> super easy to swap
+        header->asset_count * sizeof(AssetArchiveElement) / 4, // everything is 4 bytes -> easy to swap
         steps
     );
 
@@ -118,7 +118,7 @@ void asset_archive_header_load(AssetArchiveHeader* __restrict header, const byte
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) header->asset_dependencies,
         (int32 *) header->asset_dependencies,
-        header->asset_count * header->asset_dependency_count, // everything is 4 bytes -> super easy to swap
+        header->asset_count * header->asset_dependency_count, // everything is 4 bytes -> easy to swap
         steps
     );
 }
@@ -132,6 +132,11 @@ AssetArchiveElement* asset_archive_element_find(const AssetArchive* archive, int
 void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* buf, RingMemory* ring, int32 steps = 8)
 {
     PROFILE_VERBOSE(PROFILE_ASSET_ARCHIVE_LOAD, path);
+
+    LOG_FORMAT_1(
+        "Load AssetArchive %s",
+        {{LOG_DATA_CHAR_STR, (void *) path}}
+    );
 
     archive->fd = file_read_handle(path);
     if (!archive->fd) {
@@ -169,7 +174,7 @@ void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* b
     file_read(archive->fd, &file, 0, file.size);
     asset_archive_header_load(&archive->header, file.content, steps);
 
-    LOG_FORMAT_2(
+    LOG_FORMAT_1(
         "Loaded AssetArchive %s with %d assets",
         {{LOG_DATA_CHAR_STR, (void *) path}, {LOG_DATA_UINT32, (void *) &archive->header.asset_count}}
     );
@@ -198,6 +203,11 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
 
     byte component_id = archive->asset_type_map[element->type];
     //AssetComponent* ac = &ams->asset_components[component_id];
+
+    LOG_FORMAT_2(
+        "Load asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
+        {{LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}}
+    );
 
     Asset* asset = thrd_ams_get_asset_wait(ams, id_str);
 
@@ -305,7 +315,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     thrd_ams_set_loaded(asset);
 
     LOG_FORMAT_2(
-        "Asset %d loaded from archive %d for AMS %d with %n B compressed and %n B uncompressed",
+        "Loaded asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
         {{LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}}
     );
 

@@ -198,10 +198,7 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap) no
     bitmap->size = (uint32) file->size;
     bitmap->data = file->content;
 
-    if (bitmap->size < BITMAP_HEADER_SIZE) {
-        // This shouldn't happen
-        return;
-    }
+    ASSERT_SIMPLE(bitmap->size >= BITMAP_HEADER_SIZE);
 
     // Fill header
     bitmap->header.identifier[0] = *(file->content + 0);
@@ -229,11 +226,11 @@ void generate_default_bitmap_references(const FileBody* file, Bitmap* bitmap) no
                 bitmap->dib_header.bits_per_pixel = SWAP_ENDIAN_LITTLE(*((uint16 *) (dib_header_offset + 10)));
                 bitmap->dib_header.color_palette  = 1U << bitmap->dib_header.bits_per_pixel;
             } break;
-        case DIB_BITMAP_TYPE_BITMAPV5HEADER:
-        case DIB_BITMAP_TYPE_BITMAPV4HEADER:
-        case DIB_BITMAP_TYPE_BITMAPV3INFOHEADER:
-        case DIB_BITMAP_TYPE_BITMAPV2INFOHEADER:
-        case DIB_BITMAP_TYPE_OS22XBITMAPHEADER:
+        case DIB_BITMAP_TYPE_BITMAPV5HEADER: [[fallthrough]];
+        case DIB_BITMAP_TYPE_BITMAPV4HEADER: [[fallthrough]];
+        case DIB_BITMAP_TYPE_BITMAPV3INFOHEADER: [[fallthrough]];
+        case DIB_BITMAP_TYPE_BITMAPV2INFOHEADER: [[fallthrough]];
+        case DIB_BITMAP_TYPE_OS22XBITMAPHEADER: [[fallthrough]];
         case DIB_BITMAP_TYPE_BITMAPINFOHEADER: {
                 bitmap->dib_header.size               = SWAP_ENDIAN_LITTLE(*((uint32 *) (dib_header_offset)));
                 bitmap->dib_header.width              = SWAP_ENDIAN_LITTLE(*((int32 *) (dib_header_offset + 4)));

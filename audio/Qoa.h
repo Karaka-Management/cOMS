@@ -411,9 +411,9 @@ uint32 qoa_decode_frame(const byte* bytes, uint32 channels, QoaLms* lms, int16* 
 	return (uint32) (bytes - start);
 }
 
-
 uint32 qoa_decode(const byte* data, Audio* audio)
 {
+	LOG_3("QOA decode audio");
     uint32 header_length = audio_header_from_data(data, audio);
     uint32 p = header_length;
 	uint32 frame_size;

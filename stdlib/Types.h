@@ -19,7 +19,7 @@
     #define MAX_PATH PATH_MAX
 #endif
 
-#define ARRAY_COUNT(a) (sizeof(a) / sizeof((a)[0]))
+#define ARRAY_COUNT(a) ((a) == NULL ? 0 : (sizeof(a) / sizeof((a)[0])))
 
 typedef int8_t int8;
 typedef int16_t int16;

@@ -49,8 +49,7 @@ void* cmd_shader_load_sync(AppCmdBuffer* __restrict cb, Shader* __restrict shade
         // Make sub shader
         shader_assets[i] = shader_make(
             shader_type_index((ShaderType) (i + 1)),
-            (char *) shader_asset->self,
-            cb->mem_vol
+            (char *) shader_asset->self
         );
 
         shader_asset->state |= ASSET_STATE_RAM_GC;
@@ -59,8 +58,7 @@ void* cmd_shader_load_sync(AppCmdBuffer* __restrict cb, Shader* __restrict shade
 
     // Make shader/program
     shader->id = pipeline_make(
-        shader_assets[0], shader_assets[1], shader_assets[2],
-        cb->mem_vol
+        shader_assets[0], shader_assets[1], shader_assets[2]
     );
 
     return NULL;

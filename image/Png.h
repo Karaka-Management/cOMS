@@ -638,10 +638,10 @@ bool image_png_generate(const FileBody* src_data, Image* image, RingMemory* ring
             uint16 len = *((uint16 *) stream.pos);
             stream.pos += 2;
 
-            uint16 nlen = *((uint16 *) stream.pos);
+            //uint16 nlen = *((uint16 *) stream.pos);
+            ASSERT_SIMPLE(len == ~(*((uint16 *) stream.pos)));
             stream.pos += 2;
 
-            ASSERT_SIMPLE(len == ~nlen);
 
             memcpy(dest, stream.pos, len);
             stream.pos += len;

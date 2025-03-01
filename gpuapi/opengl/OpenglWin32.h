@@ -854,6 +854,7 @@ void opengl_destroy(Window* window)
 
 void opengl_instance_create(Window* window, int32 multisample = 0)
 {
+    LOG_1("Load opengl");
     gl_extensions_load();
 
     opengl_init_wgl();
@@ -872,6 +873,7 @@ void opengl_instance_create(Window* window, int32 multisample = 0)
     }
 
     if(!wglMakeCurrent(window->hdc, window->openGLRC)) {
+        LOG_1("Couldn't load opengl");
         return;
     }
 
@@ -880,6 +882,7 @@ void opengl_instance_create(Window* window, int32 multisample = 0)
     if (wglSwapIntervalEXT) {
         wglSwapIntervalEXT(0);
     }
+    LOG_1("Loaded opengl");
 }
 
 #endif

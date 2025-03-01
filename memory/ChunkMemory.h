@@ -44,6 +44,7 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
     PROFILE_VERBOSE(PROFILE_CHUNK_ALLOC, "");
+    LOG_1("Allocating ChunkMemory");
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
@@ -64,7 +65,7 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
 
     DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
-    LOG_FORMAT_2("Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_FORMAT_1("Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 }
 
 inline
@@ -302,6 +303,7 @@ void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count 
 inline
 int64 chunk_dump(const ChunkMemory* buf, byte* data)
 {
+    LOG_1("Dump ChunkMemory");
     byte* start = data;
 
     // Count
@@ -329,12 +331,16 @@ int64 chunk_dump(const ChunkMemory* buf, byte* data)
     memcpy(data, buf->memory, buf->size);
     data += buf->size;
 
+    LOG_FORMAT_1("Dumped ChunkMemory: %n B", {{LOG_DATA_UINT64, (void *) &buf->size}});
+
     return data - start;
 }
 
 inline
 int64 chunk_load(ChunkMemory* buf, const byte* data)
 {
+    LOG_1("Loading ChunkMemory");
+
     // Count
     buf->count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
     data += sizeof(buf->count);
@@ -360,16 +366,16 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
 
     buf->free = (uint64 *) (buf->memory + buf->count * buf->chunk_size);
 
-    LOG_FORMAT_2("Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_FORMAT_1("Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 
     return buf->size;
 }
 
 // @performance Is _BitScanForward faster?
 // @performance We could probably even reduce the number of iterations by only iterating until popcount is reached?
-#define chunk_iterate_start(buf, chunk_id) {                                                     \
-    uint32 free_index = 0;                                                                       \
-    uint32 bit_index = 0;                                                                        \
+#define chunk_iterate_start(buf, chunk_id) {                                                    \
+    uint32 free_index = 0;                                                                      \
+    uint32 bit_index = 0;                                                                       \
                                                                                                 \
     /* Iterate the chunk memory */                                                              \
     for (; chunk_id < (buf)->count; ++chunk_id) {                                               \
@@ -379,11 +385,9 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
             /* @performance Consider to only check 1 byte instead of 8 */                       \
             /* There are probably even better ways by using compiler intrinsics if available */ \
             bit_index += 63; /* +64 - 1 since the loop also increases by 1 */                   \
-        } else if ((buf)->free[free_index] & (1ULL << bit_index)) {
+        } else if ((buf)->free[free_index] & (1ULL << bit_index))
 
 #define chunk_iterate_end       \
-        }                       \
-                                \
         ++bit_index;            \
         if (bit_index > 63) {   \
             bit_index = 0;      \

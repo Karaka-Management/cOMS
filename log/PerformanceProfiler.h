@@ -22,7 +22,7 @@
 #ifndef PERFORMANCE_PROFILE_STATS
     #define PERFORMANCE_PROFILE_STATS 1
     enum TimingStats {
-        PROFILE_TEMP, // used for quick test debugging, not for permanent use
+        PROFILE_TEMP,
 
         PROFILE_FILE_UTILS,
         PROFILE_BUFFER_ALLOC,
@@ -34,6 +34,7 @@
         PROFILE_CMD_LAYOUT_LOAD_SYNC,
         PROFILE_CMD_THEME_LOAD_SYNC,
         PROFILE_CMD_UI_LOAD_SYNC,
+        PROFILE_CMD_ASSET_LOAD_SYNC,
         PROFILE_LAYOUT_FROM_DATA,
         PROFILE_LAYOUT_FROM_THEME,
         PROFILE_THEME_FROM_THEME,
@@ -42,8 +43,10 @@
         PROFILE_AUDIO_MIXER_MIX,
         PROFILE_ASSET_ARCHIVE_LOAD,
         PROFILE_ASSET_ARCHIVE_ASSET_LOAD,
+        PROFILE_AMS_UPDATE,
         PROFILE_VERTEX_RECT_CREATE,
         PROFILE_VERTEX_TEXT_CREATE,
+        PROFILE_PIPELINE_MAKE,
 
         PROFILE_SIZE,
     };
@@ -150,7 +153,7 @@ struct PerformanceProfiler {
         if (this->auto_log) {
             if (this->info_msg && this->info_msg[0]) {
                 LOG_FORMAT_2(
-                    "%s (%s): %l cycles",
+                    "-PERF %s (%s): %l cycles",
                     {
                         {LOG_DATA_CHAR_STR, (void *) perf->name},
                         {LOG_DATA_CHAR_STR, (void *) this->info_msg},
@@ -159,7 +162,7 @@ struct PerformanceProfiler {
                 );
             } else {
                 LOG_FORMAT_2(
-                    "%s: %l cycles",
+                    "-PERF %s: %l cycles",
                     {
                         {LOG_DATA_CHAR_STR, (void *) perf->name},
                         {LOG_DATA_INT64, (void *) &perf->total_cycle},
@@ -233,7 +236,7 @@ void performance_profiler_end(int32 id) noexcept
     #define PROFILE_RESET(id) if(_perf_active && *_perf_active) performance_profiler_reset((id))
 #elif LOG_LEVEL == 1
     #define PROFILE(id) ((void) 0)
-    #define PROFILE_VERBOSE(name) ((void) 0)
+    #define PROFILE_VERBOSE(name, info) ((void) 0)
     #define PROFILE_STATELESS(id, info) ((void) 0)
 
     #define PROFILE_START(id, name) ((void) 0)
@@ -242,7 +245,7 @@ void performance_profiler_end(int32 id) noexcept
     #define PROFILE_RESET(id) ((void) 0)
 #elif LOG_LEVEL == 0
     #define PROFILE(id) ((void) 0)
-    #define PROFILE_VERBOSE(name) ((void) 0)
+    #define PROFILE_VERBOSE(name, info) ((void) 0)
     #define PROFILE_STATELESS() ((void) 0)
 
     #define PROFILE_START(id, name) ((void) 0)

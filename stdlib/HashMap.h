@@ -124,6 +124,7 @@ struct HashMap {
 inline
 void hashmap_alloc(HashMap* hm, int32 count, int32 element_size)
 {
+    LOG_FORMAT_1("Allocate HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = (byte *) platform_alloc(
         count * (sizeof(uint16) + element_size)
         + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
@@ -134,7 +135,6 @@ void hashmap_alloc(HashMap* hm, int32 count, int32 element_size)
 
     DEBUG_MEMORY_INIT((uintptr_t) hm->buf.memory, hm->buf.size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, hm->buf.size);
-    LOG_FORMAT_2("Allocated HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
 }
 
 inline
@@ -153,6 +153,7 @@ void hashmap_free(HashMap* hm)
 inline
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring) noexcept
 {
+    LOG_FORMAT_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = ring_get_memory(
         ring,
         count * (sizeof(uint16) + element_size)
@@ -161,14 +162,13 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ri
 
     hm->table = (uint16 *) data;
     chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, 8);
-
-    LOG_FORMAT_2("Created HashMap for %n elements with %n B per element = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}, {LOG_DATA_UINT64, &hm->buf.size}});
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* buf) noexcept
 {
+    LOG_FORMAT_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = buffer_get_memory(
         buf,
         count * (sizeof(uint16) + element_size)
@@ -177,18 +177,15 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* 
 
     hm->table = (uint16 *) data;
     chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, 8);
-
-    LOG_FORMAT_2("Created HashMap for %n elements with %n B per element = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}, {LOG_DATA_UINT64, &hm->buf.size}});
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf) noexcept
 {
+    LOG_FORMAT_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     hm->table = (uint16 *) buf;
     chunk_init(&hm->buf, buf + sizeof(uint16) * count, count, element_size, 8);
-
-    LOG_FORMAT_2("Created HashMap for %n elements with %n B per element = %n B", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}, {LOG_DATA_UINT64, &hm->buf.size}});
 }
 
 inline
@@ -747,6 +744,7 @@ int32 hashmap_value_size(const HashMap* hm) noexcept
 inline
 int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps = 8)
 {
+    LOG_1("Dump HashMap");
     *((uint32 *) data) = SWAP_ENDIAN_LITTLE(hm->buf.count);
     data += sizeof(hm->buf.count);
 
@@ -755,7 +753,7 @@ int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps =
     SWAP_ENDIAN_LITTLE_SIMD(
         (uint16 *) data,
         (uint16 *) data,
-        sizeof(uint16) * hm->buf.count / 2, // everything is 2 bytes -> super easy to swap
+        sizeof(uint16) * hm->buf.count / 2, // everything is 2 bytes -> easy to swap
         steps
     );
     data += sizeof(uint16) * hm->buf.count;
@@ -804,6 +802,8 @@ int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps =
     // dump free array
     memcpy(data, hm->buf.free, sizeof(uint64) * CEIL_DIV(hm->buf.count, 64));
 
+    LOG_FORMAT_1("Dumped HashMap: %n B", {{LOG_DATA_UINT64, (void *) &hm->buf.size}});
+
     return sizeof(hm->buf.count) // hash map count = buffer count
         + hm->buf.count * sizeof(uint16) // table content
         + hm->buf.size; // hash map content + free array
@@ -813,6 +813,7 @@ int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps =
 inline
 int64 hashmap_load(HashMap* hm, const byte* data, [[maybe_unused]] int32 steps = 8)
 {
+    LOG_1("Load HashMap");
     uint64 count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
     data += sizeof(uint32);
 
@@ -821,7 +822,7 @@ int64 hashmap_load(HashMap* hm, const byte* data, [[maybe_unused]] int32 steps =
     SWAP_ENDIAN_LITTLE_SIMD(
         (uint16 *) hm->table,
         (uint16 *) hm->table,
-        sizeof(uint16) * count / 2, // everything is 2 bytes -> super easy to swap
+        sizeof(uint16) * count / 2, // everything is 2 bytes -> easy to swap
         steps
     );
     data += sizeof(uint16) * count;
@@ -839,7 +840,7 @@ int64 hashmap_load(HashMap* hm, const byte* data, [[maybe_unused]] int32 steps =
 
     // Switch endian AND turn offsets to pointers
     uint32 chunk_id = 0;
-    chunk_iterate_start(&hm->buf, chunk_id)
+    chunk_iterate_start(&hm->buf, chunk_id) {
         HashEntry* entry = (HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, chunk_id);
 
         // key is already loaded with the memcpy
@@ -853,9 +854,9 @@ int64 hashmap_load(HashMap* hm, const byte* data, [[maybe_unused]] int32 steps =
         } else if (value_size == 8) {
             ((HashEntryInt64 *) entry)->value = SWAP_ENDIAN_LITTLE(((HashEntryInt64 *) entry)->value);
         }
-    chunk_iterate_end;
+    } chunk_iterate_end;
 
-    LOG_FORMAT_2("Loaded HashMap: %n B", {{LOG_DATA_UINT64, &hm->buf.size}});
+    LOG_FORMAT_1("Loaded HashMap: %n B", {{LOG_DATA_UINT64, &hm->buf.size}});
 
     // How many bytes was read from data
     return sizeof(hm->buf.count) // hash map count = buffer count

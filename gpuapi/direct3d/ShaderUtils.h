@@ -35,6 +35,7 @@ const char* shader_type_index(ShaderType type)
 
 ID3DBlob* shader_make(const char* type, const char* source, int32 source_size)
 {
+    LOG_1("Create shader");
     #if DEBUG || INTERNAL
         uint32 compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
     #else
@@ -52,6 +53,8 @@ ID3DBlob* shader_make(const char* type, const char* source, int32 source_size)
         errMsgs->Release();
     }
 
+    LOG_1("Created shader");
+
     return blob;
 }
 
@@ -63,6 +66,8 @@ ID3D12PipelineState* pipeline_make(
     ID3DBlob* fragment_shader,
     ID3DBlob*
 ) {
+    PROFILE_VERBOSE(PROFILE_PIPELINE_MAKE, "");
+    LOG_1("Create pipeline");
     // @todo We need to find a way to do this somewhere else:
     D3D12_INPUT_ELEMENT_DESC input_element_info[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -123,6 +128,7 @@ ID3D12PipelineState* pipeline_make(
     }
 
     // @question When do I ->Release() vertex_shader and fragment_shader?
+    LOG_1("Created pipeline");
 
     return *pipeline;
 }

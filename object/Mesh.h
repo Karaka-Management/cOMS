@@ -467,6 +467,7 @@ int32 mesh_from_data(
     [[maybe_unused]] int32 steps = 8
 )
 {
+    LOG_3("Load mesh");
     const byte* pos = data;
 
     // Read version, use to handle different versions differently
@@ -527,9 +528,11 @@ int32 mesh_from_data(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) mesh->data,
         (int32 *) mesh->data,
-        offset / 4, // everything is 4 bytes -> super easy to swap
+        offset / 4, // everything is 4 bytes -> easy to swap
         steps
     );
+
+    LOG_3("Loaded mesh");
 
     return offset;
 }
@@ -616,7 +619,7 @@ int32 mesh_to_data(
     SWAP_ENDIAN_LITTLE_SIMD(
         (int32 *) data,
         (int32 *) data,
-        size / 4, // everything in here is 4 bytes -> super easy to swap
+        size / 4, // everything in here is 4 bytes -> easy to swap
         steps
     );
 

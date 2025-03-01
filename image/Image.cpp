@@ -86,12 +86,15 @@ uint32 image_header_from_data(const byte* __restrict data, Image* __restrict ima
 
 uint32 image_from_data(const byte* __restrict data, Image* __restrict image) noexcept
 {
+    LOG_3("Load image");
     const byte* pos = data;
     pos += image_header_from_data(data, image);
 
     int32 image_size;
     memcpy(image->pixels, pos, image_size = (image_pixel_size_from_type(image->image_settings) * image->pixel_count));
     pos += image_size;
+
+    LOG_3("Loaded image");
 
     return (int32) (pos - data);
 }

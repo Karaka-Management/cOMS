@@ -81,10 +81,13 @@ uint32 audio_header_to_data(const Audio* __restrict audio, byte* __restrict data
 
 uint32 audio_from_data(const byte* __restrict data, Audio* __restrict audio)
 {
+    LOG_3("Load audio");
     data += audio_header_from_data(data, audio);
 
     memcpy(audio->data, data, audio->size);
     data += audio->size;
+
+    LOG_3("Loaded audio");
 
     return audio_data_size(audio);
 }

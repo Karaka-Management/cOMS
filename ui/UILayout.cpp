@@ -415,6 +415,7 @@ int32 layout_to_data(
     const UILayout* __restrict layout,
     byte* __restrict data
 ) {
+    LOG_1("Save layout");
     byte* out = data;
 
     // version
@@ -426,10 +427,12 @@ int32 layout_to_data(
 
     // UIElement data
     uint32 chunk_id = 0;
-    chunk_iterate_start(&layout->hash_map.buf, chunk_id)
+    chunk_iterate_start(&layout->hash_map.buf, chunk_id) {
         HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
         ui_layout_serialize_element(entry, layout->data, &out);
-    chunk_iterate_end;
+    } chunk_iterate_end;
+
+    LOG_1("Saved layout");
 
     return (int32) (out - data);
 }
@@ -568,6 +571,7 @@ int32 layout_from_data(
     UILayout* __restrict layout
 ) {
     PROFILE_VERBOSE(PROFILE_LAYOUT_FROM_DATA, "");
+    LOG_1("Load layout");
 
     const byte* in = data;
 
@@ -583,12 +587,14 @@ int32 layout_from_data(
     // layout data
     // @performance We are iterating the hashmap twice (hashmap_load and here)
     uint32 chunk_id = 0;
-    chunk_iterate_start(&layout->hash_map.buf, chunk_id)
+    chunk_iterate_start(&layout->hash_map.buf, chunk_id) {
         HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &layout->hash_map.buf, chunk_id);
         ui_layout_parse_element(entry, layout->data, &in);
-    chunk_iterate_end;
+    } chunk_iterate_end;
 
     layout->layout_size = (uint32) (in - data);
+
+    LOG_1("Loaded layout");
 
     return (int32) layout->layout_size;
 }
@@ -601,6 +607,7 @@ void layout_from_theme(
     const UIThemeStyle* __restrict theme
 ) {
     PROFILE_VERBOSE(PROFILE_LAYOUT_FROM_THEME, "");
+    LOG_1("Load theme for layout");
 
     // @todo Handle animations
     // @todo Handle vertices_active offset
@@ -615,7 +622,7 @@ void layout_from_theme(
     // We first need to handle the default element -> iterate all elements but only handle the default style
     // The reason for this is, later on in the specialized style we use the base style and copy it over as foundation
     uint32 chunk_id = 0;
-    chunk_iterate_start(&theme->hash_map.buf, chunk_id)
+    chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
         HashEntryInt32* style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
 
         // We don't handle special styles here, only the default one
@@ -664,7 +671,7 @@ void layout_from_theme(
                 );
             } break;
         }
-    chunk_iterate_end;
+    } chunk_iterate_end;
 
     // We iterate every style
     //      1. Fill default element if it is default style
@@ -673,7 +680,7 @@ void layout_from_theme(
     // If we could see if the default element is already populated we could easily combine this
     // We could use a helper array to keep track of initialized chunk_id but we also don't have access to malloc/ring memory here
     chunk_id = 0;
-    chunk_iterate_start(&theme->hash_map.buf, chunk_id)
+    chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
         HashEntryInt32* style_entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
 
         // We only handle special styles here, not the default one
@@ -739,7 +746,7 @@ void layout_from_theme(
                 );
             } break;
         }
-    chunk_iterate_end;
+    } chunk_iterate_end;
 }
 
 void ui_layout_update(UILayout* layout, UIElement* element) {
@@ -792,6 +799,8 @@ void ui_layout_update(UILayout* layout, UIElement* element) {
                 UNREACHABLE();
         }
     }
+
+    LOG_1("Loaded theme for layout");
 }
 
 // @question We might want to change the names of update/render

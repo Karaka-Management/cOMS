@@ -41,9 +41,11 @@ typedef HRESULT WINAPI IAudioClient_GetService_t(IAudioClient*, REFIID, void**);
 // END: Dynamically load DirectSound
 
 void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
+    LOG_1("Load audio API");
+
     HMODULE ole32 = LoadLibraryExA((LPCSTR) "ole32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!ole32) {
-        LOG_1("Wasapi: Couldn't load ole32.dll\n");
+        LOG_1("Wasapi: Couldn't load ole32.dll");
 
         return;
     }
@@ -52,14 +54,14 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
     CoCreateInstance_t* co_create_instance = (CoCreateInstance_t *) GetProcAddress(ole32, "CoCreateInstance");
 
     if (!co_initialize_ex || !co_create_instance) {
-        LOG_1("Wasapi: ole32 function binding failed\n");
+        LOG_1("Wasapi: ole32 function binding failed");
 
         return;
     }
 
     HMODULE mmdevapi = LoadLibraryExA((LPCSTR) "mmdevapi.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!mmdevapi) {
-        LOG_1("Wasapi: Couldn't load mmdevapi.dll\n");
+        LOG_1("Wasapi: Couldn't load mmdevapi.dll");
 
         return;
     }
@@ -68,14 +70,14 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
     IMMDevice_Activate_t* IMMDevice_Activate = (IMMDevice_Activate_t *) GetProcAddress(mmdevapi, "IMMDevice_Activate");
 
     if (!IMMDeviceEnumerator_GetDefaultAudioEndpoint || !IMMDevice_Activate) {
-        LOG_1("Wasapi: mmdevapi function binding failed\n");
+        LOG_1("Wasapi: mmdevapi function binding failed");
 
         return;
     }
 
     HMODULE audioclient = LoadLibraryExA((LPCSTR) "audioclient.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!audioclient) {
-        LOG_1("Wasapi: Couldn't load audioclient.dll\n");
+        LOG_1("Wasapi: Couldn't load audioclient.dll");
 
         return;
     }
@@ -87,14 +89,14 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
     IAudioClient_GetService_t* pIAudioClient_GetService = (IAudioClient_GetService_t *) GetProcAddress(audioclient, "IAudioClient_GetService");
 
     if (!pIAudioClient_GetMixFormat || !pIAudioClient_Initialize || !pIAudioClient_Start || !pIAudioClient_Stop || !pIAudioClient_GetService) {
-        LOG_1("Wasapi: audioclient function binding failed\n");
+        LOG_1("Wasapi: audioclient function binding failed");
 
         return;
     }
 
     HRESULT hr = co_initialize_ex(NULL, COINIT_MULTITHREADED);
     if (FAILED(hr)) {
-        LOG_1("Wasapi: Wasapi initialize failed\n");
+        LOG_1("Wasapi: Wasapi initialize failed");
 
         return;
     }
@@ -104,14 +106,14 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
 
     hr  = co_create_instance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void **) &enumerator);
     if (FAILED(hr)) {
-        LOG_1("Wasapi: Wasapi CreateInstance failed\n");
+        LOG_1("Wasapi: Wasapi CreateInstance failed");
 
         return;
     }
 
     hr  = IMMDeviceEnumerator_GetDefaultAudioEndpoint(enumerator, eRender, eConsole, &device);
     if (FAILED(hr)) {
-        LOG_1("Wasapi: Wasapi DefaultAudioEndpoint failed\n");
+        LOG_1("Wasapi: Wasapi DefaultAudioEndpoint failed");
 
         enumerator->Release();
 
@@ -120,7 +122,7 @@ void audio_load(HWND hwnd, AudioSetting* setting, WasapiSetting* api_setting) {
 
     hr = IMMDevice_Activate(device, IID_IAudioClient, CLSCTX_ALL, NULL, (void **) &api_setting->audio_handle);
     if (FAILED(hr)) {
-        LOG_1("Wasapi: Wasapi DeviceActivate failed\n");
+        LOG_1("Wasapi: Wasapi DeviceActivate failed");
 
         device->Release();
         enumerator->Release();

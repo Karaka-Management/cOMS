@@ -25,7 +25,7 @@
 
 void thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
 {
-    LOG_2("Thread started");
+    LOG_1("Thread started");
     pthread_create(&worker->thread, NULL, routine, arg);
 }
 
@@ -33,7 +33,7 @@ void thread_stop(Worker* worker)
 {
     atomic_set_acquire(&worker->state, 0);
     pthread_join(worker->thread, NULL);
-    LOG_2("Thread ended");
+    LOG_1("Thread ended");
 }
 
 #endif

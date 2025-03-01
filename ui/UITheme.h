@@ -268,6 +268,8 @@ int32 theme_from_data(
     UIThemeStyle* __restrict theme
 ) {
     PROFILE_VERBOSE(PROFILE_THEME_FROM_THEME, "");
+    LOG_1("Load theme");
+
     const byte* in = data;
 
     int32 version = SWAP_ENDIAN_LITTLE(*((int32 *) in));
@@ -284,10 +286,12 @@ int32 theme_from_data(
     // Layout: first load the size of the group, then load the individual attributes
     // @performance We are iterating the hashmap twice (hashmap_load and here)
     uint32 chunk_id = 0;
-    chunk_iterate_start(&theme->hash_map.buf, chunk_id)
+    chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
         HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
         ui_theme_parse_group(entry, theme->data, &in);
-    chunk_iterate_end;
+    } chunk_iterate_end;
+
+    LOG_1("Loaded theme");
 
     return (int32) (in - data);
 }
@@ -378,10 +382,10 @@ int32 theme_to_data(
     // theme data
     // Layout: first save the size of the group, then save the individual attributes
     uint32 chunk_id = 0;
-    chunk_iterate_start(&theme->hash_map.buf, chunk_id)
+    chunk_iterate_start(&theme->hash_map.buf, chunk_id) {
         const HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element((ChunkMemory *) &theme->hash_map.buf, chunk_id);
         ui_theme_serialize_group(entry, theme->data, &out);
-    chunk_iterate_end;
+    } chunk_iterate_end;
 
     return (int32) (out - data);
 }
