@@ -34,7 +34,7 @@ inline
 void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
-    PROFILE_VERBOSE(PROFILE_BUFFER_ALLOC, "");
+    PROFILE(PROFILE_BUFFER_ALLOC, NULL, false, true);
     LOG_FORMAT_1("Allocating BufferMemory: %n B", {{LOG_DATA_UINT64, &size}});
 
     buf->memory = alignment < 2
@@ -49,14 +49,12 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 
     memset(buf->memory, 0, buf->size);
 
-    DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
 }
 
 inline
 void buffer_free(BufferMemory* buf)
 {
-    DEBUG_MEMORY_DELETE((uintptr_t) buf->memory, buf->size);
     if (buf->alignment < 2) {
         platform_free((void **) &buf->memory);
     } else {
@@ -78,7 +76,6 @@ void buffer_init(BufferMemory* buf, byte* data, uint64 size, int32 alignment = 6
     buf->alignment = alignment;
     buf->element_alignment = 0;
 
-    DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 

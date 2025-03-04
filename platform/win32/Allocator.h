@@ -13,13 +13,19 @@
 #include <windows.h>
 #include "../../stdlib/Types.h"
 #include "../../utils/TestUtils.h"
+#include "../../log/DebugMemory.h"
+#include "../../log/Stats.h"
 
 // @todo Currently alignment only effects the starting position, but it should also effect the ending/size
 
 inline
 void* platform_alloc(size_t size)
 {
-    return VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    void* ptr = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    DEBUG_MEMORY_INIT((uintptr_t) ptr, size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
+
+    return ptr;
 }
 
 inline
@@ -36,11 +42,15 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
     void* aligned_ptr = (void *) (((uintptr_t) ptr + alignment + sizeof(void*) - 1) & ~(alignment - 1));
     ((void**) aligned_ptr)[-1] = ptr;
 
+    DEBUG_MEMORY_INIT((uintptr_t) aligned_ptr, size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
+
     return aligned_ptr;
 }
 
 inline
 void platform_free(void** ptr) {
+    DEBUG_MEMORY_FREE((uintptr_t) *ptr);
     VirtualFree(*ptr, 0, MEM_RELEASE);
     *ptr = NULL;
 }
@@ -48,6 +58,8 @@ void platform_free(void** ptr) {
 inline
 void platform_aligned_free(void** aligned_ptr) {
     void* ptr = ((void**) *aligned_ptr)[-1];
+    DEBUG_MEMORY_FREE((uintptr_t) ptr);
+
     VirtualFree(ptr, 0, MEM_RELEASE);
     *aligned_ptr = NULL;
 }
@@ -60,6 +72,9 @@ void* platform_shared_alloc(HANDLE* fd, const char* name, size_t size)
 
     void* shm_ptr = MapViewOfFile(*fd, FILE_MAP_ALL_ACCESS, 0, 0, size);
     ASSERT_SIMPLE(shm_ptr);
+
+    DEBUG_MEMORY_INIT((uintptr_t) shm_ptr, size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
 
     return shm_ptr;
 }
@@ -79,6 +94,7 @@ void* platform_shared_open(HANDLE* fd, const char* name, size_t size)
 inline
 void platform_shared_free(HANDLE fd, const char*, void** ptr)
 {
+    DEBUG_MEMORY_FREE((uintptr_t) *ptr);
     UnmapViewOfFile(*ptr);
     CloseHandle(fd);
     *ptr = NULL;

@@ -17,7 +17,7 @@
 #define EXPORT_LIB extern "C" __attribute__((visibility("default")))
 
 #if DEBUG
-    #define UNREACHABLE() ASSERT_SIMPLE(false)
+    #define UNREACHABLE() ASSERT_SIMPLE(false); __builtin_unreachable()
 #else
     #define UNREACHABLE() __builtin_unreachable()
 #endif

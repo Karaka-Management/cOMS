@@ -200,14 +200,14 @@ void debug_memory_reset() noexcept
     }
 }
 
-#if DEBUG || INTERNAL
+#if DEBUG
     #define DEBUG_MEMORY_INIT(start, size) debug_memory_init((start), (size))
     #define DEBUG_MEMORY_READ(start, size) debug_memory_log((start), (size), MEMORY_DEBUG_TYPE_READ, __func__)
     #define DEBUG_MEMORY_WRITE(start, size) debug_memory_log((start), (size), MEMORY_DEBUG_TYPE_WRITE, __func__)
     #define DEBUG_MEMORY_DELETE(start, size) debug_memory_log((start), (size), MEMORY_DEBUG_TYPE_DELETE, __func__)
     #define DEBUG_MEMORY_RESERVE(start, size) debug_memory_reserve((start), (size), MEMORY_DEBUG_TYPE_RESERVE, __func__)
     #define DEBUG_MEMORY_SUBREGION(start, size) debug_memory_reserve((start), (size), MEMORY_DEBUG_TYPE_SUBREGION, __func__)
-    #define DEBUG_MEMORY_FREE(start, size) debug_memory_free((start))
+    #define DEBUG_MEMORY_FREE(start) debug_memory_free((start))
     #define DEBUG_MEMORY_RESET() debug_memory_reset()
 #else
     #define DEBUG_MEMORY_INIT(start, size) ((void) 0)
@@ -216,7 +216,7 @@ void debug_memory_reset() noexcept
     #define DEBUG_MEMORY_DELETE(start, size) ((void) 0)
     #define DEBUG_MEMORY_RESERVE(start, size) ((void) 0)
     #define DEBUG_MEMORY_SUBREGION(start, size) ((void) 0)
-    #define DEBUG_MEMORY_FREE(start, size) ((void) 0)
+    #define DEBUG_MEMORY_FREE(start) ((void) 0)
     #define DEBUG_MEMORY_RESET() ((void) 0)
 #endif
 

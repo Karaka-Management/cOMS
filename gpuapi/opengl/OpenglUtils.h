@@ -17,6 +17,7 @@
 #include "../../utils/StringUtils.h"
 #include "../../log/Log.h"
 #include "../../log/Stats.h"
+#include "../../log/PerformanceProfiler.h"
 #include "../../system/FileUtils.cpp"
 #include "../RenderUtils.h"
 #include "Opengl.h"
@@ -169,7 +170,7 @@ void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
         glGenerateMipmap(GL_TEXTURE_2D);
     }
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings));
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings));
 }
 
 inline
@@ -341,7 +342,7 @@ uint32 gpuapi_buffer_generate(int32 size, const void* data)
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
 
     return vbo;
 }
@@ -355,7 +356,7 @@ uint32 gpuapi_buffer_generate_dynamic(int32 size, const void* data)
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
 
     return vbo;
 }
@@ -388,7 +389,7 @@ void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data)
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
 }
 
 inline
@@ -398,7 +399,7 @@ void gpuapi_buffer_update_sub(uint32 vbo, int32 offset, int32 size, const void* 
     glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
     ASSERT_GPU_API();
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UPLOAD, size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
 }
 
 inline

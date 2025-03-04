@@ -12,6 +12,8 @@
 #include "../../stdlib/Types.h"
 #include "../../memory/RingMemory.h"
 #include "../../log/Log.h"
+#include "../../log/Stats.h"
+#include "../../log/PerformanceProfiler.h"
 #include "../../object/Vertex.h"
 #include "Shader.h"
 #include "Opengl.h"
@@ -39,61 +41,72 @@ int32 shader_type_index(ShaderType type)
 }
 
 // Set value based on uniform location
-inline
+// @todo change naming to gpuapi_uniform_buffer_update (same as vulkan)
+// @todo change from upload to uniform upload since it is a special form of upload
+FORCE_INLINE
 void shader_set_value(uint32 location, bool value)
 {
     glUniform1i(location, (int32) value);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
-inline
+FORCE_INLINE
 void shader_set_value(uint32 location, int32 value)
 {
     glUniform1i(location, value);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
-inline
+FORCE_INLINE
 void shader_set_value(uint32 location, f32 value)
 {
     glUniform1f(location, value);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
-inline
+FORCE_INLINE
 void shader_set_v2(uint32 location, const f32* value)
 {
     glUniform2fv(location, 1, value);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 2);
 }
 
-inline
+FORCE_INLINE
 void shader_set_v3(uint32 location, const f32* value)
 {
     glUniform3fv(location, 1, value);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 3);
 }
 
-inline
+FORCE_INLINE
 void shader_set_v4(uint32 location, const f32* value)
 {
     glUniform4fv(location, 1, value);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 4);
 }
 
-inline
+FORCE_INLINE
 void shader_set_m2(uint32 location, const f32* value)
 {
     glUniformMatrix2fv(location, 1, GL_FALSE, value);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 4);
 }
 
-inline
+FORCE_INLINE
 void shader_set_m3(uint32 location, const f32* value)
 {
     glUniformMatrix3fv(location, 1, GL_FALSE, value);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 9);
 }
 
-inline
+FORCE_INLINE
 void shader_set_m4(uint32 location, const f32* value)
 {
     glUniformMatrix4fv(location, 1, GL_FALSE, value);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 16);
 }
 
-inline
+FORCE_INLINE
 uint32 shader_get_attrib_location(uint32 id, const char* name)
 {
     // By using this you can retreive the shader variable name at a point where and when you know it
@@ -244,12 +257,14 @@ int32 program_get_size(uint32 program)
     return size;
 }
 
+// @todo Instead of passing the shaders one by one, pass one array called ShaderStage* shader_stages
+// This way we can handle this more dynamic
 GLuint pipeline_make(
     GLuint vertex_shader,
     GLuint fragment_shader,
     GLint geometry_shader
 ) {
-    PROFILE_VERBOSE(PROFILE_PIPELINE_MAKE, "");
+    PROFILE(PROFILE_PIPELINE_MAKE, NULL, false, true);
     LOG_1("Create pipeline");
     GLuint program = glCreateProgram();
 
@@ -302,7 +317,7 @@ GLuint pipeline_make(
 }
 
 // @question Depending on how the different gpu apis work we may want to pass Shader* to have a uniform structure
-inline
+FORCE_INLINE
 void pipeline_use(uint32 id)
 {
     glUseProgram(id);

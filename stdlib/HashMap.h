@@ -132,16 +132,11 @@ void hashmap_alloc(HashMap* hm, int32 count, int32 element_size)
 
     hm->table = (uint16 *) data;
     chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, 8);
-
-    DEBUG_MEMORY_INIT((uintptr_t) hm->buf.memory, hm->buf.size);
-    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, hm->buf.size);
 }
 
 inline
 void hashmap_free(HashMap* hm)
 {
-    DEBUG_MEMORY_DELETE((uintptr_t) hm->buf.memory, hm->buf.size);
-
     platform_free((void **) &hm->table);
 
     hm->table = NULL;

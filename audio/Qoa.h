@@ -227,7 +227,7 @@ uint32 qoa_encode_frame(const int16* sample_data, uint32 channels, uint32 frame_
 			16 scalefactors, encode all samples for the current slice and
 			meassure the total squared error.
             */
-			uint64 best_rank = 0;
+			uint64 best_rank = UINT64_MAX;
 			uint64 best_slice = 0;
 			int32 best_scalefactor = 0;
 

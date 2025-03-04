@@ -66,7 +66,7 @@ ID3D12PipelineState* pipeline_make(
     ID3DBlob* fragment_shader,
     ID3DBlob*
 ) {
-    PROFILE_VERBOSE(PROFILE_PIPELINE_MAKE, "");
+    PROFILE(PROFILE_PIPELINE_MAKE, NULL, false, true);
     LOG_1("Create pipeline");
     // @todo We need to find a way to do this somewhere else:
     D3D12_INPUT_ELEMENT_DESC input_element_info[] = {

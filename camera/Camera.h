@@ -13,10 +13,23 @@
 #include "../math/matrix/MatrixFloat32.h"
 #include "../compiler/CompilerUtils.h"
 #include "CameraMovement.h"
+#include "../gpuapi/GpuApiType.h"
 
 #define CAMERA_MAX_INPUTS 4
 
 // @todo Please check out if we can switch to quaternions. We tried but failed.
+
+/**
+ * Gpu API coordinate information
+ *
+ *          Coord-Sys.  NDC-X   NDC-Y   NDC-Z   Clip-Space-Z    Y-Axis
+ * DirectX  left        [-1, 1] [-1, 1] [0, 1]  [0, 1]          Up = positive
+ * Opengl   right       [-1, 1] [-1, 1] [-1, 1] [-1, 1]         Up = positive
+ * Vulkan   right       [-1, 1] [-1, 1] [0, 1]  [0, 1]          Down = positive
+ * Metal    right       [-1, 1] [-1, 1] [0, 1]  [0, 1]          Up = positive
+ *
+ * The first value in Z always represents the near value and the second value the far value
+ */
 
 enum CameraStateChanges : byte {
     CAMERA_STATE_CHANGE_NONE = 0,
@@ -26,6 +39,7 @@ enum CameraStateChanges : byte {
 
 struct Camera {
     byte state_changes;
+    GpuApiType gpu_api_type;
 
     v3_f32 location;
     v4_f32 orientation;
@@ -51,6 +65,56 @@ struct Camera {
     alignas(64) f32 projection[16];
     alignas(64) f32 orth[16];
 };
+
+inline
+void camera_init_rh_opengl(Camera* camera) {
+    camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
+    camera->front = {0.0f, 0.0f, -1.0f};
+    camera->right = {1.0f, 0.0f, 0.0f};
+    camera->up = {0.0f, 1.0f, 0.0f};
+    camera->world_up = {0.0f, 1.0f, 0.0f};
+}
+
+inline
+void camera_init_rh_vulkan(Camera* camera) {
+    camera->orientation = {0.0f, -90.0f, 0.0f, 1.0f};
+    camera->front = {0.0f, 0.0f, -1.0f};
+    camera->right = {1.0f, 0.0f, 0.0f};
+    camera->up = {0.0f, -1.0f, 0.0f};
+    camera->world_up = {0.0f, -1.0f, 0.0f};
+}
+
+inline
+void camera_init_lh(Camera* camera) {
+    camera->orientation = {0.0f, 90.0f, 0.0f, 1.0f};
+    camera->front = {0.0f, 0.0f, 1.0f};
+    camera->right = {1.0f, 0.0f, 0.0f};
+    camera->up = {0.0f, 1.0f, 0.0f};
+    camera->world_up = {0.0f, 1.0f, 0.0f};
+}
+
+inline
+void camera_init(Camera* camera) {
+    camera->znear = 0.1f;
+    camera->zfar = 10000.0f;
+
+    switch (camera->gpu_api_type) {
+        case GPU_API_TYPE_NONE: {
+            camera_init_rh_opengl(camera);
+        } break;
+        case GPU_API_TYPE_OPENGL: {
+            camera_init_rh_opengl(camera);
+        } break;
+        case GPU_API_TYPE_VULKAN: {
+            camera_init_rh_vulkan(camera);
+        } break;
+        case GPU_API_TYPE_DIRECTX: {
+            camera_init_lh(camera);
+        } break;
+        default:
+            UNREACHABLE();
+    }
+}
 
 static inline
 void camera_update_vectors(Camera* camera) noexcept
@@ -164,6 +228,8 @@ void camera_movement(
 
         for (int32 i = 0; i < CAMERA_MAX_INPUTS; i++) {
             switch(movement[i]) {
+                case CAMERA_MOVEMENT_NONE: {
+                } break;
                 case CAMERA_MOVEMENT_FORWARD: {
                         camera->location.x += forward.x * velocity;
                         camera->location.y += forward.y * velocity;
@@ -219,6 +285,7 @@ void camera_movement(
                         camera->zoom -= velocity;
                     } break;
                 default: {
+                    UNREACHABLE();
                 }
             }
         }
@@ -240,11 +307,25 @@ void camera_orth_matrix_lh(Camera* __restrict camera) noexcept
 }
 
 inline
-void camera_orth_matrix_rh(Camera* __restrict camera) noexcept
+void camera_orth_matrix_rh_opengl(Camera* __restrict camera) noexcept
 {
     //mat4_identity(camera->orth);
     camera->orth[15] = 1.0f;
-    mat4_ortho_sparse_rh(
+    mat4_ortho_sparse_rh_opengl(
+        camera->orth,
+        0.0f, (f32) camera->viewport_width,
+        0.0f, (f32) camera->viewport_height,
+        camera->znear,
+        camera->zfar
+    );
+}
+
+inline
+void camera_orth_matrix_rh_vulkan(Camera* __restrict camera) noexcept
+{
+    //mat4_identity(camera->orth);
+    camera->orth[15] = 1.0f;
+    mat4_ortho_sparse_rh_vulkan(
         camera->orth,
         0.0f, (f32) camera->viewport_width,
         0.0f, (f32) camera->viewport_height,
@@ -268,10 +349,25 @@ void camera_projection_matrix_lh(Camera* __restrict camera) noexcept
 }
 
 inline
-void camera_projection_matrix_rh(Camera* __restrict camera) noexcept
+void camera_projection_matrix_rh_opengl(Camera* __restrict camera) noexcept
 {
     //mat4_identity(camera->projection);
     camera->projection[15] = 1.0f;
+    mat4_perspective_sparse_rh(
+        camera->projection,
+        camera->fov,
+        camera->aspect,
+        camera->znear,
+        camera->zfar
+    );
+}
+
+inline
+void camera_projection_matrix_rh_vulkan(Camera* __restrict camera) noexcept
+{
+    //mat4_identity(camera->projection);
+    camera->projection[15] = 1.0f;
+    // @bug Fix
     mat4_perspective_sparse_rh(
         camera->projection,
         camera->fov,
@@ -332,7 +428,7 @@ camera_view_matrix_lh(Camera* __restrict camera) noexcept
 }
 
 void
-camera_view_matrix_rh(Camera* __restrict camera) noexcept
+camera_view_matrix_rh_opengl(Camera* __restrict camera) noexcept
 {
     v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
 
@@ -362,5 +458,96 @@ camera_view_matrix_rh(Camera* __restrict camera) noexcept
     camera->view[14] = -vec3_dot(&zaxis, &camera->location);
     camera->view[15] = 1.0f;
 }
+
+void
+camera_view_matrix_rh_vulkan(Camera* __restrict camera) noexcept
+{
+    v3_f32 zaxis = { -camera->front.x, -camera->front.y, -camera->front.z };
+
+    v3_f32 xaxis;
+    vec3_cross(&xaxis, &zaxis, &camera->world_up);
+    vec3_normalize(&xaxis);
+
+    v3_f32 yaxis;
+    vec3_cross(&yaxis, &zaxis, &xaxis);
+
+    // We tested if it would make sense to create a vec3_dot_sse version for the 3 dot products
+    // The result was that it is not faster, only if we would do 4 dot products would we see an improvement
+    camera->view[0] = xaxis.x;
+    camera->view[1] = yaxis.x;
+    camera->view[2] = zaxis.x;
+    camera->view[3] = 0.0f;
+    camera->view[4] = xaxis.y;
+    camera->view[5] = yaxis.y;
+    camera->view[6] = zaxis.y;
+    camera->view[7] = 0.0f;
+    camera->view[8] = xaxis.z;
+    camera->view[9] = yaxis.z;
+    camera->view[10] = zaxis.z;
+    camera->view[11] = 0;
+    camera->view[12] = -vec3_dot(&xaxis, &camera->location);
+    camera->view[13] = -vec3_dot(&yaxis, &camera->location);
+    camera->view[14] = -vec3_dot(&zaxis, &camera->location);
+    camera->view[15] = 1.0f;
+}
+
+inline
+f32 camera_step_closer(GpuApiType type, f32 value) noexcept {
+    // WARNING: The value depends on the near and far plane.
+    // The reason for this is they will get smaller and smaller with increasing zfar values
+    // until the difference effectively becomes 0 -> vertices occupy the same zindex -> zfighting
+    // For safety reasons we calculate a rather generous offset.
+    // @performance Maybe it makes sense in the future to just pick a small CONST epsilon value
+    switch (type) {
+        case GPU_API_TYPE_NONE:
+            return value + (nextafterf(value, -INFINITY) - value) * 1000;
+        case GPU_API_TYPE_OPENGL:
+            return value + (nextafterf(value, -INFINITY) - value) * 1000;
+        case GPU_API_TYPE_VULKAN:
+            return value + (nextafterf(value, -INFINITY) - value) * 1000;
+        case GPU_API_TYPE_DIRECTX:
+            return value + (nextafterf(value, -INFINITY) - value) * 1000;
+        default:
+            UNREACHABLE();
+    }
+}
+
+inline
+f32 camera_step_away(GpuApiType type, f32 value) noexcept {
+    // WARNING: The value depends on the near and far plane.
+    // The reason for this is they will get smaller and smaller with increasing zfar values
+    // until the difference effectively becomes 0 -> vertices occupy the same zindex -> zfighting
+    // For safety reasons we calculate a rather generous offset.
+    // @performance Maybe it makes sense in the future to just pick a small CONST epsilon value
+    switch (type) {
+        case GPU_API_TYPE_NONE:
+            return value + (nextafterf(value, INFINITY) - value) * 1000;
+        case GPU_API_TYPE_OPENGL:
+            return value + (nextafterf(value, INFINITY) - value) * 1000;
+        case GPU_API_TYPE_VULKAN:
+            return value + (nextafterf(value, INFINITY) - value) * 1000;
+        case GPU_API_TYPE_DIRECTX:
+            return value + (nextafterf(value, INFINITY) - value) * 1000;
+        default:
+            UNREACHABLE();
+    }
+}
+
+#if OPENGL
+    #define camera_projection_matrix(camera) camera_projection_matrix_rh_opengl((camera))
+    #define camera_orth_matrix(camera) camera_orth_matrix_rh_opengl((camera))
+    #define camera_view_matrix(camera) camera_view_matrix_rh_opengl((camera))
+    #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
+#elif VULKAN
+    #define camera_projection_matrix(camera) camera_projection_matrix_rh_vulkan((camera))
+    #define camera_orth_matrix(camera) camera_orth_matrix_rh_vulkan((camera))
+    #define camera_view_matrix(camera) camera_view_matrix_rh_vulkan((camera))
+    #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_rh((camera), (translation))
+#elif DIRECTX
+    #define camera_projection_matrix(camera) camera_projection_matrix_lh((camera))
+    #define camera_orth_matrix(camera) camera_orth_matrix_lh((camera))
+    #define camera_view_matrix(camera) camera_view_matrix_lh((camera))
+    #define camera_translation_matrix_sparse(camera, translation) camera_translation_matrix_sparse_lh((camera), (translation))
+#endif
 
 #endif

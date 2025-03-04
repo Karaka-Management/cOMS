@@ -127,7 +127,7 @@ Asset* cmd_texture_create(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
     }
 
     Texture* texture = (Texture *) asset->self;
-    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
+    if ((cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN)
         && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
         image_flip_vertical(cb->thrd_mem_vol, &texture->image);
@@ -158,7 +158,7 @@ Asset* cmd_font_create(AppCmdBuffer* __restrict cb, Command* __restrict cmd)
     }
 
     Font* font = (Font *) asset->self;
-    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL) {
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN) {
         font_invert_coordinates(font);
     }
 
@@ -361,7 +361,7 @@ inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
     // Check if asset already loaded
     char id_str[9];
     int_to_hex(asset_id, id_str);
-    PROFILE_VERBOSE(PROFILE_CMD_ASSET_LOAD_SYNC, id_str);
+    PROFILE(PROFILE_CMD_ASSET_LOAD_SYNC, id_str, false, true);
 
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, id_str);
 
@@ -373,7 +373,7 @@ inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
 
     // Setup basic texture
     Texture* texture = (Texture *) asset->self;
-    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
+    if ((cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN)
         && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
         image_flip_vertical(cb->mem_vol, &texture->image);
@@ -386,7 +386,7 @@ inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, int32 asset_id) {
 
 inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, const char* name) {
     LOG_FORMAT_1("Load texture %d", {{LOG_DATA_CHAR_STR, (void *) name}});
-    PROFILE_VERBOSE(PROFILE_CMD_ASSET_LOAD_SYNC, name);
+    PROFILE(PROFILE_CMD_ASSET_LOAD_SYNC, name, false, true);
 
     // Check if asset already loaded
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, name);
@@ -400,7 +400,7 @@ inline Asset* cmd_texture_load_sync(AppCmdBuffer* cb, const char* name) {
 
     // Setup basic texture
     Texture* texture = (Texture *) asset->self;
-    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL
+    if ((cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN)
         && !(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)
     ) {
         image_flip_vertical(cb->mem_vol, &texture->image);
@@ -419,7 +419,7 @@ inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id)
     char id_str[9];
     int_to_hex(asset_id, id_str);
 
-    PROFILE_VERBOSE(PROFILE_CMD_FONT_LOAD_SYNC, id_str);
+    PROFILE(PROFILE_CMD_FONT_LOAD_SYNC, id_str, false, true);
 
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, id_str);
 
@@ -431,7 +431,7 @@ inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id)
 
     // Setup font
     Font* font = (Font *) asset->self;
-    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL) {
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN) {
         font_invert_coordinates(font);
     }
 
@@ -443,7 +443,7 @@ inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, int32 asset_id)
 inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, const char* name)
 {
     LOG_FORMAT_1("Load font %s", {{LOG_DATA_CHAR_STR, (void *) name}});
-    PROFILE_VERBOSE(PROFILE_CMD_FONT_LOAD_SYNC, name);
+    PROFILE(PROFILE_CMD_FONT_LOAD_SYNC, name, false, true);
 
     // Check if asset already loaded
     Asset* asset = thrd_ams_get_asset_wait(cb->ams, name);
@@ -457,7 +457,7 @@ inline Asset* cmd_font_load_sync(AppCmdBuffer* cb, const char* name)
 
     // Setup font
     Font* font = (Font *) asset->self;
-    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL) {
+    if (cb->gpu_api_type == GPU_API_TYPE_OPENGL || cb->gpu_api_type == GPU_API_TYPE_VULKAN) {
         font_invert_coordinates(font);
     }
 
@@ -471,7 +471,7 @@ UILayout* cmd_layout_load_sync(
     AppCmdBuffer* __restrict cb,
     UILayout* __restrict layout, const char* __restrict layout_path
 ) {
-    PROFILE_VERBOSE(PROFILE_CMD_LAYOUT_LOAD_SYNC, layout_path);
+    PROFILE(PROFILE_CMD_LAYOUT_LOAD_SYNC, layout_path, false, true);
     LOG_FORMAT_1("Load layout %s", {{LOG_DATA_CHAR_STR, (void *) layout_path}});
 
     FileBody layout_file = {};
@@ -492,7 +492,7 @@ UIThemeStyle* cmd_theme_load_sync(
     AppCmdBuffer* __restrict cb,
     UIThemeStyle* __restrict theme, const char* __restrict theme_path
 ) {
-    PROFILE_VERBOSE(PROFILE_CMD_THEME_LOAD_SYNC, theme_path);
+    PROFILE(PROFILE_CMD_THEME_LOAD_SYNC, theme_path, false, true);
     LOG_FORMAT_1("Load theme %s", {{LOG_DATA_CHAR_STR, (void *) theme_path}});
 
     FileBody theme_file = {};
@@ -518,7 +518,7 @@ UILayout* cmd_ui_load_sync(
     UIThemeStyle* __restrict theme, const char* __restrict theme_path,
     const Camera* __restrict camera
 ) {
-    PROFILE_VERBOSE(PROFILE_CMD_UI_LOAD_SYNC, layout_path);
+    PROFILE(PROFILE_CMD_UI_LOAD_SYNC, layout_path, false, true);
     LOG_FORMAT_1("Load ui with layout %s and theme %s", {{LOG_DATA_CHAR_STR, (void *) layout_path}, {LOG_DATA_CHAR_STR, (void *) theme_path}});
 
     if (!cmd_layout_load_sync(cb, layout, layout_path)) {

@@ -47,7 +47,7 @@ inline
 void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
-    PROFILE_VERBOSE(PROFILE_RING_ALLOC, "");
+    PROFILE(PROFILE_RING_ALLOC, NULL, false, true);
     LOG_FORMAT_1("Allocating RingMemory: %n B", {{LOG_DATA_UINT64, &size}});
 
     ring->memory = alignment < 2
@@ -62,8 +62,6 @@ void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
 
     memset(ring->memory, 0, ring->size);
 
-    DEBUG_MEMORY_INIT((uintptr_t) ring->memory, ring->size);
-    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, ring->size);
     LOG_FORMAT_1("Allocated RingMemory: %n B", {{LOG_DATA_UINT64, &ring->size}});
 }
 
@@ -80,7 +78,6 @@ void ring_init(RingMemory* ring, BufferMemory* buf, uint64 size, uint32 alignmen
     ring->size = size;
     ring->alignment = alignment;
 
-    DEBUG_MEMORY_INIT((uintptr_t) ring->memory, ring->size);
     DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
 }
 
@@ -99,15 +96,12 @@ void ring_init(RingMemory* ring, byte* buf, uint64 size, uint32 alignment = 64)
 
     memset(ring->memory, 0, ring->size);
 
-    DEBUG_MEMORY_INIT((uintptr_t) ring->memory, ring->size);
     DEBUG_MEMORY_SUBREGION((uintptr_t) ring->memory, ring->size);
 }
 
 inline
 void ring_free(RingMemory* ring)
 {
-    DEBUG_MEMORY_DELETE((uintptr_t) ring->memory, ring->size);
-
     if (ring->alignment < 2) {
         platform_free((void **) &ring->memory);
     } else {

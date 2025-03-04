@@ -16,6 +16,9 @@
 #include "../GpuAttributeType.h"
 #include "../../object/Vertex.h"
 #include "../../log/Log.h"
+#include "../../log/Stats.h"
+#include "../../log/PerformanceProfiler.h"
+#include "../../log/PerformanceProfiler.h"
 
 inline
 uint32_t shader_get_uniform_location(
@@ -90,28 +93,28 @@ void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeD
             attr[0] = {
                 .location = 0,
                 .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
                 .offset = offsetof(Vertex3D, position)
             };
 
             attr[1] = {
                 .location = 1,
                 .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
                 .offset = offsetof(Vertex3D, normal)
             };
 
             attr[2] = {
                 .location = 2,
                 .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
                 .offset = offsetof(Vertex3D, tex_coord)
             };
 
             attr[3] = {
                 .location = 3,
                 .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .format = VK_FORMAT_R32_UINT,
                 .offset = offsetof(Vertex3D, color)
             };
         } return;
@@ -119,14 +122,14 @@ void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeD
             attr[0] = {
                 .location = 0,
                 .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
                 .offset = offsetof(Vertex3DNormal, position)
             };
 
             attr[1] = {
                 .location = 1,
                 .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
                 .offset = offsetof(Vertex3DNormal, normal)
             };
         } return;
@@ -134,14 +137,14 @@ void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeD
             attr[0] = {
                 .location = 0,
                 .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
                 .offset = offsetof(Vertex3DColor, position)
             };
 
             attr[1] = {
                 .location = 1,
                 .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .format = VK_FORMAT_R32_UINT,
                 .offset = offsetof(Vertex3DColor, color)
             };
         } return;
@@ -149,7 +152,7 @@ void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeD
             attr[0] = {
                 .location = 0,
                 .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
                 .offset = offsetof(Vertex3DTextureColor, position)
             };
 
@@ -164,14 +167,14 @@ void gpuapi_attribute_info_create(GpuAttributeType type, VkVertexInputAttributeD
             attr[0] = {
                 .location = 0,
                 .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
                 .offset = offsetof(Vertex3DSamplerTextureColor, position)
             };
 
             attr[1] = {
                 .location = 1,
                 .binding = 0,
-                .format = VK_FORMAT_R32_UINT,
+                .format = VK_FORMAT_R32_SINT,
                 .offset = offsetof(Vertex3DSamplerTextureColor, sampler)
             };
 
@@ -193,13 +196,15 @@ void pipeline_use(VkCommandBuffer command_buffer, VkPipeline pipeline)
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 }
 
+// @todo Instead of passing the shaders one by one, pass one array called ShaderStage* shader_stages
+// This way we can handle this more dynamic
 VkPipeline pipeline_make(
     VkDevice device, VkRenderPass render_pass, VkPipelineLayout* __restrict pipeline_layout, VkPipeline* __restrict pipeline,
     VkDescriptorSetLayout* descriptor_set_layouts,
     VkShaderModule vertex_shader, VkShaderModule fragment_shader,
     VkShaderModule
 ) {
-    PROFILE_VERBOSE(PROFILE_PIPELINE_MAKE, "");
+    PROFILE(PROFILE_PIPELINE_MAKE, NULL, false, true);
     LOG_1("Create pipeline");
     VkPipelineShaderStageCreateInfo vertex_shader_stage_info = {};
     vertex_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -213,13 +218,16 @@ VkPipeline pipeline_make(
     fragment_shader_stage_info.module = fragment_shader;
     fragment_shader_stage_info.pName = "main";
 
-    VkPipelineShaderStageCreateInfo shader_stages[] = {vertex_shader_stage_info, fragment_shader_stage_info};
+    VkPipelineShaderStageCreateInfo shader_stages[] = {
+        vertex_shader_stage_info,
+        fragment_shader_stage_info
+    };
 
     VkVertexInputBindingDescription binding_description;
-    vulkan_vertex_binding_description(sizeof(Vertex3DTextureColor), &binding_description);
+    vulkan_vertex_binding_description(sizeof(Vertex3DSamplerTextureColor), &binding_description);
 
-    VkVertexInputAttributeDescription input_attribute_description[2];
-    gpuapi_attribute_info_create(GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR, input_attribute_description);
+    VkVertexInputAttributeDescription input_attribute_description[gpuapi_attribute_count(GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR)];
+    gpuapi_attribute_info_create(GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR, input_attribute_description);
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {};
     vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -253,9 +261,16 @@ VkPipeline pipeline_make(
     multisampling.sampleShadingEnable = VK_FALSE;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
+    // @todo This depends on the texture -> shouldn't be here
     VkPipelineColorBlendAttachmentState color_blend_attachment = {};
     color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    color_blend_attachment.blendEnable = VK_FALSE;
+    color_blend_attachment.blendEnable = VK_TRUE;
+    color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+    color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
     VkPipelineColorBlendStateCreateInfo color_blending = {};
     color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -389,7 +404,7 @@ void vulkan_descriptor_sets_create(
     uint32 frames_in_flight, RingMemory* ring
 )
 {
-    VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout *) ring_get_memory(ring, sizeof(VkDescriptorSetLayout), 64);
+    VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout *) ring_get_memory(ring, sizeof(VkDescriptorSetLayout) * frames_in_flight, 64);
     for (uint32 i = 0; i < frames_in_flight; ++i) {
         layouts[i] = descriptor_set_layout;
     }
@@ -415,12 +430,20 @@ void vulkan_descriptor_sets_create(
         buffer_info.offset = 0;
         buffer_info.range = uniform_buffer_object_size;
 
-        VkDescriptorImageInfo image_info = {};
-        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        image_info.imageView = texture_image_view;
-        image_info.sampler = texture_sampler;
+        VkDescriptorImageInfo image_info[] = {
+            {
+                .sampler = texture_sampler,
+                .imageView = texture_image_view,
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            },
+            { // @bug this needs to be the ui sampler
+                .sampler = texture_sampler,
+                .imageView = texture_image_view,
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            }
+        };
 
-        VkWriteDescriptorSet descriptor_writes[2] = {
+        VkWriteDescriptorSet descriptor_writes[] = {
             {
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .dstSet = descriptor_sets[i],
@@ -437,7 +460,16 @@ void vulkan_descriptor_sets_create(
                 .dstArrayElement = 0,
                 .descriptorCount = 1,
                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo = &image_info,
+                .pImageInfo = &image_info[0],
+            },
+            { // @bug this needs to be the ui sampler
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = descriptor_sets[i],
+                .dstBinding = 2,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .pImageInfo = &image_info[1],
             }
         };
 

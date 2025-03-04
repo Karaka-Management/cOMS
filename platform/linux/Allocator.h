@@ -33,6 +33,9 @@ void* platform_alloc(size_t size)
 
     *((size_t *) ptr) = size;
 
+    DEBUG_MEMORY_INIT((uintptr_t) ptr, size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
+
     return (void *) ((uintptr_t) ptr + sizeof(size_t));
 }
 
@@ -60,12 +63,17 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
     *((void **) ((uintptr_t) aligned_ptr - sizeof(void *) - sizeof(size_t))) = ptr;
     *((size_t *) ((uintptr_t) aligned_ptr - sizeof(size_t))) = size;
 
+    DEBUG_MEMORY_INIT((uintptr_t) aligned_ptr, size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
+
     return aligned_ptr;
 }
 
 inline
 void platform_free(void** ptr) {
     void* actual_ptr = (void *) ((uintptr_t) *ptr - sizeof(size_t));
+    DEBUG_MEMORY_FREE((uintptr_t) actual_ptr);
+
     munmap(actual_ptr, *((size_t *) actual_ptr));
     *ptr = NULL;
 }
@@ -73,6 +81,8 @@ void platform_free(void** ptr) {
 inline
 void platform_aligned_free(void** aligned_ptr) {
     void* ptr = (void *) ((uintptr_t) *aligned_ptr - sizeof(void *) - sizeof(size_t));
+    DEBUG_MEMORY_FREE((uintptr_t) ptr);
+
     munmap(ptr, *((size_t *) ((uintptr_t) ptr + sizeof(void *))));
     *aligned_ptr = NULL;
 }
@@ -92,6 +102,9 @@ void* platform_shared_alloc(int32* fd, const char* name, size_t size)
     ASSERT_SIMPLE(shm_ptr);
 
     *((size_t *) shm_ptr) = size;
+
+    DEBUG_MEMORY_INIT((uintptr_t) shm_ptr, size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
 
     return (void *) ((uintptr_t) shm_ptr + sizeof(size_t));
 }
@@ -116,6 +129,7 @@ void* platform_shared_open(int32* fd, const char* name, size_t size)
 inline
 void platform_shared_free(int32 fd, const char* name, void** ptr)
 {
+    DEBUG_MEMORY_FREE((uintptr_t) *ptr - sizeof(size_t));
     munmap((void *) ((uintptr_t) *ptr - sizeof(size_t)), *((size_t *) ((uintptr_t) *ptr - sizeof(size_t))));
     *ptr = NULL;
 

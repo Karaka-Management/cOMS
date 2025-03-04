@@ -131,7 +131,7 @@ AssetArchiveElement* asset_archive_element_find(const AssetArchive* archive, int
 
 void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* buf, RingMemory* ring, int32 steps = 8)
 {
-    PROFILE_VERBOSE(PROFILE_ASSET_ARCHIVE_LOAD, path);
+    PROFILE(PROFILE_ASSET_ARCHIVE_LOAD, path, false, true);
 
     LOG_FORMAT_1(
         "Load AssetArchive %s",
@@ -195,7 +195,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     char id_str[9];
     int_to_hex(id, id_str);
 
-    PROFILE_VERBOSE(PROFILE_ASSET_ARCHIVE_ASSET_LOAD, id_str);
+    PROFILE(PROFILE_ASSET_ARCHIVE_ASSET_LOAD, id_str, false, true);
     // @todo add calculation from element->type to ams index. Probably requires an app specific conversion function
 
     // We have to mask 0x00FFFFFF since the highest bits define the archive id, not the element id
@@ -267,7 +267,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
                 asset->vram_size = texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings);
                 asset->ram_size = asset->vram_size + sizeof(Texture);
 
-                #if OPENGL
+                #if OPENGL || VULKAN
                     // If opengl, we always flip
                     if (!(texture->image.image_settings & IMAGE_SETTING_BOTTOM_TO_TOP)) {
                         image_flip_vertical(ring, &texture->image);

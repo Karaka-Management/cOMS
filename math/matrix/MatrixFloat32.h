@@ -707,7 +707,7 @@ void mat4_ortho_sparse_lh(
     matrix[15] = 1.0f;
 }
 
-void mat4_ortho_sparse_rh(
+void mat4_ortho_sparse_rh_opengl(
     f32 *matrix,
     f32 left, f32 right, f32 bottom, f32 top,
     f32 znear, f32 zfar
@@ -728,12 +728,42 @@ void mat4_ortho_sparse_rh(
 
     //matrix[8] = 0.0f;
     //matrix[9] = 0.0f;
-    matrix[10] = -2.0f / fn_delta;
+    matrix[10] = 2.0f / fn_delta;
     //matrix[11] = 0.0f;
 
     matrix[12] = -(right + left) / rl_delta;
     matrix[13] = -(top + bottom) / tb_delta;
     matrix[14] = -(zfar + znear) / fn_delta;
+    matrix[15] = 1.0f;
+}
+
+void mat4_ortho_sparse_rh_vulkan(
+    f32 *matrix,
+    f32 left, f32 right, f32 bottom, f32 top,
+    f32 znear, f32 zfar
+) noexcept {
+    f32 rl_delta = right - left;
+    f32 tb_delta = top - bottom;
+    f32 fn_delta = zfar - znear;
+
+    matrix[0] = 2.0f / rl_delta;
+    //matrix[1] = 0.0f;
+    //matrix[2] = 0.0f;
+    //matrix[3] = 0.0f;
+
+    //matrix[4] = 0.0f;
+    matrix[5] = -2.0f / tb_delta;
+    //matrix[6] = 0.0f;
+    //matrix[7] = 0.0f;
+
+    //matrix[8] = 0.0f;
+    //matrix[9] = 0.0f;
+    matrix[10] = 1.0f / fn_delta;
+    //matrix[11] = 0.0f;
+
+    matrix[12] = -(right + left) / rl_delta;
+    matrix[13] = (top + bottom) / tb_delta;
+    matrix[14] = -znear / fn_delta;
     matrix[15] = 1.0f;
 }
 

@@ -89,7 +89,7 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path)
 inline uint64
 file_size(const char* path)
 {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+    PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     // @performance Profile against fseek strategy
     FileHandle fp;
@@ -133,7 +133,7 @@ file_size(const char* path)
 inline
 bool file_exists(const char* path)
 {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+    PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     DWORD file_attr;
 
@@ -152,7 +152,7 @@ bool file_exists(const char* path)
 inline void
 file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __restrict ring = NULL)
 {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+    PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     FileHandle fp;
     if (*path == '.') {
@@ -219,7 +219,7 @@ file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __
 inline
 void file_read(const char* __restrict path, FileBody* __restrict file, uint64 offset, uint64 length = MAX_UINT64, RingMemory* __restrict ring = NULL)
 {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+    PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     FileHandle fp;
     if (*path == '.') {
@@ -409,7 +409,7 @@ bool file_read_line(
 inline bool
 file_write(const char* __restrict path, const FileBody* __restrict file)
 {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+    PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     FileHandle fp;
     if (*path == '.') {
@@ -456,7 +456,7 @@ file_write(const char* __restrict path, const FileBody* __restrict file)
 inline void
 file_copy(const char* __restrict src, const char* __restrict dst)
 {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, src);
+    PROFILE(PROFILE_FILE_UTILS, src, false, true);
 
     if (*src == '.') {
         char src_full_path[MAX_PATH];
@@ -662,7 +662,7 @@ FileHandle file_read_async_handle(const char* path)
 
 bool file_append(const char* __restrict path, const char* __restrict file)
 {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+    PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     FileHandle fp;
     if (*path == '.') {
@@ -709,7 +709,7 @@ bool file_append(const char* __restrict path, const char* __restrict file)
 inline bool
 file_append(FileHandle fp, const char* file)
 {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, file);
+    PROFILE(PROFILE_FILE_UTILS, file, false, true);
 
     if (fp == INVALID_HANDLE_VALUE) {
         ASSERT_SIMPLE(false);
@@ -731,7 +731,7 @@ file_append(FileHandle fp, const char* file)
 inline bool
 file_append(FileHandle fp, const char* file, size_t length)
 {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, file);
+    PROFILE(PROFILE_FILE_UTILS, file, false, true);
 
     if (fp == INVALID_HANDLE_VALUE) {
         ASSERT_SIMPLE(false);
@@ -752,7 +752,7 @@ file_append(FileHandle fp, const char* file, size_t length)
 inline bool
 file_append(const char* __restrict path, const FileBody* __restrict file)
 {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+    PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     FileHandle fp;
     if (*path == '.') {

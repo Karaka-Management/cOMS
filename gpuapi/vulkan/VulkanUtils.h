@@ -28,6 +28,8 @@
 #include "../../object/Texture.h"
 #include "../../image/Image.cpp"
 #include "../../log/Log.h"
+#include "../../log/Stats.h"
+#include "../../log/PerformanceProfiler.h"
 #include "../../memory/RingMemory.h"
 #include "ShaderUtils.h"
 #include "FramesInFlightContainer.h"
@@ -959,9 +961,10 @@ void load_texture_to_gpu(
     ASSERT_GPU_API(vkCreateSampler(device, &sampler_info, NULL, &texture_sampler));
 }
 
+// @todo Rename to same name as opengl (or rename opengl obviously)
 void vulkan_vertex_buffer_update(
     VkDevice device, VkPhysicalDevice physical_device, VkCommandPool command_pool, VkQueue queue,
-    VkBuffer vertexBuffer,
+    VkBuffer* vertexBuffer,
     const void* __restrict vertices, int32 vertex_size, int32 vertex_count
 )
 {
@@ -988,18 +991,20 @@ void vulkan_vertex_buffer_update(
 
     VkBufferCopy copyRegion = {};
     copyRegion.size = bufferSize;
-    vkCmdCopyBuffer(commandBuffer, stagingBuffer, vertexBuffer, 1, &copyRegion);
+    vkCmdCopyBuffer(commandBuffer, stagingBuffer, *vertexBuffer, 1, &copyRegion);
     vulkan_single_commands_end(queue, commandBuffer);
 
     vulkan_single_commands_free(device, command_pool, commandBuffer);
 
     vkDestroyBuffer(device, stagingBuffer, NULL);
     vkFreeMemory(device, stagingBufferMemory, NULL);
+
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, vertex_size * vertex_count);
 }
 
 void vulkan_vertex_buffer_create(
     VkDevice device, VkPhysicalDevice physical_device, VkCommandPool command_pool, VkQueue queue,
-    VkBuffer vertexBuffer, VkDeviceMemory vertexBufferMemory,
+    VkBuffer* vertexBuffer, VkDeviceMemory vertexBufferMemory,
     const void* __restrict vertices, int32 vertex_size, int32 vertex_count
 )
 {
@@ -1026,7 +1031,7 @@ void vulkan_vertex_buffer_create(
         bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        vertexBuffer, vertexBufferMemory
+        *vertexBuffer, vertexBufferMemory
     );
 
     // Copy buffer
@@ -1037,7 +1042,7 @@ void vulkan_vertex_buffer_create(
 
     VkBufferCopy copyRegion = {};
     copyRegion.size = bufferSize;
-    vkCmdCopyBuffer(commandBuffer, stagingBuffer, vertexBuffer, 1, &copyRegion);
+    vkCmdCopyBuffer(commandBuffer, stagingBuffer, *vertexBuffer, 1, &copyRegion);
     vulkan_single_commands_end(queue, commandBuffer);
 
     // @todo if we change behaviour according to the comment above we don't need this
@@ -1094,6 +1099,8 @@ void vulkan_index_buffer_create(
     vkFreeMemory(device, stagingBufferMemory, NULL);
 }
 
+
+// @todo We also need a free function (unmap buffer)
 void vulkan_uniform_buffers_create(
     VkDevice device, VkPhysicalDevice physical_device,
     VkBuffer* __restrict uniform_buffers, VkDeviceMemory* __restrict uniform_buffers_memory, void** __restrict uniform_buffers_mapped,
@@ -1114,6 +1121,15 @@ void vulkan_uniform_buffers_create(
 
         vkMapMemory(device, uniform_buffers_memory[i], 0, bufferSize, 0, &uniform_buffers_mapped[i]);
     }
+}
+
+// @question Do we want one generalized function like this or multiple type specific like in opengl?
+void gpuapi_uniform_buffer_update(
+    f32* data, uint32 data_size,
+    uint32 current_image, void** __restrict uniform_buffers_mapped
+) {
+    memcpy(uniform_buffers_mapped[current_image], data, data_size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, data_size);
 }
 
 #endif

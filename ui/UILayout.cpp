@@ -570,7 +570,7 @@ int32 layout_from_data(
     const byte* __restrict data,
     UILayout* __restrict layout
 ) {
-    PROFILE_VERBOSE(PROFILE_LAYOUT_FROM_DATA, "");
+    PROFILE(PROFILE_LAYOUT_FROM_DATA, NULL, false, true);
     LOG_1("Load layout");
 
     const byte* in = data;
@@ -606,7 +606,7 @@ void layout_from_theme(
     UILayout* __restrict layout,
     const UIThemeStyle* __restrict theme
 ) {
-    PROFILE_VERBOSE(PROFILE_LAYOUT_FROM_THEME, "");
+    PROFILE(PROFILE_LAYOUT_FROM_THEME, NULL, false, true);
     LOG_1("Load theme for layout");
 
     // @todo Handle animations

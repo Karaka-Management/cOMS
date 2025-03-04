@@ -21,7 +21,7 @@
 typedef SSIZE_T ssize_t;
 
 #if DEBUG
-    #define UNREACHABLE() ASSERT_SIMPLE(false) __assume(0)
+    #define UNREACHABLE() ASSERT_SIMPLE(false); __assume(0)
 #else
     #define UNREACHABLE() __assume(0)
 #endif

@@ -23,7 +23,7 @@ void* cmd_shader_load(AppCmdBuffer*, Command*) {
 }
 
 void* cmd_shader_load_sync(AppCmdBuffer* __restrict cb, Shader* __restrict shader, const int32* __restrict shader_ids) {
-    PROFILE_VERBOSE(PROFILE_CMD_SHADER_LOAD_SYNC, "");
+    PROFILE(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, false, true);
     char asset_id[9];
 
     int32 shader_assets[SHADER_TYPE_SIZE];

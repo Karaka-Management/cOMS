@@ -218,6 +218,7 @@ int32 ui_input_element_update(UILayout* layout, UIElement* element)
         dimension.width -= input->border.thickness;
         dimension.height -= input->border.thickness;
 
+        // @bug change to camera_step_closer()
         zindex = nextafterf(zindex, INFINITY);
     }
 
@@ -229,6 +230,7 @@ int32 ui_input_element_update(UILayout* layout, UIElement* element)
             input->background.background_color
         );
 
+        // @bug change to camera_step_closer()
         zindex = nextafterf(zindex, INFINITY);
     }
 

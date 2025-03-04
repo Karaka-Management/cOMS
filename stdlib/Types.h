@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #if _WIN32
+    // @question Do I really need <windows.h> here or could I go lower?
     #include <windows.h>
     typedef SSIZE_T ssize_t;
 #elif __linux__

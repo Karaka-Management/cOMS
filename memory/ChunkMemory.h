@@ -43,7 +43,7 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
 {
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
-    PROFILE_VERBOSE(PROFILE_CHUNK_ALLOC, "");
+    PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
     LOG_1("Allocating ChunkMemory");
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
@@ -63,8 +63,6 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
 
     memset(buf->memory, 0, buf->size);
 
-    DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
-    LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, buf->size);
     LOG_FORMAT_1("Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 }
 
@@ -89,7 +87,6 @@ void chunk_init(ChunkMemory* buf, BufferMemory* data, uint32 count, uint32 chunk
     //  On another hand we could by accident overwrite the values in free if we are not careful
     buf->free = (uint64 *) (buf->memory + count * chunk_size);
 
-    DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 
@@ -115,7 +112,6 @@ void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, i
     //  On another hand we could by accident overwrite the values in free if we are not careful
     buf->free = (uint64 *) (buf->memory + count * chunk_size);
 
-    DEBUG_MEMORY_INIT((uintptr_t) buf->memory, buf->size);
     DEBUG_MEMORY_SUBREGION((uintptr_t) buf->memory, buf->size);
 }
 

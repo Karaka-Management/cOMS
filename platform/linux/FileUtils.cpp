@@ -143,7 +143,7 @@ FileHandle file_append_handle(const char* path) {
 
 inline
 bool file_exists(const char* path) {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+    PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     struct stat buffer;
     const char* full_path = path;
@@ -159,7 +159,7 @@ bool file_exists(const char* path) {
 
 inline
 bool file_copy(const char* __restrict src, const char* __restrict dst) {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, src);
+    PROFILE(PROFILE_FILE_UTILS, src, false, true);
 
     char src_full_path[MAX_PATH];
     char dst_full_path[MAX_PATH];
@@ -213,7 +213,7 @@ bool file_copy(const char* __restrict src, const char* __restrict dst) {
 
 inline
 void file_read(const char* __restrict path, FileBody* __restrict file, RingMemory* __restrict ring = NULL) {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+    PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     char full_path[MAX_PATH];
     const char* abs_path = path;
@@ -328,7 +328,7 @@ bool file_read_line(
 
 inline
 bool file_write(const char* __restrict path, const FileBody* __restrict file) {
-    PROFILE_VERBOSE(PROFILE_FILE_UTILS, path);
+    PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     int32 fd;
     char full_path[PATH_MAX];

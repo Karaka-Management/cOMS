@@ -29,7 +29,7 @@ void* cmd_shader_load_sync(
     AppCmdBuffer* __restrict cb, Shader* __restrict shader, const int32* __restrict shader_ids,
     ID3D12Device* __restrict device, ID3D12PipelineState** __restrict pipeline, ID3D12RootSignature* __restrict pipeline_layout
 ) {
-    PROFILE_VERBOSE(PROFILE_CMD_SHADER_LOAD_SYNC, "");
+    PROFILE(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, false, true);
     char asset_id[9];
 
     ID3DBlob* shader_assets[SHADER_TYPE_SIZE];

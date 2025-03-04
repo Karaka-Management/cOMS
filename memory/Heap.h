@@ -38,8 +38,6 @@ void heap_alloc(Heap* heap, uint32 element_size, uint64 capacity, int32 (*compar
     heap->size = 0;
     heap->compare = compare;
     heap->helper_mem = heap->elements + element_size;
-
-    DEBUG_MEMORY_INIT((uintptr_t) heap->elements, element_size * capacity);
 }
 
 void heap_free(Heap* heap)
@@ -60,8 +58,6 @@ void heap_init(Heap* heap, BufferMemory* buf, uint32 element_size, uint64 capaci
     heap->capacity = capacity;
     heap->size = 0;
     heap->compare = compare;
-
-    DEBUG_MEMORY_INIT((uintptr_t) heap->elements, element_size * capacity);
 }
 
 void heapify_down(Heap* heap, uint64 index) {

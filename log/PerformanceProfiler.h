@@ -198,55 +198,19 @@ void performance_profiler_end(int32 id) noexcept
     perf->self_cycle = perf->total_cycle;
 }
 
-// @question Do we want different levels of PROFILE_VERBOSE and PROFILE_STATELESS same as in Log.h
 // This would allow us to go ham in a lot of functions (e.g. file reading)
 
-#if LOG_LEVEL == 4
+#if LOG_LEVEL > 1
     // Only these function can properly handle self-time calculation
     // Use these whenever you want to profile an entire function
-    #define PROFILE(id) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__)
-    #define PROFILE_VERBOSE(id, info) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, (info), false, true)
-    #define PROFILE_STATELESS(id, info) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, (info), true, true)
+    #define PROFILE(id, ...) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, ##__VA_ARGS__)
 
     #define PROFILE_START(id, name) if(_perf_active && *_perf_active) performance_profiler_start((id), (name))
     #define PROFILE_END(id) if(_perf_active && *_perf_active) performance_profiler_end((id))
     #define PROFILE_SCOPE(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
     #define PROFILE_RESET(id) if(_perf_active && *_perf_active) performance_profiler_reset((id))
-#elif LOG_LEVEL == 3
-    // Only these function can properly handle self-time calculation
-    // Use these whenever you want to profile an entire function
-    #define PROFILE(id) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__)
-    #define PROFILE_VERBOSE(id, info) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, (info), false, true)
-    #define PROFILE_STATELESS(id, info) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, (info), true, true)
-
-    #define PROFILE_START(id, name) if(_perf_active && *_perf_active) performance_profiler_start((id), (name))
-    #define PROFILE_END(id) if(_perf_active && *_perf_active) performance_profiler_end((id))
-    #define PROFILE_SCOPE(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
-    #define PROFILE_RESET(id) if(_perf_active && *_perf_active) performance_profiler_reset((id))
-#elif LOG_LEVEL == 2
-    // Only these function can properly handle self-time calculation
-    // Use these whenever you want to profile an entire function
-    #define PROFILE(id) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__)
-    #define PROFILE_VERBOSE(id, info) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, (info), false, true)
-    #define PROFILE_STATELESS(id, info) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), __func__, (info), true, true)
-
-    #define PROFILE_START(id, name) if(_perf_active && *_perf_active) performance_profiler_start((id), (name))
-    #define PROFILE_END(id) if(_perf_active && *_perf_active) performance_profiler_end((id))
-    #define PROFILE_SCOPE(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
-    #define PROFILE_RESET(id) if(_perf_active && *_perf_active) performance_profiler_reset((id))
-#elif LOG_LEVEL == 1
+#else
     #define PROFILE(id) ((void) 0)
-    #define PROFILE_VERBOSE(name, info) ((void) 0)
-    #define PROFILE_STATELESS(id, info) ((void) 0)
-
-    #define PROFILE_START(id, name) ((void) 0)
-    #define PROFILE_END(id) ((void) 0)
-    #define PROFILE_SCOPE(id, name) ((void) 0)
-    #define PROFILE_RESET(id) ((void) 0)
-#elif LOG_LEVEL == 0
-    #define PROFILE(id) ((void) 0)
-    #define PROFILE_VERBOSE(name, info) ((void) 0)
-    #define PROFILE_STATELESS() ((void) 0)
 
     #define PROFILE_START(id, name) ((void) 0)
     #define PROFILE_END(id) ((void) 0)
