@@ -54,26 +54,26 @@ static void test_is_empty() {
     ASSERT_TRUE(is_empty(region1, 0));
 }
 
-static void _is_equal(void* val) {
-    bool* res = (bool *) val;
+static void _is_equal(volatile void* val) {
+    volatile bool* res = (volatile bool *) val;
 
     uint8_t region1[64];
     uint8_t region2[64];
     memset(region1, 0xAA, sizeof(region1));
     memset(region2, 0xAA, sizeof(region2));
 
-    *res = is_equal(region1, region2, sizeof(region1));
+    *res |= is_equal(region1, region2, sizeof(region1));
 }
 
-static void _memcmp(void* val) {
-    bool* res = (bool *) val;
+static void _memcmp(volatile void* val) {
+    volatile bool* res = (volatile bool *) val;
 
     uint8_t region1[64];
     uint8_t region2[64];
     memset(region1, 0xAA, sizeof(region1));
     memset(region2, 0xAA, sizeof(region2));
 
-    *res = (bool) (memcmp(region1, region2, sizeof(region1)) == 0);
+    *res |= (bool) (memcmp(region1, region2, sizeof(region1)) == 0);
 }
 
 static void test_is_equal_performance() {
@@ -81,40 +81,40 @@ static void test_is_equal_performance() {
     COMPARE_FUNCTION_TEST_CYCLE(_is_equal, _memcmp, 10.0);
 }
 
-static void _is_empty(void* val) {
-    bool* res = (bool *) val;
+static void _is_empty(volatile void* val) {
+    volatile bool* res = (volatile bool *) val;
 
     alignas(64) uint8_t region1[64];
     memset(region1, 0xAA, sizeof(region1));
 
-    *res = is_empty(region1, sizeof(region1));
+    *res |= is_empty(region1, sizeof(region1));
 }
 
-static void _memcmp_empty(void* val) {
-    bool* res = (bool *) val;
+static void _memcmp_empty(volatile void* val) {
+    volatile bool* res = (volatile bool *) val;
 
     alignas(64) uint8_t region1[64];
     memset(region1, 0xAA, sizeof(region1));
 
-    *res = *region1 == 0 && memcmp(region1, region1 + 1, sizeof(region1) - 1) == 0;
+    *res |= *region1 == 0 && memcmp(region1, region1 + 1, sizeof(region1) - 1) == 0;
 }
 
-static void _is_empty2(void* val) {
-    bool* res = (bool *) val;
+static void _is_empty2(volatile void* val) {
+    volatile bool* res = (volatile bool *) val;
 
     alignas(64) uint8_t region1[64];
     memset(region1, 0, sizeof(region1));
 
-    *res = is_empty(region1, sizeof(region1));
+    *res |= is_empty(region1, sizeof(region1));
 }
 
-static void _memcmp_empty2(void* val) {
-    bool* res = (bool *) val;
+static void _memcmp_empty2(volatile void* val) {
+    volatile bool* res = (volatile bool *) val;
 
     alignas(64) uint8_t region1[64];
     memset(region1, 0, sizeof(region1));
 
-    *res = *region1 == 0 && memcmp(region1, region1 + 1, sizeof(region1) - 1) == 0;
+    *res |= *region1 == 0 && memcmp(region1, region1 + 1, sizeof(region1) - 1) == 0;
 }
 
 static void test_is_empty_performance() {
@@ -135,11 +135,11 @@ static void test_is_empty_performance() {
 int main() {
     TEST_INIT(10);
 
-    RUN_TEST(test_is_equal);
-    RUN_TEST(test_is_empty);
+    TEST_RUN(test_is_equal);
+    TEST_RUN(test_is_empty);
 
-    RUN_TEST(test_is_equal_performance);
-    RUN_TEST(test_is_empty_performance);
+    TEST_RUN(test_is_equal_performance);
+    TEST_RUN(test_is_empty_performance);
 
     TEST_FINALIZE();
 

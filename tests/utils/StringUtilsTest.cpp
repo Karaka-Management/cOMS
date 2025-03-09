@@ -83,16 +83,24 @@ static void test_str_length()
     ASSERT_EQUALS(str_length("2asdf dw"), 8);
 }
 
-static void _str_length(void* val) {
-    int64* res = (int64 *) val;
+static void _str_length(volatile void* val) {
+    volatile int64* res = (volatile int64 *) val;
 
-    *res = (int64) str_length("This %d is a %s with %f values");
+    char buffer[32];
+    memcpy(buffer, "This %d is a %s with %f values", sizeof("This %d is a %s with %f values"));
+    buffer[30] = (byte) *res;
+
+    *res += (int64) str_length(buffer);
 }
 
-static void _strlen(void* val) {
-    int64* res = (int64 *) val;
+static void _strlen(volatile void* val) {
+    volatile int64* res = (volatile int64 *) val;
 
-    *res = (int64) strlen("This %d is a %s with %f values");
+    char buffer[32];
+    memcpy(buffer, "This %d is a %s with %f values", sizeof("This %d is a %s with %f values"));
+    buffer[30] = (byte) *res;
+
+    *res += (int64) strlen(buffer);
 }
 
 static void test_str_length_performance() {
@@ -100,7 +108,7 @@ static void test_str_length_performance() {
     COMPARE_FUNCTION_TEST_CYCLE(_str_length, _strlen, 5.0);
 }
 
-static void _str_is_alphanum(void* val) {
+static void _str_is_alphanum(volatile void* val) {
     bool* res = (bool *) val;
     srand(0);
 
@@ -109,10 +117,10 @@ static void _str_is_alphanum(void* val) {
         a += str_is_alphanum((byte) rand());
     }
 
-    *res = (bool) a;
+    *res |= (bool) a;
 }
 
-static void _isalnum(void* val) {
+static void _isalnum(volatile void* val) {
     bool* res = (bool *) val;
     srand(0);
 
@@ -121,7 +129,7 @@ static void _isalnum(void* val) {
         a += isalnum((byte) rand());
     }
 
-    *res = (bool) a;
+    *res |= (bool) a;
 }
 
 static void test_str_is_alphanum_performance() {
@@ -136,20 +144,20 @@ static void test_sprintf_fast()
     ASSERT_TRUE(strcmp(buffer, "This 1337 is a test with 3.00000 values") == 0);
 }
 
-static void _sprintf_fast(void* val) {
-    bool* res = (bool *) val;
+static void _sprintf_fast(volatile void* val) {
+    volatile bool* res = (volatile bool *) val;
 
     char buffer[256];
     sprintf_fast(buffer, "This %d is a %s with %f values", 1337, "test", 3.0);
-    *res = (bool) (strcmp(buffer, "This 1337 is a test with 3.00000 values") == 0);
+    *res |= (bool) (strcmp(buffer, "This 1337 is a test with 3.00000 values") == 0);
 }
 
-static void _sprintf(void* val) {
-    bool* res = (bool *) val;
+static void _sprintf(volatile void* val) {
+    volatile bool* res = (volatile bool *) val;
 
     char buffer[256];
     sprintf(buffer, "This %d is a %s with %f values", 1337, "test", 3.0);
-    *res = (bool) (strcmp(buffer, "This 1337 is a test with 3.000000 values") == 0);
+    *res |= (bool) (strcmp(buffer, "This 1337 is a test with 3.000000 values") == 0);
 }
 
 static void test_sprintf_fast_performance() {
@@ -171,24 +179,26 @@ static void test_str_to_float()
     #define main UtilsStringUtilsTest
 #endif
 
+#include <windows.h>
+
 int main() {
     TEST_INIT(100);
 
-    RUN_TEST(test_utf8_encode);
-    RUN_TEST(test_utf8_decode);
-    RUN_TEST(test_utf8_str_length);
-    RUN_TEST(test_str_is_float);
-    RUN_TEST(test_str_is_integer);
-    RUN_TEST(test_sprintf_fast);
-    RUN_TEST(test_str_is_alpha);
-    RUN_TEST(test_str_is_num);
-    RUN_TEST(test_str_is_alphanum);
-    RUN_TEST(test_str_length);
-    RUN_TEST(test_str_to_float);
+    TEST_RUN(test_utf8_encode);
+    TEST_RUN(test_utf8_decode);
+    TEST_RUN(test_utf8_str_length);
+    TEST_RUN(test_str_is_float);
+    TEST_RUN(test_str_is_integer);
+    TEST_RUN(test_sprintf_fast);
+    TEST_RUN(test_str_is_alpha);
+    TEST_RUN(test_str_is_num);
+    TEST_RUN(test_str_is_alphanum);
+    TEST_RUN(test_str_length);
+    TEST_RUN(test_str_to_float);
 
-    RUN_TEST(test_str_length_performance);
-    RUN_TEST(test_str_is_alphanum_performance);
-    RUN_TEST(test_sprintf_fast_performance);
+    TEST_RUN(test_str_length_performance);
+    TEST_RUN(test_str_is_alphanum_performance);
+    TEST_RUN(test_sprintf_fast_performance);
 
     TEST_FINALIZE();
 

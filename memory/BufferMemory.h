@@ -15,6 +15,7 @@
 #include "../utils/TestUtils.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
+#include "../log/PerformanceProfiler.h"
 #include "../log/DebugMemory.h"
 #include "../system/Allocator.h"
 
@@ -35,7 +36,7 @@ void buffer_alloc(BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
     PROFILE(PROFILE_BUFFER_ALLOC, NULL, false, true);
-    LOG_FORMAT_1("Allocating BufferMemory: %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_1("Allocating BufferMemory: %n B", {{LOG_DATA_UINT64, &size}});
 
     buf->memory = alignment < 2
         ? (byte *) platform_alloc(size)

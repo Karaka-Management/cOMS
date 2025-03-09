@@ -17,7 +17,13 @@
 #include "../../stdlib/Types.h"
 #include "../../memory/RingMemory.h"
 #include "../../log/Log.h"
+#include "../../log/Stats.h"
+#include "../../log/PerformanceProfiler.h"
+#include "../../object/Vertex.h"
+#include "../../utils/StringUtils.h"
+#include "../../log/Log.h"
 #include "../ShaderType.h"
+#include "../GpuAttributeType.h"
 
 #pragma comment(lib, "d3dcompiler.lib")
 
@@ -33,7 +39,7 @@ const char* shader_type_index(ShaderType type)
     }
 }
 
-ID3DBlob* shader_make(const char* type, const char* source, int32 source_size)
+ID3DBlob* gpuapi_shader_make(const char* type, const char* source, int32 source_size)
 {
     LOG_1("Create shader");
     #if DEBUG || INTERNAL
@@ -44,8 +50,10 @@ ID3DBlob* shader_make(const char* type, const char* source, int32 source_size)
 
     ID3DBlob* blob;
     ID3DBlob* errMsgs;
-    if (FAILED(D3DCompile2(source, source_size, NULL, NULL, NULL, "main", type, compileFlags, 0, 0, NULL, 0, &blob, &errMsgs))) {
-        LOG_1("DirectX12 D3DCompile2");
+    HRESULT hr;
+
+    if (FAILED(hr = D3DCompile2(source, source_size, NULL, NULL, NULL, "main", type, compileFlags, 0, 0, NULL, 0, &blob, &errMsgs))) {
+        LOG_1("DirectX12 D3DCompile2: %d, %s", {{LOG_DATA_INT32, &hr}, {LOG_DATA_CHAR_STR, errMsgs->GetBufferPointer()}});
         ASSERT_SIMPLE(false);
     }
 
@@ -58,24 +66,21 @@ ID3DBlob* shader_make(const char* type, const char* source, int32 source_size)
     return blob;
 }
 
-ID3D12PipelineState* pipeline_make(
+
+ID3D12PipelineState* gpuapi_pipeline_make(
     ID3D12Device* device,
     ID3D12PipelineState** pipeline,
     ID3D12RootSignature* pipeline_layout,
+    D3D12_INPUT_ELEMENT_DESC* descriptor_set_layouts, uint32 layout_count,
     ID3DBlob* vertex_shader,
     ID3DBlob* fragment_shader,
     ID3DBlob*
 ) {
     PROFILE(PROFILE_PIPELINE_MAKE, NULL, false, true);
     LOG_1("Create pipeline");
-    // @todo We need to find a way to do this somewhere else:
-    D3D12_INPUT_ELEMENT_DESC input_element_info[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-    };
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_state_info = {};
-    pipeline_state_info.InputLayout = { input_element_info, _countof(input_element_info) };
+    pipeline_state_info.InputLayout = { descriptor_set_layouts, layout_count };
     pipeline_state_info.pRootSignature = pipeline_layout;
     pipeline_state_info.VS = {
         .pShaderBytecode = vertex_shader->GetBufferPointer(),
@@ -122,8 +127,9 @@ ID3D12PipelineState* pipeline_make(
     pipeline_state_info.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     pipeline_state_info.SampleDesc.Count = 1;
 
-    if (FAILED(device->CreateGraphicsPipelineState(&pipeline_state_info, IID_PPV_ARGS(pipeline)))) {
-        LOG_1("DirectX12 CreateGraphicsPipelineState");
+    HRESULT hr;
+    if (FAILED(hr = device->CreateGraphicsPipelineState(&pipeline_state_info, IID_PPV_ARGS(pipeline)))) {
+        LOG_1("DirectX12 CreateGraphicsPipelineState: %d", {{LOG_DATA_INT32, &hr}});
         ASSERT_SIMPLE(false);
     }
 
@@ -133,10 +139,223 @@ ID3D12PipelineState* pipeline_make(
     return *pipeline;
 }
 
-inline
-void pipeline_use(ID3D12GraphicsCommandList* command_buffer, ID3D12PipelineState* pipelineState)
+FORCE_INLINE
+void gpuapi_pipeline_use(ID3D12GraphicsCommandList* command_buffer, ID3D12PipelineState* pipelineState)
 {
     command_buffer->SetPipelineState(pipelineState);
+}
+
+// In DirectX Attribute info and descriptor set layout are combined into one
+constexpr
+void gpuapi_attribute_info_create(GpuAttributeType type, D3D12_INPUT_ELEMENT_DESC* attr)
+{
+    switch (type) {
+        case GPU_ATTRIBUTE_TYPE_VERTEX_3D: {
+            attr[0] = {
+                .SemanticIndex = 0,
+                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3D, position),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+
+            attr[1] = {
+                .SemanticIndex = 1,
+                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3D, normal),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+
+            attr[2] = {
+                .SemanticIndex = 2,
+                .Format = DXGI_FORMAT_R32G32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3D, tex_coord),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+
+            attr[3] = {
+                .SemanticIndex = 3,
+                .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3D, color),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+        } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_NORMAL: {
+            attr[0] = {
+                .SemanticIndex = 0,
+                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3DNormal, position),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+
+            attr[1] = {
+                .SemanticIndex = 1,
+                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3DNormal, normal),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+        } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_COLOR: {
+            attr[0] = {
+                .SemanticIndex = 0,
+                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3DColor, position),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+
+            attr[1] = {
+                .SemanticIndex = 1,
+                .Format = DXGI_FORMAT_R32G32B32A32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3DColor, color),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+        } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_TEXTURE_COLOR: {
+            attr[0] = {
+                .SemanticIndex = 0,
+                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3DTextureColor, position),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+
+            attr[1] = {
+                .SemanticIndex = 1,
+                .Format = DXGI_FORMAT_R32G32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3DTextureColor, texture_color),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+        } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_3D_SAMPLER_TEXTURE_COLOR: {
+            attr[0] = {
+                .SemanticIndex = 0,
+                .Format = DXGI_FORMAT_R32G32B32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3DSamplerTextureColor, position),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+
+            attr[1] = {
+                .SemanticIndex = 1,
+                .Format = DXGI_FORMAT_R32_SINT,
+                .AlignedByteOffset = offsetof(Vertex3DSamplerTextureColor, sampler),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+
+            attr[2] = {
+                .SemanticIndex = 2,
+                .Format = DXGI_FORMAT_R32G32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex3DSamplerTextureColor, texture_color),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+        } return;
+        case GPU_ATTRIBUTE_TYPE_VERTEX_2D_TEXTURE: {
+            attr[0] = {
+                .SemanticIndex = 0,
+                .Format = DXGI_FORMAT_R32G32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex2DTexture, position),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+
+            attr[1] = {
+                .SemanticIndex = 1,
+                .Format = DXGI_FORMAT_R32G32_FLOAT,
+                .AlignedByteOffset = offsetof(Vertex2DTexture, tex_coord),
+                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                .InstanceDataStepRate = 0,
+            };
+        } return;
+        default:
+            UNREACHABLE();
+    };
+}
+
+int32 directx_program_optimize(const char* input, char* output)
+{
+    const char* read_ptr = input;
+    char* write_ptr = output;
+    bool in_string = false;
+
+    while (*read_ptr) {
+        str_skip_empty(&read_ptr);
+
+        if (write_ptr != output
+            && *(write_ptr - 1) != '\n' && *(write_ptr - 1) != ';' && *(write_ptr - 1) != '{'
+            && *(write_ptr - 1) != '('
+            && *(write_ptr - 1) != ','
+        ) {
+            *write_ptr++ = '\n';
+        }
+
+        // Handle single-line comments (//)
+        if (*read_ptr == '/' && *(read_ptr + 1) == '/' && !in_string) {
+            str_move_to(&read_ptr, '\n');
+
+            continue;
+        }
+
+        // Handle multi-line comments (/* */)
+        if (*read_ptr == '/' && *(read_ptr + 1) == '*' && !in_string) {
+            // Go to end of comment
+            while (*read_ptr && (*read_ptr != '*' || *(read_ptr + 1) != '/')) {
+                ++read_ptr;
+            }
+
+            if (*read_ptr == '*' && *(read_ptr + 1) == '/') {
+                read_ptr += 2;
+            }
+
+            continue;
+        }
+
+        // Handle strings to avoid removing content within them
+        if (*read_ptr == '"') {
+            in_string = !in_string;
+        }
+
+        // Copy valid characters to write_ptr
+        while (*read_ptr && !is_eol(read_ptr) && *read_ptr != '"'
+            && !(*read_ptr == '/' && (*(read_ptr + 1) == '/' || *(read_ptr + 1) == '*'))
+        ) {
+            if (!in_string
+                && (*read_ptr == '*' || *read_ptr == '/' || *read_ptr == '=' || *read_ptr == '+' || *read_ptr == '-' || *read_ptr == '%'
+                    || *read_ptr == '(' || *read_ptr == ')'
+                    || *read_ptr == '{' || *read_ptr == '}'
+                    || *read_ptr == ',' || *read_ptr == '?' || *read_ptr == ':' || *read_ptr == ';'
+                    || *read_ptr == '&' || *read_ptr == '|'
+                    || *read_ptr == '>' || *read_ptr == '<'
+                )
+            ) {
+                if (is_whitespace(*(write_ptr - 1)) || *(write_ptr - 1) == '\n') {
+                    --write_ptr;
+                }
+
+                *write_ptr++ = *read_ptr++;
+
+                if (*read_ptr && is_whitespace(*read_ptr)) {
+                    ++read_ptr;
+                }
+            } else {
+                *write_ptr++ = *read_ptr++;
+            }
+        }
+    }
+
+    *write_ptr = '\0';
+
+    // -1 to remove \0 from length, same as strlen
+    return (int32) (write_ptr - output);
 }
 
 #endif

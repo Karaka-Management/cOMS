@@ -124,7 +124,7 @@ struct HashMap {
 inline
 void hashmap_alloc(HashMap* hm, int32 count, int32 element_size)
 {
-    LOG_FORMAT_1("Allocate HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_1("Allocate HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = (byte *) platform_alloc(
         count * (sizeof(uint16) + element_size)
         + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
@@ -148,7 +148,7 @@ void hashmap_free(HashMap* hm)
 inline
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring) noexcept
 {
-    LOG_FORMAT_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = ring_get_memory(
         ring,
         count * (sizeof(uint16) + element_size)
@@ -163,7 +163,7 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ri
 inline
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* buf) noexcept
 {
-    LOG_FORMAT_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = buffer_get_memory(
         buf,
         count * (sizeof(uint16) + element_size)
@@ -178,7 +178,7 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* 
 inline
 void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf) noexcept
 {
-    LOG_FORMAT_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     hm->table = (uint16 *) buf;
     chunk_init(&hm->buf, buf + sizeof(uint16) * count, count, element_size, 8);
 }
@@ -797,7 +797,7 @@ int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps =
     // dump free array
     memcpy(data, hm->buf.free, sizeof(uint64) * CEIL_DIV(hm->buf.count, 64));
 
-    LOG_FORMAT_1("Dumped HashMap: %n B", {{LOG_DATA_UINT64, (void *) &hm->buf.size}});
+    LOG_1("Dumped HashMap: %n B", {{LOG_DATA_UINT64, (void *) &hm->buf.size}});
 
     return sizeof(hm->buf.count) // hash map count = buffer count
         + hm->buf.count * sizeof(uint16) // table content
@@ -851,7 +851,7 @@ int64 hashmap_load(HashMap* hm, const byte* data, [[maybe_unused]] int32 steps =
         }
     } chunk_iterate_end;
 
-    LOG_FORMAT_1("Loaded HashMap: %n B", {{LOG_DATA_UINT64, &hm->buf.size}});
+    LOG_1("Loaded HashMap: %n B", {{LOG_DATA_UINT64, &hm->buf.size}});
 
     // How many bytes was read from data
     return sizeof(hm->buf.count) // hash map count = buffer count

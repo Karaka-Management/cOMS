@@ -133,7 +133,7 @@ void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* b
 {
     PROFILE(PROFILE_ASSET_ARCHIVE_LOAD, path, false, true);
 
-    LOG_FORMAT_1(
+    LOG_1(
         "Load AssetArchive %s",
         {{LOG_DATA_CHAR_STR, (void *) path}}
     );
@@ -174,7 +174,7 @@ void asset_archive_load(AssetArchive* archive, const char* path, BufferMemory* b
     file_read(archive->fd, &file, 0, file.size);
     asset_archive_header_load(&archive->header, file.content, steps);
 
-    LOG_FORMAT_1(
+    LOG_1(
         "Loaded AssetArchive %s with %d assets",
         {{LOG_DATA_CHAR_STR, (void *) path}, {LOG_DATA_UINT32, (void *) &archive->header.asset_count}}
     );
@@ -204,7 +204,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     byte component_id = archive->asset_type_map[element->type];
     //AssetComponent* ac = &ams->asset_components[component_id];
 
-    LOG_FORMAT_2(
+    LOG_2(
         "Load asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
         {{LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}}
     );
@@ -314,7 +314,7 @@ Asset* asset_archive_asset_load(const AssetArchive* archive, int32 id, AssetMana
     // the main program should still be able to do some work if possible
     thrd_ams_set_loaded(asset);
 
-    LOG_FORMAT_2(
+    LOG_2(
         "Loaded asset %d from archive %d for AMS %d with %n B compressed and %n B uncompressed",
         {{LOG_DATA_UINT64, &id}, {LOG_DATA_UINT32, &element->type}, {LOG_DATA_BYTE, &component_id}, {LOG_DATA_UINT32, &element->length}, {LOG_DATA_UINT32, &element->uncompressed}}
     );

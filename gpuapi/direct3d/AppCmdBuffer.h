@@ -27,7 +27,8 @@ void* cmd_shader_load(AppCmdBuffer*, Command*) {
 
 void* cmd_shader_load_sync(
     AppCmdBuffer* __restrict cb, Shader* __restrict shader, const int32* __restrict shader_ids,
-    ID3D12Device* __restrict device, ID3D12PipelineState** __restrict pipeline, ID3D12RootSignature* __restrict pipeline_layout
+    ID3D12Device* __restrict device, ID3D12PipelineState** __restrict pipeline, ID3D12RootSignature* __restrict pipeline_layout,
+    D3D12_INPUT_ELEMENT_DESC* __restrict descriptor_set_layouts, int32 layout_count
 ) {
     PROFILE(PROFILE_CMD_SHADER_LOAD_SYNC, NULL, false, true);
     char asset_id[9];
@@ -53,7 +54,7 @@ void* cmd_shader_load_sync(
         }
 
         // Make sub shader
-        shader_assets[i] = shader_make(
+        shader_assets[i] = gpuapi_shader_make(
             shader_type_index((ShaderType) (i + 1)),
             (char *) shader_asset->self,
             shader_asset->ram_size
@@ -64,10 +65,13 @@ void* cmd_shader_load_sync(
     }
 
     // Make shader/program
-    shader->id = pipeline_make(
+    shader->id = gpuapi_pipeline_make(
         device, pipeline, pipeline_layout,
+        descriptor_set_layouts, layout_count,
         shader_assets[0], shader_assets[1], shader_assets[2]
     );
+
+    // @question do I release shader_assets[..]?
 
     return NULL;
 }

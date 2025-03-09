@@ -65,8 +65,8 @@ static void test_theme_to_from_data() {
 int main() {
     TEST_INIT(100);
 
-    RUN_TEST(test_theme_from_file_txt);
-    RUN_TEST(test_theme_to_from_data);
+    TEST_RUN(test_theme_from_file_txt);
+    TEST_RUN(test_theme_to_from_data);
 
     TEST_FINALIZE();
 

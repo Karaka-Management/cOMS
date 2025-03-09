@@ -152,7 +152,7 @@ struct PerformanceProfiler {
 
         if (this->auto_log) {
             if (this->info_msg && this->info_msg[0]) {
-                LOG_FORMAT_2(
+                LOG_2(
                     "-PERF %s (%s): %l cycles",
                     {
                         {LOG_DATA_CHAR_STR, (void *) perf->name},
@@ -161,7 +161,7 @@ struct PerformanceProfiler {
                     }
                 );
             } else {
-                LOG_FORMAT_2(
+                LOG_2(
                     "-PERF %s: %l cycles",
                     {
                         {LOG_DATA_CHAR_STR, (void *) perf->name},
@@ -210,7 +210,7 @@ void performance_profiler_end(int32 id) noexcept
     #define PROFILE_SCOPE(id, name) PerformanceProfiler __profile_scope_##__func__##_##__LINE__((id), (name))
     #define PROFILE_RESET(id) if(_perf_active && *_perf_active) performance_profiler_reset((id))
 #else
-    #define PROFILE(id) ((void) 0)
+    #define PROFILE(id, ...) ((void) 0)
 
     #define PROFILE_START(id, name) ((void) 0)
     #define PROFILE_END(id) ((void) 0)

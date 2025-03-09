@@ -118,19 +118,19 @@ static void test_endian_swap_double() {
 int main() {
     TEST_INIT(50);
 
-    RUN_TEST(test_swap_endian_16);
-    RUN_TEST(test_swap_endian_32);
-    RUN_TEST(test_swap_endian_64);
+    TEST_RUN(test_swap_endian_16);
+    TEST_RUN(test_swap_endian_32);
+    TEST_RUN(test_swap_endian_64);
 
-    RUN_TEST(test_is_little_endian);
-    RUN_TEST(test_endian_swap_uint16);
-    RUN_TEST(test_endian_swap_int16);
-    RUN_TEST(test_endian_swap_uint32);
-    RUN_TEST(test_endian_swap_int32);
-    RUN_TEST(test_endian_swap_uint64);
-    RUN_TEST(test_endian_swap_int64);
-    RUN_TEST(test_endian_swap_float);
-    RUN_TEST(test_endian_swap_double);
+    TEST_RUN(test_is_little_endian);
+    TEST_RUN(test_endian_swap_uint16);
+    TEST_RUN(test_endian_swap_int16);
+    TEST_RUN(test_endian_swap_uint32);
+    TEST_RUN(test_endian_swap_int32);
+    TEST_RUN(test_endian_swap_uint64);
+    TEST_RUN(test_endian_swap_int64);
+    TEST_RUN(test_endian_swap_float);
+    TEST_RUN(test_endian_swap_double);
 
     TEST_FINALIZE();
 

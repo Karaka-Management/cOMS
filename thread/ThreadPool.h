@@ -65,7 +65,7 @@ static THREAD_RETURN thread_pool_worker(void* arg)
         LOG_2("ThreadPool worker ended");
         // At the end of a thread the ring memory automatically is considered freed
         DEBUG_MEMORY_FREE((uintptr_t) work->ring.memory);
-        LOG_FORMAT_2("Freed thread RingMemory: %n B", {{LOG_DATA_UINT64, &work->ring.size}});
+        LOG_2("Freed thread RingMemory: %n B", {{LOG_DATA_UINT64, &work->ring.size}});
         atomic_set_release(&work->state, 1);
 
         // Job gets marked after completion -> can be overwritten now

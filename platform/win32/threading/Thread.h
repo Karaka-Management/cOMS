@@ -94,6 +94,7 @@ int32 pthread_mutex_unlock(pthread_mutex_t* mutex)
     return 0;
 }
 
+// WARNING: We don't support windows events since they are much slower than conditional variables/mutexes
 inline
 int32 pthread_cond_init(pthread_cond_t* cond, pthread_condattr_t*)
 {

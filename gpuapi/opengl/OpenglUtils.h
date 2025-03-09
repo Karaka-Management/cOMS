@@ -33,7 +33,7 @@
     {
         GLenum err;
         while ((err = glGetError()) != GL_NO_ERROR) {
-            LOG_FORMAT_1("Opengl error: %d", {{LOG_DATA_INT32, (int32 *) &err}});
+            LOG_1("Opengl error: %d", {{LOG_DATA_INT32, (int32 *) &err}});
             ASSERT_SIMPLE(err == GL_NO_ERROR);
         }
     }
@@ -108,6 +108,7 @@ void opengl_info(OpenglInfo* info)
     }
 }
 
+// @todo rename to gpuapi_*
 inline
 uint32 get_texture_data_type(uint32 texture_data_type)
 {
@@ -145,6 +146,7 @@ uint32 get_texture_data_type(uint32 texture_data_type)
 // 4. load_texture_to_gpu
 // 5. texture_use
 
+// @todo this should have a gpuapi_ name
 inline
 void prepare_texture(Texture* texture)
 {
@@ -155,9 +157,11 @@ void prepare_texture(Texture* texture)
     glBindTexture(texture_data_type, (GLuint) texture->id);
 }
 
+// @todo this should have a gpuapi_ name
 inline
 void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
 {
+    // @todo also handle different texture formats (R, RG, RGB, 1 byte vs 4 byte per pixel)
     uint32 texture_data_type = get_texture_data_type(texture->texture_data_type);
     glTexImage2D(
         texture_data_type, mipmap_level, GL_RGBA,
@@ -173,6 +177,7 @@ void load_texture_to_gpu(const Texture* texture, int32 mipmap_level = 0)
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, texture->image.pixel_count * image_pixel_size_from_type(texture->image.image_settings));
 }
 
+// @todo this should have a gpuapi_ name
 inline
 void texture_use(const Texture* texture)
 {
@@ -182,6 +187,7 @@ void texture_use(const Texture* texture)
     glBindTexture(texture_data_type, (GLuint) texture->id);
 }
 
+// @todo this should have a gpuapi_ name
 inline
 void texture_delete(Texture* texture) {
     glDeleteTextures(1, &texture->id);
@@ -392,14 +398,23 @@ void gpuapi_buffer_update_dynamic(uint32 vbo, int32 size, const void* data)
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
 }
 
+// @todo change name. vulkan and directx have different functions for vertex buffer updates
 inline
-void gpuapi_buffer_update_sub(uint32 vbo, int32 offset, int32 size, const void* data)
+void gpuapi_vertex_buffer_update(
+    uint32 vbo,
+    const void* data, int32 vertex_size, int32 vertex_count, int32 offset = 0
+)
 {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+    // @performance Does this if even make sense or is glBufferSubData always the better choice?
+    if (offset) {
+        glBufferSubData(GL_ARRAY_BUFFER, offset, vertex_size * vertex_count - offset, ((byte *) data) + offset);
+    } else {
+        glBufferData(GL_ARRAY_BUFFER, vertex_size * vertex_count, data, GL_DYNAMIC_DRAW);
+    }
     ASSERT_GPU_API();
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, size);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, vertex_size * vertex_count - offset);
 }
 
 inline

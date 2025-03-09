@@ -15,6 +15,7 @@
 #include "../../log/Stats.h"
 #include "../../log/PerformanceProfiler.h"
 #include "../../object/Vertex.h"
+#include "../../utils/StringUtils.h"
 #include "Shader.h"
 #include "Opengl.h"
 #include "../ShaderType.h"
@@ -44,79 +45,79 @@ int32 shader_type_index(ShaderType type)
 // @todo change naming to gpuapi_uniform_buffer_update (same as vulkan)
 // @todo change from upload to uniform upload since it is a special form of upload
 FORCE_INLINE
-void shader_set_value(uint32 location, bool value)
+void gpuapi_uniform_buffer_update_value(uint32 location, bool value)
 {
     glUniform1i(location, (int32) value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
-void shader_set_value(uint32 location, int32 value)
+void gpuapi_uniform_buffer_update_value(uint32 location, int32 value)
 {
     glUniform1i(location, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
-void shader_set_value(uint32 location, f32 value)
+void gpuapi_uniform_buffer_update_value(uint32 location, f32 value)
 {
     glUniform1f(location, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(value));
 }
 
 FORCE_INLINE
-void shader_set_v2(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_v2(uint32 location, const f32* value)
 {
     glUniform2fv(location, 1, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 2);
 }
 
 FORCE_INLINE
-void shader_set_v3(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_v3(uint32 location, const f32* value)
 {
     glUniform3fv(location, 1, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 3);
 }
 
 FORCE_INLINE
-void shader_set_v4(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_v4(uint32 location, const f32* value)
 {
     glUniform4fv(location, 1, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 4);
 }
 
 FORCE_INLINE
-void shader_set_m2(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_m2(uint32 location, const f32* value)
 {
     glUniformMatrix2fv(location, 1, GL_FALSE, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 4);
 }
 
 FORCE_INLINE
-void shader_set_m3(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_m3(uint32 location, const f32* value)
 {
     glUniformMatrix3fv(location, 1, GL_FALSE, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 9);
 }
 
 FORCE_INLINE
-void shader_set_m4(uint32 location, const f32* value)
+void gpuapi_uniform_buffer_update_m4(uint32 location, const f32* value)
 {
     glUniformMatrix4fv(location, 1, GL_FALSE, value);
     LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_UNIFORM_UPLOAD, sizeof(*value) * 16);
 }
 
 FORCE_INLINE
-uint32 shader_get_attrib_location(uint32 id, const char* name)
+uint32 opengl_get_attrib_location(uint32 id, const char* name)
 {
-    // By using this you can retreive the shader variable name at a point where and when you know it
+    // By using this you can retrieve the shader variable name at a point where and when you know it
     // BUT set values later on in generalized functions without knowing the shader variable name
     // Basically like pointers
     return glGetAttribLocation(id, name);
 }
 
 inline
-void shader_check_link_errors(uint32 id, char* log)
+void opengl_check_link_errors(uint32 id, char* log)
 {
     GLint success;
     glGetProgramiv(id, GL_LINK_STATUS, &success);
@@ -126,7 +127,7 @@ void shader_check_link_errors(uint32 id, char* log)
 }
 
 inline
-void shader_check_compile_errors(uint32 id, char* log)
+void opengl_check_compile_errors(uint32 id, char* log)
 {
     GLint success;
     glGetShaderiv(id, GL_COMPILE_STATUS, &success);
@@ -135,17 +136,14 @@ void shader_check_compile_errors(uint32 id, char* log)
     }
 }
 
-int32 shader_program_optimize(const char* input, char* output)
+int32 opengl_program_optimize(const char* __restrict input, char* __restrict output)
 {
     const char* read_ptr = input;
     char* write_ptr = output;
     bool in_string = false;
 
     while (*read_ptr) {
-        // Remove leading whitespace
-        while (*read_ptr == ' ' || *read_ptr == '\t' || is_eol(read_ptr)) {
-            ++read_ptr;
-        }
+        str_skip_empty(&read_ptr);
 
         if (write_ptr != output
             && *(write_ptr - 1) != '\n' && *(write_ptr - 1) != ';' && *(write_ptr - 1) != '{'
@@ -157,10 +155,7 @@ int32 shader_program_optimize(const char* input, char* output)
 
         // Handle single-line comments (//)
         if (*read_ptr == '/' && *(read_ptr + 1) == '/' && !in_string) {
-            // Go to end of line
-            while (*read_ptr && *read_ptr != '\n') {
-                ++read_ptr;
-            }
+            str_move_to(&read_ptr, '\n');
 
             continue;
         }
@@ -218,7 +213,7 @@ int32 shader_program_optimize(const char* input, char* output)
     return (int32) (write_ptr - output);
 }
 
-GLuint shader_make(GLenum type, const char* source)
+GLuint gpuapi_shader_make(GLenum type, const char* source)
 {
     LOG_1("Create shader");
     GLuint shader = glCreateShader(type);
@@ -249,7 +244,7 @@ GLuint shader_make(GLenum type, const char* source)
 }
 
 inline
-int32 program_get_size(uint32 program)
+int32 opengl_program_get_size(uint32 program)
 {
     int32 size;
     glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &size);
@@ -259,7 +254,7 @@ int32 program_get_size(uint32 program)
 
 // @todo Instead of passing the shaders one by one, pass one array called ShaderStage* shader_stages
 // This way we can handle this more dynamic
-GLuint pipeline_make(
+GLuint gpuapi_pipeline_make(
     GLuint vertex_shader,
     GLuint fragment_shader,
     GLint geometry_shader
@@ -316,9 +311,8 @@ GLuint pipeline_make(
     return program;
 }
 
-// @question Depending on how the different gpu apis work we may want to pass Shader* to have a uniform structure
 FORCE_INLINE
-void pipeline_use(uint32 id)
+void gpuapi_pipeline_use(uint32 id)
 {
     glUseProgram(id);
 }
@@ -347,7 +341,7 @@ void gpuapi_attribute_info_create(GpuAttributeType type, OpenglVertexInputAttrib
                 .count = 3,
                 .format = GL_FLOAT,
                 .stride = sizeof(Vertex3D),
-                .offset = (void *) offsetof(Vertex3DTextureColor, position)
+                .offset = (void *) offsetof(Vertex3D, position)
             };
 
             attr[1] = {
@@ -402,7 +396,7 @@ void gpuapi_attribute_info_create(GpuAttributeType type, OpenglVertexInputAttrib
 
             attr[1] = {
                 .location = 1,
-                .count = 2,
+                .count = 4,
                 .format = GL_FLOAT,
                 .stride = sizeof(Vertex3DColor),
                 .offset = (void *) offsetof(Vertex3DColor, color)
@@ -472,7 +466,7 @@ void gpuapi_attribute_info_create(GpuAttributeType type, OpenglVertexInputAttrib
     };
 }
 
-void gpuapi_descriptor_set_layout_create(Shader* shader, const OpenglDescriptorSetLayoutBinding* bindings, int32 binding_length) {
+void gpuapi_descriptor_set_layout_create(Shader* __restrict shader, const OpenglDescriptorSetLayoutBinding* __restrict bindings, int32 binding_length) {
     for (int32 i = 0; i < binding_length; ++i) {
         shader->descriptor_set_layout[i].binding = glGetUniformLocation(shader->id, bindings[i].name);
         shader->descriptor_set_layout[i].name = bindings[i].name;

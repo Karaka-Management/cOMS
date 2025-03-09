@@ -94,13 +94,13 @@ static void test_ring_commit_safe() {
 int main() {
     TEST_INIT(25);
 
-    RUN_TEST(test_ring_alloc);
-    RUN_TEST(test_ring_get_memory);
-    RUN_TEST(test_ring_calculate_position);
-    RUN_TEST(test_ring_reset);
-    RUN_TEST(test_ring_get_memory_nomove);
-    RUN_TEST(test_ring_move_pointer);
-    RUN_TEST(test_ring_commit_safe);
+    TEST_RUN(test_ring_alloc);
+    TEST_RUN(test_ring_get_memory);
+    TEST_RUN(test_ring_calculate_position);
+    TEST_RUN(test_ring_reset);
+    TEST_RUN(test_ring_get_memory_nomove);
+    TEST_RUN(test_ring_move_pointer);
+    TEST_RUN(test_ring_commit_safe);
 
     TEST_FINALIZE();
 

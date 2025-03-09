@@ -87,9 +87,9 @@ static void test_layout_from_theme() {
 int main() {
     TEST_INIT(100);
 
-    RUN_TEST(test_layout_from_file_txt);
-    RUN_TEST(test_layout_to_from_data);
-    RUN_TEST(test_layout_from_theme);
+    TEST_RUN(test_layout_from_file_txt);
+    TEST_RUN(test_layout_to_from_data);
+    TEST_RUN(test_layout_from_theme);
 
     TEST_FINALIZE();
 

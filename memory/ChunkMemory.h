@@ -17,6 +17,7 @@
 #include "../compiler/CompilerUtils.h"
 #include "../log/Log.h"
 #include "../log/Stats.h"
+#include "../log/PerformanceProfiler.h"
 #include "../log/DebugMemory.h"
 #include "BufferMemory.h"
 #include "../system/Allocator.h"
@@ -63,7 +64,7 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
 
     memset(buf->memory, 0, buf->size);
 
-    LOG_FORMAT_1("Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_1("Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 }
 
 inline
@@ -327,7 +328,7 @@ int64 chunk_dump(const ChunkMemory* buf, byte* data)
     memcpy(data, buf->memory, buf->size);
     data += buf->size;
 
-    LOG_FORMAT_1("Dumped ChunkMemory: %n B", {{LOG_DATA_UINT64, (void *) &buf->size}});
+    LOG_1("Dumped ChunkMemory: %n B", {{LOG_DATA_UINT64, (void *) &buf->size}});
 
     return data - start;
 }
@@ -362,7 +363,7 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
 
     buf->free = (uint64 *) (buf->memory + buf->count * buf->chunk_size);
 
-    LOG_FORMAT_1("Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_1("Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 
     return buf->size;
 }

@@ -31,17 +31,18 @@
 #include "../../log/Stats.h"
 #include "../../log/PerformanceProfiler.h"
 #include "../../memory/RingMemory.h"
+#include "../../compiler/CompilerUtils.h"
 #include "ShaderUtils.h"
 #include "FramesInFlightContainer.h"
 
 #if DEBUG
-    #define ASSERT_GPU_API(x)                                                       \
-        do {                                                                        \
-            VkResult err = (x);                                                     \
-            if (err) {                                                              \
-                LOG_FORMAT_1("Vulkan error: %d", {{LOG_DATA_INT32, (int32 *) &err}}); \
-                ASSERT_SIMPLE(false);                                               \
-            }                                                                       \
+    #define ASSERT_GPU_API(x)                                                   \
+        do {                                                                    \
+            VkResult err = (x);                                                 \
+            if (err) {                                                          \
+                LOG_1("Vulkan error: %d", {{LOG_DATA_INT32, (int32 *) &err}});  \
+                ASSERT_SIMPLE(false);                                           \
+            }                                                                   \
         } while (0)
 #else
     #define ASSERT_GPU_API(x) (x)
@@ -68,7 +69,11 @@ struct VulkanSwapChainSupportDetails {
 };
 
 inline
-void change_viewport(int32 width, int32 height, VkCommandBuffer command_buffer, VkExtent2D swapchain_extent, int32 offset_x = 0, int32 offset_y = 0)
+void change_viewport(
+    int32 width, int32 height,
+    VkCommandBuffer command_buffer, VkExtent2D swapchain_extent,
+    int32 offset_x = 0, int32 offset_y = 0
+)
 {
     VkViewport viewport = {};
     viewport.x = (f32) offset_x;
@@ -178,7 +183,7 @@ void vulkan_instance_create(
     if (validation_layer_count
         && (err = vulkan_check_validation_layer_support(validation_layers, validation_layer_count, ring))
     ) {
-        LOG_FORMAT_1("Vulkan validation_layer missing: %d", {{LOG_DATA_CHAR_STR, (void *) validation_layers[-err - 1]}});
+        LOG_1("Vulkan validation_layer missing: %d", {{LOG_DATA_CHAR_STR, (void *) validation_layers[-err - 1]}});
         ASSERT_SIMPLE(false);
 
         return;
@@ -187,7 +192,7 @@ void vulkan_instance_create(
     if (extension_count
         && (err = vulkan_check_extension_support(extensions, extension_count, ring))
     ) {
-        LOG_FORMAT_1("Vulkan extension missing: %d", {{LOG_DATA_CHAR_STR, (void *) extensions[-err - 1]}});
+        LOG_1("Vulkan extension missing: %d", {{LOG_DATA_CHAR_STR, (void *) extensions[-err - 1]}});
         ASSERT_SIMPLE(false);
 
         return;
@@ -224,7 +229,7 @@ void vulkan_instance_create(
 
     VkResult result;
     if ((result = vkCreateInstance(&create_info, NULL, instance)) != VK_SUCCESS) {
-        LOG_FORMAT_1("Vulkan vkCreateInstance: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+        LOG_1("Vulkan vkCreateInstance: %d", {{LOG_DATA_INT32, (int32 *) &result}});
         ASSERT_SIMPLE(false);
     }
 }
@@ -240,7 +245,7 @@ void vulkan_surface_create(VkInstance instance, VkSurfaceKHR* surface, Window* w
 
         VkResult result;
         if ((result = vkCreateWin32SurfaceKHR(instance, &surface_create_info, NULL, surface)) != VK_SUCCESS) {
-            LOG_FORMAT_1("Vulkan vkCreateWin32SurfaceKHR: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+            LOG_1("Vulkan vkCreateWin32SurfaceKHR: %d", {{LOG_DATA_INT32, (int32 *) &result}});
             return;
         }
     #elif __linux__
@@ -310,7 +315,7 @@ VulkanQueueFamilyIndices vulkan_find_queue_families(VkPhysicalDevice physical_de
 
         VkResult result;
         if ((result = vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support)) != VK_SUCCESS) {
-            LOG_FORMAT_1("Vulkan vkGetPhysicalDeviceSurfaceSupportKHR: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+            LOG_1("Vulkan vkGetPhysicalDeviceSurfaceSupportKHR: %d", {{LOG_DATA_INT32, (int32 *) &result}});
             ASSERT_SIMPLE(false);
 
             return indices;
@@ -437,7 +442,7 @@ void gpuapi_create_logical_device(
 
     VkResult result;
     if ((result = vkCreateDevice(physical_device, &create_info, NULL, device)) != VK_SUCCESS) {
-        LOG_FORMAT_1("Vulkan vkCreateDevice: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+        LOG_1("Vulkan vkCreateDevice: %d", {{LOG_DATA_INT32, (int32 *) &result}});
         ASSERT_SIMPLE(false);
     }
 
@@ -523,7 +528,7 @@ void gpuapi_swapchain_create(
 
     VkResult result;
     if ((result = vkCreateSwapchainKHR(device, &create_info, NULL, swapchain)) != VK_SUCCESS) {
-        LOG_FORMAT_1("Vulkan vkCreateSwapchainKHR: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+        LOG_1("Vulkan vkCreateSwapchainKHR: %d", {{LOG_DATA_INT32, (int32 *) &result}});
         ASSERT_SIMPLE(false);
 
         return;
@@ -585,7 +590,7 @@ void vulkan_image_views_create(
         create_info.subresourceRange.layerCount = 1;
 
         if ((result = vkCreateImageView(device, &create_info, NULL, &swapchain_image_views[i])) != VK_SUCCESS) {
-            LOG_FORMAT_1("Vulkan vkCreateImageView: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+            LOG_1("Vulkan vkCreateImageView: %d", {{LOG_DATA_INT32, (int32 *) &result}});
             ASSERT_SIMPLE(false);
         }
     }
@@ -632,7 +637,7 @@ void vulkan_render_pass_create(
 
     VkResult result;
     if ((result = vkCreateRenderPass(device, &render_pass_info, NULL, render_pass)) != VK_SUCCESS) {
-        LOG_FORMAT_1("Vulkan vkCreateRenderPass: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+        LOG_1("Vulkan vkCreateRenderPass: %d", {{LOG_DATA_INT32, (int32 *) &result}});
         ASSERT_SIMPLE(false);
     }
 }
@@ -660,7 +665,7 @@ void vulkan_framebuffer_create(
         framebufferInfo.layers = 1;
 
         if ((result = vkCreateFramebuffer(device, &framebufferInfo, NULL, &framebuffers[i])) != VK_SUCCESS) {
-            LOG_FORMAT_1("Vulkan vkCreateFramebuffer: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+            LOG_1("Vulkan vkCreateFramebuffer: %d", {{LOG_DATA_INT32, (int32 *) &result}});
             ASSERT_SIMPLE(false);
         }
     }
@@ -679,12 +684,12 @@ void vulkan_command_pool_create(
 
     VkResult result;
     if ((result = vkCreateCommandPool(device, &pool_info, NULL, command_pool)) != VK_SUCCESS) {
-        LOG_FORMAT_1("Vulkan vkCreateCommandPool: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+        LOG_1("Vulkan vkCreateCommandPool: %d", {{LOG_DATA_INT32, (int32 *) &result}});
         ASSERT_SIMPLE(false);
     }
 }
 
-void vulkan_command_buffers_create(VkDevice device, VkCommandPool command_pool, VkCommandBuffer* command_buffers, uint32 command_buffer_count)
+void gpuapi_command_buffer_create(VkDevice device, VkCommandPool command_pool, VkCommandBuffer* command_buffers, uint32 command_buffer_count)
 {
     VkCommandBufferAllocateInfo alloc_info = {};
     alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -694,7 +699,7 @@ void vulkan_command_buffers_create(VkDevice device, VkCommandPool command_pool, 
 
     VkResult result;
     if ((result = vkAllocateCommandBuffers(device, &alloc_info, command_buffers)) != VK_SUCCESS) {
-        LOG_FORMAT_1("Vulkan vkAllocateCommandBuffers: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+        LOG_1("Vulkan vkAllocateCommandBuffers: %d", {{LOG_DATA_INT32, (int32 *) &result}});
         ASSERT_SIMPLE(false);
     }
 }
@@ -716,7 +721,7 @@ void vulkan_sync_objects_create(
             || (result = vkCreateSemaphore(device, &semaphore_info, NULL, &frames_in_flight->render_finished_semaphores[i])) != VK_SUCCESS
             || (result = vkCreateFence(device, &fence_info, NULL, &frames_in_flight->fences[i])) != VK_SUCCESS
         ) {
-            LOG_FORMAT_1("Vulkan vulkan_sync_objects_create: %d", {{LOG_DATA_INT32, (int32 *) &result}});
+            LOG_1("Vulkan vulkan_sync_objects_create: %d", {{LOG_DATA_INT32, (int32 *) &result}});
             ASSERT_SIMPLE(false);
         }
     }
@@ -842,18 +847,52 @@ void vulkan_transition_image_layout(VkCommandBuffer command_buffer, VkImage imag
     );
 }
 
-// @todo replace references with pointers
+static
+VkFormat gpuapi_texture_format(byte settings)
+{
+    if ((settings & IMAGE_SETTING_CHANNEL_4_SIZE)) {
+        switch (settings & IMAGE_SETTING_CHANNEL_COUNT) {
+            case 1:
+                return VK_FORMAT_R32_SFLOAT;
+            case 2:
+                return VK_FORMAT_R32G32_SFLOAT;
+            case 3:
+                return VK_FORMAT_R32G32B32_SFLOAT;
+            case 4:
+                return VK_FORMAT_R32G32B32A32_SFLOAT;
+            default:
+                UNREACHABLE();
+        }
+    } else {
+        switch (settings & IMAGE_SETTING_CHANNEL_COUNT) {
+            case 1:
+                return VK_FORMAT_R8_SRGB;
+            case 2:
+                return VK_FORMAT_R8G8_SRGB;
+            case 3:
+                return VK_FORMAT_R8G8B8_SRGB;
+            case 4:
+                return VK_FORMAT_R8G8B8A8_SRGB;
+            default:
+                UNREACHABLE();
+        }
+    }
+}
+
+// @performance Sometimes we want to upload multiple textures in one go (more performant). Allow that or don't use this function in that case.
 void load_texture_to_gpu(
     VkDevice device, VkPhysicalDevice physical_device,
     VkCommandPool command_pool, VkQueue queue,
-    VkImage& texture_image, VkDeviceMemory& texture_image_memory, VkImageView& texture_image_view, VkSampler& texture_sampler,
+    VkImage* texture_image, VkDeviceMemory* texture_image_memory, VkImageView* texture_image_view, VkSampler* texture_sampler,
     const Texture* texture)
 {
+    VkFormat textureFormat = gpuapi_texture_format(texture->image.image_settings);
+
     // Create the Vulkan image
     VkImageCreateInfo image_info = {};
     image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     image_info.imageType = VK_IMAGE_TYPE_2D;
-    image_info.format = VK_FORMAT_R8G8B8A8_SRGB;
+    image_info.format = textureFormat;
     image_info.extent.width = texture->image.width;
     image_info.extent.height = texture->image.height;
     image_info.extent.depth = 1;
@@ -865,19 +904,19 @@ void load_texture_to_gpu(
     image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    ASSERT_GPU_API(vkCreateImage(device, &image_info, NULL, &texture_image));
+    ASSERT_GPU_API(vkCreateImage(device, &image_info, NULL, texture_image));
 
     // Allocate memory for the image
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(device, texture_image, &memRequirements);
+    vkGetImageMemoryRequirements(device, *texture_image, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = vulkan_find_memory_type(physical_device, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    ASSERT_GPU_API(vkAllocateMemory(device, &allocInfo, NULL, &texture_image_memory));
-    ASSERT_GPU_API(vkBindImageMemory(device, texture_image, texture_image_memory, 0));
+    ASSERT_GPU_API(vkAllocateMemory(device, &allocInfo, NULL, texture_image_memory));
+    ASSERT_GPU_API(vkBindImageMemory(device, *texture_image, *texture_image_memory, 0));
 
     int32 image_size = image_pixel_size_from_type(texture->image.image_settings) * texture->image.width * texture->image.height;
 
@@ -894,10 +933,10 @@ void load_texture_to_gpu(
 
     // Transition the image layout
     VkCommandBuffer command_buffer;
-    vulkan_command_buffers_create(device, command_pool, &command_buffer, 1);
+    gpuapi_command_buffer_create(device, command_pool, &command_buffer, 1);
     vulkan_single_commands_begin(command_buffer);
 
-    vulkan_transition_image_layout(command_buffer, texture_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    vulkan_transition_image_layout(command_buffer, *texture_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     vulkan_single_commands_end(queue, command_buffer);
 
     // Copy data from the staging buffer to the image
@@ -910,13 +949,13 @@ void load_texture_to_gpu(
     region.imageSubresource.layerCount = 1;
     region.imageExtent = {texture->image.width, texture->image.height, 1};
 
-    vkCmdCopyBufferToImage(command_buffer, staging_buffer, texture_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(command_buffer, staging_buffer, *texture_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
     vulkan_single_commands_end(queue, command_buffer);
 
     // Transition the image layout for shader access
     vulkan_command_buffer_reset(command_buffer);
     vulkan_single_commands_begin(command_buffer);
-    vulkan_transition_image_layout(command_buffer, texture_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    vulkan_transition_image_layout(command_buffer, *texture_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     vulkan_single_commands_end(queue, command_buffer);
 
     vulkan_single_commands_free(device, command_pool, command_buffer);
@@ -928,16 +967,16 @@ void load_texture_to_gpu(
     // Create an image view
     VkImageViewCreateInfo view_info = {};
     view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    view_info.image = texture_image;
+    view_info.image = *texture_image;
     view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    view_info.format = VK_FORMAT_R8G8B8A8_SRGB;
+    view_info.format = textureFormat;
     view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     view_info.subresourceRange.baseMipLevel = 0;
     view_info.subresourceRange.levelCount = 1;
     view_info.subresourceRange.baseArrayLayer = 0;
     view_info.subresourceRange.layerCount = 1;
 
-    ASSERT_GPU_API(vkCreateImageView(device, &view_info, NULL, &texture_image_view));
+    ASSERT_GPU_API(vkCreateImageView(device, &view_info, NULL, texture_image_view));
 
     // Create a sampler
     VkPhysicalDeviceProperties properties = {};
@@ -958,14 +997,14 @@ void load_texture_to_gpu(
     sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
     sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-    ASSERT_GPU_API(vkCreateSampler(device, &sampler_info, NULL, &texture_sampler));
+    ASSERT_GPU_API(vkCreateSampler(device, &sampler_info, NULL, texture_sampler));
 }
 
 // @todo Rename to same name as opengl (or rename opengl obviously)
-void vulkan_vertex_buffer_update(
+void gpuapi_vertex_buffer_update(
     VkDevice device, VkPhysicalDevice physical_device, VkCommandPool command_pool, VkQueue queue,
-    VkBuffer* vertexBuffer,
-    const void* __restrict vertices, int32 vertex_size, int32 vertex_count
+    VkBuffer* vertex_buffer,
+    const void* __restrict vertices, int32 vertex_size, int32 vertex_count, int32 offset = 0
 )
 {
     VkDeviceSize bufferSize = vertex_size * vertex_count;
@@ -986,12 +1025,14 @@ void vulkan_vertex_buffer_update(
     vkUnmapMemory(device, stagingBufferMemory);
 
     VkCommandBuffer commandBuffer;
-    vulkan_command_buffers_create(device, command_pool, &commandBuffer, 1);
+    gpuapi_command_buffer_create(device, command_pool, &commandBuffer, 1);
     vulkan_single_commands_begin(commandBuffer);
 
     VkBufferCopy copyRegion = {};
+    copyRegion.srcOffset = offset;
+    copyRegion.dstOffset = offset;
     copyRegion.size = bufferSize;
-    vkCmdCopyBuffer(commandBuffer, stagingBuffer, *vertexBuffer, 1, &copyRegion);
+    vkCmdCopyBuffer(commandBuffer, stagingBuffer, *vertex_buffer, 1, &copyRegion);
     vulkan_single_commands_end(queue, commandBuffer);
 
     vulkan_single_commands_free(device, command_pool, commandBuffer);
@@ -999,12 +1040,12 @@ void vulkan_vertex_buffer_update(
     vkDestroyBuffer(device, stagingBuffer, NULL);
     vkFreeMemory(device, stagingBufferMemory, NULL);
 
-    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, vertex_size * vertex_count);
+    LOG_INCREMENT_BY(DEBUG_COUNTER_GPU_VERTEX_UPLOAD, bufferSize - offset);
 }
 
-void vulkan_vertex_buffer_create(
+void gpuapi_vertex_buffer_create(
     VkDevice device, VkPhysicalDevice physical_device, VkCommandPool command_pool, VkQueue queue,
-    VkBuffer* vertexBuffer, VkDeviceMemory vertexBufferMemory,
+    VkBuffer* vertex_buffer, VkDeviceMemory vertex_bufferMemory,
     const void* __restrict vertices, int32 vertex_size, int32 vertex_count
 )
 {
@@ -1031,18 +1072,18 @@ void vulkan_vertex_buffer_create(
         bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        *vertexBuffer, vertexBufferMemory
+        *vertex_buffer, vertex_bufferMemory
     );
 
     // Copy buffer
     // @performance Would it make sense to use a "global" temp buffer for that? If yes, we only need to reset
     VkCommandBuffer commandBuffer;
-    vulkan_command_buffers_create(device, command_pool, &commandBuffer, 1);
+    gpuapi_command_buffer_create(device, command_pool, &commandBuffer, 1);
     vulkan_single_commands_begin(commandBuffer);
 
     VkBufferCopy copyRegion = {};
     copyRegion.size = bufferSize;
-    vkCmdCopyBuffer(commandBuffer, stagingBuffer, *vertexBuffer, 1, &copyRegion);
+    vkCmdCopyBuffer(commandBuffer, stagingBuffer, *vertex_buffer, 1, &copyRegion);
     vulkan_single_commands_end(queue, commandBuffer);
 
     // @todo if we change behaviour according to the comment above we don't need this
@@ -1084,7 +1125,7 @@ void vulkan_index_buffer_create(
 
     // Copy buffer
     VkCommandBuffer commandBuffer;
-    vulkan_command_buffers_create(device, command_pool, &commandBuffer, 1);
+    gpuapi_command_buffer_create(device, command_pool, &commandBuffer, 1);
     vulkan_single_commands_begin(commandBuffer);
 
     VkBufferCopy copyRegion = {};
@@ -1101,7 +1142,7 @@ void vulkan_index_buffer_create(
 
 
 // @todo We also need a free function (unmap buffer)
-void vulkan_uniform_buffers_create(
+void gpuapi_uniform_buffers_create(
     VkDevice device, VkPhysicalDevice physical_device,
     VkBuffer* __restrict uniform_buffers, VkDeviceMemory* __restrict uniform_buffers_memory, void** __restrict uniform_buffers_mapped,
     size_t uniform_buffer_object_size,
@@ -1109,6 +1150,7 @@ void vulkan_uniform_buffers_create(
 )
 {
     // e.g. uniform_buffer_object_size = sizeof(struct {model; view; proj};)
+    // @question Do I really need one uniform_buffer per frames_in_flight? This seems VERY inefficient
     VkDeviceSize bufferSize = uniform_buffer_object_size;
     for (uint32 i = 0; i < frames_in_flight; ++i) {
         vulkan_buffer_create(

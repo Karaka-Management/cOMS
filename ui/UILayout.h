@@ -83,12 +83,14 @@ struct UILayout {
     //      2. Once we are ready to switch the scene we copy the temporary memory into this data pointer
     byte* data; // Owner of the actual data
 
+    // @todo replace bools with bit field
+
     // Changes on a as needed basis
-    uint32 vertex_size_static;
+    uint32 vertex_count_static;
     bool static_content_changed;
 
     // Changes every frame
-    uint32 vertex_size_dynamic;
+    uint32 vertex_count_dynamic;
     bool dynamic_content_changed;
 
     // Contains both static and dynamic content
@@ -105,7 +107,7 @@ struct UILayout {
     // This is very similar to the currently rendered UI output but may have some empty space between elements
     // The reason for this is that some elements may need different vertex counts for different states (e.g. input field)
     // WARNING: This memory is shared between different layouts
-    uint32 active_vertex_size;
+    uint32 active_vertex_count;
     Vertex3DSamplerTextureColor* vertices_active; // Not the data owner (see data above)
 
     // Used during the initialization so that every element knows where we currently are during the setup process

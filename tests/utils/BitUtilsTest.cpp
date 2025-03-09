@@ -165,32 +165,32 @@ static void test_bytes_merge_8_r2l() {
 int main() {
     TEST_INIT(75);
 
-    RUN_TEST(test_is_bit_set_l2r);
-    RUN_TEST(test_bit_set_l2r);
-    RUN_TEST(test_bit_unset_l2r);
-    RUN_TEST(test_bit_flip_l2r);
-    RUN_TEST(test_bit_set_to_l2r);
-    RUN_TEST(test_bits_get_8_l2r);
-    RUN_TEST(test_bits_get_16_l2r);
-    RUN_TEST(test_bits_get_32_l2r);
-    RUN_TEST(test_bits_get_64_l2r);
-    RUN_TEST(test_bytes_merge_2_l2r);
-    RUN_TEST(test_bytes_merge_4_l2r);
-    RUN_TEST(test_bytes_merge_8_l2r);
+    TEST_RUN(test_is_bit_set_l2r);
+    TEST_RUN(test_bit_set_l2r);
+    TEST_RUN(test_bit_unset_l2r);
+    TEST_RUN(test_bit_flip_l2r);
+    TEST_RUN(test_bit_set_to_l2r);
+    TEST_RUN(test_bits_get_8_l2r);
+    TEST_RUN(test_bits_get_16_l2r);
+    TEST_RUN(test_bits_get_32_l2r);
+    TEST_RUN(test_bits_get_64_l2r);
+    TEST_RUN(test_bytes_merge_2_l2r);
+    TEST_RUN(test_bytes_merge_4_l2r);
+    TEST_RUN(test_bytes_merge_8_l2r);
 
-    RUN_TEST(test_is_bit_set_r2l);
-    RUN_TEST(test_is_bit_set_64_r2l);
-    RUN_TEST(test_bit_set_r2l);
-    RUN_TEST(test_bit_unset_r2l);
-    RUN_TEST(test_bit_flip_r2l);
-    RUN_TEST(test_bit_set_to_r2l);
-    RUN_TEST(test_bits_get_8_r2l);
-    RUN_TEST(test_bits_get_16_r2l);
-    RUN_TEST(test_bits_get_32_r2l);
-    RUN_TEST(test_bits_get_64_r2l);
-    RUN_TEST(test_bytes_merge_2_r2l);
-    RUN_TEST(test_bytes_merge_4_r2l);
-    RUN_TEST(test_bytes_merge_8_r2l);
+    TEST_RUN(test_is_bit_set_r2l);
+    TEST_RUN(test_is_bit_set_64_r2l);
+    TEST_RUN(test_bit_set_r2l);
+    TEST_RUN(test_bit_unset_r2l);
+    TEST_RUN(test_bit_flip_r2l);
+    TEST_RUN(test_bit_set_to_r2l);
+    TEST_RUN(test_bits_get_8_r2l);
+    TEST_RUN(test_bits_get_16_r2l);
+    TEST_RUN(test_bits_get_32_r2l);
+    TEST_RUN(test_bits_get_64_r2l);
+    TEST_RUN(test_bytes_merge_2_r2l);
+    TEST_RUN(test_bytes_merge_4_r2l);
+    TEST_RUN(test_bytes_merge_8_r2l);
 
     TEST_FINALIZE();
 

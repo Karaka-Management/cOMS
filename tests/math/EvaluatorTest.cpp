@@ -47,9 +47,9 @@ static void test_evaluator_evaluate_function() {
 int main() {
     TEST_INIT(10);
 
-    RUN_TEST(test_evaluator_evaluate);
-    RUN_TEST(test_evaluator_evaluate_variables);
-    RUN_TEST(test_evaluator_evaluate_function);
+    TEST_RUN(test_evaluator_evaluate);
+    TEST_RUN(test_evaluator_evaluate_variables);
+    TEST_RUN(test_evaluator_evaluate_function);
 
     TEST_FINALIZE();
 

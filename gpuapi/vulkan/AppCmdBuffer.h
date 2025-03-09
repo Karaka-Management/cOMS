@@ -50,7 +50,7 @@ void* cmd_shader_load_sync(
         }
 
         // Make sub shader
-        shader_assets[i] = shader_make(
+        shader_assets[i] = gpuapi_shader_make(
             device,
             (char *) shader_asset->self,
             shader_asset->ram_size
@@ -61,7 +61,7 @@ void* cmd_shader_load_sync(
     }
 
     // Make shader/program
-    shader->id = pipeline_make(
+    shader->id = gpuapi_pipeline_make(
         device, render_pass, pipeline_layout, pipeline,
         descriptor_set_layouts,
         shader_assets[0], shader_assets[1], shader_assets[2]

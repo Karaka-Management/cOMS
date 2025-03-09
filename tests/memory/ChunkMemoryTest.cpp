@@ -105,6 +105,7 @@ static void test_chunk_reserve_last_element() {
     static void test_chunk_reserve_full() {
         ChunkMemory mem = {};
         chunk_alloc(&mem, 10, 10);
+        mem.free[0] = 0xFFFFFFFFFFFFFFFF;
 
         ASSERT_EQUALS(chunk_reserve(&mem, 1), -1);
     }
@@ -129,17 +130,17 @@ static void test_chunk_reserve_last_element() {
 int main() {
     TEST_INIT(25);
 
-    RUN_TEST(test_chunk_alloc);
-    RUN_TEST(test_chunk_id_from_memory);
-    RUN_TEST(test_chunk_get_element);
-    RUN_TEST(test_chunk_reserve);
-    RUN_TEST(test_chunk_free_elements);
-    RUN_TEST(test_chunk_reserve_wrapping);
-    RUN_TEST(test_chunk_reserve_last_element);
+    TEST_RUN(test_chunk_alloc);
+    TEST_RUN(test_chunk_id_from_memory);
+    TEST_RUN(test_chunk_get_element);
+    TEST_RUN(test_chunk_reserve);
+    TEST_RUN(test_chunk_free_elements);
+    TEST_RUN(test_chunk_reserve_wrapping);
+    TEST_RUN(test_chunk_reserve_last_element);
 
     #if !DEBUG
-        RUN_TEST(test_chunk_reserve_full);
-        RUN_TEST(test_chunk_reserve_invalid_size);
+        TEST_RUN(test_chunk_reserve_full);
+        TEST_RUN(test_chunk_reserve_invalid_size);
     #endif
 
     TEST_FINALIZE();

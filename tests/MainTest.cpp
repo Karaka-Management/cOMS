@@ -9,6 +9,7 @@
 #include "utils/BitUtilsTest.cpp"
 #include "utils/EndianUtilsTest.cpp"
 #include "utils/StringUtilsTest.cpp"
+#include "utils/MathUtilsTest.cpp"
 #include "utils/UtilsTest.cpp"
 
 #ifdef UBER_TEST
@@ -18,8 +19,7 @@
 #endif
 
 int main() {
-    printf("\nStat Tests   Asserts         Details\n");
-    printf("========================================================================================================================\n");
+    TEST_HEADER();
 
     MathEvaluatorTest();
     MemoryChunkMemoryTest();
@@ -29,16 +29,10 @@ int main() {
     UIUIThemeTest();
     UtilsBitUtilsTest();
     UtilsStringUtilsTest();
+    UtilsMathUtilsTest();
     UtilsUtilsTest();
 
-    printf("========================================================================================================================\n");
-    printf(
-        "%s %5d   (%5d/%5d)\n\n",
-        _test_global_assert_count ? "[NG]" : "[OK]",
-        _test_global_count,
-        _test_global_assert_count - _test_global_assert_error_count,
-        _test_global_assert_count
-    );
+    TEST_FOOTER();
 
     return _test_global_assert_error_count ? 1 : 0;
 }

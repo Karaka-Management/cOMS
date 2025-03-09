@@ -111,7 +111,7 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, i
 // WARNING: element_size = element size + remaining HashEntry data size
 void perfect_hashmap_create(PerfectHashMap* hm, int32 count, int32 element_size, BufferMemory* buf)
 {
-    LOG_FORMAT_1("Create PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_1("Create PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     hm->map_size = count;
     hm->entry_size = element_size;
     hm->hash_entries = buffer_get_memory(
@@ -124,7 +124,7 @@ void perfect_hashmap_create(PerfectHashMap* hm, int32 count, int32 element_size,
 // WARNING: element_size = element size + remaining HashEntry data size
 void perfect_hashmap_create(PerfectHashMap* hm, int32 count, int32 element_size, byte* buf)
 {
-    LOG_FORMAT_1("Create PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
+    LOG_1("Create PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     hm->map_size = count;
     hm->entry_size = element_size;
     hm->hash_entries = buf;

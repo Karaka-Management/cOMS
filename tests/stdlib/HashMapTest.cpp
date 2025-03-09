@@ -78,9 +78,9 @@ static void test_hashmap_dump_load() {
 int main() {
     TEST_INIT(25);
 
-    RUN_TEST(test_hashmap_alloc);
-    RUN_TEST(test_hashmap_insert_int32);
-    RUN_TEST(test_hashmap_dump_load);
+    TEST_RUN(test_hashmap_alloc);
+    TEST_RUN(test_hashmap_insert_int32);
+    TEST_RUN(test_hashmap_dump_load);
 
     TEST_FINALIZE();
 

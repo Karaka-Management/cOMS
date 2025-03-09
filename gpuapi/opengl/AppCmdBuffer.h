@@ -47,7 +47,7 @@ void* cmd_shader_load_sync(AppCmdBuffer* __restrict cb, Shader* __restrict shade
         }
 
         // Make sub shader
-        shader_assets[i] = shader_make(
+        shader_assets[i] = gpuapi_shader_make(
             shader_type_index((ShaderType) (i + 1)),
             (char *) shader_asset->self
         );
@@ -57,7 +57,7 @@ void* cmd_shader_load_sync(AppCmdBuffer* __restrict cb, Shader* __restrict shade
     }
 
     // Make shader/program
-    shader->id = pipeline_make(
+    shader->id = gpuapi_pipeline_make(
         shader_assets[0], shader_assets[1], shader_assets[2]
     );
 
