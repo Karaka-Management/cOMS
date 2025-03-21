@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_NETWORK_SOCKET_H
-#define TOS_PLATFORM_LINUX_NETWORK_SOCKET_H
+#ifndef COMS_PLATFORM_LINUX_NETWORK_SOCKET_H
+#define COMS_PLATFORM_LINUX_NETWORK_SOCKET_H
 
 #define socket_close close
 

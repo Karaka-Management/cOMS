@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ARCHITECTURE_ARM_SVE_UTILS_H
-#define TOS_ARCHITECTURE_ARM_SVE_UTILS_H
+#ifndef COMS_ARCHITECTURE_ARM_SVE_UTILS_H
+#define COMS_ARCHITECTURE_ARM_SVE_UTILS_H
 
 #include <stdlib.h>
 #include "../../../../stdlib/Types.h"

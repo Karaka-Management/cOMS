@@ -1,6 +1,6 @@
 
-#ifndef TOS_LOG_STATS_H
-#define TOS_LOG_STATS_H
+#ifndef COMS_LOG_STATS_H
+#define COMS_LOG_STATS_H
 
 #include "../stdlib/Types.h"
 #include "../thread/Atomic.h"
@@ -37,7 +37,7 @@ void reset_counter(int32 id) noexcept
         return;
     }
 
-    atomic_set_acquire(&_stats_counter[id], 0);
+    atomic_set_release(&_stats_counter[id], 0);
 }
 
 inline
@@ -57,7 +57,7 @@ void log_counter(int32 id, int64 value) noexcept
         return;
     }
 
-    atomic_set_acquire(&_stats_counter[id], value);
+    atomic_set_release(&_stats_counter[id], value);
 }
 
 #if (!DEBUG && !INTERNAL) || RELEASE

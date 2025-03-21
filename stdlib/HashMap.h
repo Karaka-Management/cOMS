@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_STDLIB_HASH_MAP_H
-#define TOS_STDLIB_HASH_MAP_H
+#ifndef COMS_STDLIB_HASH_MAP_H
+#define COMS_STDLIB_HASH_MAP_H
 
 #include "Types.h"
 #include "../hash/GeneralHash.h"
@@ -25,6 +25,7 @@
 /////////////////////////////
 // string key
 /////////////////////////////
+// Next below always represents the index in the chunk memory of the next entry with the same hash (not the byte offset)
 struct HashEntryInt32 {
     char key[HASH_MAP_MAX_KEY_LENGTH];
     uint16 next;
@@ -121,6 +122,7 @@ struct HashMap {
     ChunkMemory buf;
 };
 
+// @todo Change so the hashmap can grow or maybe even better create a static and dynamic version
 inline
 void hashmap_alloc(HashMap* hm, int32 count, int32 element_size)
 {
@@ -531,7 +533,7 @@ void hashmap_remove(HashMap* hm, const char* key) noexcept {
 // int key
 /////////////////////////////
 void hashmap_insert(HashMap* hm, int32 key, int32 value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryInt32KeyInt32* entry = (HashEntryInt32KeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -549,7 +551,7 @@ void hashmap_insert(HashMap* hm, int32 key, int32 value) noexcept {
 }
 
 void hashmap_insert(HashMap* hm, int32 key, int64 value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryInt64KeyInt32* entry = (HashEntryInt64KeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -567,7 +569,7 @@ void hashmap_insert(HashMap* hm, int32 key, int64 value) noexcept {
 }
 
 void hashmap_insert(HashMap* hm, int32 key, uintptr_t value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryUIntPtrKeyInt32* entry = (HashEntryUIntPtrKeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -585,7 +587,7 @@ void hashmap_insert(HashMap* hm, int32 key, uintptr_t value) noexcept {
 }
 
 void hashmap_insert(HashMap* hm, int32 key, void* value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryVoidPKeyInt32* entry = (HashEntryVoidPKeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -603,7 +605,7 @@ void hashmap_insert(HashMap* hm, int32 key, void* value) noexcept {
 }
 
 void hashmap_insert(HashMap* hm, int32 key, f32 value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryFloatKeyInt32* entry = (HashEntryFloatKeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -621,7 +623,7 @@ void hashmap_insert(HashMap* hm, int32 key, f32 value) noexcept {
 }
 
 void hashmap_insert(HashMap* hm, int32 key, const char* value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryStrKeyInt32* entry = (HashEntryStrKeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -642,7 +644,7 @@ void hashmap_insert(HashMap* hm, int32 key, const char* value) noexcept {
 }
 
 void hashmap_insert(HashMap* hm, int32 key, byte* value) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryKeyInt32* entry = (HashEntryKeyInt32 *) chunk_get_element(&hm->buf, element, true);
@@ -663,7 +665,7 @@ void hashmap_insert(HashMap* hm, int32 key, byte* value) noexcept {
 }
 
 HashEntryKeyInt32* hashmap_get_entry(HashMap* hm, int32 key) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
     HashEntryKeyInt32* entry = (HashEntryKeyInt32 *) chunk_get_element(&hm->buf, hm->table[index] - 1, false);
 
     while (entry != NULL) {
@@ -672,7 +674,7 @@ HashEntryKeyInt32* hashmap_get_entry(HashMap* hm, int32 key) noexcept {
             return entry;
         }
 
-        entry = (HashEntryKeyInt32 *) entry->next;
+        entry = (HashEntryKeyInt32 *) chunk_get_element(&hm->buf, entry->next - 1, false);
     }
 
     return NULL;
@@ -690,7 +692,7 @@ HashEntryKeyInt32* hashmap_get_entry(HashMap* hm, int32 key, uint64 hash) noexce
             return entry;
         }
 
-        entry = (HashEntryKeyInt32 *) entry->next;
+        entry = (HashEntryKeyInt32 *) chunk_get_element(&hm->buf, entry->next - 1, false);
     }
 
     return NULL;
@@ -700,7 +702,7 @@ HashEntryKeyInt32* hashmap_get_entry(HashMap* hm, int32 key, uint64 hash) noexce
 // However that would make insertion slower
 // Maybe we create a nother hashmap that is doubly linked
 void hashmap_remove(HashMap* hm, int32 key) noexcept {
-    uint64 index = key % hm->buf.count;
+    uint64 index = ((uint32) key) % hm->buf.count;
     HashEntryKeyInt32* entry = (HashEntryKeyInt32 *) chunk_get_element(&hm->buf, hm->table[index] - 1, false);
     HashEntryKeyInt32* prev = NULL;
 

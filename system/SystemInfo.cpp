@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_SYSTEM_INFO_C
-#define TOS_SYSTEM_INFO_C
+#ifndef COMS_SYSTEM_INFO_C
+#define COMS_SYSTEM_INFO_C
 
 #if _WIN32
     #include "../platform/win32/SystemInfo.cpp"

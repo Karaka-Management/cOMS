@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MEMORY_THREADED_CHUNK_MEMORY_H
-#define TOS_MEMORY_THREADED_CHUNK_MEMORY_H
+#ifndef COMS_MEMORY_THREADED_CHUNK_MEMORY_H
+#define COMS_MEMORY_THREADED_CHUNK_MEMORY_H
 
 #include <string.h>
 #include "../stdlib/Types.h"
@@ -30,8 +30,8 @@ struct ThreadedChunkMemory {
     // The completeness indicates if the data is completely written to
     uint64* completeness;
 
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
+    coms_pthread_mutex_t mutex;
+    coms_pthread_cond_t cond;
 };
 
 #endif

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_LIBRARY_C
-#define TOS_PLATFORM_LINUX_LIBRARY_C
+#ifndef COMS_PLATFORM_LINUX_LIBRARY_C
+#define COMS_PLATFORM_LINUX_LIBRARY_C
 
 #include <stdio.h>
 #include <dlfcn.h>

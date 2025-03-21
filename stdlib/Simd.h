@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_STDLIB_SIMD_H
-#define TOS_STDLIB_SIMD_H
+#ifndef COMS_STDLIB_SIMD_H
+#define COMS_STDLIB_SIMD_H
 
 // Adjusts the step size based on the memory alignment
 inline

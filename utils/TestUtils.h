@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_TEST_UTILS_H
-#define TOS_UTILS_TEST_UTILS_H
+#ifndef COMS_UTILS_TEST_UTILS_H
+#define COMS_UTILS_TEST_UTILS_H
 
 #if DEBUG
     #define ASSERT_SIMPLE(a) if (!(a)) { *(volatile int *)0 = 0; }

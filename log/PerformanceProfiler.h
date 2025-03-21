@@ -6,11 +6,11 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_LOG_PERFORMANCE_PROFILER_H
-#define TOS_LOG_PERFORMANCE_PROFILER_H
+#ifndef COMS_LOG_PERFORMANCE_PROFILER_H
+#define COMS_LOG_PERFORMANCE_PROFILER_H
 
 #include "../stdlib/Types.h"
-#include "../platform/win32/TimeUtils.h"
+#include "../utils/TimeUtils.h"
 #include "../thread/Spinlock.cpp"
 #include "../thread/Atomic.h"
 #include "../system/Allocator.h"
@@ -53,12 +53,12 @@
 #endif
 
 struct PerformanceProfileResult {
-    atomic_64 const char* name;
+    alignas(8) atomic_64 const char* name;
 
-    atomic_64 int64 total_cycle;
-    atomic_64 int64 self_cycle;
+    alignas(8) atomic_64 int64 total_cycle;
+    alignas(8) atomic_64 int64 self_cycle;
 
-    atomic_32 uint32 counter;
+    alignas(4) atomic_32 uint32 counter;
     uint32 parent;
 };
 static PerformanceProfileResult* _perf_stats = NULL;
@@ -72,7 +72,7 @@ struct PerformanceProfiler {
 
     const char* name;
     const char* info_msg;
-    int32 id;
+    int32 _id;
 
     int64 start_cycle;
     int64 total_cycle;
@@ -95,8 +95,8 @@ struct PerformanceProfiler {
             return;
         }
 
-        this->id = id;
-        ++_perf_stats[id].counter;
+        this->_id = id;
+        atomic_increment_acquire_release(&_perf_stats[id].counter);
 
         this->name = scope_name;
         this->info_msg = info;
@@ -131,7 +131,7 @@ struct PerformanceProfiler {
 
         // Store result
         PerformanceProfileResult temp_perf = {};
-        PerformanceProfileResult* perf = this->is_stateless ? &temp_perf : &_perf_stats[this->id];
+        PerformanceProfileResult* perf = this->is_stateless ? &temp_perf : &_perf_stats[this->_id];
 
         perf->name = this->name;
         perf->total_cycle = this->total_cycle;
@@ -140,7 +140,7 @@ struct PerformanceProfiler {
         if (!this->is_stateless) {
             if (this->parent) {
                 this->parent->self_cycle -= this->total_cycle;
-                perf->parent = this->parent->id;
+                perf->parent = this->parent->_id;
             }
 
             if (_perf_current_scope) {
@@ -179,7 +179,7 @@ void performance_profiler_reset(int32 id) noexcept
     PerformanceProfileResult* perf = &_perf_stats[id];
     perf->total_cycle = 0;
     perf->self_cycle = 0;
-    perf->parent = NULL;
+    perf->parent = 0;
 }
 
 inline

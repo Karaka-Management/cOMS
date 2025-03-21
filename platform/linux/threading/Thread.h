@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_THREADING_THREAD_H
-#define TOS_PLATFORM_LINUX_THREADING_THREAD_H
+#ifndef COMS_PLATFORM_LINUX_THREADING_THREAD_H
+#define COMS_PLATFORM_LINUX_THREADING_THREAD_H
 
 #include <sched.h>
 #include <stdlib.h>
@@ -21,148 +21,211 @@
 #include "../Allocator.h"
 #include "ThreadDefines.h"
 
-inline
-int32 pthread_create(pthread_t* thread, void *(*start_routine)(void *), void* arg) {
-    thread->stack = platform_alloc_aligned(1 * MEGABYTE, 64);
-    if (!thread->stack) {
-        return -1;
-    }
-
-    thread->stack = clone(
-        (int32 (*)(void *)) start_routine,
-        stack + 1 * MEGABYTE,
-        CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | SIGCHLD,
-        arg
-    );
-
-    if (thread->stack == -1) {
-        platform_aligned_free(thread->stack);
-
-        return -1;
-    }
-
-    return 0;
+inline int32 futex_wait(int32 *futex, int32 val) {
+    return syscall(SYS_futex, futex, FUTEX_WAIT, val, NULL, NULL, 0);
 }
 
-inline
-int32 pthread_join(pthread_t thread, void** retval) {
-    int32 status;
-    if (waitpid(thread->id, &status, 0) == -1) {
-        platform_aligned_free(thread->stack);
-
-        return -1;
-    }
-
-    if (retval) {
-        *retval = (void *) status;
-    }
-
-    platform_aligned_free(thread->stack);
-
-    return 0;
+inline int32 futex_wake(int32 *futex, int32 n) {
+    return syscall(SYS_futex, futex, FUTEX_WAKE, n, NULL, NULL, 0);
 }
 
-inline
-int32 pthread_mutex_init(pthread_mutex_t* mutex, pthread_mutexattr_t*) {
-    atomic_set_acquire(mutex, 0);
+inline int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg) {
+    if (thread == NULL || start_routine == NULL) {
+        return 1;
+    }
 
-    return 0;
-}
-
-inline
-int32 pthread_mutex_lock(pthread_mutex_t* mutex) {
-    int32 expected = 0;
-    while (!atomic_compare_exchange_weak(mutex, &expected, 1)) {
-        syscall(SYS_futex, mutex, FUTEX_WAIT, 1, NULL, NULL, 0);
-        expected = 0;
+    int32 flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM;
+    *thread = clone((int32 (*)(void*))start_routine, (void*)((char*)malloc(4096) + 4096), flags, arg);
+    if (*thread == -1) {
+        return 1;
     }
 
     return 0;
 }
 
-inline
-int32 pthread_mutex_unlock(pthread_mutex_t* mutex) {
-    atomic_set_release(mutex, 0);
-    syscall(SYS_futex, mutex, FUTEX_WAKE, 1, NULL, NULL, 0);
-
+inline int32 coms_pthread_join(coms_pthread_t thread, void** retval) {
+    if (syscall(SYS_waitid, P_PID, thread, retval, WEXITED, NULL) == -1) {
+        return 1;
+    }
     return 0;
 }
 
-inline
-int32 pthread_cond_init(pthread_cond_t* cond, pthread_condattr_t*) {
-    atomic_set_release(cond, 0);
-
+inline int32 coms_pthread_detach(coms_pthread_t) {
+    // In Linux, threads are automatically detached when they exit.
     return 0;
 }
 
-inline
-int32 pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
-    pthread_mutex_unlock(mutex);
-    syscall(SYS_futex, cond, FUTEX_WAIT, atomic_get_acquire(cond), NULL, NULL, 0);
-    pthread_mutex_lock(mutex);
-
+inline int32 coms_pthread_mutex_init(coms_pthread_mutex_t* mutex, coms_pthread_mutexattr_t*) {
+    if (mutex == NULL) {
+        return 1;
+    }
+    mutex->futex = 0;
     return 0;
 }
 
-inline
-int32 pthread_cond_signal(pthread_cond_t* cond) {
-    atomic_fetch_add_acquire(cond, 1);
-    syscall(SYS_futex, cond, FUTEX_WAKE, 1, NULL, NULL, 0);
-
+inline int32 coms_pthread_mutex_destroy(coms_pthread_mutex_t* mutex) {
+    if (mutex == NULL) {
+        return 1;
+    }
     return 0;
 }
 
-inline
-int32 pthread_rwlock_init(pthread_rwlock_t* rwlock, const pthread_rwlockattr_t*) {
-    atomic_set_release((int64 *) &rwlock->readers, 0);
-
+inline int32 coms_pthread_mutex_lock(coms_pthread_mutex_t* mutex) {
+    if (mutex == NULL) {
+        return 1;
+    }
+    while (__atomic_exchange_n(&mutex->futex, 1, __ATOMIC_ACQUIRE) != 0) {
+        futex_wait(&mutex->futex, 1);
+    }
     return 0;
 }
 
-inline
-int32 pthread_rwlock_rdlock(pthread_rwlock_t* rwlock) {
-    while (atomic_get_acquire_release(&rwlock->writer)) {}
-
-    atomic_fetch_add_acquire(&rwlock->readers, 1);
-
+inline int32 coms_pthread_mutex_unlock(coms_pthread_mutex_t* mutex) {
+    if (mutex == NULL) {
+        return 1;
+    }
+    __atomic_store_n(&mutex->futex, 0, __ATOMIC_RELEASE);
+    futex_wake(&mutex->futex, 1);
     return 0;
 }
 
-inline
-int32 pthread_rwlock_wrlock(pthread_rwlock_t* rwlock) {
-    while (!atomic_compare_exchange_weak(&rwlock->writer, 0, 1)) {}
-
+inline int32 coms_pthread_cond_init(coms_pthread_cond_t* cond, coms_pthread_condattr_t*) {
+    if (cond == NULL) {
+        return 1;
+    }
+    cond->futex = 0;
     return 0;
 }
 
-inline
-int32 pthread_rwlock_unlock(pthread_rwlock_t* rwlock) {
-    if (atomic_get_acquire(&rwlock->writer)) {
-        atomic_set_release(&rwlock->writer, 0);
+inline int32 coms_pthread_cond_destroy(coms_pthread_cond_t* cond) {
+    if (cond == NULL) {
+        return 1;
+    }
+    return 0;
+}
+
+inline int32 coms_pthread_cond_timedwait(coms_pthread_cond_t* cond, coms_pthread_mutex_t* mutex, const struct timespec*) {
+    if (cond == NULL || mutex == NULL) {
+        return 1;
+    }
+    int32 oldval = __atomic_load_n(&cond->futex, __ATOMIC_ACQUIRE);
+    coms_pthread_mutex_unlock(mutex);
+    futex_wait(&cond->futex, oldval);
+    coms_pthread_mutex_lock(mutex);
+    return 0;
+}
+
+inline int32 coms_pthread_cond_wait(coms_pthread_cond_t* cond, coms_pthread_mutex_t* mutex) {
+    return coms_pthread_cond_timedwait(cond, mutex, NULL);
+}
+
+inline int32 coms_pthread_cond_signal(coms_pthread_cond_t* cond) {
+    if (cond == NULL) {
+        return 1;
+    }
+    __atomic_add_fetch(&cond->futex, 1, __ATOMIC_RELEASE);
+    futex_wake(&cond->futex, 1);
+    return 0;
+}
+
+inline int32 coms_pthread_cond_broadcast(coms_pthread_cond_t* cond) {
+    if (cond == NULL) {
+        return 1;
+    }
+    __atomic_add_fetch(&cond->futex, 1, __ATOMIC_RELEASE);
+    futex_wake(&cond->futex, INT32_MAX);
+    return 0;
+}
+
+inline int32 coms_pthread_rwlock_init(coms_pthread_rwlock_t* rwlock, const coms_pthread_rwlockattr_t*) {
+    if (rwlock == NULL) {
+        return 1;
+    }
+    rwlock->futex = 0;
+    rwlock->exclusive = false;
+    return 0;
+}
+
+inline int32 coms_pthread_rwlock_destroy(coms_pthread_rwlock_t* rwlock) {
+    if (rwlock == NULL) {
+        return 1;
+    }
+    return 0;
+}
+
+inline int32 coms_pthread_rwlock_rdlock(coms_pthread_rwlock_t* rwlock) {
+    if (rwlock == NULL) {
+        return 1;
+    }
+    while (1) {
+        int32 val = __atomic_load_n(&rwlock->futex, __ATOMIC_ACQUIRE);
+        if (val >= 0 && __atomic_compare_exchange_n(&rwlock->futex, &val, val + 1, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
+            break;
+        }
+        futex_wait(&rwlock->futex, val);
+    }
+    return 0;
+}
+
+inline int32 coms_pthread_rwlock_tryrdlock(coms_pthread_rwlock_t* rwlock) {
+    if (rwlock == NULL) {
+        return 1;
+    }
+    int32 val = __atomic_load_n(&rwlock->futex, __ATOMIC_ACQUIRE);
+    if (val >= 0 && __atomic_compare_exchange_n(&rwlock->futex, &val, val + 1, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
+        return 0;
+    }
+    return 1;
+}
+
+inline int32 coms_pthread_rwlock_wrlock(coms_pthread_rwlock_t* rwlock) {
+    if (rwlock == NULL) {
+        return 1;
+    }
+    while (1) {
+        int32 val = __atomic_load_n(&rwlock->futex, __ATOMIC_ACQUIRE);
+        if (val == 0 && __atomic_compare_exchange_n(&rwlock->futex, &val, -1, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
+            rwlock->exclusive = true;
+            break;
+        }
+        futex_wait(&rwlock->futex, val);
+    }
+    return 0;
+}
+
+inline int32 coms_pthread_rwlock_trywrlock(coms_pthread_rwlock_t* rwlock) {
+    if (rwlock == NULL) {
+        return 1;
+    }
+    int32 val = __atomic_load_n(&rwlock->futex, __ATOMIC_ACQUIRE);
+    if (val == 0 && __atomic_compare_exchange_n(&rwlock->futex, &val, -1, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE)) {
+        rwlock->exclusive = true;
+        return 0;
+    }
+    return 1;
+}
+
+inline int32 coms_pthread_rwlock_unlock(coms_pthread_rwlock_t* rwlock) {
+    if (rwlock == NULL) {
+        return 1;
+    }
+    if (rwlock->exclusive) {
+        rwlock->exclusive = false;
+        __atomic_store_n(&rwlock->futex, 0, __ATOMIC_RELEASE);
+        futex_wake(&rwlock->futex, 1);
     } else {
-        atomic_fetch_sub_acquire(&rwlock->readers, 1);
+        int32 val = __atomic_sub_fetch(&rwlock->futex, 1, __ATOMIC_RELEASE);
+        if (val == 0) {
+            futex_wake(&rwlock->futex, 1);
+        }
     }
-
     return 0;
 }
 
-inline
-int32 pthread_detach(pthread_t) {
-    // For detached threads, the OS will clean up automatically. We do nothing here.
-    // Optionally, mark this thread as detached in your data structure if tracking threads.
-    return 0;
+inline uint32 pcthread_get_num_procs() {
+    return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
-inline
-int32 pthread_rwlock_destroy(pthread_rwlock_t*)
-{
-    return 0;
-}
-
-inline
-uint32 pthread_get_num_procs()
-{
-    return (uint32) sysconf(_SC_NPROCESSORS_ONLN);
-}
+#define coms_pthread_exit(a) { return (a); }
 
 #endif

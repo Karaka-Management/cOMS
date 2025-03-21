@@ -6,10 +6,11 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_STRING_UTILS_H
-#define TOS_UTILS_STRING_UTILS_H
+#ifndef COMS_UTILS_STRING_UTILS_H
+#define COMS_UTILS_STRING_UTILS_H
 
 #include <string.h>
+#include <stdarg.h>
 #include "../stdlib/Types.h"
 #include "../utils/TestUtils.h"
 
@@ -289,7 +290,7 @@ void wchar_to_char(const char* __restrict str, char* __restrict dest) noexcept
     *dest = '\0';
 }
 
-static const bool STR_IS_ALPHA_LOOKUP_TABLE[] = {
+static constexpr const bool STR_IS_ALPHA_LOOKUP_TABLE[] = {
     false, false, false, false, false, false, false, false, // 0-7
     false, false, false, false, false, false, false, false, // 8-15
     false, false, false, false, false, false, false, false, // 16-23
@@ -301,11 +302,11 @@ static const bool STR_IS_ALPHA_LOOKUP_TABLE[] = {
     false, true,  true,  true,  true,  true,  true,  true,  // 64-71 ('A'-'G')
     true,  true,  true,  true,  true,  true,  true,  true,  // 72-79 ('H'-'O')
     true,  true,  true,  true,  true,  true,  true,  true,  // 80-87 ('P'-'W')
-    true,  true,  true, false, false, false, false, false, // 88-95 ('X'-'Z', others)
+    true,  true,  true, false, false, false, false, false,  // 88-95 ('X'-'Z', others)
     false, true,  true,  true,  true,  true,  true,  true,  // 96-103 ('a'-'g')
     true,  true,  true,  true,  true,  true,  true,  true,  // 104-111 ('h'-'o')
     true,  true,  true,  true,  true,  true,  true,  true,  // 112-119 ('p'-'w')
-    true,  true,  true, false, false, false, false, false, // 120-127 ('x'-'z', others)
+    true,  true,  true, false, false, false, false, false,  // 120-127 ('x'-'z', others)
     false, false, false, false, false, false, false, false, // 128-135
     false, false, false, false, false, false, false, false, // 136-143
     false, false, false, false, false, false, false, false, // 144-151
@@ -340,7 +341,7 @@ bool str_is_alpha(const char* str) noexcept {
     return true;
 }
 
-static const bool STR_IS_NUM_LOOKUP_TABLE[] = {
+static constexpr const bool STR_IS_NUM_LOOKUP_TABLE[] = {
     false, false, false, false, false, false, false, false, // 0-7
     false, false, false, false, false, false, false, false, // 8-15
     false, false, false, false, false, false, false, false, // 16-23
@@ -349,13 +350,13 @@ static const bool STR_IS_NUM_LOOKUP_TABLE[] = {
     false, false, false, false, false, false, false, false, // 40-47
     true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
     true,  true,  false, false, false, false, false, false, // 56-63 ('8'-'9', others)
-    false, true,  false, false, false, false, false, false,  // 64-71 ('A'-'G')
-    false, false, false, false, false, false, false, false,  // 72-79 ('H'-'O')
-    false, false, false, false, false, false, false, false,  // 80-87 ('P'-'W')
+    false, true,  false, false, false, false, false, false, // 64-71 ('A'-'G')
+    false, false, false, false, false, false, false, false, // 72-79 ('H'-'O')
+    false, false, false, false, false, false, false, false, // 80-87 ('P'-'W')
     false, false, false, false, false, false, false, false, // 88-95 ('X'-'Z', others)
-    false, false, false, false, false, false, false, false,  // 96-103 ('a'-'g')
-    false, false, false, false, false, false, false, false,  // 104-111 ('h'-'o')
-    false, false, false, false, false, false, false, false,  // 112-119 ('p'-'w')
+    false, false, false, false, false, false, false, false, // 96-103 ('a'-'g')
+    false, false, false, false, false, false, false, false, // 104-111 ('h'-'o')
+    false, false, false, false, false, false, false, false, // 112-119 ('p'-'w')
     false, false, false, false, false, false, false, false, // 120-127 ('x'-'z', others)
     false, false, false, false, false, false, false, false, // 128-135
     false, false, false, false, false, false, false, false, // 136-143
@@ -380,7 +381,7 @@ bool str_is_num(char str) noexcept {
     return STR_IS_NUM_LOOKUP_TABLE[(byte) str];
 }
 
-static const bool STR_IS_ALPHANUM_LOOKUP_TABLE[] = {
+static constexpr const bool STR_IS_ALPHANUM_LOOKUP_TABLE[] = {
     false, false, false, false, false, false, false, false, // 0-7
     false, false, false, false, false, false, false, false, // 8-15
     false, false, false, false, false, false, false, false, // 16-23
@@ -388,15 +389,15 @@ static const bool STR_IS_ALPHANUM_LOOKUP_TABLE[] = {
     false, false, false, false, false, false, false, false, // 32-39
     false, false, false, false, false, false, false, false, // 40-47
     true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
-    true,  true, false, false, false, false, false, false, // 56-63 ('8'-'9', others)
+    true,  true, false, false, false, false, false, false,  // 56-63 ('8'-'9', others)
     false, true,  true,  true,  true,  true,  true,  true,  // 64-71 ('A'-'G')
     true,  true,  true,  true,  true,  true,  true,  true,  // 72-79 ('H'-'O')
     true,  true,  true,  true,  true,  true,  true,  true,  // 80-87 ('P'-'W')
-    true,  true,  true, false, false, false, false, false, // 88-95 ('X'-'Z', others)
+    true,  true,  true, false, false, false, false, false,  // 88-95 ('X'-'Z', others)
     false, true,  true,  true,  true,  true,  true,  true,  // 96-103 ('a'-'g')
     true,  true,  true,  true,  true,  true,  true,  true,  // 104-111 ('h'-'o')
     true,  true,  true,  true,  true,  true,  true,  true,  // 112-119 ('p'-'w')
-    true,  true,  true, false, false, false, false, false, // 120-127 ('x'-'z', others)
+    true,  true,  true, false, false, false, false, false,  // 120-127 ('x'-'z', others)
     false, false, false, false, false, false, false, false, // 128-135
     false, false, false, false, false, false, false, false, // 136-143
     false, false, false, false, false, false, false, false, // 144-151
@@ -591,12 +592,12 @@ int32 uint_to_str(uint64 number, char str[12]) noexcept {
     return i;
 }
 
-static const char HEX_TABLE[] = {
+static constexpr const char HEX_TABLE[] = {
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
     'A', 'B', 'C', 'D', 'E', 'F'
 };
 
-static const bool HEX_LOOKUP_TABLE[256] = {
+static constexpr const bool HEX_LOOKUP_TABLE[256] = {
     false, false, false, false, false, false, false, false, // 0-7
     false, false, false, false, false, false, false, false, // 8-15
     false, false, false, false, false, false, false, false, // 16-23
@@ -605,13 +606,13 @@ static const bool HEX_LOOKUP_TABLE[256] = {
     false, false, false, false, false, false, false, false, // 40-47
     true,  true,  true,  true,  true,  true,  true,  true,  // 48-55 ('0'-'7')
     true,  true,  false, false, false, false, false, false, // 56-63 ('8'-'9', others)
-    false, true,  true,  true,  true,  true,  true,  false,  // 64-71 ('A'-'G')
-    false, false, false, false, false, false, false, false,  // 72-79 ('H'-'O')
-    false, false, false, false, false, false, false, false,  // 80-87 ('P'-'W')
+    false, true,  true,  true,  true,  true,  true,  false, // 64-71 ('A'-'G')
+    false, false, false, false, false, false, false, false, // 72-79 ('H'-'O')
+    false, false, false, false, false, false, false, false, // 80-87 ('P'-'W')
     false, false, false, false, false, false, false, false, // 88-95 ('X'-'Z', others)
-    false, false, false, false, false, false, false, false,  // 96-103 ('a'-'g')
-    false, false, false, false, false, false, false, false,  // 104-111 ('h'-'o')
-    false, false, false, false, false, false, false, false,  // 112-119 ('p'-'w')
+    false, false, false, false, false, false, false, false, // 96-103 ('a'-'g')
+    false, false, false, false, false, false, false, false, // 104-111 ('h'-'o')
+    false, false, false, false, false, false, false, false, // 112-119 ('p'-'w')
     false, false, false, false, false, false, false, false, // 120-127 ('x'-'z', others)
     false, false, false, false, false, false, false, false, // 128-135
     false, false, false, false, false, false, false, false, // 136-143
@@ -744,7 +745,7 @@ void str_copy_until(const char* __restrict src, char* __restrict dest, const cha
     size_t len = str_length(delim);
 
     while (*src != '\0') {
-        for (int32 i = 0; i < len; ++i) {
+        for (size_t i = 0; i < len; ++i) {
             if (*src == delim[i]) {
                 *dest = '\0';
                 return;
@@ -761,7 +762,7 @@ inline
 void str_copy_short(char* __restrict dest, const char* __restrict src, int32 length) noexcept
 {
     int32 i = -1;
-    while (*src != '\0' && ++i < length) {
+    while (*src != '\0' && ++i < length - 1) {
         *dest++ = *src++;
     }
 
@@ -1036,7 +1037,7 @@ void tolower_ascii(char* str) noexcept
     }
 }
 
-constexpr inline
+inline constexpr
 bool str_contains(const char* haystack, const char* needle) noexcept
 {
     // @performance would it make sense to only check until haystack - strlen(needle)?
@@ -1060,7 +1061,7 @@ bool str_contains(const char* haystack, const char* needle) noexcept
     return false;
 }
 
-constexpr inline
+inline
 int32 str_compare(const char* str1, const char* str2) noexcept
 {
     byte c1, c2;
@@ -1284,6 +1285,12 @@ void str_skip_whitespace(const char** str) noexcept
     while (**str && (**str == ' ' || **str == '\t'))  {
         ++(*str);
     }
+}
+
+inline
+bool str_is_empty(const char str) noexcept
+{
+    return str == ' ' || str == '\t' || str == '\n' || str == '\r';
 }
 
 inline

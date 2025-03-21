@@ -1,5 +1,5 @@
-#ifndef TOS_SORT_EYTZINGER_SEARCH_H
-#define TOS_SORT_EYTZINGER_SEARCH_H
+#ifndef COMS_SORT_EYTZINGER_SEARCH_H
+#define COMS_SORT_EYTZINGER_SEARCH_H
 
 #include "../stdlib/Types.h"
 #include "../memory/RingMemory.h"

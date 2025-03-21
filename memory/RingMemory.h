@@ -6,12 +6,10 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MEMORY_RING_MEMORY_H
-#define TOS_MEMORY_RING_MEMORY_H
+#ifndef COMS__MEMORY_RING_MEMORY_H
+#define COMS__MEMORY_RING_MEMORY_H
 
 #include <string.h>
-#include <immintrin.h>
-
 #include "../stdlib/Types.h"
 #include "../utils/EndianUtils.h"
 #include "../utils/TestUtils.h"
@@ -27,7 +25,7 @@
 #include "../system/Allocator.h"
 
 // WARNING: Changing this structure has effects on other data structures (e.g. Queue)
-// When chaning make sure you understand what you are doing
+// When changing make sure you understand what you are doing
 struct RingMemory {
     byte* memory;
     byte* end;
@@ -171,6 +169,8 @@ void ring_move_pointer(RingMemory* ring, byte** pos, uint64 size, uint32 aligned
     *pos += size;
 }
 
+// @todo Implement a function called ring_grow_memory that tries to grow a memory range
+// this of course is only possible if the memory range is the last memory range returned and if the growing part still fits into the ring
 byte* ring_get_memory(RingMemory* ring, uint64 size, uint32 aligned = 4, bool zeroed = false) noexcept
 {
     ASSERT_SIMPLE(size <= ring->size);

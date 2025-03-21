@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_LINUX_H
-#define TOS_UTILS_LINUX_H
+#ifndef COMS_UTILS_LINUX_H
+#define COMS_UTILS_LINUX_H
 
 #include "../../stdlib/Types.h"
 #include <stdio.h>
@@ -56,10 +56,6 @@ void clipboard_get(char* text, int32 max_length)
     }
 
     XCloseDisplay(display);
-}
-
-void output_char(char c) {
-    write(STDOUT_FILENO, &c, 1);
 }
 
 #endif

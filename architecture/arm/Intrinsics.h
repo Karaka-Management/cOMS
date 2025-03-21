@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_ARCHITECTURE_ARM_INTRINSICS_ARM_H
-#define TOS_ARCHITECTURE_ARM_INTRINSICS_ARM_H
+#ifndef COMS_ARCHITECTURE_ARM_INTRINSICS_ARM_H
+#define COMS_ARCHITECTURE_ARM_INTRINSICS_ARM_H
 
 #include <arm_sve.h>
 #include <arm_acle.h>

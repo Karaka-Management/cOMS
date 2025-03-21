@@ -1,5 +1,5 @@
-#ifndef TOS_UI_THEME_H
-#define TOS_UI_THEME_H
+#ifndef COMS_UI_THEME_H
+#define COMS_UI_THEME_H
 
 #include "../stdlib/Types.h"
 #include "../memory/RingMemory.h"

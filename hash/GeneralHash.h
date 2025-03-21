@@ -6,18 +6,18 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_HASH_GENERAL_H
-#define TOS_HASH_GENERAL_H
+#ifndef COMS_HASH_GENERAL_H
+#define COMS_HASH_GENERAL_H
 
 #include "../stdlib/Types.h"
 
-inline constexpr
+inline
 uint64 hash_djb2(const char* key) noexcept
 {
     uint64 hash = 5381;
     int32 c;
 
-    while ((c = *key++)) {
+    while (((c = *key++))) {
         hash = ((hash << 5) + hash) + c;
     }
 
@@ -30,7 +30,7 @@ uint64 hash_sdbm(const byte* key) noexcept
     uint64 hash = 0;
     int32 c;
 
-    while (c = *key++) {
+    while ((c = *key++)) {
         hash = c + (hash << 6) + (hash << 16) - hash;
     }
 
@@ -43,7 +43,7 @@ uint64 hash_lose_lose(const byte* key) noexcept
 	uint64 hash = 0;
 	int32 c;
 
-	while (c = *key++) {
+	while ((c = *key++)) {
 	    hash += c;
     }
 
@@ -116,7 +116,7 @@ uint32 hash_ejb(const char* str) noexcept
 }
 
 #define ROTL32(x, r) ((x) << (r)) | ((x) >> (32 - (r)))
-inline constexpr
+inline
 uint32 hash_murmur3_32(const byte* key, size_t len, uint32 seed = 0) noexcept
 {
     uint32 h = seed;
@@ -290,13 +290,13 @@ uint64 hash_murmur3_64(const void* key, size_t len, uint64 seed = 0) noexcept
 // Seeded hash functions
 ////////////////////////////////////
 
-inline constexpr
+inline
 uint64 hash_djb2_seeded(const char* key, int32 seed) noexcept
 {
     uint64 hash = 5381;
     int32 c;
 
-    while ((c = *key++)) {
+    while (((c = *key++))) {
         hash = ((hash << 5) + hash) + c;
     }
 
@@ -309,7 +309,7 @@ uint64 hash_sdbm_seeded(const char* key, int32 seed) noexcept
     uint64 hash = 0;
     int32 c;
 
-    while (c = *key++) {
+    while ((c = *key++)) {
         hash = c + (hash << 6) + (hash << 16) - hash;
     }
 
@@ -322,7 +322,7 @@ uint64 hash_lose_lose_seeded(const char* key, int32 seed) noexcept
 	uint64 hash = 0;
 	int32 c;
 
-	while (c = *key++) {
+	while ((c = *key++)) {
 	    hash += c;
     }
 

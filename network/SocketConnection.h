@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_NETWORK_SOCKET_CONNECTION_H
-#define TOS_NETWORK_SOCKET_CONNECTION_H
+#ifndef COMS_NETWORK_SOCKET_CONNECTION_H
+#define COMS_NETWORK_SOCKET_CONNECTION_H
 
 #include "../stdlib/Types.h"
 

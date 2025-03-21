@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_THREADS_JOB_H
-#define TOS_THREADS_JOB_H
+#ifndef COMS_THREADS_JOB_H
+#define COMS_THREADS_JOB_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,8 +19,8 @@
 typedef void (*ThreadPoolJobFunc)(void*);
 
 struct PoolWorker {
-    atomic_32 int32 id;
-    atomic_32 int32 state;
+    alignas(4) atomic_32 int32 id;
+    alignas(4) atomic_32 int32 state;
     void* arg;
     void* result;
     RingMemory ring;
@@ -29,8 +29,8 @@ struct PoolWorker {
 };
 
 struct Worker {
-    atomic_32 int32 state;
-    pthread_t thread;
+    alignas(4) atomic_32 int32 state;
+    coms_pthread_t thread;
 };
 
 #endif

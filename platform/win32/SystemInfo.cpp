@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_SYSTEM_INFO_C
-#define TOS_PLATFORM_WIN32_SYSTEM_INFO_C
+#ifndef COMS_PLATFORM_WIN32_SYSTEM_INFO_C
+#define COMS_PLATFORM_WIN32_SYSTEM_INFO_C
 
 #include <stdio.h>
 #include <stdint.h>

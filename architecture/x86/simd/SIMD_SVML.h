@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_STDLIB_SIMD_SVML_H
-#define TOS_STDLIB_SIMD_SVML_H
+#ifndef COMS_STDLIB_SIMD_SVML_H
+#define COMS_STDLIB_SIMD_SVML_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>
@@ -18,7 +18,7 @@
     #include "math.h"
 
     inline __m128i _mm_div_epi32(__m128i a, __m128i b) {
-        alignas(16) int32_t a_array[4], b_array[4], result[4];
+        alignas(16) int32 a_array[4], b_array[4], result[4];
 
         _mm_storeu_si128((__m128i*) a_array, a);
         _mm_storeu_si128((__m128i*) b_array, b);
@@ -31,7 +31,7 @@
     }
 
     inline __m256i _mm256_div_epi32(__m256i a, __m256i b) {
-        alignas(32) int32_t a_array[8], b_array[8], result[8];
+        alignas(32) int32 a_array[8], b_array[8], result[8];
 
         _mm256_storeu_si256((__m256i*) a_array, a);
         _mm256_storeu_si256((__m256i*) b_array, b);
@@ -44,7 +44,7 @@
     }
 
     inline __m512i _mm512_div_epi32(__m512i a, __m512i b) {
-        alignas(64) int32_t a_array[16], b_array[16], result[16];
+        alignas(64) int32 a_array[16], b_array[16], result[16];
 
         _mm512_storeu_si512((__m512i*) a_array, a);
         _mm512_storeu_si512((__m512i*) b_array, b);

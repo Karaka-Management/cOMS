@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_ALLOCATOR_H
-#define TOS_PLATFORM_LINUX_ALLOCATOR_H
+#ifndef COMS_PLATFORM_LINUX_ALLOCATOR_H
+#define COMS_PLATFORM_LINUX_ALLOCATOR_H
 
 #include <stdio.h>
 #include <unistd.h>
@@ -15,6 +15,8 @@
 #include <fcntl.h>
 #include "../../stdlib/Types.h"
 #include "../../utils/TestUtils.h"
+#include "../../log/DebugMemory.h"
+#include "../../log/Stats.h"
 
 // @todo Currently alignment only effects the starting position, but it should also effect the ending/size
 

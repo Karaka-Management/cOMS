@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_THREADING_THREAD_H
-#define TOS_PLATFORM_WIN32_THREADING_THREAD_H
+#ifndef COMS_PLATFORM_WIN32_THREADING_THREAD_H
+#define COMS_PLATFORM_WIN32_THREADING_THREAD_H
 
 #include "../../../stdlib/Types.h"
 #include "../TimeUtils.h"
@@ -15,7 +15,7 @@
 #include <windows.h>
 
 inline
-int32 pthread_create(pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg)
+int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg)
 {
     if (thread == NULL || start_routine == NULL) {
         return 1;
@@ -30,7 +30,7 @@ int32 pthread_create(pthread_t* thread, void*, ThreadJobFunc start_routine, void
 }
 
 inline
-int32 pthread_join(pthread_t thread, void**)
+int32 coms_pthread_join(coms_pthread_t thread, void**)
 {
     WaitForSingleObject(thread, INFINITE);
     CloseHandle(thread);
@@ -39,7 +39,7 @@ int32 pthread_join(pthread_t thread, void**)
 }
 
 inline
-int32 pthread_detach(pthread_t thread)
+int32 coms_pthread_detach(coms_pthread_t thread)
 {
     CloseHandle(thread);
 
@@ -47,7 +47,7 @@ int32 pthread_detach(pthread_t thread)
 }
 
 inline
-int32 pthread_mutex_init(pthread_mutex_t* mutex, pthread_mutexattr_t*)
+int32 coms_pthread_mutex_init(coms_pthread_mutex_t* mutex, coms_pthread_mutexattr_t*)
 {
     if (mutex == NULL) {
         return 1;
@@ -59,7 +59,7 @@ int32 pthread_mutex_init(pthread_mutex_t* mutex, pthread_mutexattr_t*)
 }
 
 inline
-int32 pthread_mutex_destroy(pthread_mutex_t* mutex)
+int32 coms_pthread_mutex_destroy(coms_pthread_mutex_t* mutex)
 {
     if (mutex == NULL) {
         return 1;
@@ -71,7 +71,7 @@ int32 pthread_mutex_destroy(pthread_mutex_t* mutex)
 }
 
 inline
-int32 pthread_mutex_lock(pthread_mutex_t* mutex)
+int32 coms_pthread_mutex_lock(coms_pthread_mutex_t* mutex)
 {
     if (mutex == NULL) {
         return 1;
@@ -83,7 +83,7 @@ int32 pthread_mutex_lock(pthread_mutex_t* mutex)
 }
 
 inline
-int32 pthread_mutex_unlock(pthread_mutex_t* mutex)
+int32 coms_pthread_mutex_unlock(coms_pthread_mutex_t* mutex)
 {
     if (mutex == NULL) {
         return 1;
@@ -96,7 +96,7 @@ int32 pthread_mutex_unlock(pthread_mutex_t* mutex)
 
 // WARNING: We don't support windows events since they are much slower than conditional variables/mutexes
 inline
-int32 pthread_cond_init(pthread_cond_t* cond, pthread_condattr_t*)
+int32 coms_pthread_cond_init(coms_pthread_cond_t* cond, coms_pthread_condattr_t*)
 {
     if (cond == NULL) {
         return 1;
@@ -108,7 +108,7 @@ int32 pthread_cond_init(pthread_cond_t* cond, pthread_condattr_t*)
 }
 
 inline
-int32 pthread_cond_destroy(pthread_cond_t*)
+int32 coms_pthread_cond_destroy(coms_pthread_cond_t*)
 {
     /* Windows does not have a destroy for conditionals */
     return 0;
@@ -116,7 +116,7 @@ int32 pthread_cond_destroy(pthread_cond_t*)
 
 // @question Can't we turn timespec in a typedef of uint64? I would like to avoid the time.h class
 inline
-int32 pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t* mutex, const timespec* abstime)
+int32 coms_pthread_cond_timedwait(coms_pthread_cond_t* cond, coms_pthread_mutex_t* mutex, const timespec* abstime)
 {
     if (cond == NULL || mutex == NULL) {
         return 1;
@@ -130,17 +130,17 @@ int32 pthread_cond_timedwait(pthread_cond_t* cond, pthread_mutex_t* mutex, const
 }
 
 inline
-int32 pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex)
+int32 coms_pthread_cond_wait(coms_pthread_cond_t* cond, coms_pthread_mutex_t* mutex)
 {
     if (cond == NULL || mutex == NULL) {
         return 1;
     }
 
-    return pthread_cond_timedwait(cond, mutex, NULL);
+    return coms_pthread_cond_timedwait(cond, mutex, NULL);
 }
 
 inline
-int32 pthread_cond_signal(pthread_cond_t* cond)
+int32 coms_pthread_cond_signal(coms_pthread_cond_t* cond)
 {
     if (cond == NULL) {
         return 1;
@@ -152,7 +152,7 @@ int32 pthread_cond_signal(pthread_cond_t* cond)
 }
 
 inline
-int32 pthread_cond_broadcast(pthread_cond_t* cond)
+int32 coms_pthread_cond_broadcast(coms_pthread_cond_t* cond)
 {
     if (cond == NULL) {
         return 1;
@@ -164,7 +164,7 @@ int32 pthread_cond_broadcast(pthread_cond_t* cond)
 }
 
 inline
-int32 pthread_rwlock_init(pthread_rwlock_t* rwlock, const pthread_rwlockattr_t*)
+int32 coms_pthread_rwlock_init(coms_pthread_rwlock_t* rwlock, const coms_pthread_rwlockattr_t*)
 {
     if (rwlock == NULL) {
         return 1;
@@ -177,13 +177,13 @@ int32 pthread_rwlock_init(pthread_rwlock_t* rwlock, const pthread_rwlockattr_t*)
 }
 
 inline
-int32 pthread_rwlock_destroy(pthread_rwlock_t*)
+int32 coms_pthread_rwlock_destroy(coms_pthread_rwlock_t*)
 {
     return 0;
 }
 
 inline
-int32 pthread_rwlock_rdlock(pthread_rwlock_t* rwlock)
+int32 coms_pthread_rwlock_rdlock(coms_pthread_rwlock_t* rwlock)
 {
     if (rwlock == NULL) {
         return 1;
@@ -195,7 +195,7 @@ int32 pthread_rwlock_rdlock(pthread_rwlock_t* rwlock)
 }
 
 inline
-int32 pthread_rwlock_tryrdlock(pthread_rwlock_t* rwlock)
+int32 coms_pthread_rwlock_tryrdlock(coms_pthread_rwlock_t* rwlock)
 {
     if (rwlock == NULL) {
         return 1;
@@ -205,7 +205,7 @@ int32 pthread_rwlock_tryrdlock(pthread_rwlock_t* rwlock)
 }
 
 inline
-int32 pthread_rwlock_wrlock(pthread_rwlock_t* rwlock)
+int32 coms_pthread_rwlock_wrlock(coms_pthread_rwlock_t* rwlock)
 {
     if (rwlock == NULL) {
         return 1;
@@ -218,7 +218,7 @@ int32 pthread_rwlock_wrlock(pthread_rwlock_t* rwlock)
 }
 
 inline
-int32 pthread_rwlock_trywrlock(pthread_rwlock_t  *rwlock)
+int32 coms_pthread_rwlock_trywrlock(coms_pthread_rwlock_t  *rwlock)
 {
     if (rwlock == NULL) {
         return 1;
@@ -233,7 +233,7 @@ int32 pthread_rwlock_trywrlock(pthread_rwlock_t  *rwlock)
 }
 
 inline
-int32 pthread_rwlock_unlock(pthread_rwlock_t* rwlock)
+int32 coms_pthread_rwlock_unlock(coms_pthread_rwlock_t* rwlock)
 {
     if (rwlock == NULL) {
         return 1;
@@ -258,6 +258,6 @@ uint32 pcthread_get_num_procs()
     return sysinfo.dwNumberOfProcessors;
 }
 
-#define pthread_exit(a) { return (a); }
+#define coms_pthread_exit(a) { return (a); }
 
 #endif

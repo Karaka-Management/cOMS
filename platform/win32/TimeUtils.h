@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_TIME_UTILS_H
-#define TOS_PLATFORM_WIN32_TIME_UTILS_H
+#ifndef COMS_PLATFORM_WIN32_TIME_UTILS_H
+#define COMS_PLATFORM_WIN32_TIME_UTILS_H
 
 #include <stdio.h>
 #include <windows.h>

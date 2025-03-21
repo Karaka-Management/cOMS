@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_LINUX_THREADING_SPINLOCK_C
-#define TOS_PLATFORM_LINUX_THREADING_SPINLOCK_C
+#ifndef COMS_PLATFORM_LINUX_THREADING_SPINLOCK_C
+#define COMS_PLATFORM_LINUX_THREADING_SPINLOCK_C
 
 #include "../../../stdlib/Types.h"
 #include "Spinlock.h"

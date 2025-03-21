@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_TOS_STDLIB_SIMD_I16_H
-#define TOS_TOS_STDLIB_SIMD_I16_H
+#ifndef COMS_TOS_STDLIB_SIMD_I16_H
+#define COMS_TOS_STDLIB_SIMD_I16_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>
@@ -242,30 +242,6 @@ inline int16_32 operator*(int16_32 a, int16_32 b)
     return simd;
 }
 
-inline int16_8 operator/(int16_8 a, int16_8 b)
-{
-    int16_8 simd;
-    simd.s = _mm_div_epi16(a.s, b.s);
-
-    return simd;
-}
-
-inline int16_16 operator/(int16_16 a, int16_16 b)
-{
-    int16_16 simd;
-    simd.s = _mm256_div_epi16(a.s, b.s);
-
-    return simd;
-}
-
-inline int16_32 operator/(int16_32 a, int16_32 b)
-{
-    int16_32 simd;
-    simd.s = _mm512_div_epi16(a.s, b.s);
-
-    return simd;
-}
-
 inline int16_8 operator^(int16_8 a, int16_8 b)
 {
     int16_8 simd;
@@ -349,27 +325,6 @@ inline int16_16 &operator*=(int16_16 &a, int16_16 b)
 inline int16_32 &operator*=(int16_32 &a, int16_32 b)
 {
     a = a * b;
-
-    return a;
-}
-
-inline int16_8 &operator/=(int16_8 &a, int16_8 b)
-{
-    a.s = (a / b).s;
-
-    return a;
-}
-
-inline int16_16 &operator/=(int16_16 &a, int16_16 b)
-{
-    a.s = (a / b).s;
-
-    return a;
-}
-
-inline int16_32 &operator/=(int16_32 &a, int16_32 b)
-{
-    a.s = (a / b).s;
 
     return a;
 }

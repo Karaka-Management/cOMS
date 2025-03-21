@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_STDLIB_SIMD_F32_H
-#define TOS_STDLIB_SIMD_F32_H
+#ifndef COMS_STDLIB_SIMD_F32_H
+#define COMS_STDLIB_SIMD_F32_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>

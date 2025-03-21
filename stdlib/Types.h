@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_STDLIB_TYPES_H
-#define TOS_STDLIB_TYPES_H
+#ifndef COMS_STDLIB_TYPES_H
+#define COMS_STDLIB_TYPES_H
 
 #include <stdint.h>
 
@@ -44,9 +44,9 @@ typedef intptr_t smm;
 
 // @question consider to implement atomic_16 depending on intrinsic support
 #define atomic_8 volatile
-#define atomic_16 alignas(2) volatile
-#define atomic_32 alignas(4) volatile
-#define atomic_64 alignas(8) volatile
+#define atomic_16 volatile
+#define atomic_32 volatile
+#define atomic_64 volatile
 
 #define OMS_PI 3.14159265358979323846f
 #define OMS_PI_OVER_TWO (OMS_PI / 2.0f)

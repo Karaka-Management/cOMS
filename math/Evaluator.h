@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MATH_EVALUATOR_H
-#define TOS_MATH_EVALUATOR_H
+#ifndef COMS_MATH_EVALUATOR_H
+#define COMS_MATH_EVALUATOR_H
 
 #include "../stdlib/Types.h"
 #include "../utils/StringUtils.h"

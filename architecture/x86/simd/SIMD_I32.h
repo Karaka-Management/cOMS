@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_TOS_STDLIB_SIMD_I32_H
-#define TOS_TOS_STDLIB_SIMD_I32_H
+#ifndef COMS_TOS_STDLIB_SIMD_I32_H
+#define COMS_TOS_STDLIB_SIMD_I32_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>
@@ -1582,25 +1582,11 @@ bool str_compare_avx512(const char* str1, const char* str2) {
 }
 
 void
-endian_swap(const int* val, int* result, int32 size, int32 steps)
+endian_swap(const int32* val, int32* result, int32 size, int32 steps)
 {
     int32 i = 0;
 
-    if (steps == 16) {
-        const __m512i mask_512 = _mm512_setr_epi8(
-            3, 2, 1, 0,  7, 6, 5, 4,    11, 10, 9, 8,  15, 14, 13, 12,
-            19, 18, 17, 16,  23, 22, 21, 20, 27, 26, 25, 24,  31, 30, 29, 28,
-            35, 34, 33, 32,  39, 38, 37, 36, 43, 42, 41, 40,  47, 46, 45, 44,
-            51, 50, 49, 48,  55, 54, 53, 60, 59, 58, 57, 56,  64, 63, 62, 61
-        );
-
-        for (i = 0; i <= size - steps; i += steps) {
-            __m512i vec = _mm512_load_si512((const __m512i *) (val + i));
-            vec = _mm512_shuffle_epi8(vec, mask_512);
-
-            _mm512_storeu_si512((__m512i *) (result + i), vec);
-        }
-    } else if (steps == 8) {
+    if (steps >= 8) {
         const __m256i mask_256 = _mm256_setr_epi8(
             3, 2, 1, 0,  7, 6, 5, 4,
             11, 10, 9, 8,  15, 14, 13, 12,
@@ -1636,6 +1622,122 @@ endian_swap(const int* val, int* result, int32 size, int32 steps)
             | ((v & 0xFF00) << 8)
             | ((v >> 8) & 0xFF00)
             | (v >> 24));
+    }
+}
+
+void
+endian_swap(const uint32* val, uint32* result, int32 size, int32 steps)
+{
+    int32 i = 0;
+
+    if (steps >= 8) {
+        const __m256i mask_256 = _mm256_setr_epi8(
+            3, 2, 1, 0,  7, 6, 5, 4,
+            11, 10, 9, 8,  15, 14, 13, 12,
+            19, 18, 17, 16,  23, 22, 21, 20,
+            27, 26, 25, 24,  31, 30, 29, 28
+        );
+
+        for (i = 0; i <= size - steps; i += steps) {
+            __m256i vec = _mm256_load_si256((const __m256i *) (val + i));
+            vec = _mm256_shuffle_epi8(vec, mask_256);
+
+            _mm256_storeu_si256((__m256i *) (result + i), vec);
+        }
+    } else if (steps == 4) {
+        const __m128i mask_128 = _mm_setr_epi8(
+            3, 2, 1, 0,
+            7, 6, 5, 4,
+            11, 10, 9, 8,
+            15, 14, 13, 12
+        );
+
+        for (i = 0; i <= size - steps; i += steps) {
+             __m128i vec = _mm_load_si128((__m128i *) (const __m128i *) (val + i));
+            vec = _mm_shuffle_epi8(vec, mask_128);
+
+            _mm_storeu_si128((__m128i *) (result + i), vec);
+        }
+    }
+
+    for (; i < size; ++i) {
+        uint32 v = ((uint32 *) val)[i];
+        ((uint32 *) result)[i] = ((v << 24)
+            | ((v & 0xFF00) << 8)
+            | ((v >> 8) & 0xFF00)
+            | (v >> 24));
+    }
+}
+
+void endian_swap(const int16* val, int16* result, int32 size, int32 steps)
+{
+    int32 i = 0;
+
+    if (steps >= 8) {
+        const __m256i mask_256 = _mm256_setr_epi8(
+            1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14,
+            17, 16, 19, 18, 21, 20, 23, 22, 25, 24, 27, 26, 29, 28, 31, 30
+        );
+
+        for (i = 0; i <= size - steps; i += steps) {
+            __m256i vec = _mm256_load_si256((const __m256i *) (val + i));
+            vec = _mm256_shuffle_epi8(vec, mask_256);
+
+            _mm256_storeu_si256((__m256i *) (result + i), vec);
+        }
+    } else if (steps == 4) {
+        const __m128i mask_128 = _mm_setr_epi8(
+            1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14
+        );
+
+        for (i = 0; i <= size - steps; i += steps) {
+            __m128i vec = _mm_load_si128((const __m128i *) (val + i));
+            vec = _mm_shuffle_epi8(vec, mask_128);
+
+            _mm_storeu_si128((__m128i *) (result + i), vec);
+        }
+    }
+
+    // Handle remaining elements
+    for (; i < size; ++i) {
+        uint16 v = ((uint16 *) val)[i];
+        ((int16 *) result)[i] = ((v << 8) | (v >> 8));
+    }
+}
+
+void endian_swap(const uint16* val, uint16* result, int32 size, int32 steps)
+{
+    int32 i = 0;
+
+    if (steps >= 8) {
+        const __m256i mask_256 = _mm256_setr_epi8(
+            1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14,
+            17, 16, 19, 18, 21, 20, 23, 22, 25, 24, 27, 26, 29, 28, 31, 30
+        );
+
+        for (i = 0; i <= size - steps; i += steps) {
+            __m256i vec = _mm256_load_si256((const __m256i *) (val + i));
+            vec = _mm256_shuffle_epi8(vec, mask_256);
+
+            _mm256_storeu_si256((__m256i *) (result + i), vec);
+        }
+    } else if (steps == 4) {
+        const __m128i mask_128 = _mm_setr_epi8(
+            1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14
+        );
+
+        for (i = 0; i <= size - steps; i += steps) {
+            __m128i vec = _mm_load_si128((const __m128i *) (val + i));
+            vec = _mm_shuffle_epi8(vec, mask_128);
+
+            _mm_storeu_si128((__m128i *) (result + i), vec);
+        }
+    }
+
+    // Handle remaining elements
+    for (; i < size; ++i) {
+        uint16 v = ((uint16 *) val)[i];
+        ((uint16 *) result)[i] = ((v << 8) | (v >> 8));
     }
 }
 

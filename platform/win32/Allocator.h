@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_ALLOCATOR_H
-#define TOS_PLATFORM_WIN32_ALLOCATOR_H
+#ifndef COMS_PLATFORM_WIN32_ALLOCATOR_H
+#define COMS_PLATFORM_WIN32_ALLOCATOR_H
 
 #include <malloc.h>
 #include <windows.h>

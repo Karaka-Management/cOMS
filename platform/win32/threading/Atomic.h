@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_PLATFORM_WIN32_THREADING_ATOMIC_H
-#define TOS_PLATFORM_WIN32_THREADING_ATOMIC_H
+#ifndef COMS_PLATFORM_WIN32_THREADING_ATOMIC_H
+#define COMS_PLATFORM_WIN32_THREADING_ATOMIC_H
 
 #include "../../../stdlib/Types.h"
 #include "../../../compiler/CompilerUtils.h"
@@ -126,14 +126,7 @@ FORCE_INLINE void atomic_or_relaxed(volatile int32* value, int32 mask) noexcept 
 FORCE_INLINE void atomic_or_relaxed(volatile uint64* value, uint64 mask) noexcept { InterlockedOr64NoFence((volatile LONG64 *) value, mask); }
 FORCE_INLINE void atomic_or_relaxed(volatile int64* value, int64 mask) noexcept { InterlockedOr64NoFence((volatile LONG64 *) value, mask); }
 
-FORCE_INLINE void atomic_set_acquire(void** target, void* new_pointer) noexcept { InterlockedExchangePointerAcquire(target, new_pointer); }
 FORCE_INLINE void* atomic_get_acquire(void** target) noexcept { return InterlockedCompareExchangePointerAcquire(target, NULL, NULL); }
-FORCE_INLINE void atomic_set_acquire(volatile int8* value, int8 new_value) noexcept { InterlockedExchangeAcquire8((volatile char *) value, new_value); }
-FORCE_INLINE void atomic_set_acquire(volatile int16* value, int16 new_value) noexcept { InterlockedExchangeAcquire16((volatile short *) value, new_value); }
-FORCE_INLINE void atomic_set_acquire(volatile int32* value, int32 new_value) noexcept { InterlockedExchangeAcquire((volatile long *) value, new_value); }
-FORCE_INLINE void atomic_set_acquire(volatile int64* value, int64 new_value) noexcept { InterlockedExchangeAcquire64((volatile LONG64 *) value, (LONG64) new_value); }
-FORCE_INLINE void atomic_set_acquire(volatile f32* value, f32 new_value) noexcept { _atomic_32 temp = {.f = new_value}; InterlockedExchangeAcquire((volatile long *) value, (long) temp.l); }
-FORCE_INLINE void atomic_set_acquire(volatile f64* value, f64 new_value) noexcept { _atomic_64 temp = {.f = new_value}; InterlockedExchangeAcquire64((volatile LONG64 *) value, (LONG64) temp.l); }
 FORCE_INLINE int8 atomic_fetch_set_acquire(volatile int8* value, int8 new_value) noexcept { return (int8) InterlockedExchangeAcquire8((volatile char *) value, (char) new_value); }
 FORCE_INLINE int16 atomic_fetch_set_acquire(volatile int16* value, int16 new_value) noexcept { return (int16) InterlockedExchangeAcquire16((volatile short *) value, (short) new_value); }
 FORCE_INLINE int32 atomic_fetch_set_acquire(volatile int32* value, int32 new_value) noexcept { return (int32) InterlockedExchangeAcquire((volatile long *) value, new_value); }

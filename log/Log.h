@@ -6,14 +6,14 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_LOG_H
-#define TOS_LOG_H
+#ifndef COMS_LOG_H
+#define COMS_LOG_H
 
 #include "../stdlib/Types.h"
 #include "../compiler/CompilerUtils.h"
 #include "../architecture/Intrinsics.h"
 #include "../utils/StringUtils.h"
-#include "../platform/win32/TimeUtils.h"
+#include "../utils/TimeUtils.h"
 
 /**
  * The logging is both using file logging and in-memory logging.
@@ -142,13 +142,24 @@ void log_to_file()
     #endif
 }
 
+// Same as log_to_file with the exception that reset the log pos to avoid repeated output
+void log_flush()
+{
+    if (!_log_memory || _log_memory->pos == 0 || !_log_fp) {
+        return;
+    }
+
+    log_to_file();
+    _log_memory->pos = 0;
+}
+
 void log(const char* str, const char* file, const char* function, int32 line)
 {
     if (!_log_memory) {
         return;
     }
 
-    int64 len = str_length(str);
+    size_t len = str_length(str);
     while (len > 0) {
         LogMessage* msg = (LogMessage *) log_get_memory();
 
@@ -247,7 +258,7 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
         }
     }
 
-    #if DEBUG
+    #if DEBUG || VERBOSE
         // In debug mode we always output the log message to the debug console
         compiler_debug_print(msg->message);
         compiler_debug_print("\n");
@@ -260,6 +271,7 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
 }
 
 #define LOG_TO_FILE() log_to_file()
+#define LOG_FLUSH() log_flush()
 
 #if LOG_LEVEL == 4
     #define LOG_1(format, ...) log((format), LogDataArray{__VA_ARGS__}, __FILE__, __func__, __LINE__)

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MEMORY_CHUNK_MEMORY_H
-#define TOS_MEMORY_CHUNK_MEMORY_H
+#ifndef COMS_MEMORY_CHUNK_MEMORY_H
+#define COMS_MEMORY_CHUNK_MEMORY_H
 
 #include <string.h>
 #include "../stdlib/Types.h"

@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_TEST_FRAMEWORK_H
-#define TOS_TEST_FRAMEWORK_H
+#ifndef COMS_TEST_FRAMEWORK_H
+#define COMS_TEST_FRAMEWORK_H
 
 #include <stdio.h>
 #include <math.h>

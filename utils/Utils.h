@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_UTILS_H
-#define TOS_UTILS_H
+#ifndef COMS_UTILS_H
+#define COMS_UTILS_H
 
 #include <string.h>
 #include "../stdlib/Types.h"
@@ -22,12 +22,6 @@
     #endif
 #else
     #include "../architecture/x86/simd/utils/Utils.h"
-#endif
-
-#if _WIN32
-    #include "../platform/win32/UtilsWin32.h"
-#else
-    #include "../platform/linux/UtilsLinux.h"
 #endif
 
 struct FileBody {
@@ -51,9 +45,12 @@ void str_output(const char* __restrict str, ...) {
         str = buffer;
     }
 
-    while (*str) {
-        output_char(*str++);
-    }
+    #if _WIN32
+        HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+        WriteFile(hStdout, str, str_length(str), NULL, NULL);
+    else
+        write(STDOUT_FILENO, str, str_length(str));
+    #endif
 }
 
 inline

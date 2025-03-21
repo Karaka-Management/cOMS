@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_GPUAPI_VULKAN_UTILS_H
-#define TOS_GPUAPI_VULKAN_UTILS_H
+#ifndef COMS_GPUAPI_VULKAN_UTILS_H
+#define COMS_GPUAPI_VULKAN_UTILS_H
 
 #if _WIN32
     #ifndef VK_USE_PLATFORM_WIN32_KHR

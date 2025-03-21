@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_COMPILER_GCC_COMPILER_UTILS_H
-#define TOS_COMPILER_GCC_COMPILER_UTILS_H
+#ifndef COMS_COMPILER_GCC_COMPILER_UTILS_H
+#define COMS_COMPILER_GCC_COMPILER_UTILS_H
 
 #include "../../utils/TestUtils.h"
 
@@ -22,10 +22,10 @@
     #define UNREACHABLE() __builtin_unreachable()
 #endif
 
-#define FORCE_INLINE __attribute__((always_inline))
+#define FORCE_INLINE __attribute__((always_inline)) inline
 
 #include <unistd.h>
-#define compiler_debug_print(message) while (*message++) { write(STDOUT_FILENO, (message), 1); }
+#define compiler_debug_print(message) ({ const char* message_temp = message; while (*message_temp) { write(STDOUT_FILENO, (message_temp++), 1); } })
 
 #define compiler_popcount_32(data) __builtin_popcount((data))
 #define compiler_popcount_64(data) __builtin_popcountl((data))
@@ -42,7 +42,7 @@ int32 compiler_find_first_bit_r2l(uint64 mask) noexcept {
     }
 
     #if __LITTLE_ENDIAN__
-        return return 63 - __builtin_clzll(mask);
+        return 63 - __builtin_clzll(mask);
     #else
         return __builtin_ctzll(mask);
     #endif
@@ -66,7 +66,7 @@ int32 compiler_find_first_bit_l2r(uint64 mask) noexcept {
     }
 
     #if __LITTLE_ENDIAN__
-        return return 63 - __builtin_clzll(mask);
+        return 63 - __builtin_clzll(mask);
     #else
         return __builtin_ctzll(mask);
     #endif

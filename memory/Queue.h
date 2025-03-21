@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef TOS_MEMORY_QUEUE_H
-#define TOS_MEMORY_QUEUE_H
+#ifndef COMS_MEMORY_QUEUE_H
+#define COMS_MEMORY_QUEUE_H
 
 #include "../stdlib/Types.h"
 #include "../utils/Utils.h"
@@ -72,8 +72,8 @@ bool queue_is_empty(Queue* queue) noexcept {
 }
 
 inline
-bool queue_set_empty(Queue* queue) noexcept {
-    return queue->head = queue->tail;
+void queue_set_empty(Queue* queue) noexcept {
+    queue->head = queue->tail;
 }
 
 inline
