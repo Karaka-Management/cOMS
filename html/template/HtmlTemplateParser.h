@@ -16,6 +16,7 @@ enum HtmlTemplateNodeType : byte {
     NODE_BINOP,
     NODE_PTR,
     NODE_IDENTIFIER,
+    NODE_RAW,
     NODE_BOOL,
     NODE_INTEGER64,
     NODE_FLOAT64,
@@ -71,14 +72,14 @@ struct HtmlTemplateASTNode {
         bool boolValue;
         int64 int64Value;
         f64 f64Value;
-        char* ptrValue;
+        const char* ptrValue;
     };
 };
 
 HtmlTemplateASTNode* html_template_node_create(HtmlTemplateNodeType type, HtmlTemplateToken* token, byte** memory) {
-    *memory = (byte *) ROUND_TO_NEAREST((uintptr_t) memory, 32);
+    *memory = (byte *) ROUND_TO_NEAREST((uintptr_t) *memory, 32);
     HtmlTemplateASTNode* node = (HtmlTemplateASTNode *) *memory;
-    *memory = (byte *) ROUND_TO_NEAREST((uintptr_t) (memory + sizeof(HtmlTemplateASTNode)), 32);
+    *memory = (byte *) ROUND_TO_NEAREST((uintptr_t) (*memory + sizeof(HtmlTemplateASTNode)), 32);
 
     node->type = type;
     node->left = NULL;
@@ -86,7 +87,7 @@ HtmlTemplateASTNode* html_template_node_create(HtmlTemplateNodeType type, HtmlTe
     node->value_length = token->length;
 
     // @question instead of handling the parsing below, why not handle it here for known types such as int, float, bool, string
-    memcpy(&node->int64Value, token->value, sizeof(uintptr_t));
+    node->ptrValue = token->value;
 
     return node;
 }
@@ -180,20 +181,20 @@ HtmlTemplateASTNode* html_template_assignment_parse(const char** input, HtmlTemp
     return html_template_node_create(NODE_ASSIGN, {}, memory);
 }
 
-HtmlTemplateASTNode* html_template_parse_if(const char** input, HtmlTemplateToken* token_current, HtmlTemplateContextStack* contextStack, HtmlTemplateContextFlag context_flag, byte** memory) {
-    HtmlTemplateContext newContext = peekContext(contextStack);
+HtmlTemplateASTNode* html_template_parse_if(const char** input, HtmlTemplateToken* token_current, HtmlTemplateContextStack* context_stack, HtmlTemplateContextFlag context_flag, byte** memory) {
+    HtmlTemplateContext newContext = peekContext(context_stack);
     ++newContext.scope_level;
-    pushContext(contextStack, newContext);
+    pushContext(context_stack, newContext);
 
     *token_current = html_template_token_next(input, context_flag); // Consume 'if'
     *token_current = html_template_token_next(input, context_flag); // Consume '('
     HtmlTemplateASTNode* condition = html_template_expression_parse(input, token_current, context_flag, memory);
     *token_current = html_template_token_next(input, context_flag); // Consume ')'
     *token_current = html_template_token_next(input, context_flag); // Consume '{'
-    HtmlTemplateASTNode* body = html_template_statement_parse(input, token_current, contextStack, context_flag, memory);
+    HtmlTemplateASTNode* body = html_template_statement_parse(input, token_current, context_stack, context_flag, memory);
     *token_current = html_template_token_next(input, context_flag); // Consume '}'
 
-    popContext(contextStack);
+    popContext(context_stack);
 
     HtmlTemplateASTNode* ifNode = html_template_node_create(NODE_IF, {}, memory);
     ifNode->left = condition; // Condition
@@ -202,11 +203,11 @@ HtmlTemplateASTNode* html_template_parse_if(const char** input, HtmlTemplateToke
     return ifNode;
 }
 
-HtmlTemplateASTNode* html_template_parse_for(const char** input, HtmlTemplateToken* token_current, HtmlTemplateContextStack* contextStack, HtmlTemplateContextFlag context_flag, byte** memory) {
-    HtmlTemplateContext newContext = peekContext(contextStack);
+HtmlTemplateASTNode* html_template_parse_for(const char** input, HtmlTemplateToken* token_current, HtmlTemplateContextStack* context_stack, HtmlTemplateContextFlag context_flag, byte** memory) {
+    HtmlTemplateContext newContext = peekContext(context_stack);
     ++newContext.scope_level;
     ++newContext.loop_nesting_level;
-    pushContext(contextStack, newContext);
+    pushContext(context_stack, newContext);
 
     *token_current = html_template_token_next(input, context_flag); // Consume 'for'
     *token_current = html_template_token_next(input, context_flag); // Consume '('
@@ -216,10 +217,10 @@ HtmlTemplateASTNode* html_template_parse_for(const char** input, HtmlTemplateTok
     HtmlTemplateASTNode* update = html_template_assignment_parse(input, token_current, context_flag, memory);
     *token_current = html_template_token_next(input, context_flag); // Consume ')'
     *token_current = html_template_token_next(input, context_flag); // Consume '{'
-    HtmlTemplateASTNode* body = html_template_statement_parse(input, token_current, contextStack, context_flag, memory);
+    HtmlTemplateASTNode* body = html_template_statement_parse(input, token_current, context_stack, context_flag, memory);
     *token_current = html_template_token_next(input, context_flag); // Consume '}'
 
-    popContext(contextStack);
+    popContext(context_stack);
 
     HtmlTemplateASTNode* forNode = html_template_node_create(NODE_FOR, {}, memory);
     forNode->left = init;       // Initialization
@@ -231,14 +232,28 @@ HtmlTemplateASTNode* html_template_parse_for(const char** input, HtmlTemplateTok
     return forNode;
 }
 
-HtmlTemplateASTNode* html_template_statement_parse(const char** input, HtmlTemplateToken* token_current, HtmlTemplateContextStack* contextStack, HtmlTemplateContextFlag context_flag, byte** memory) {
-    if (token_current->type == TOKEN_ASSIGN) {
+HtmlTemplateASTNode* html_template_html_parse(const char** input, HtmlTemplateToken* token_current, HtmlTemplateContextStack* context_stack, HtmlTemplateContextFlag context_flag, byte** memory) {
+    HtmlTemplateASTNode* html = html_template_node_create(NODE_RAW, token_current, memory);
+
+    *token_current = html_template_token_next(input, context_flag); // Consume html
+    if (token_current->type != TOKEN_EOF) {
+        html->right = html_template_statement_parse(input, token_current, context_stack, context_flag, memory);
+    }
+
+    return html;
+}
+
+HtmlTemplateASTNode* html_template_statement_parse(const char** input, HtmlTemplateToken* token_current, HtmlTemplateContextStack* context_stack, HtmlTemplateContextFlag context_flag, byte** memory) {
+    if (token_current->type == TOKEN_HTML) {
+        return html_template_html_parse(input, token_current, context_stack, context_flag, memory);
+    } else if (token_current->type == TOKEN_ASSIGN) {
         return html_template_assignment_parse(input, token_current, context_flag, memory);
     } else if (token_current->type == TOKEN_IF) {
-        return html_template_parse_if(input, token_current, contextStack, context_flag, memory);
+        return html_template_parse_if(input, token_current, context_stack, context_flag, memory);
     } else if (token_current->type == TOKEN_FOR) {
-        return html_template_parse_for(input, token_current, contextStack, context_flag, memory);
+        return html_template_parse_for(input, token_current, context_stack, context_flag, memory);
     } else {
+        ASSERT_SIMPLE(false);
         exit(1);
     }
 }

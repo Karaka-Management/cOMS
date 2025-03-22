@@ -112,8 +112,17 @@ void relative_to_absolute(const char* __restrict rel, char* __restrict path)
 inline
 uint64 file_size(const char* filename) {
     struct stat buffer;
-    if (stat(filename, &buffer) != 0) {
-        return 0;
+
+    if (*filename == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(filename, full_path);
+        if (stat(full_path, &buffer) != 0) {
+            return 0;
+        }
+    } else {
+        if (stat(filename, &buffer) != 0) {
+            return 0;
+        }
     }
 
     return buffer.st_size;
@@ -123,7 +132,14 @@ inline
 uint64 file_last_modified(const char* filename)
 {
     struct stat buffer;
-    stat(filename, &buffer);
+
+    if (*filename == '.') {
+        char full_path[MAX_PATH];
+        relative_to_absolute(filename, full_path);
+        stat(full_path, &buffer);
+    } else {
+        stat(filename, &buffer);
+    }
 
     return (uint64) buffer.st_mtime;
 }
@@ -378,11 +394,14 @@ void self_path(char* path) {
     }
 }
 
-void iterate_directory(const char *base_path, const char* file_ending, void (*handler)(const char *, va_list), ...) {
+void iterate_directory(const char* base_path, const char* file_ending, void (*handler)(const char *, va_list), ...) {
     va_list args;
     va_start(args, handler);
 
-    DIR *dir = opendir(base_path);
+    char full_base_path[MAX_PATH];
+    relative_to_absolute(base_path, full_base_path);
+
+    DIR* dir = opendir(full_base_path);
     if (!dir) {
         return;
     }
@@ -397,15 +416,20 @@ void iterate_directory(const char *base_path, const char* file_ending, void (*ha
             continue;
         }
 
-        char full_path[1024];
+        char full_path[MAX_PATH];
         // @performance This is bad, we are internally moving two times too often to the end of full_path
         //      Maybe make str_copy_short return the length, same as append?
         str_copy_short(full_path, base_path);
-        str_concat_append(full_path, "/");
+        if (!str_ends_with(base_path, "/")) {
+            str_concat_append(full_path, "/");
+        }
         str_concat_append(full_path, entry->d_name);
 
+        char full_file_path[MAX_PATH];
+        relative_to_absolute(full_path, full_file_path);
+
         struct stat statbuf;
-        if (stat(full_path, &statbuf) == -1) {
+        if (stat(full_file_path, &statbuf) == -1) {
             continue;
         }
 

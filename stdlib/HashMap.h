@@ -210,6 +210,10 @@ int64 hashmap_size(const HashMap* hm) noexcept
 /////////////////////////////
 // string key
 /////////////////////////////
+// @performance We could greatly improve the hashmap performance by ensuring that a uniquely hashed entry always starts at a cacheline
+//      If another hash results in the same index that should be at the cacheline + 32 position (if 32 bit size)
+//      This would ensure for those elements that if there is one collision we at least don't have to read another cache line
+//      Of course for more than 1 collision we would still need to load multiple cachelines, but ideally that shouldn't happen too often
 void hashmap_insert(HashMap* hm, const char* key, int32 value) noexcept {
     uint64 index = hash_djb2(key) % hm->buf.count;
 

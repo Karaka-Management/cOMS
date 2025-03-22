@@ -1286,9 +1286,23 @@ bool str_is_empty(const char str) noexcept
 }
 
 inline
+bool str_is_eol(const char str) noexcept
+{
+    return str == '\n' || str == '\r';
+}
+
+inline
 void str_skip_empty(const char** str) noexcept
 {
     while (**str == ' ' || **str == '\t' || **str == '\n' || **str == '\r')  {
+        ++(*str);
+    }
+}
+
+inline
+void str_skip_eol(const char** str) noexcept
+{
+    while (**str == '\n' || **str == '\r')  {
         ++(*str);
     }
 }

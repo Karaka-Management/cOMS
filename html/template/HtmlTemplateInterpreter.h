@@ -29,7 +29,7 @@ struct HtmlTemplateValue {
         bool boolValue;
         int64 int64Value;
         f64 f64Value;
-        char* ptrValue;
+        const char* ptrValue;
     };
 };
 
@@ -48,7 +48,7 @@ struct HtmlTemplateVariable {
         bool boolValue;
         int64 int64Value;
         f64 f64Value;
-        char* ptrValue;
+        const char* ptrValue;
     };
 };
 
@@ -269,29 +269,40 @@ bool html_template_condition_eval(HtmlTemplateASTNode *node, HtmlTemplateContext
 }
 
 // @todo should take in a buffer for template output
-// @performance, what if there is no template data, just html? -> a simple pointer to the resource data should be created?!
-// This would maybe allow us to also return files in the future
-void html_template_interpret(HtmlTemplateASTNode *node, HtmlTemplateContextStack *context_stack) {
+int32 html_template_interpret(HtmlTemplateASTNode *node, char* buffer, int32 buffer_size, HtmlTemplateContextStack *context_stack) {
+    int32 out_length = 0;
+
     switch (node->type) {
+        case NODE_RAW:
+            // @performance If the entire file is raw we shouldn't have to copy the text over
+            memcpy(buffer, node->ptrValue, node->value_length);
+            out_length += node->value_length;
+
+            if (node->right) {
+                out_length += html_template_interpret(node->right, buffer + node->value_length, buffer_size - node->value_length, context_stack);
+            }
+            break;
         case NODE_ASSIGN:
             // Handle assignment
             break;
         case NODE_IF:
             // Handle if statement
-            html_template_interpret(node->left, context_stack); // Condition
-            html_template_interpret(node->right, context_stack); // Body
+            html_template_interpret(node->left, buffer, buffer_size, context_stack); // Condition
+            html_template_interpret(node->right, buffer, buffer_size, context_stack); // Body
             break;
         case NODE_FOR:
             // Handle for loop
-            html_template_interpret(node->left, context_stack); // Init
+            html_template_interpret(node->left, buffer, buffer_size, context_stack); // Init
             while (html_template_condition_eval(node->right->left, context_stack)) { // Condition
-                html_template_interpret(node->right->right, context_stack); // Body
-                html_template_interpret(node->right->left->right, context_stack); // Update
+                html_template_interpret(node->right->right, buffer, buffer_size, context_stack); // Body
+                html_template_interpret(node->right->left->right, buffer, buffer_size, context_stack); // Update
             }
             break;
         default:
             break;
     }
+
+    return out_length;
 }
 
 #endif

@@ -108,6 +108,49 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char** keys, i
     }
 
     ASSERT_SIMPLE(false);
+    LOG_1("Couldn't create perfect hashmap");
+
+    return NULL;
+}
+
+// Same code as above with the difference that we are using a fixed length key array instead of an array of pointers
+PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char* keys, int32 key_count, int32 key_length, int32 seed_tries, RingMemory* ring)
+{
+    int32* indices = (int32 *) ring_get_memory(ring, hm->map_count * sizeof(int32), 4);
+    bool is_unique = false;
+
+    for (uint32 i = 0; i < ARRAY_COUNT(PERFECT_HASH_FUNCTIONS); ++i) {
+        int32 seed;
+        int32 c = 0;
+
+        while (!is_unique && c < seed_tries) {
+            is_unique = true;
+            seed = rand();
+            memset(indices, 0, hm->map_count * sizeof(int32));
+
+            for (int32 j = 0; j < key_count; ++j) {
+                int32 index = (PERFECT_HASH_FUNCTIONS[i])(&keys[j * key_length], seed) % hm->map_count;
+                if (indices[index]) {
+                    is_unique = false;
+                    break;
+                } else {
+                    indices[index] = 1;
+                }
+            }
+
+            ++c;
+        }
+
+        if (is_unique) {
+            hm->hash_seed = seed;
+            hm->hash_function = PERFECT_HASH_FUNCTIONS[i];
+
+            return hm;
+        }
+    }
+
+    ASSERT_SIMPLE(false);
+    LOG_1("Couldn't create perfect hashmap");
 
     return NULL;
 }
