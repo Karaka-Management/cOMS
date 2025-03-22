@@ -402,8 +402,8 @@ uint32 intrin_hash(uint64 a, uint64 b = 0) noexcept
     };
 
     __m128i hash = _mm_set_epi64x(a, b);
-    hash = _mm_aesdec_si128(hash, _mm_loadu_si128((__m128i *) seed));
-    hash = _mm_aesdec_si128(hash, _mm_loadu_si128((__m128i *) seed));
+    hash = _mm_aesdec_si128(hash, _mm_load_si128((__m128i *) seed));
+    hash = _mm_aesdec_si128(hash, _mm_load_si128((__m128i *) seed));
 
     return _mm_extract_epi32(hash, 0);
 }

@@ -20,8 +20,6 @@
  * Debug builds also log to the debug console, or alternative standard output if no dedicated debug console is available
  */
 
-#define LOG_DATA_ARRAY 5
-
 #ifndef LOG_LEVEL
     // 0 = no logging at all
     // 1 = release logging
@@ -93,6 +91,7 @@ struct LogData {
     void* value;
 };
 
+#define LOG_DATA_ARRAY 5
 struct LogDataArray{
     LogData data[LOG_DATA_ARRAY];
 };
@@ -143,6 +142,7 @@ void log_to_file()
 }
 
 // Same as log_to_file with the exception that reset the log pos to avoid repeated output
+inline
 void log_flush()
 {
     if (!_log_memory || _log_memory->pos == 0 || !_log_fp) {
@@ -178,8 +178,12 @@ void log(const char* str, const char* file, const char* function, int32 line)
         str += message_length;
         len -= MAX_LOG_LENGTH - sizeof(LogMessage);
 
-        #if DEBUG
+        #if DEBUG || VERBOSE
             // In debug mode we always output the log message to the debug console
+            char time_str[9];
+            format_time_hh_mm_ss(time_str, msg->time / 1000000ULL);
+            compiler_debug_print(time_str);
+            compiler_debug_print(" ");
             compiler_debug_print(msg->message);
             compiler_debug_print("\n");
         #endif
@@ -260,6 +264,10 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
 
     #if DEBUG || VERBOSE
         // In debug mode we always output the log message to the debug console
+        char time_str[9];
+        format_time_hh_mm_ss(time_str, msg->time / 1000000ULL);
+        compiler_debug_print(time_str);
+        compiler_debug_print(" ");
         compiler_debug_print(msg->message);
         compiler_debug_print("\n");
     #endif

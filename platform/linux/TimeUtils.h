@@ -14,10 +14,10 @@
 #include "../../stdlib/Types.h"
 
 uint64 system_time() {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
 
-    return (uint64) tv.tv_sec * 1000000ULL + (uint64) tv.tv_usec;
+    return (uint64_t) ts.tv_sec * 1000000ULL + (uint64_t) ts.tv_nsec / 1000ULL;
 }
 
 uint64 time_mu() {

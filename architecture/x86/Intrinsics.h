@@ -58,6 +58,9 @@
 #define intrin_prefetch_l2(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T1)
 #define intrin_prefetch_l3(mem) _mm_prefetch((const char *) (mem), _MM_HINT_T2)
 
+// a * b + c
+#define intrin_fmadd(a, b, c) _mm_cvtss_f32(_mm_fmadd_ss(_mm_set_ss(a), _mm_set_ss(b), _mm_set_ss(c)))
+
 inline
 uint64 intrin_timestamp_counter() noexcept {
     _mm_mfence();

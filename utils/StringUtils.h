@@ -18,8 +18,7 @@
 #define HAS_CHAR(x, c) (HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
 
 inline constexpr
-size_t str_length(const char* str) noexcept
-{
+size_t str_length(const char* str) noexcept {
     const char* ptr = str;
 
     // Align the pointer to the size of size_t
@@ -32,22 +31,15 @@ size_t str_length(const char* str) noexcept
     // Check one longword (size_t) at a time
     const size_t* longword_ptr = (const size_t *) ptr;
     while (true) {
-        size_t longword = *longword_ptr++;
-        if (HAS_ZERO(longword)) {
-            const char* cp = (const char *) (longword_ptr - 1);
-            if (cp[0] == '\0') return cp - str;
-            if (cp[1] == '\0') return cp + 1 - str;
-            if (cp[2] == '\0') return cp + 2 - str;
-            if (cp[3] == '\0') return cp + 3 - str;
-
-            // Are we using 8bytes for size_t?
-            #if SIZE_MAX > 0xFFFFFFFF
-                if (cp[4] == '\0') return cp + 4 - str;
-                if (cp[5] == '\0') return cp + 5 - str;
-                if (cp[6] == '\0') return cp + 6 - str;
-                if (cp[7] == '\0') return cp + 7 - str;
-            #endif
+        // Ensure we don't read past the end of the string
+        const char* end_ptr = (const char *) longword_ptr + sizeof(size_t);
+        for (const char* cp = (const char *) longword_ptr; cp < end_ptr; ++cp) {
+            if (*cp == '\0') {
+                return cp - str;
+            }
         }
+
+        ++longword_ptr;
     }
 }
 
