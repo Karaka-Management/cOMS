@@ -9,6 +9,7 @@
 #ifndef COMS_STDLIB_TYPES_H
 #define COMS_STDLIB_TYPES_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #if _WIN32

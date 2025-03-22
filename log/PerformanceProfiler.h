@@ -95,6 +95,7 @@ struct PerformanceProfiler {
             return;
         }
 
+        this->is_active = true;
         this->_id = id;
         atomic_increment_acquire_release(&_perf_stats[id].counter);
 
@@ -197,8 +198,6 @@ void performance_profiler_end(int32 id) noexcept
     perf->total_cycle = intrin_timestamp_counter() + perf->self_cycle;
     perf->self_cycle = perf->total_cycle;
 }
-
-// This would allow us to go ham in a lot of functions (e.g. file reading)
 
 #if LOG_LEVEL > 1
     // Only these function can properly handle self-time calculation
