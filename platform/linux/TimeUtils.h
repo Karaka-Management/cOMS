@@ -20,6 +20,15 @@ uint64 system_time() {
     return (uint64_t) ts.tv_sec * 1000000ULL + (uint64_t) ts.tv_nsec / 1000ULL;
 }
 
+// Used as initializer for 64bit random number generators instead of time()
+inline
+uint64 time_index() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+
+    return (uint64) ts.tv_sec * 1000000ULL + (uint64) (ts.tv_nsec / 1000);
+}
+
 uint64 time_mu() {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);

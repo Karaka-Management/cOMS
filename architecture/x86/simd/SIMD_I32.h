@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef COMS_TOS_STDLIB_SIMD_I32_H
-#define COMS_TOS_STDLIB_SIMD_I32_H
+#ifndef COMS_STDLIB_SIMD_I32_H
+#define COMS_STDLIB_SIMD_I32_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>
@@ -16,27 +16,27 @@
 #include "../../../stdlib/Types.h"
 #include "../../../utils/BitUtils.h"
 
-#ifdef MACRO_CPU_FEATURE_SSE42
+#ifdef __SSE4_2__
     #include "SIMD_I32_SSE.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX2
+#ifdef __AVX2__
     #include "SIMD_I32_AVX2.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX512
+#ifdef __AVX512F__
     #include "SIMD_I32_AVX512.h"
 #endif
 
 inline
-void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 steps)
+void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) b, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512i a_16;
@@ -58,7 +58,7 @@ void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             __m256i a_8;
@@ -80,7 +80,7 @@ void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             __m128i a_4;
@@ -110,14 +110,14 @@ void simd_mult(const int32* a, const int32* b, int32* result, int32 size, int32 
 }
 
 inline
-void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 steps)
+void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) b, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512i a_16;
@@ -141,7 +141,7 @@ void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 step
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             __m256i a_8;
@@ -165,7 +165,7 @@ void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 step
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             __m128i a_4;
@@ -197,14 +197,14 @@ void simd_mult(const int32* a, const f32* b, f32* result, int32 size, int32 step
 }
 
 inline
-void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 steps)
+void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) b, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512i a_16;
@@ -230,7 +230,7 @@ void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 st
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             __m256i a_8;
@@ -256,7 +256,7 @@ void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 st
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             __m128i a_4;
@@ -290,13 +290,13 @@ void simd_mult(const int32* a, const f32* b, int32* result, int32 size, int32 st
 }
 
 inline
-void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps)
+void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512i a_16;
@@ -320,7 +320,7 @@ void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             __m256i a_8;
@@ -344,7 +344,7 @@ void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             __m128i a_4;
@@ -375,13 +375,13 @@ void simd_mult(const int32* a, f32 b, int32* result, int32 size, int32 steps)
 }
 
 inline
-void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps)
+void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512i a_16;
@@ -403,7 +403,7 @@ void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             __m256i a_8;
@@ -425,7 +425,7 @@ void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             __m128i a_4;
@@ -454,14 +454,14 @@ void simd_div(const int32* a, f32 b, f32* result, int32 size, int32 steps)
 }
 
 inline
-void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 steps)
+void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) b, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512i a_16;
@@ -483,7 +483,7 @@ void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 s
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             __m256i a_8;
@@ -505,7 +505,7 @@ void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 s
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             __m128i a_4;
@@ -535,14 +535,14 @@ void simd_add(const int32* a, const int32* b, int32* result, int32 size, int32 s
 }
 
 inline
-void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps)
+void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) b, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512i a_16;
@@ -566,7 +566,7 @@ void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             __m256i a_8;
@@ -590,7 +590,7 @@ void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             __m128i a_4;
@@ -622,14 +622,14 @@ void simd_add(const int32* a, const f32* b, f32* result, int32 size, int32 steps
 }
 
 inline
-void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 steps)
+void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) b, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512i a_16;
@@ -655,7 +655,7 @@ void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 ste
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             __m256i a_8;
@@ -681,7 +681,7 @@ void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 ste
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             __m128i a_4;
@@ -715,13 +715,13 @@ void simd_add(const int32* a, const f32* b, int32* result, int32 size, int32 ste
 }
 
 void
-endian_swap(const int32* val, int32* result, int32 size, int32 steps)
+endian_swap(const int32* val, int32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) val, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             const __m256i mask_256 = _mm256_setr_epi8(
@@ -742,7 +742,7 @@ endian_swap(const int32* val, int32* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             const __m128i mask_128 = _mm_setr_epi8(
@@ -771,13 +771,13 @@ endian_swap(const int32* val, int32* result, int32 size, int32 steps)
 }
 
 void
-endian_swap(const uint32* val, uint32* result, int32 size, int32 steps)
+endian_swap(const uint32* val, uint32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) val, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             const __m256i mask_256 = _mm256_setr_epi8(
@@ -798,7 +798,7 @@ endian_swap(const uint32* val, uint32* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             const __m128i mask_128 = _mm_setr_epi8(
@@ -826,13 +826,13 @@ endian_swap(const uint32* val, uint32* result, int32 size, int32 steps)
     }
 }
 
-void endian_swap(const int16* val, int16* result, int32 size, int32 steps)
+void endian_swap(const int16* val, int16* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) val, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
     if (steps >= 8) {
         steps = 8;
         const __m256i mask_256 = _mm256_setr_epi8(
@@ -851,7 +851,7 @@ void endian_swap(const int16* val, int16* result, int32 size, int32 steps)
     }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             const __m128i mask_128 = _mm_setr_epi8(
@@ -873,13 +873,13 @@ void endian_swap(const int16* val, int16* result, int32 size, int32 steps)
     }
 }
 
-void endian_swap(const uint16* val, uint16* result, int32 size, int32 steps)
+void endian_swap(const uint16* val, uint16* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) val, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             const __m256i mask_256 = _mm256_setr_epi8(
@@ -898,7 +898,7 @@ void endian_swap(const uint16* val, uint16* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             const __m128i mask_128 = _mm_setr_epi8(

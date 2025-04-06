@@ -275,7 +275,7 @@ void file_read(const char* __restrict path, FileBody* __restrict file, RingMemor
     }
 
     ssize_t bytes_read = read(fp, file->content, file->size);
-    if (bytes_read <= 0 || (size_t) bytes_read != file->size) {
+    if (bytes_read <= 0) {
         close(fp);
         file->content = NULL;
         file->size = 0;
@@ -376,6 +376,25 @@ bool file_write(const char* __restrict path, const FileBody* __restrict file) {
     LOG_INCREMENT_BY(DEBUG_COUNTER_DRIVE_WRITE, written);
 
     return true;
+}
+
+FileHandle file_read_handle(const char* path) {
+    FileHandle fd;
+    char full_path[MAX_PATH];
+
+    if (*path == '.') {
+        relative_to_absolute(path, full_path);
+        fd = open(full_path, O_RDONLY);
+    } else {
+        fd = open(path, O_RDONLY);
+    }
+
+    if (fd == -1) {
+        perror("open");
+        return -1;
+    }
+
+    return fd;
 }
 
 inline

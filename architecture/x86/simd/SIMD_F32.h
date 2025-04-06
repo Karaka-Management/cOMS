@@ -14,30 +14,29 @@
 
 #include "../../../stdlib/Types.h"
 
-#ifdef MACRO_CPU_FEATURE_SSE42
+#ifdef __SSE4_2__
     #include "SIMD_F32_SSE.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX2
+#ifdef __AVX2__
     #include "SIMD_F32_AVX2.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX512
+#ifdef __AVX512F__
     #include "SIMD_F32_AVX512.h"
 #endif
 
 // @todo from down here we can optimize some of the code by NOT using the wrappers
 //      the code is self contained and we could use te intrinsic functions directly
 
-inline
-void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps)
+void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) b, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512 a_16;
@@ -59,7 +58,7 @@ void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             __m256 a_8;
@@ -81,7 +80,7 @@ void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             __m128 a_4;
@@ -111,13 +110,13 @@ void simd_mult(const f32* a, const f32* b, f32* result, int32 size, int32 steps)
 }
 
 inline
-void simd_mult(const f32* a, f32 b, f32* result, int32 size, int32 steps)
+void simd_mult(const f32* a, f32 b, f32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512 a_16;
@@ -135,7 +134,7 @@ void simd_mult(const f32* a, f32 b, f32* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
     if (steps >= 8) {
         steps = 8;
         __m256 a_8;
@@ -153,7 +152,7 @@ void simd_mult(const f32* a, f32 b, f32* result, int32 size, int32 steps)
     }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
     if (steps >= 4) {
         steps = 4;
         __m128 a_4;
@@ -180,13 +179,13 @@ void simd_mult(const f32* a, f32 b, f32* result, int32 size, int32 steps)
 }
 
 inline
-void simd_div(const f32* a, f32 b, f32* result, int32 size, int32 steps)
+void simd_div(const f32* a, f32 b, f32* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512 a_16;
@@ -204,7 +203,7 @@ void simd_div(const f32* a, f32 b, f32* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             __m256 a_8;
@@ -222,7 +221,7 @@ void simd_div(const f32* a, f32 b, f32* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             __m128 a_4;

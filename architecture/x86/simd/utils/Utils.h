@@ -26,7 +26,7 @@ bool is_empty(const byte* region, uint64 size, int32 steps = 8)
     steps = intrin_validate_steps(region, steps);
 
     switch (steps) {
-        #ifdef MACRO_CPU_FEATURE_AVX512
+        #ifdef __AVX512F__
             case 16: {
                     while (region + 64 <= end) {
                         __m512i chunk = _mm512_load_si512((const __m512i *) region);
@@ -42,7 +42,7 @@ bool is_empty(const byte* region, uint64 size, int32 steps = 8)
         #else
             case 16: [[fallthrough]];
         #endif
-        #ifdef MACRO_CPU_FEATURE_AVX2
+        #ifdef __AVX2__
             case 8: {
                 while (region + 32 <= end) {
                     __m256i chunk = _mm256_load_si256((const __m256i *) region);
@@ -57,7 +57,7 @@ bool is_empty(const byte* region, uint64 size, int32 steps = 8)
         #else
             case 8: [[fallthrough]];
         #endif
-        #ifdef MACRO_CPU_FEATURE_SSE42
+        #ifdef __SSE4_2__
             case 4: {
                 while (region + 16 <= end) {
                     __m128i chunk = _mm_load_si128((const __m128i *) region);

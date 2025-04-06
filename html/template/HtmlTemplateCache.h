@@ -27,6 +27,7 @@ struct HtmlTemplateCache {
     byte* cache;
 
     // Total cache size
+    // It has to contain the templates and the AST of the template
     uint32 cache_size;
 
     // Current position
@@ -55,20 +56,32 @@ void html_template_find(const char* path, va_list args) {
     ++(*path_count);
 }
 
-void html_template_cache_init(HtmlTemplateCache* cache, const char* basedir, BufferMemory* buf, RingMemory* ring) {
+void html_template_cache_alloc(HtmlTemplateCache* cache, const char* basedir, RingMemory* ring, int32 alignment = 64) {
+    // @todo limit the maximum cache size in the dynamic resize
+
     uint32 max_path_count = 1000;
     uint32 path_count = 0;
     char* paths = (char *) ring_get_memory(ring, max_path_count * 256 * sizeof(char), 8, true);
     uint32 total_file_size = 0;
 
     iterate_directory(basedir, ".tpl.html", html_template_find, &paths, &path_count, &max_path_count, &total_file_size, ring);
-    cache->cache_size = (uint64) (total_file_size * 1.2);
-    cache->cache = (byte *) buffer_get_memory(buf, cache->cache_size, 64, true);
+    cache->cache_size = OMS_MAX((uint64) (total_file_size * 1.2f), (uint64) (total_file_size + 1 * KILOBYTE));
 
+    uint32 buffer_size = ROUND_TO_NEAREST(cache->cache_size + perfect_hashmap_size(path_count, sizeof(PerfectHashEntryInt32)), 4096);
+    byte* buf = (byte *) platform_alloc_aligned(buffer_size, alignment);
     perfect_hashmap_create(&cache->hm, path_count, sizeof(PerfectHashEntryInt32), buf);
+
+    cache->cache = (byte *) ROUND_TO_NEAREST((uintptr_t) (buf + perfect_hashmap_size(path_count, sizeof(PerfectHashEntryInt32))), alignment);
     perfect_hashmap_prepare(&cache->hm, (const char*) paths, path_count, 256, 10000, ring);
 
-    LOG_1("Created HtmlTemplateCache with %n B for %n templates with %n B in uncompressed file size", {{LOG_DATA_INT64, &cache->cache_size}, {LOG_DATA_INT32, &path_count}, {LOG_DATA_INT32, &total_file_size}});
+    LOG_1(
+        "Created HtmlTemplateCache with %n B for %n templates with %n B in uncompressed file size",
+        {
+            {LOG_DATA_INT64, &cache->cache_size},
+            {LOG_DATA_INT32, &path_count},
+            {LOG_DATA_INT32, &total_file_size}
+        }
+    );
 }
 
 bool html_template_in_control_structure(const char* str, const char** controls, int32 control_length) {
@@ -81,8 +94,8 @@ bool html_template_in_control_structure(const char* str, const char** controls, 
     return false;
 }
 
-void html_template_cache_load(HtmlTemplateCache* cache, const char* key, const char* str) {
-    char* minified = (char *) ROUND_TO_NEAREST((uintptr_t) cache->cache + (uintptr_t) cache->cache_pos, 64);
+void html_template_cache_load(HtmlTemplateCache* cache, const char* key, const char* str, int32 alignment = 64) {
+    char* minified = (char *) ROUND_TO_NEAREST((uintptr_t) cache->cache + (uintptr_t) cache->cache_pos, alignment);
     char* minified_start = minified;
 
     static const char* CONTROL_STRUCTURE_START[] = {
@@ -99,12 +112,21 @@ void html_template_cache_load(HtmlTemplateCache* cache, const char* key, const c
     // All-in-all let's consider this a pre-pass that we might want to move to the lexer in the future but I don't think so
     int32 in_control_structure = 0;
     while (*str) {
+        // @performance What about optional tags such as </li>, </br>, </td>, </tr>, </option>, ...
+        // @performance Remove comments /* */ and //
         if (!in_control_structure && str_is_eol(*str)) {
             str_skip_eol(&str);
+            //continue; // @question Why does this fail?
         } else if (!in_control_structure && str_is_empty(*str)) {
-            // @performance This keeps <tag> </tag> whitespaces, which we don't want and could optimize away
             str_skip_empty(&str);
+            // @performance This keeps <tag> </tag> whitespaces, which we don't want and could optimize away
+            // We would have to check the previous char and the next char to be != > and != <
+            // the problem however is that we would have to specially handle the first char and last char in str
             --str;
+        }
+
+        if (!(*str)) {
+            break;
         }
 
         if (!in_control_structure
@@ -144,7 +166,8 @@ void html_template_cache_load(HtmlTemplateCache* cache, const char* key, const c
 
     cache->cache_pos += ((uintptr_t) memory - (uintptr_t) memory_start);
 
-    ASSERT_SIMPLE(((uintptr_t) ast) % 64 == 0);
+    ASSERT_SIMPLE(ast);
+    ASSERT_SIMPLE(((uintptr_t) ast) % alignment == 0);
     perfect_hashmap_insert(&cache->hm, key, (int32) ((uintptr_t) ast - (uintptr_t) cache->cache));
 }
 

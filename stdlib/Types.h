@@ -43,7 +43,6 @@ typedef char sbyte;
 typedef uintptr_t umm;
 typedef intptr_t smm;
 
-// @question consider to implement atomic_16 depending on intrinsic support
 #define atomic_8 volatile
 #define atomic_16 volatile
 #define atomic_32 volatile
@@ -57,8 +56,7 @@ typedef intptr_t smm;
 #define OMS_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define OMS_MIN(a, b) ((a) > (b) ? (b) : (a))
 
-// @todo Switch the order of high and low
-#define OMS_CLAMP(val, high, low) ((val) < (low) ? (low) : ((val) > (high) ? (high) : (val)))
+#define OMS_CLAMP(val, low, high) ((val) < (low) ? (low) : ((val) > (high) ? (high) : (val)))
 
 #define OMS_ABS(a) ((a) > 0 ? (a) : -(a))
 #define OMS_ABS_INT8(a) ((uint8) ((a) & 0x7F))

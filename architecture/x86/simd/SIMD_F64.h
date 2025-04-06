@@ -14,15 +14,15 @@
 
 #include "../../../stdlib/Types.h"
 
-#ifdef MACRO_CPU_FEATURE_SSE42
+#ifdef __SSE4_2__
     #include "SIMD_F64_SSE.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX2
+#ifdef __AVX2__
     #include "SIMD_F64_AVX2.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX512
+#ifdef __AVX512F__
     #include "SIMD_F64_AVX512.h"
 #endif
 

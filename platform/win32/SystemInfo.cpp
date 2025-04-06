@@ -300,7 +300,7 @@ void cpu_info_get(CpuInfo* info) {
 
     SYSTEM_INFO sys_info;
     GetSystemInfo(&sys_info);
-    info->thread_count = (byte) sys_info.dwNumberOfProcessors;
+    info->core_count = (uint16) sys_info.dwNumberOfProcessors;
     info->page_size = (uint16) sys_info.dwPageSize;
 
     int32 cpuInfo[4] = { 0 };

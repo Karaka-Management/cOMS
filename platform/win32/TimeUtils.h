@@ -44,6 +44,15 @@ uint64 system_time()
     return ((uint64) (largeInt.QuadPart / 10000000ULL)) - ((uint64) 11644473600ULL);
 }
 
+// Used as initializer for 64bit random number generators instead of time()
+inline
+uint64 time_index() {
+    LARGE_INTEGER counter;
+    QueryPerformanceCounter(&counter);
+
+    return counter.QuadPart;
+}
+
 // doesn't return clock time, only to return time since program start
 // -> can be used for profiling
 inline

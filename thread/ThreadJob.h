@@ -31,6 +31,7 @@ struct PoolWorker {
 struct Worker {
     alignas(4) atomic_32 int32 state;
     coms_pthread_t thread;
+    void* arg;
 };
 
 #endif

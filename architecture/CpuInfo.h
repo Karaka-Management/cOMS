@@ -91,7 +91,7 @@ struct CpuInfo {
     char brand[49];
     byte model;
     byte family;
-    byte thread_count;
+    int16 core_count;
     int32 mhz;
     uint32 page_size;
     CpuCacheInfo cache[4];

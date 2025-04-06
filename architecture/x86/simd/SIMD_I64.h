@@ -6,23 +6,23 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef COMS_TOS_STDLIB_SIMD_I64_H
-#define COMS_TOS_STDLIB_SIMD_I64_H
+#ifndef COMS_STDLIB_SIMD_I64_H
+#define COMS_STDLIB_SIMD_I64_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>
 
 #include "../../../stdlib/Types.h"
 
-#ifdef MACRO_CPU_FEATURE_SSE42
+#ifdef __SSE4_2__
     #include "SIMD_I64_SSE.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX2
+#ifdef __AVX2__
     #include "SIMD_I64_AVX2.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX512
+#ifdef __AVX512F__
     #include "SIMD_I64_AVX512.h"
 #endif
 

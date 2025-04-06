@@ -20,4 +20,15 @@ int32 lower_bound(int32* t, size_t len, int32 x) {
 }
 */
 
+/*
+const char** string_lower_bound(const char** base, size_t len, const char* target) {
+    while (len > 1) {
+        size_t half = len / 2;
+        len -= half;
+        base += (strcmp(base[half - 1], target) < 0) * half;
+    }
+    return base;
+}
+*/
+
 #endif

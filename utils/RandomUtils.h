@@ -11,32 +11,37 @@
 
 #include <stdlib.h>
 #include "../stdlib/Types.h"
+#include "../utils/TestUtils.h"
+#include "../utils/TimeUtils.h"
 
-global_persist uint32 fast_seed;
-#define FAST_RAND_MAX 32767
-
-inline
-uint32 fast_rand1(void) {
-    fast_seed = (214013 * fast_seed + 2531011);
-
-    return (fast_seed >> 16) & 0x7FFF;
-}
-
-uint32 fast_rand2(uint32* state) {
+uint32 rand_fast(uint32* state) {
+    static const uint32 z = 0x9E3779B9;
     uint32 x = *state;
 
-    x ^= x << 13;
-    x ^= x >> 17;
-    x ^= x << 5;
+    x ^= ((x << 13) | (x >> 19)) ^ ((x << 5) | (x >> 27));
+    x *= z;
+    x ^= x >> 16;
+    x *= z;
+    x ^= x >> 15;
 
     *state = x;
 
     return x;
 }
 
-inline
-f32 fast_rand_percentage(void) {
-    return (f32) fast_rand1() / (f32) FAST_RAND_MAX;
+uint64 rand_fast(uint64* state) {
+    static const uint64 z = 0x9FB21C651E98DF25;
+    uint64 x = *state;
+
+    x ^= ((x << 49) | (x >> 15)) ^ ((x << 24) | (x >> 40));
+    x *= z;
+    x ^= x >> 35;
+    x *= z;
+    x ^= x >> 28;
+
+    *state = x;
+
+    return x;
 }
 
 /**
@@ -76,6 +81,27 @@ int32 random_weighted_index(const int32* arr, int32 array_count)
     }
 
     return item_rarity;
+}
+
+// WARNING: The allowed_chars string length needs to be of power 2 for performance reasons
+//      Supporting any allowed_chars length is trivial but usually we prefer the performance improvement
+void random_string(const char* allowed_chars, uint32 allowed_length, char* out, int32 out_length) {
+    ASSERT_SIMPLE(allowed_length & 2 == 0);
+
+    const uint32 mask = allowed_length - 1;
+
+    uint64 x = time_index();
+
+    size_t i = 0;
+    while (i < out_length) {
+        uint64 rand_val = rand_fast(&x);
+
+        for (int32 j = 0; j < 8 && i < out_length; ++j, ++i) {
+            out[i] = allowed_chars[((rand_val >> (8 * j)) & 0xFF) & allowed_length];
+        }
+    }
+
+    out[out_length] = '\0';
 }
 
 #endif

@@ -17,22 +17,22 @@
 #define THREAD_RETURN int32
 typedef THREAD_RETURN (*ThreadJobFunc)(void*);
 
-typedef struct {
-    int32 futex;
-} coms_pthread_mutex_t;
+struct mutex {
+    alignas(4) atomic_32 int32 futex;
+};
 
-typedef void coms_pthread_mutexattr_t;
+typedef void mutexattr_t;
 typedef void coms_pthread_condattr_t;
 typedef void coms_pthread_rwlockattr_t;
 
-typedef struct {
-    int32 futex;
-} coms_pthread_cond_t;
+struct mutex_cond {
+    alignas(4) atomic_32 int32 futex;
+} ;
 
-typedef struct {
-    int32 futex;
+struct coms_pthread_rwlock_t {
+    alignas(4) atomic_32 int32 futex;
     bool exclusive;
-} coms_pthread_rwlock_t;
+};
 
 typedef int coms_pthread_t;
 

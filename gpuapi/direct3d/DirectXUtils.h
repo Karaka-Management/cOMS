@@ -14,10 +14,10 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <d3dcommon.h>
-#include "../../../GameEngine/log/Log.h"
-#include "../../../GameEngine/memory/RingMemory.h"
-#include "../../../GameEngine/object/Texture.h"
-#include "../../../GameEngine/image/Image.cpp"
+#include "../../../cOMS/log/Log.h"
+#include "../../../cOMS/memory/RingMemory.h"
+#include "../../../cOMS/object/Texture.h"
+#include "../../../cOMS/image/Image.cpp"
 #include "../../compiler/CompilerUtils.h"
 // #include "../../../EngineDependencies/directx/d3d12.h"
 // #include "../../../EngineDependencies/directx/d3dx12.h"

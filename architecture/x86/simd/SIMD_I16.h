@@ -6,23 +6,23 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef COMS_TOS_STDLIB_SIMD_I16_H
-#define COMS_TOS_STDLIB_SIMD_I16_H
+#ifndef COMS_STDLIB_SIMD_I16_H
+#define COMS_STDLIB_SIMD_I16_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>
 
 #include "../../../stdlib/Types.h"
 
-#ifdef MACRO_CPU_FEATURE_SSE42
+#ifdef __SSE4_2__
     #include "SIMD_I16_SSE.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX2
+#ifdef __AVX2__
     #include "SIMD_I16_AVX2.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX512
+#ifdef __AVX512F__
     #include "SIMD_I16_AVX512.h"
 #endif
 
@@ -30,13 +30,13 @@
 //      the code is self contained and we could use te intrinsic functions directly
 
 inline
-void simd_mult(const int16* a, f32 b, int16* result, int32 size, int32 steps)
+void simd_mult(const int16* a, f32 b, int16* result, int32 size, int32 steps = 16)
 {
     int32 i = 0;
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) result, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             __m512i a_16;
@@ -65,7 +65,7 @@ void simd_mult(const int16* a, f32 b, int16* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             __m256i a_8;
@@ -94,7 +94,7 @@ void simd_mult(const int16* a, f32 b, int16* result, int32 size, int32 steps)
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             __m128i a_4;

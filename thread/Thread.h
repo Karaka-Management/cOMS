@@ -25,7 +25,7 @@
 
 void thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
 {
-    LOG_1("Thread started");
+    LOG_1("Thread starting");
     coms_pthread_create(&worker->thread, NULL, routine, arg);
 }
 

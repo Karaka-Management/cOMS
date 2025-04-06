@@ -14,9 +14,9 @@
 #include <string.h>
 
 #include "../../stdlib/Types.h"
-#include "FileUtils.cpp"
 #include "../../utils/StringUtils.h"
 #include "../../system/Library.h"
+#include "../../system/FileUtils.cpp"
 
 inline
 bool library_load(Library* lib)

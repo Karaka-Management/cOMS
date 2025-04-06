@@ -159,7 +159,7 @@ void log(const char* str, const char* file, const char* function, int32 line)
         return;
     }
 
-    size_t len = str_length(str);
+    int32 len = str_length(str);
     while (len > 0) {
         LogMessage* msg = (LogMessage *) log_get_memory();
 
@@ -171,7 +171,7 @@ void log(const char* str, const char* file, const char* function, int32 line)
         msg->time = system_time();
         msg->newline = '\n';
 
-        int32 message_length = (int32) OMS_MIN(MAX_LOG_LENGTH - sizeof(LogMessage) - 1, len);
+        int32 message_length = (int32) OMS_MIN((int32) (MAX_LOG_LENGTH - sizeof(LogMessage) - 1), len);
 
         memcpy(msg->message, str, message_length);
         msg->message[message_length] = '\0';

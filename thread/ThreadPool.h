@@ -21,9 +21,9 @@ struct ThreadPool {
     // This is not a threaded queue since we want to handle the mutex in here, not in the queue for finer control
     Queue work_queue;
 
-    coms_pthread_mutex_t work_mutex;
-    coms_pthread_cond_t work_cond;
-    coms_pthread_cond_t working_cond;
+    mutex work_mutex;
+    mutex_cond work_cond;
+    mutex_cond working_cond;
 
     alignas(4) atomic_32 int32 working_cnt;
     alignas(4) atomic_32 int32 thread_cnt;
@@ -40,19 +40,19 @@ static THREAD_RETURN thread_pool_worker(void* arg)
     PoolWorker* work;
 
     while (true) {
-        coms_pthread_mutex_lock(&pool->work_mutex);
+        mutex_lock(&pool->work_mutex);
         while (queue_is_empty(&pool->work_queue) && !pool->state) {
             coms_pthread_cond_wait(&pool->work_cond, &pool->work_mutex);
         }
 
         if (pool->state == 1) {
-            coms_pthread_mutex_unlock(&pool->work_mutex);
+            mutex_unlock(&pool->work_mutex);
 
             break;
         }
 
         work = (PoolWorker *) queue_dequeue_keep(&pool->work_queue);
-        coms_pthread_mutex_unlock(&pool->work_mutex);
+        mutex_unlock(&pool->work_mutex);
 
         if (!work) {
             continue;
@@ -86,15 +86,52 @@ static THREAD_RETURN thread_pool_worker(void* arg)
     return (THREAD_RETURN) NULL;
 }
 
-void thread_pool_create(ThreadPool* pool, BufferMemory* buf, int32 thread_count)
+void thread_pool_alloc(ThreadPool* pool, int32 thread_count, int32 worker_count, int32 alignment = 64)
 {
-    queue_init(&pool->work_queue, buf, 64, sizeof(PoolWorker), 64);
+    PROFILE(PROFILE_THREAD_POOL_ALLOC);
+    LOG_1(
+        "Allocating thread pool with %d threads and %d queue length",
+        {
+            {LOG_DATA_INT32, &thread_count},
+            {LOG_DATA_INT32, &worker_count}
+        }
+    );
+
+    queue_alloc(&pool->work_queue, worker_count, sizeof(PoolWorker), alignment);
 
     pool->thread_cnt = thread_count;
 
     // @todo switch from pool mutex and pool cond to threadjob mutex/cond
     //      thread_pool_wait etc. should just iterate over all mutexes
-    coms_pthread_mutex_init(&pool->work_mutex, NULL);
+    mutex_init(&pool->work_mutex, NULL);
+    coms_pthread_cond_init(&pool->work_cond, NULL);
+    coms_pthread_cond_init(&pool->working_cond, NULL);
+
+    coms_pthread_t thread;
+    for (pool->size = 0; pool->size < thread_count; ++pool->size) {
+        coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
+        coms_pthread_detach(thread);
+    }
+}
+
+void thread_pool_create(ThreadPool* pool, BufferMemory* buf, int32 thread_count, int32 worker_count, int32 alignment = 64)
+{
+    PROFILE(PROFILE_THREAD_POOL_ALLOC);
+    LOG_1(
+        "Creating thread pool with %d threads and %d queue length",
+        {
+            {LOG_DATA_INT32, &thread_count},
+            {LOG_DATA_INT32, &worker_count}
+        }
+    );
+
+    queue_init(&pool->work_queue, buf, worker_count, sizeof(PoolWorker), alignment);
+
+    pool->thread_cnt = thread_count;
+
+    // @todo switch from pool mutex and pool cond to threadjob mutex/cond
+    //      thread_pool_wait etc. should just iterate over all mutexes
+    mutex_init(&pool->work_mutex, NULL);
     coms_pthread_cond_init(&pool->work_cond, NULL);
     coms_pthread_cond_init(&pool->working_cond, NULL);
 
@@ -107,11 +144,11 @@ void thread_pool_create(ThreadPool* pool, BufferMemory* buf, int32 thread_count)
 
 void thread_pool_wait(ThreadPool* pool)
 {
-    coms_pthread_mutex_lock(&pool->work_mutex);
+    mutex_lock(&pool->work_mutex);
     while ((!pool->state && pool->working_cnt != 0) || (pool->state && pool->thread_cnt != 0)) {
         coms_pthread_cond_wait(&pool->working_cond, &pool->work_mutex);
     }
-    coms_pthread_mutex_unlock(&pool->work_mutex);
+    mutex_unlock(&pool->work_mutex);
 }
 
 void thread_pool_destroy(ThreadPool* pool)
@@ -125,31 +162,31 @@ void thread_pool_destroy(ThreadPool* pool)
     coms_pthread_cond_broadcast(&pool->work_cond);
     thread_pool_wait(pool);
 
-    coms_pthread_mutex_destroy(&pool->work_mutex);
+    mutex_destroy(&pool->work_mutex);
     coms_pthread_cond_destroy(&pool->work_cond);
     coms_pthread_cond_destroy(&pool->working_cond);
 }
 
 PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
 {
-    coms_pthread_mutex_lock(&pool->work_mutex);
-    PoolWorker* temp_job = (PoolWorker *) ring_get_memory_nomove((RingMemory *) &pool->work_queue, sizeof(PoolWorker), 64);
+    mutex_lock(&pool->work_mutex);
+    PoolWorker* temp_job = (PoolWorker *) ring_get_memory_nomove((RingMemory *) &pool->work_queue, sizeof(PoolWorker), 8);
     if (atomic_get_relaxed(&temp_job->id) > 0) {
-        coms_pthread_mutex_unlock(&pool->work_mutex);
+        mutex_unlock(&pool->work_mutex);
         ASSERT_SIMPLE(temp_job->id == 0);
 
         return NULL;
     }
 
     memcpy(temp_job, job, sizeof(PoolWorker));
-    ring_move_pointer((RingMemory *) &pool->work_queue, &pool->work_queue.head, sizeof(PoolWorker), 64);
+    ring_move_pointer((RingMemory *) &pool->work_queue, &pool->work_queue.head, sizeof(PoolWorker), 8);
 
     if (temp_job->id == 0) {
         temp_job->id = atomic_fetch_add_acquire(&pool->id_counter, 1);
     }
 
     coms_pthread_cond_broadcast(&pool->work_cond);
-    coms_pthread_mutex_unlock(&pool->work_mutex);
+    mutex_unlock(&pool->work_mutex);
 
     return temp_job;
 }
@@ -158,11 +195,11 @@ PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
 // This makes it faster, since we can avoid a memcpy
 PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
 {
-    coms_pthread_mutex_lock(&pool->work_mutex);
+    mutex_lock(&pool->work_mutex);
 
     PoolWorker* temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
     if (atomic_get_relaxed(&temp_job->id) > 0) {
-        coms_pthread_mutex_unlock(&pool->work_mutex);
+        mutex_unlock(&pool->work_mutex);
         ASSERT_SIMPLE(temp_job->id == 0);
 
         return NULL;
@@ -180,7 +217,7 @@ void thread_pool_add_work_end(ThreadPool* pool)
 {
     queue_enqueue_end(&pool->work_queue);
     coms_pthread_cond_broadcast(&pool->work_cond);
-    coms_pthread_mutex_unlock(&pool->work_mutex);
+    mutex_unlock(&pool->work_mutex);
 }
 
 

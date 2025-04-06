@@ -6,8 +6,8 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef COMS_TOS_STDLIB_SIMD_I16_AVX2_H
-#define COMS_TOS_STDLIB_SIMD_I16_AVX2_H
+#ifndef COMS_STDLIB_SIMD_I16_AVX2_H
+#define COMS_STDLIB_SIMD_I16_AVX2_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>

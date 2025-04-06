@@ -18,7 +18,7 @@ if "%Platform%" neq "x64" (
 cd "%DESTINATION_DIR%"
 del *.pdb > NUL 2> NUL
 del *.idb > NUL 2> NUL
-cd ..\..\GameEngine
+cd ..\..\cOMS
 
 REM Use /showIncludes for include debugging
 

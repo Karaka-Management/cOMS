@@ -482,14 +482,14 @@ void gpuapi_swapchain_create(
     } else {
         swapchain_extent->width = OMS_CLAMP(
             window->width,
-            swap_chain_support.capabilities.maxImageExtent.width,
-            swap_chain_support.capabilities.minImageExtent.width
+            swap_chain_support.capabilities.minImageExtent.width,
+            swap_chain_support.capabilities.maxImageExtent.width
         );
 
         swapchain_extent->height = OMS_CLAMP(
             window->height,
-            swap_chain_support.capabilities.maxImageExtent.height,
-            swap_chain_support.capabilities.minImageExtent.height
+            swap_chain_support.capabilities.minImageExtent.height,
+            swap_chain_support.capabilities.maxImageExtent.height
         );
     }
 

@@ -9,7 +9,7 @@
 #ifndef COMS_DATABASE_TYPE_H
 #define COMS_DATABASE_TYPE_H
 
-enum DatabaseType {
+enum DatabaseType : byte {
     DB_TYPE_SQLITE,
     DB_TYPE_MARIA,
     DB_TYPE_PSQL,

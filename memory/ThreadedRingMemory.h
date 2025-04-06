@@ -30,7 +30,7 @@ struct ThreadedRingMemory {
     int32 alignment;
 
     // The ring memory ends here
-    coms_pthread_mutex_t mutex;
+    mutex lock;
 };
 
 // @bug alignment should also include the end point, not just the start
@@ -39,36 +39,36 @@ inline
 void thrd_ring_alloc(ThreadedRingMemory* ring, uint64 size, int32 alignment = 64)
 {
     ring_alloc((RingMemory *) ring, size, alignment);
-    coms_pthread_mutex_init(&ring->mutex, NULL);
+    mutex_init(&ring->lock, NULL);
 }
 
 inline
 void thrd_ring_init(ThreadedRingMemory* ring, BufferMemory* buf, uint64 size, int32 alignment = 64)
 {
     ring_init((RingMemory *) ring, buf, size, alignment);
-    coms_pthread_mutex_init(&ring->mutex, NULL);
+    mutex_init(&ring->lock, NULL);
 }
 
 inline
 void thrd_ring_init(ThreadedRingMemory* ring, byte* buf, uint64 size, int32 alignment = 64)
 {
     ring_init((RingMemory *) ring, buf, size, alignment);
-    coms_pthread_mutex_init(&ring->mutex, NULL);
+    mutex_init(&ring->lock, NULL);
 }
 
 inline
 void thrd_ring_free(ThreadedRingMemory* ring)
 {
     ring_free((RingMemory *) ring);
-    coms_pthread_mutex_destroy(&ring->mutex);
+    mutex_destroy(&ring->lock);
 }
 
 inline
 byte* thrd_ring_calculate_position(ThreadedRingMemory* ring, uint64 size, byte aligned = 4) noexcept
 {
-    coms_pthread_mutex_lock(&ring->mutex);
+    mutex_lock(&ring->lock);
     byte* result = ring_calculate_position((RingMemory *) ring, size, aligned);
-    coms_pthread_mutex_unlock(&ring->mutex);
+    mutex_unlock(&ring->lock);
 
     return result;
 }
@@ -76,24 +76,24 @@ byte* thrd_ring_calculate_position(ThreadedRingMemory* ring, uint64 size, byte a
 inline
 void thrd_ring_reset(ThreadedRingMemory* ring) noexcept
 {
-    coms_pthread_mutex_lock(&ring->mutex);
+    mutex_lock(&ring->lock);
     ring_reset((RingMemory *) ring);
-    coms_pthread_mutex_unlock(&ring->mutex);
+    mutex_unlock(&ring->lock);
 }
 
 // Moves a pointer based on the size you want to consume (new position = after consuming size)
 void thrd_ring_move_pointer(ThreadedRingMemory* ring, byte** pos, uint64 size, byte aligned = 4) noexcept
 {
-    coms_pthread_mutex_lock(&ring->mutex);
+    mutex_lock(&ring->lock);
     ring_move_pointer((RingMemory *) ring, pos, size, aligned);
-    coms_pthread_mutex_unlock(&ring->mutex);
+    mutex_unlock(&ring->lock);
 }
 
 byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned = 4, bool zeroed = false) noexcept
 {
-    coms_pthread_mutex_lock(&ring->mutex);
+    mutex_lock(&ring->lock);
     byte* result = ring_get_memory((RingMemory *) ring, size, aligned, zeroed);
-    coms_pthread_mutex_unlock(&ring->mutex);
+    mutex_unlock(&ring->lock);
 
     return result;
 }
@@ -101,9 +101,9 @@ byte* thrd_ring_get_memory(ThreadedRingMemory* ring, uint64 size, byte aligned =
 // Same as ring_get_memory but DOESN'T move the head
 byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* ring, uint64 size, byte aligned = 4, bool zeroed = false) noexcept
 {
-    coms_pthread_mutex_lock(&ring->mutex);
+    mutex_lock(&ring->lock);
     byte* result = ring_get_memory_nomove((RingMemory *) ring, size, aligned, zeroed);
-    coms_pthread_mutex_unlock(&ring->mutex);
+    mutex_unlock(&ring->lock);
 
     return result;
 }
@@ -113,9 +113,9 @@ byte* thrd_ring_get_memory_nomove(ThreadedRingMemory* ring, uint64 size, byte al
 inline
 byte* thrd_ring_get_element(ThreadedRingMemory* ring, uint64 element, uint64 size) noexcept
 {
-    coms_pthread_mutex_lock(&ring->mutex);
+    mutex_lock(&ring->lock);
     byte* result = ring_get_element((RingMemory *) ring, element, size);
-    coms_pthread_mutex_unlock(&ring->mutex);
+    mutex_unlock(&ring->lock);
 
     return result;
 }
@@ -126,9 +126,9 @@ byte* thrd_ring_get_element(ThreadedRingMemory* ring, uint64 element, uint64 siz
 inline
 bool thrd_ring_commit_safe(ThreadedRingMemory* ring, uint64 size, byte aligned = 4) noexcept
 {
-    coms_pthread_mutex_lock(&ring->mutex);
+    mutex_lock(&ring->lock);
     bool result = ring_commit_safe((RingMemory *) ring, size, aligned);
-    coms_pthread_mutex_unlock(&ring->mutex);
+    mutex_unlock(&ring->lock);
 
     return result;
 }
@@ -148,9 +148,9 @@ void thrd_ring_force_tail_update(const ThreadedRingMemory* ring) noexcept
 inline
 int64 thrd_ring_dump(ThreadedRingMemory* ring, byte* data) noexcept
 {
-    coms_pthread_mutex_lock(&ring->mutex);
+    mutex_lock(&ring->lock);
     int64 result = ring_dump((RingMemory *) ring, data);
-    coms_pthread_mutex_unlock(&ring->mutex);
+    mutex_unlock(&ring->lock);
 
     return result;
 }

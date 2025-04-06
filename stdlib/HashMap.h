@@ -124,12 +124,12 @@ struct HashMap {
 
 // @todo Change so the hashmap can grow or maybe even better create a static and dynamic version
 inline
-void hashmap_alloc(HashMap* hm, int32 count, int32 element_size)
+void hashmap_alloc(HashMap* hm, int32 count, int32 element_size, int32 alignment = 64)
 {
     LOG_1("Allocate HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = (byte *) platform_alloc(
         count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        + CEIL_DIV(count, alignment) * sizeof(hm->buf.free)
     );
 
     hm->table = (uint16 *) data;
@@ -148,13 +148,13 @@ void hashmap_free(HashMap* hm)
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring) noexcept
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ring, int32 alignment = 64) noexcept
 {
     LOG_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = ring_get_memory(
         ring,
         count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        + CEIL_DIV(count, alignment) * sizeof(hm->buf.free)
     );
 
     hm->table = (uint16 *) data;
@@ -163,13 +163,13 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ri
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* buf) noexcept
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* buf, int32 alignment = 64) noexcept
 {
     LOG_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     byte* data = buffer_get_memory(
         buf,
         count * (sizeof(uint16) + element_size)
-        + CEIL_DIV(count, 64) * sizeof(hm->buf.free)
+        + CEIL_DIV(count, alignment) * sizeof(hm->buf.free)
     );
 
     hm->table = (uint16 *) data;
@@ -406,8 +406,10 @@ HashEntry* hashmap_get_reserve(HashMap* hm, const char* key) noexcept
     uint64 index = hash_djb2(key) % hm->buf.count;
     HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, hm->table[index] - 1, false);
 
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
     while (entry != NULL) {
-        if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
+        if (str_compare(entry->key, key) == 0) {
             DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
             return entry;
         }
@@ -438,7 +440,6 @@ HashEntry* hashmap_get_reserve(HashMap* hm, const char* key) noexcept
     return entry_new;
 }
 
-// @performance Some places use this in order to iterate the hashmap that is horrible!!! Use the actual iterate function!
 inline
 HashEntry* hashmap_get_entry_by_element(HashMap* hm, uint32 element)  noexcept
 {
@@ -449,8 +450,10 @@ HashEntry* hashmap_get_entry(HashMap* hm, const char* key) noexcept {
     uint64 index = hash_djb2(key) % hm->buf.count;
     HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, hm->table[index] - 1, false);
 
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
     while (entry != NULL) {
-        if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
+        if (str_compare(entry->key, key) == 0) {
             DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
             return entry;
         }
@@ -467,8 +470,10 @@ uint32 hashmap_get_element(const HashMap* hm, const char* key) noexcept {
 
     uint32 element_id = hm->table[index];
 
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
     while (entry != NULL) {
-        if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
+        if (str_compare(entry->key, key) == 0) {
             DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
             return element_id;
         }
@@ -492,8 +497,10 @@ HashEntry* hashmap_get_entry(HashMap* hm, const char* key, uint64 hash) noexcept
     hash %= hm->buf.count;
     HashEntry* entry = (HashEntry *) chunk_get_element(&hm->buf, hm->table[hash] - 1, false);
 
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
     while (entry != NULL) {
-        if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
+        if (str_compare(entry->key, key) == 0) {
             DEBUG_MEMORY_READ((uintptr_t) entry, sizeof(HashEntry));
             return entry;
         }
@@ -514,8 +521,10 @@ void hashmap_remove(HashMap* hm, const char* key) noexcept {
 
     uint32 element_id = hm->table[index];
 
+    str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
+
     while (entry != NULL) {
-        if (str_compare(entry->key, key, HASH_MAP_MAX_KEY_LENGTH) == 0) {
+        if (str_compare(entry->key, key) == 0) {
             if (prev == NULL) {
                 hm->table[index] = entry->next;
             } else {

@@ -6,23 +6,23 @@
  * @version   1.0.0
  * @link      https://jingga.app
  */
-#ifndef COMS_TOS_STDLIB_SIMD_I8_H
-#define COMS_TOS_STDLIB_SIMD_I8_H
+#ifndef COMS_STDLIB_SIMD_I8_H
+#define COMS_STDLIB_SIMD_I8_H
 
 #include <immintrin.h>
 #include <xmmintrin.h>
 
 #include "../../../stdlib/Types.h"
 
-#ifdef MACRO_CPU_FEATURE_SSE42
+#ifdef __SSE4_2__
     #include "SIMD_I8_SSE.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX2
+#ifdef __AVX2__
     #include "SIMD_I8_AVX2.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX512
+#ifdef __AVX512F__
     #include "SIMD_I8_AVX512.h"
 #endif
 
@@ -31,7 +31,7 @@ int simd_equal(const byte* a, const byte* b, uint32 size, uint32 steps = 8) {
     steps = intrin_validate_steps((const byte*) a, steps);
     steps = intrin_validate_steps((const byte*) b, steps);
 
-    #ifdef MACRO_CPU_FEATURE_AVX512
+    #ifdef __AVX512F__
         if (steps >= 16) {
             steps = 16;
             if (size >= 128) {
@@ -62,7 +62,7 @@ int simd_equal(const byte* a, const byte* b, uint32 size, uint32 steps = 8) {
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_AVX2
+    #ifdef __AVX2__
         if (steps >= 8) {
             steps = 8;
             if (size >= 64) {
@@ -91,7 +91,7 @@ int simd_equal(const byte* a, const byte* b, uint32 size, uint32 steps = 8) {
         }
     #endif
 
-    #ifdef MACRO_CPU_FEATURE_SSE42
+    #ifdef __SSE4_2__
         if (steps >= 4) {
             steps = 4;
             if (size >= 16) {

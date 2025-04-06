@@ -47,7 +47,7 @@ int32 coms_pthread_detach(coms_pthread_t thread)
 }
 
 inline
-int32 coms_pthread_mutex_init(coms_pthread_mutex_t* mutex, coms_pthread_mutexattr_t*)
+int32 mutex_init(mutex* mutex, mutexattr_t*)
 {
     if (mutex == NULL) {
         return 1;
@@ -59,7 +59,7 @@ int32 coms_pthread_mutex_init(coms_pthread_mutex_t* mutex, coms_pthread_mutexatt
 }
 
 inline
-int32 coms_pthread_mutex_destroy(coms_pthread_mutex_t* mutex)
+int32 mutex_destroy(mutex* mutex)
 {
     if (mutex == NULL) {
         return 1;
@@ -71,7 +71,7 @@ int32 coms_pthread_mutex_destroy(coms_pthread_mutex_t* mutex)
 }
 
 inline
-int32 coms_pthread_mutex_lock(coms_pthread_mutex_t* mutex)
+int32 mutex_lock(mutex* mutex)
 {
     if (mutex == NULL) {
         return 1;
@@ -83,7 +83,7 @@ int32 coms_pthread_mutex_lock(coms_pthread_mutex_t* mutex)
 }
 
 inline
-int32 coms_pthread_mutex_unlock(coms_pthread_mutex_t* mutex)
+int32 mutex_unlock(mutex* mutex)
 {
     if (mutex == NULL) {
         return 1;
@@ -96,7 +96,7 @@ int32 coms_pthread_mutex_unlock(coms_pthread_mutex_t* mutex)
 
 // WARNING: We don't support windows events since they are much slower than conditional variables/mutexes
 inline
-int32 coms_pthread_cond_init(coms_pthread_cond_t* cond, coms_pthread_condattr_t*)
+int32 coms_pthread_cond_init(mutex_cond* cond, coms_pthread_condattr_t*)
 {
     if (cond == NULL) {
         return 1;
@@ -108,7 +108,7 @@ int32 coms_pthread_cond_init(coms_pthread_cond_t* cond, coms_pthread_condattr_t*
 }
 
 inline
-int32 coms_pthread_cond_destroy(coms_pthread_cond_t*)
+int32 coms_pthread_cond_destroy(mutex_cond*)
 {
     /* Windows does not have a destroy for conditionals */
     return 0;
@@ -116,7 +116,7 @@ int32 coms_pthread_cond_destroy(coms_pthread_cond_t*)
 
 // @question Can't we turn timespec in a typedef of uint64? I would like to avoid the time.h class
 inline
-int32 coms_pthread_cond_timedwait(coms_pthread_cond_t* cond, coms_pthread_mutex_t* mutex, const timespec* abstime)
+int32 mutex_condimedwait(mutex_cond* cond, mutex* mutex, const timespec* abstime)
 {
     if (cond == NULL || mutex == NULL) {
         return 1;
@@ -130,17 +130,17 @@ int32 coms_pthread_cond_timedwait(coms_pthread_cond_t* cond, coms_pthread_mutex_
 }
 
 inline
-int32 coms_pthread_cond_wait(coms_pthread_cond_t* cond, coms_pthread_mutex_t* mutex)
+int32 coms_pthread_cond_wait(mutex_cond* cond, mutex* mutex)
 {
     if (cond == NULL || mutex == NULL) {
         return 1;
     }
 
-    return coms_pthread_cond_timedwait(cond, mutex, NULL);
+    return mutex_condimedwait(cond, mutex, NULL);
 }
 
 inline
-int32 coms_pthread_cond_signal(coms_pthread_cond_t* cond)
+int32 coms_pthread_cond_signal(mutex_cond* cond)
 {
     if (cond == NULL) {
         return 1;
@@ -152,7 +152,7 @@ int32 coms_pthread_cond_signal(coms_pthread_cond_t* cond)
 }
 
 inline
-int32 coms_pthread_cond_broadcast(coms_pthread_cond_t* cond)
+int32 coms_pthread_cond_broadcast(mutex_cond* cond)
 {
     if (cond == NULL) {
         return 1;

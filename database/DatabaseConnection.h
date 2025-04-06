@@ -10,15 +10,10 @@
 #define COMS_DATABASE_CONNECTION_H
 
 #include "../stdlib/Types.h"
-#include "../../EngineDependencies/sqlite/src/sqlite3.h"
-
 #include "DatabaseType.h"
 
 struct DatabaseConnection {
-    union {
-        sqlite3* db_sqlite;
-        sqlite3* db_pgsql;
-    };
+    void* con;
 
     DatabaseType type;
     uint16 port;

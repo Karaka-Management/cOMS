@@ -16,7 +16,7 @@
 #endif
 
 void system_info_render(char* buf, const SystemInfo* info) {
-    sprintf_s(
+    snprintf(
         buf,
         4096,
         "OS:\n"
@@ -39,7 +39,7 @@ void system_info_render(char* buf, const SystemInfo* info) {
         "\n"
         "CPU:\n"
         "==============\n"
-        "Hardware\n" "Vendor: %s\n" "Brand: %s\n" "Model: %d\n" "Family: %d\n" "Mhz: %d\n" "Thread Count: %d\n" "Page Size: %d\n"
+        "Hardware\n" "Vendor: %s\n" "Brand: %s\n" "Model: %d\n" "Family: %d\n" "Mhz: %d\n" "Core Count: %d\n" "Page Size: %d\n"
         "\n"
         "Cache:\n"
         "L1: Size %d Line %d\n"
@@ -47,7 +47,7 @@ void system_info_render(char* buf, const SystemInfo* info) {
         "L3: Size %d Line %d\n"
         "L4: Size %d Line %d\n"
         "\n"
-        "Features: %lld\n"
+        "Features: %ld\n"
         "\n"
         "GPU:\n"
         "==============\n"
@@ -73,7 +73,7 @@ void system_info_render(char* buf, const SystemInfo* info) {
         info->network_count < 2 ? "" : info->network[1].slot, info->network_count < 2 ? 0 : info->network[1].mac[0], info->network_count < 2 ? 0 : info->network[1].mac[1], info->network_count < 2 ? 0 : info->network[1].mac[2], info->network_count < 2 ? 0 : info->network[1].mac[3], info->network_count < 2 ? 0 : info->network[1].mac[4], info->network_count < 2 ? 0 : info->network[1].mac[5], info->network_count < 2 ? 0 : info->network[1].mac[6], info->network_count < 2 ? 0 : info->network[1].mac[7],
         info->network_count < 3 ? "" : info->network[2].slot, info->network_count < 3 ? 0 : info->network[2].mac[0], info->network_count < 3 ? 0 : info->network[2].mac[1], info->network_count < 3 ? 0 : info->network[2].mac[2], info->network_count < 3 ? 0 : info->network[2].mac[3], info->network_count < 3 ? 0 : info->network[2].mac[4], info->network_count < 3 ? 0 : info->network[2].mac[5], info->network_count < 3 ? 0 : info->network[2].mac[6], info->network_count < 3 ? 0 : info->network[2].mac[7],
         info->network_count < 4 ? "" : info->network[3].slot, info->network_count < 4 ? 0 : info->network[3].mac[0], info->network_count < 4 ? 0 : info->network[3].mac[1], info->network_count < 4 ? 0 : info->network[3].mac[2], info->network_count < 4 ? 0 : info->network[3].mac[3], info->network_count < 4 ? 0 : info->network[3].mac[4], info->network_count < 4 ? 0 : info->network[3].mac[5], info->network_count < 4 ? 0 : info->network[3].mac[6], info->network_count < 4 ? 0 : info->network[3].mac[7],
-        info->cpu.vendor, info->cpu.brand, info->cpu.model, info->cpu.family, info->cpu.mhz, info->cpu.thread_count, info->cpu.page_size,
+        info->cpu.vendor, info->cpu.brand, info->cpu.model, info->cpu.family, info->cpu.mhz, info->cpu.core_count, info->cpu.page_size,
         info->cpu.cache[0].size, info->cpu.cache[0].line_size,
         info->cpu.cache[1].size, info->cpu.cache[1].line_size,
         info->cpu.cache[2].size, info->cpu.cache[2].line_size,

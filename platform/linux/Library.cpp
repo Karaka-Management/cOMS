@@ -18,7 +18,7 @@
 #include "../../stdlib/Types.h"
 #include "../../utils/StringUtils.h"
 #include "../../system/Library.h"
-#include "UtilsLinux.h"
+#include "../../system/FileUtils.cpp"
 
 inline
 bool library_load(Library* lib)
@@ -48,8 +48,11 @@ bool library_load(Library* lib)
     // @question we might want RTLD_NOW?
     lib->handle = dlopen(dst, RTLD_LAZY);
     if (!lib->handle) {
+        const char* error = dlerror();
+        LOG_1(error);
+
         lib->is_valid = false;
-        return lib->is_valid;
+        return false;
     }
 
     lib->is_valid = true;
@@ -59,6 +62,7 @@ bool library_load(Library* lib)
             lib->functions[c] = function;
         } else {
             lib->is_valid = false;
+            return false;
         }
     }
 

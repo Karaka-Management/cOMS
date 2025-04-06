@@ -14,12 +14,12 @@
 
 #define THREAD_RETURN DWORD WINAPI
 typedef DWORD (WINAPI *ThreadJobFunc)(void*);
-typedef CRITICAL_SECTION coms_pthread_mutex_t;
-typedef void coms_pthread_mutexattr_t;
+typedef CRITICAL_SECTION mutex;
+typedef void mutexattr_t;
 typedef void coms_pthread_condattr_t;
 typedef void coms_pthread_rwlockattr_t;
 typedef HANDLE coms_pthread_t;
-typedef CONDITION_VARIABLE coms_pthread_cond_t;
+typedef CONDITION_VARIABLE mutex_cond;
 
 // Thread local variable Already exists in c++11
 // #define thread_local __declspec(thread)

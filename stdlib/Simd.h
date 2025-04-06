@@ -14,11 +14,6 @@
 // Adjusts the step size based on the memory alignment
 inline
 int32 intrin_validate_steps(const byte* mem, int32 steps) {
-    // During development we want to spot invalid alignment
-    ASSERT_SIMPLE(steps < 16 || (steps >= 16 && ((uintptr_t) mem & 63) == 0));
-    ASSERT_SIMPLE(steps < 8 || (steps >= 8 && ((uintptr_t) mem & 31) == 0));
-    ASSERT_SIMPLE(steps < 4 || (steps >= 4 && ((uintptr_t) mem & 15) == 0));
-
     if (steps >= 16 && ((uintptr_t) mem & 63) == 0) {
         return 16;
     } else if (steps >= 8 && ((uintptr_t) mem & 31) == 0) {

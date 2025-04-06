@@ -10,26 +10,31 @@
 #define COMS_DATABASE_H
 
 #include "../stdlib/Types.h"
-#include "../../EngineDependencies/sqlite/src/sqlite3.h"
 
 #include "DatabaseType.h"
 #include "DatabaseConnection.h"
 
+#if DB_MYSQL || DB_MARIA
+#else
+    int32 db_open_maria(void*) { return 0; };
+    void db_close_maria(void*) {};
+#endif
+
+#if DB_PSQL
+#else
+    int32 db_open_psql(void*) { return 0; };
+    void db_close_psql(void*) {};
+#endif
+
+#if DB_SQLITE
+    #include "sqlite/SqliteDatabase.h"
+#else
+    int32 db_open_sqlite(void*) { return 0; };
+    void db_close_sqlite(void*) {};
+#endif
+
 inline
-int db_open_sqlite(DatabaseConnection* con)
-{
-    int rc;
-    rc = sqlite3_open(con->host, &con->db_sqlite);
-
-    if (rc) {
-        return rc;
-    }
-
-    return 0;
-}
-
-inline
-int db_open(DatabaseConnection* con)
+int32 db_open(DatabaseConnection* con)
 {
     switch (con->type) {
         case DB_TYPE_SQLITE: {
@@ -47,12 +52,6 @@ int db_open(DatabaseConnection* con)
     }
 
     return 0;
-}
-
-inline
-void db_close_sqlite(DatabaseConnection* con)
-{
-    sqlite3_close(con->db_sqlite);
 }
 
 inline

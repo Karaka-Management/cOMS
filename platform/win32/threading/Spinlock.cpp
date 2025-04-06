@@ -13,20 +13,21 @@
 #include "../../../stdlib/Types.h"
 #include "../TimeUtils.h"
 #include "Spinlock.h"
+#include "../../../compiler/CompilerUtils.h"
 
-inline
+FORCE_INLINE
 void spinlock_init(spinlock32* lock) {
     lock = 0;
 }
 
-inline
+FORCE_INLINE
 void spinlock_start(spinlock32* lock, int32 delay = 10) {
     while (InterlockedExchange(lock, 1) != 0) {
         usleep(delay);
     }
 }
 
-inline
+FORCE_INLINE
 void spinlock_end(spinlock32* lock) {
     InterlockedExchange(lock, 0);
 }

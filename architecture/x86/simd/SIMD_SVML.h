@@ -9,15 +9,15 @@
 #ifndef COMS_STDLIB_SIMD_SVML_H
 #define COMS_STDLIB_SIMD_SVML_H
 
-#ifdef MACRO_CPU_FEATURE_SSE42
+#ifdef __SSE4_2__
     #include "SIMD_SVML_SSE.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX2
+#ifdef __AVX2__
     #include "SIMD_SVML_AVX2.h"
 #endif
 
-#ifdef MACRO_CPU_FEATURE_AVX512
+#ifdef __AVX512F__
     #include "SIMD_SVML_AVX512.h"
 #endif
 

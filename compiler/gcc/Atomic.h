@@ -45,7 +45,7 @@ FORCE_INLINE void atomic_add_relaxed(volatile int32* value, int32 increment) noe
 FORCE_INLINE void atomic_sub_relaxed(volatile int32* value, int32 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_RELAXED); }
 FORCE_INLINE void atomic_add_relaxed(volatile int64* value, int64 increment) noexcept { __atomic_add_fetch(value, increment, __ATOMIC_RELAXED); }
 FORCE_INLINE void atomic_sub_relaxed(volatile int64* value, int64 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_RELAXED); }
-FORCE_INLINE f32 atomic_compare_exchange_weak_relaxed(volatile f32* value, f32* expected, f32 desired) noexcept {
+FORCE_INLINE f32 atomic_compare_exchange_strong_relaxed(volatile f32* value, f32* expected, f32 desired) noexcept {
     volatile _atomic_32* value_as_union = (volatile _atomic_32*)value;
     _atomic_32* expected_as_union = (_atomic_32*)expected;
     _atomic_32 desired_as_union;
@@ -58,7 +58,7 @@ FORCE_INLINE f32 atomic_compare_exchange_weak_relaxed(volatile f32* value, f32* 
 
     return expected_as_union->f;
 }
-FORCE_INLINE f64 atomic_compare_exchange_weak_relaxed(volatile f64* value, f64* expected, f64 desired) noexcept {
+FORCE_INLINE f64 atomic_compare_exchange_strong_relaxed(volatile f64* value, f64* expected, f64 desired) noexcept {
     volatile _atomic_64* value_as_union = (volatile _atomic_64*)value;
     _atomic_64* expected_as_union = (_atomic_64*)expected;
     _atomic_64 desired_as_union;
@@ -71,8 +71,8 @@ FORCE_INLINE f64 atomic_compare_exchange_weak_relaxed(volatile f64* value, f64* 
 
     return expected_as_union->f;
 }
-FORCE_INLINE int32 atomic_compare_exchange_weak_relaxed(volatile int32* value, int32* expected, int32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELAXED, __ATOMIC_RELAXED); return *expected; }
-FORCE_INLINE int64 atomic_compare_exchange_weak_relaxed(volatile int64* value, int64* expected, int64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELAXED, __ATOMIC_RELAXED); return *expected; }
+FORCE_INLINE int32 atomic_compare_exchange_strong_relaxed(volatile int32* value, int32* expected, int32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELAXED, __ATOMIC_RELAXED); return *expected; }
+FORCE_INLINE int64 atomic_compare_exchange_strong_relaxed(volatile int64* value, int64* expected, int64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELAXED, __ATOMIC_RELAXED); return *expected; }
 FORCE_INLINE int8 atomic_fetch_add_relaxed(volatile int8* value, int8 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_RELAXED); }
 FORCE_INLINE int8 atomic_fetch_sub_relaxed(volatile int8* value, int8 operand) noexcept { return __atomic_sub_fetch(value, operand, __ATOMIC_RELAXED); }
 FORCE_INLINE int16 atomic_fetch_add_relaxed(volatile int16* value, int16 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_RELAXED); }
@@ -109,8 +109,8 @@ FORCE_INLINE void atomic_add_relaxed(volatile uint32* value, uint32 increment) n
 FORCE_INLINE void atomic_sub_relaxed(volatile uint32* value, uint32 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_RELAXED); }
 FORCE_INLINE void atomic_add_relaxed(volatile uint64* value, uint64 increment) noexcept { __atomic_add_fetch(value, increment, __ATOMIC_RELAXED); }
 FORCE_INLINE void atomic_sub_relaxed(volatile uint64* value, uint64 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_RELAXED); }
-FORCE_INLINE uint32 atomic_compare_exchange_weak_relaxed(volatile uint32* value, uint32* expected, uint32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELAXED, __ATOMIC_RELAXED); return *expected; }
-FORCE_INLINE uint64 atomic_compare_exchange_weak_relaxed(volatile uint64* value, uint64* expected, uint64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELAXED, __ATOMIC_RELAXED); return *expected; }
+FORCE_INLINE uint32 atomic_compare_exchange_strong_relaxed(volatile uint32* value, uint32* expected, uint32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELAXED, __ATOMIC_RELAXED); return *expected; }
+FORCE_INLINE uint64 atomic_compare_exchange_strong_relaxed(volatile uint64* value, uint64* expected, uint64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELAXED, __ATOMIC_RELAXED); return *expected; }
 FORCE_INLINE uint8 atomic_fetch_add_relaxed(volatile uint8* value, uint8 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_RELAXED); }
 FORCE_INLINE uint8 atomic_fetch_sub_relaxed(volatile uint8* value, uint8 operand) noexcept { return __atomic_sub_fetch(value, operand, __ATOMIC_RELAXED); }
 FORCE_INLINE uint16 atomic_fetch_add_relaxed(volatile uint16* value, uint16 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_RELAXED); }
@@ -161,7 +161,7 @@ FORCE_INLINE void atomic_add_acquire(volatile int32* value, int32 increment) noe
 FORCE_INLINE void atomic_sub_acquire(volatile int32* value, int32 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_ACQUIRE); }
 FORCE_INLINE void atomic_add_acquire(volatile int64* value, int64 increment) noexcept { __atomic_add_fetch(value, increment, __ATOMIC_ACQUIRE); }
 FORCE_INLINE void atomic_sub_acquire(volatile int64* value, int64 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_ACQUIRE); }
-FORCE_INLINE f32 atomic_compare_exchange_weak_acquire(volatile f32* value, f32* expected, f32 desired) noexcept {
+FORCE_INLINE f32 atomic_compare_exchange_strong_acquire(volatile f32* value, f32* expected, f32 desired) noexcept {
     volatile _atomic_32* value_as_union = (volatile _atomic_32*)value;
     _atomic_32* expected_as_union = (_atomic_32*)expected;
     _atomic_32 desired_as_union;
@@ -169,12 +169,12 @@ FORCE_INLINE f32 atomic_compare_exchange_weak_acquire(volatile f32* value, f32* 
 
     __atomic_compare_exchange_n(
         &value_as_union->l, &expected_as_union->l, desired_as_union.l, 0,
-        __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE
+        __ATOMIC_ACQUIRE, __ATOMIC_RELAXED
     );
 
     return expected_as_union->f;
 }
-FORCE_INLINE f64 atomic_compare_exchange_weak_acquire(volatile f64* value, f64* expected, f64 desired) noexcept {
+FORCE_INLINE f64 atomic_compare_exchange_strong_acquire(volatile f64* value, f64* expected, f64 desired) noexcept {
     volatile _atomic_64* value_as_union = (volatile _atomic_64*)value;
     _atomic_64* expected_as_union = (_atomic_64*)expected;
     _atomic_64 desired_as_union;
@@ -182,13 +182,13 @@ FORCE_INLINE f64 atomic_compare_exchange_weak_acquire(volatile f64* value, f64* 
 
     __atomic_compare_exchange_n(
         &value_as_union->l, &expected_as_union->l, desired_as_union.l, 0,
-        __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE
+        __ATOMIC_ACQUIRE, __ATOMIC_RELAXED
     );
 
     return expected_as_union->f;
 }
-FORCE_INLINE int32 atomic_compare_exchange_weak_acquire(volatile int32* value, int32* expected, int32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE); return *expected; }
-FORCE_INLINE int64 atomic_compare_exchange_weak_acquire(volatile int64* value, int64* expected, int64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE); return *expected; }
+FORCE_INLINE int32 atomic_compare_exchange_strong_acquire(volatile int32* value, int32* expected, int32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE); return *expected; }
+FORCE_INLINE int64 atomic_compare_exchange_strong_acquire(volatile int64* value, int64* expected, int64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE); return *expected; }
 FORCE_INLINE int8 atomic_fetch_add_acquire(volatile int8* value, int8 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_ACQUIRE); }
 FORCE_INLINE int8 atomic_fetch_sub_acquire(volatile int8* value, int8 operand) noexcept { return __atomic_sub_fetch(value, operand, __ATOMIC_ACQUIRE); }
 FORCE_INLINE int16 atomic_fetch_add_acquire(volatile int16* value, int16 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_ACQUIRE); }
@@ -225,8 +225,8 @@ FORCE_INLINE void atomic_add_acquire(volatile uint32* value, uint32 increment) n
 FORCE_INLINE void atomic_sub_acquire(volatile uint32* value, uint32 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_ACQUIRE); }
 FORCE_INLINE void atomic_add_acquire(volatile uint64* value, uint64 increment) noexcept { __atomic_add_fetch(value, increment, __ATOMIC_ACQUIRE); }
 FORCE_INLINE void atomic_sub_acquire(volatile uint64* value, uint64 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_ACQUIRE); }
-FORCE_INLINE uint32 atomic_compare_exchange_weak_acquire(volatile uint32* value, uint32* expected, uint32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE); return *expected; }
-FORCE_INLINE uint64 atomic_compare_exchange_weak_acquire(volatile uint64* value, uint64* expected, uint64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE); return *expected; }
+FORCE_INLINE uint32 atomic_compare_exchange_strong_acquire(volatile uint32* value, uint32* expected, uint32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE); return *expected; }
+FORCE_INLINE uint64 atomic_compare_exchange_strong_acquire(volatile uint64* value, uint64* expected, uint64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE); return *expected; }
 FORCE_INLINE uint8 atomic_fetch_add_acquire(volatile uint8* value, uint8 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_ACQUIRE); }
 FORCE_INLINE uint8 atomic_fetch_sub_acquire(volatile uint8* value, uint8 operand) noexcept { return __atomic_sub_fetch(value, operand, __ATOMIC_ACQUIRE); }
 FORCE_INLINE uint16 atomic_fetch_add_acquire(volatile uint16* value, uint16 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_ACQUIRE); }
@@ -282,7 +282,7 @@ FORCE_INLINE void atomic_add_release(volatile int32* value, int32 increment) noe
 FORCE_INLINE void atomic_sub_release(volatile int32* value, int32 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_RELEASE); }
 FORCE_INLINE void atomic_add_release(volatile int64* value, int64 increment) noexcept { __atomic_add_fetch(value, increment, __ATOMIC_RELEASE); }
 FORCE_INLINE void atomic_sub_release(volatile int64* value, int64 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_RELEASE); }
-FORCE_INLINE f32 atomic_compare_exchange_weak_release(volatile f32* value, f32* expected, f32 desired) noexcept {
+FORCE_INLINE f32 atomic_compare_exchange_strong_release(volatile f32* value, f32* expected, f32 desired) noexcept {
     volatile _atomic_32* value_as_union = (volatile _atomic_32*)value;
     _atomic_32* expected_as_union = (_atomic_32*)expected;
     _atomic_32 desired_as_union;
@@ -290,12 +290,12 @@ FORCE_INLINE f32 atomic_compare_exchange_weak_release(volatile f32* value, f32* 
 
     __atomic_compare_exchange_n(
         &value_as_union->l, &expected_as_union->l, desired_as_union.l, 0,
-        __ATOMIC_RELEASE, __ATOMIC_RELEASE
+        __ATOMIC_RELEASE, __ATOMIC_RELAXED
     );
 
     return expected_as_union->f;
 }
-FORCE_INLINE f64 atomic_compare_exchange_weak_release(volatile f64* value, f64* expected, f64 desired) noexcept {
+FORCE_INLINE f64 atomic_compare_exchange_strong_release(volatile f64* value, f64* expected, f64 desired) noexcept {
     volatile _atomic_64* value_as_union = (volatile _atomic_64*)value;
     _atomic_64* expected_as_union = (_atomic_64*)expected;
     _atomic_64 desired_as_union;
@@ -303,13 +303,13 @@ FORCE_INLINE f64 atomic_compare_exchange_weak_release(volatile f64* value, f64* 
 
     __atomic_compare_exchange_n(
         &value_as_union->l, &expected_as_union->l, desired_as_union.l, 0,
-        __ATOMIC_RELEASE, __ATOMIC_RELEASE
+        __ATOMIC_RELEASE, __ATOMIC_RELAXED
     );
 
     return expected_as_union->f;
 }
-FORCE_INLINE int32 atomic_compare_exchange_weak_release(volatile int32* value, int32* expected, int32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELEASE, __ATOMIC_RELEASE); return *expected; }
-FORCE_INLINE int64 atomic_compare_exchange_weak_release(volatile int64* value, int64* expected, int64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELEASE, __ATOMIC_RELEASE); return *expected; }
+FORCE_INLINE int32 atomic_compare_exchange_strong_release(volatile int32* value, int32* expected, int32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELEASE, __ATOMIC_RELEASE); return *expected; }
+FORCE_INLINE int64 atomic_compare_exchange_strong_release(volatile int64* value, int64* expected, int64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELEASE, __ATOMIC_RELEASE); return *expected; }
 FORCE_INLINE int8 atomic_fetch_add_release(volatile int8* value, int8 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_RELEASE); }
 FORCE_INLINE int8 atomic_fetch_sub_release(volatile int8* value, int8 operand) noexcept { return __atomic_sub_fetch(value, operand, __ATOMIC_RELEASE); }
 FORCE_INLINE int16 atomic_fetch_add_release(volatile int16* value, int16 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_RELEASE); }
@@ -346,8 +346,8 @@ FORCE_INLINE void atomic_add_release(volatile uint32* value, uint32 increment) n
 FORCE_INLINE void atomic_sub_release(volatile uint32* value, uint32 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_RELEASE); }
 FORCE_INLINE void atomic_add_release(volatile uint64* value, uint64 increment) noexcept { __atomic_add_fetch(value, increment, __ATOMIC_RELEASE); }
 FORCE_INLINE void atomic_sub_release(volatile uint64* value, uint64 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_RELEASE); }
-FORCE_INLINE uint32 atomic_compare_exchange_weak_release(volatile uint32* value, uint32* expected, uint32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELEASE, __ATOMIC_RELEASE); return *expected; }
-FORCE_INLINE uint64 atomic_compare_exchange_weak_release(volatile uint64* value, uint64* expected, uint64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELEASE, __ATOMIC_RELEASE); return *expected; }
+FORCE_INLINE uint32 atomic_compare_exchange_strong_release(volatile uint32* value, uint32* expected, uint32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELEASE, __ATOMIC_RELAXED); return *expected; }
+FORCE_INLINE uint64 atomic_compare_exchange_strong_release(volatile uint64* value, uint64* expected, uint64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_RELEASE, __ATOMIC_RELAXED); return *expected; }
 FORCE_INLINE uint8 atomic_fetch_add_release(volatile uint8* value, uint8 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_RELEASE); }
 FORCE_INLINE uint8 atomic_fetch_sub_release(volatile uint8* value, uint8 operand) noexcept { return __atomic_sub_fetch(value, operand, __ATOMIC_RELEASE); }
 FORCE_INLINE uint16 atomic_fetch_add_release(volatile uint16* value, uint16 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_RELEASE); }
@@ -403,7 +403,7 @@ FORCE_INLINE void atomic_add_acquire_release(volatile int32* value, int32 increm
 FORCE_INLINE void atomic_sub_acquire_release(volatile int32* value, int32 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_SEQ_CST); }
 FORCE_INLINE void atomic_add_acquire_release(volatile int64* value, int64 increment) noexcept { __atomic_add_fetch(value, increment, __ATOMIC_SEQ_CST); }
 FORCE_INLINE void atomic_sub_acquire_release(volatile int64* value, int64 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_SEQ_CST); }
-FORCE_INLINE f32 atomic_compare_exchange_weak_acquire_release(volatile f32* value, f32* expected, f32 desired) noexcept {
+FORCE_INLINE f32 atomic_compare_exchange_strong_acquire_release(volatile f32* value, f32* expected, f32 desired) noexcept {
     volatile _atomic_32* value_as_union = (volatile _atomic_32*)value;
     _atomic_32* expected_as_union = (_atomic_32*)expected;
     _atomic_32 desired_as_union;
@@ -416,7 +416,7 @@ FORCE_INLINE f32 atomic_compare_exchange_weak_acquire_release(volatile f32* valu
 
     return expected_as_union->f;
 }
-FORCE_INLINE f64 atomic_compare_exchange_weak_acquire_release(volatile f64* value, f64* expected, f64 desired) noexcept {
+FORCE_INLINE f64 atomic_compare_exchange_strong_acquire_release(volatile f64* value, f64* expected, f64 desired) noexcept {
     volatile _atomic_64* value_as_union = (volatile _atomic_64*)value;
     _atomic_64* expected_as_union = (_atomic_64*)expected;
     _atomic_64 desired_as_union;
@@ -429,8 +429,8 @@ FORCE_INLINE f64 atomic_compare_exchange_weak_acquire_release(volatile f64* valu
 
     return expected_as_union->f;
 }
-FORCE_INLINE int32 atomic_compare_exchange_weak_acquire_release(volatile int32* value, int32* expected, int32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); return *expected; }
-FORCE_INLINE int64 atomic_compare_exchange_weak_acquire_release(volatile int64* value, int64* expected, int64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); return *expected; }
+FORCE_INLINE int32 atomic_compare_exchange_strong_acquire_release(volatile int32* value, int32* expected, int32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); return *expected; }
+FORCE_INLINE int64 atomic_compare_exchange_strong_acquire_release(volatile int64* value, int64* expected, int64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); return *expected; }
 FORCE_INLINE int8 atomic_fetch_add_acquire_release(volatile int8* value, int8 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_SEQ_CST); }
 FORCE_INLINE int8 atomic_fetch_sub_acquire_release(volatile int8* value, int8 operand) noexcept { return __atomic_sub_fetch(value, operand, __ATOMIC_SEQ_CST); }
 FORCE_INLINE int16 atomic_fetch_add_acquire_release(volatile int16* value, int16 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_SEQ_CST); }
@@ -467,8 +467,8 @@ FORCE_INLINE void atomic_add_acquire_release(volatile uint32* value, uint32 incr
 FORCE_INLINE void atomic_sub_acquire_release(volatile uint32* value, uint32 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_SEQ_CST); }
 FORCE_INLINE void atomic_add_acquire_release(volatile uint64* value, uint64 increment) noexcept { __atomic_add_fetch(value, increment, __ATOMIC_SEQ_CST); }
 FORCE_INLINE void atomic_sub_acquire_release(volatile uint64* value, uint64 decrement) noexcept { __atomic_sub_fetch(value, decrement, __ATOMIC_SEQ_CST); }
-FORCE_INLINE uint32 atomic_compare_exchange_weak_acquire_release(volatile uint32* value, uint32* expected, uint32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); return *expected; }
-FORCE_INLINE uint64 atomic_compare_exchange_weak_acquire_release(volatile uint64* value, uint64* expected, uint64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST); return *expected; }
+FORCE_INLINE uint32 atomic_compare_exchange_strong_acquire_release(volatile uint32* value, uint32* expected, uint32 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED); return *expected; }
+FORCE_INLINE uint64 atomic_compare_exchange_strong_acquire_release(volatile uint64* value, uint64* expected, uint64 desired) noexcept { __atomic_compare_exchange_n(value, expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED); return *expected; }
 FORCE_INLINE uint8 atomic_fetch_add_acquire_release(volatile uint8* value, uint8 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_SEQ_CST); }
 FORCE_INLINE uint8 atomic_fetch_sub_acquire_release(volatile uint8* value, uint8 operand) noexcept { return __atomic_sub_fetch(value, operand, __ATOMIC_SEQ_CST); }
 FORCE_INLINE uint16 atomic_fetch_add_acquire_release(volatile uint16* value, uint16 operand) noexcept { return __atomic_add_fetch(value, operand, __ATOMIC_SEQ_CST); }

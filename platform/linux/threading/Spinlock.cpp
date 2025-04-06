@@ -20,7 +20,7 @@ void spinlock_start(spinlock32* lock, int32 delay = 10) {
     }
 }
 
-inline
+FORCE_INLINE
 void spinlock_end(spinlock32* lock) {
     __atomic_store_n(lock, 0, __ATOMIC_RELEASE);
 }

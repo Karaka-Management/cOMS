@@ -98,7 +98,7 @@ uint64 cpu_info_features() {
 }
 
 void cpu_info_cache(byte level, CpuCacheInfo* cache) {
-    uint32 eax, ebx, ecx, edx;
+    uint32 eax, ebx, ecx; //, edx;
     int32 type;
 
     cache->level = level;
@@ -113,7 +113,7 @@ void cpu_info_cache(byte level, CpuCacheInfo* cache) {
     eax = regs[0];
     ebx = regs[1];
     ecx = regs[2];
-    edx = regs[3];
+    // edx = regs[3];
 
     type = (eax & 0x1F);
 
