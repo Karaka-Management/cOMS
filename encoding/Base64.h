@@ -58,11 +58,11 @@ size_t base64_decode(const char* encoded_data, byte* data, size_t encoded_length
     size_t output_length = encoded_length / 4 * 3;
     int32 padding = 0;
 
-    if (data[encoded_length - 1] == '=') {
+    if (encoded_data[encoded_length - 1] == '=') {
         --output_length;
         ++padding;
 
-        if (data[encoded_length - 2] == '=') {
+        if (encoded_data[encoded_length - 2] == '=') {
             --output_length;
             ++padding;
         }
@@ -88,9 +88,8 @@ size_t base64_decode(const char* encoded_data, byte* data, size_t encoded_length
         uint32 sextet_a = BASE64_LOOKUP[(byte) encoded_data[i]];
         uint32 sextet_b = BASE64_LOOKUP[(byte) encoded_data[i + 1]];
         uint32 sextet_c = (padding > 1) ? 0 : BASE64_LOOKUP[(byte) encoded_data[i + 2]];
-        uint32 sextet_d = 0;
 
-        uint32 triple = (sextet_a << 18) | (sextet_b << 12) | (sextet_c << 6) | sextet_d;
+        uint32 triple = (sextet_a << 18) | (sextet_b << 12) | (sextet_c << 6);
 
         data[j + 1] = (triple >> 16) & 0xFF;
         if (padding == 1) {

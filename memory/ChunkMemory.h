@@ -403,7 +403,7 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
     data += sizeof(buf->alignment);
 
     memcpy(buf->memory, data, buf->size);
-    data += buf->size;
+    //data += buf->size;
 
     buf->free = (uint64 *) (buf->memory + buf->count * buf->chunk_size);
 

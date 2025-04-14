@@ -190,9 +190,9 @@ void html_template_cache_load_all(HtmlTemplateCache* cache, const char* basedir,
     LOG_1("Loaded all html templates with %n in cache size", {{LOG_DATA_INT32, &cache->cache_pos}});
 }
 
-HtmlTemplateASTNode* html_template_cache_get(HtmlTemplateCache* cache, const char* key)
+HtmlTemplateASTNode* html_template_cache_get(const HtmlTemplateCache* cache, const char* key)
 {
-    PerfectHashEntryInt32* entry = (PerfectHashEntryInt32 *) perfect_hashmap_get_entry(&cache->hm, key);
+    const PerfectHashEntryInt32* entry = (PerfectHashEntryInt32 *) perfect_hashmap_get_entry(&cache->hm, key);
     if (!entry) {
         return NULL;
     }

@@ -76,7 +76,7 @@ struct HtmlTemplateASTNode {
     };
 };
 
-HtmlTemplateASTNode* html_template_node_create(HtmlTemplateNodeType type, HtmlTemplateToken* token, byte** memory) {
+HtmlTemplateASTNode* html_template_node_create(HtmlTemplateNodeType type, const HtmlTemplateToken* token, byte** memory) {
     *memory = (byte *) ROUND_TO_NEAREST((uintptr_t) *memory, 32);
     HtmlTemplateASTNode* node = (HtmlTemplateASTNode *) *memory;
     *memory = (byte *) ROUND_TO_NEAREST((uintptr_t) (*memory + sizeof(HtmlTemplateASTNode)), 32);
@@ -232,7 +232,13 @@ HtmlTemplateASTNode* html_template_parse_for(const char** input, HtmlTemplateTok
     return forNode;
 }
 
-HtmlTemplateASTNode* html_template_html_parse(const char** input, HtmlTemplateToken* token_current, HtmlTemplateContextStack* context_stack, HtmlTemplateContextFlag context_flag, byte** memory) {
+HtmlTemplateASTNode* html_template_html_parse(
+    const char** input,
+    HtmlTemplateToken* token_current,
+    HtmlTemplateContextStack* context_stack,
+    HtmlTemplateContextFlag context_flag,
+    byte** memory
+) {
     HtmlTemplateASTNode* html = html_template_node_create(NODE_RAW, token_current, memory);
 
     *token_current = html_template_token_next(input, context_flag); // Consume html
@@ -243,18 +249,47 @@ HtmlTemplateASTNode* html_template_html_parse(const char** input, HtmlTemplateTo
     return html;
 }
 
-HtmlTemplateASTNode* html_template_statement_parse(const char** input, HtmlTemplateToken* token_current, HtmlTemplateContextStack* context_stack, HtmlTemplateContextFlag context_flag, byte** memory) {
-    if (token_current->type == TOKEN_HTML) {
-        return html_template_html_parse(input, token_current, context_stack, context_flag, memory);
-    } else if (token_current->type == TOKEN_ASSIGN) {
-        return html_template_assignment_parse(input, token_current, context_flag, memory);
-    } else if (token_current->type == TOKEN_IF) {
-        return html_template_parse_if(input, token_current, context_stack, context_flag, memory);
-    } else if (token_current->type == TOKEN_FOR) {
-        return html_template_parse_for(input, token_current, context_stack, context_flag, memory);
-    } else {
-        ASSERT_SIMPLE(false);
-        exit(1);
+HtmlTemplateASTNode* html_template_code_parse(
+    const char** input,
+    HtmlTemplateToken* token_current,
+    HtmlTemplateContextStack* context_stack,
+    HtmlTemplateContextFlag context_flag,
+    byte** memory
+) {
+    HtmlTemplateASTNode* code = html_template_node_create(NODE_RAW, token_current, memory);
+
+    *token_current = html_template_token_next(input, context_flag); // Consume code
+    if (token_current->type != TOKEN_EOF) {
+        code->right = html_template_statement_parse(input, token_current, context_stack, context_flag, memory);
+    }
+
+    return code;
+}
+
+HtmlTemplateASTNode* html_template_statement_parse(
+    const char** input,
+    HtmlTemplateToken* token_current,
+    HtmlTemplateContextStack* context_stack,
+    HtmlTemplateContextFlag context_flag,
+    byte** memory
+) {
+    switch(token_current->type) {
+        case TOKEN_HTML: {
+            return html_template_html_parse(input, token_current, context_stack, context_flag, memory);
+        };
+        case TOKEN_ASSIGN: {
+            return html_template_assignment_parse(input, token_current, context_flag, memory);
+        };
+        case TOKEN_IF: {
+            return html_template_parse_if(input, token_current, context_stack, context_flag, memory);
+        };
+        case TOKEN_FOR: {
+            return html_template_parse_for(input, token_current, context_stack, context_flag, memory);
+        };
+        case TOKEN_CODE_START: {
+            return html_template_code_parse(input, token_current, context_stack, context_flag, memory);
+        };
+        default: UNREACHABLE();
     }
 }
 

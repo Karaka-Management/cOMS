@@ -17,7 +17,7 @@
 #define HAS_ZERO(x) (((x) - ((size_t)-1 / 0xFF)) & ~(x) & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1)))
 #define HAS_CHAR(x, c) (HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
 
-inline constexpr
+inline
 size_t str_length(const char* str) noexcept {
     const char* ptr = str;
 
@@ -300,11 +300,10 @@ int32 utf8_decode(const uint32 codepoint, char* __restrict out) noexcept {
 inline
 int32 utf8_str_length(const char* in) noexcept {
     int32 length = 0;
-    int32 bytes;
     uint32 codepoint;
 
     while (*in) {
-        bytes = utf8_decode(in, &codepoint);
+        int32 bytes = utf8_decode(in, &codepoint);
         if (bytes < 0) {
             return -1;
         }
@@ -332,11 +331,10 @@ void string_to_utf8(const uint32* in, char* out) noexcept {
 inline
 int32 utf8_get_char_at(const char* in, int32 index) noexcept {
     int32 i = 0;
-    int32 bytes_consumed;
     uint32 codepoint;
 
     while (*in) {
-        bytes_consumed = utf8_decode(in, &codepoint);
+        int32 bytes_consumed = utf8_decode(in, &codepoint);
         if (bytes_consumed < 0) {
             return -1;
         }
@@ -358,7 +356,7 @@ void wchar_to_char(wchar_t* str) noexcept
     char* src = (char*) str;
     char* dest = src;
 
-    while (*src != '\0' && src[1] != '\0') {
+    while (*src != '\0' || src[1] != '\0') {
         if (*src != '\0') {
             *dest++ = *src;
         }
@@ -372,7 +370,7 @@ void wchar_to_char(wchar_t* str) noexcept
 inline
 void wchar_to_char(const char* __restrict str, char* __restrict dest) noexcept
 {
-    while (*str != '\0' && str[1] != '\0') {
+    while (*str != '\0' || str[1] != '\0') {
         if (*str != '\0') {
             *dest++ = (char) *str;
         }
@@ -1535,7 +1533,7 @@ void str_pad_right(const char* input, char* output, char pad, size_t len) noexce
     }
 }
 
-inline constexpr
+inline
 void str_pad_left(const char* input, char* output, char pad, size_t len) noexcept {
     size_t input_len = str_length(input);
 
@@ -1696,10 +1694,10 @@ void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) n
     va_start(args, format);
 
     while (*format) {
-        if (*format != '%') {
-            *buffer++ = *format;
-        } else if (*format == '\\' && *(format + 1) == '%') {
+        if (*format == '\\' && format[1] == '%') {
             ++format;
+            *buffer++ = *format;
+        } else if (*format != '%') {
             *buffer++ = *format;
         } else {
             ++format;
@@ -1771,14 +1769,13 @@ void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __re
 
     // We start at 1 since we need 1 char for '\0'
     int32 length = 1;
-    int32 offset;
 
     while (*format && length < buffer_length) {
-        offset = 1;
-        if (*format != '%') {
-            *buffer++ = *format;
-        } else if (*format == '\\' && *(format + 1) == '%') {
+        int32 offset = 1;
+        if (*format == '\\' && format[1] == '%') {
             ++format;
+            *buffer++ = *format;
+        } else if (*format != '%') {
             *buffer++ = *format;
         } else {
             ++format;
@@ -1855,10 +1852,10 @@ void sprintf_fast_iter(char* buffer, const char* format, ...) noexcept {
     int32 count_index = 0;
 
     while (*format) {
-        if (*format != '%' || count_index >= 1) {
-            *buffer++ = *format;
-        } else if (*format == '\\' && *(format + 1) == '%') {
+        if (*format == '\\' && format[1] == '%') {
             ++format;
+            *buffer++ = *format;
+        } else if (*format != '%' || count_index >= 1) {
             *buffer++ = *format;
         } else {
             ++count_index;

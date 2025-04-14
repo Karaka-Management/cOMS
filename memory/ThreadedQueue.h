@@ -310,7 +310,7 @@ void thrd_queue_dequeue_end_wait(ThreadedQueue* queue) noexcept
 
 // Semaphore Lock
 inline
-void thrd_queue_enqueue_coms_sem_wait(ThreadedQueue* queue, const byte* data) noexcept
+void thrd_queue_enqueue_sem_wait(ThreadedQueue* queue, const byte* data) noexcept
 {
     coms_sem_wait(&queue->empty);
     mutex_lock(&queue->mutex);
@@ -341,7 +341,7 @@ bool thrd_queue_enqueue_semimedwait(ThreadedQueue* queue, const byte* data, uint
 }
 
 inline
-byte* thrd_queue_enqueue_start_coms_sem_wait(ThreadedQueue* queue) noexcept
+byte* thrd_queue_enqueue_start_sem_wait(ThreadedQueue* queue) noexcept
 {
     coms_sem_wait(&queue->empty);
     mutex_lock(&queue->mutex);
@@ -350,14 +350,14 @@ byte* thrd_queue_enqueue_start_coms_sem_wait(ThreadedQueue* queue) noexcept
 }
 
 inline
-void thrd_queue_enqueue_end_coms_sem_wait(ThreadedQueue* queue) noexcept
+void thrd_queue_enqueue_end_sem_wait(ThreadedQueue* queue) noexcept
 {
     mutex_unlock(&queue->mutex);
     coms_sem_post(&queue->full);
 }
 
 inline
-byte* thrd_queue_dequeue_coms_sem_wait(ThreadedQueue* queue, byte* data) noexcept
+byte* thrd_queue_dequeue_sem_wait(ThreadedQueue* queue, byte* data) noexcept
 {
     coms_sem_wait(&queue->full);
     mutex_lock(&queue->mutex);
@@ -388,7 +388,7 @@ bool thrd_queue_dequeue_semimedwait(ThreadedQueue* queue, byte* data, uint64 wai
 }
 
 inline
-byte* thrd_queue_dequeue_start_coms_sem_wait(ThreadedQueue* queue) noexcept
+byte* thrd_queue_dequeue_start_sem_wait(ThreadedQueue* queue) noexcept
 {
     coms_sem_wait(&queue->full);
     mutex_lock(&queue->mutex);
@@ -397,7 +397,7 @@ byte* thrd_queue_dequeue_start_coms_sem_wait(ThreadedQueue* queue) noexcept
 }
 
 inline
-void thrd_queue_dequeue_end_coms_sem_wait(ThreadedQueue* queue) noexcept
+void thrd_queue_dequeue_end_sem_wait(ThreadedQueue* queue) noexcept
 {
     ring_move_pointer((RingMemory *) queue, &queue->tail, queue->element_size, queue->alignment);
 

@@ -348,7 +348,7 @@ void hashmap_insert(HashMap* hm, const char* key, const char* value) noexcept {
     *target = (uint16) (element + 1);
 }
 
-HashEntry* hashmap_insert(HashMap* hm, const char* key, byte* value) noexcept {
+HashEntry* hashmap_insert(HashMap* hm, const char* key, const byte* value) noexcept {
     uint64 index = hash_djb2(key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);
@@ -656,7 +656,7 @@ void hashmap_insert(HashMap* hm, int32 key, const char* value) noexcept {
     *target = (uint16) (element + 1);
 }
 
-void hashmap_insert(HashMap* hm, int32 key, byte* value) noexcept {
+void hashmap_insert(HashMap* hm, int32 key, const byte* value) noexcept {
     uint64 index = ((uint32) key) % hm->buf.count;
 
     int32 element = chunk_reserve(&hm->buf, 1);

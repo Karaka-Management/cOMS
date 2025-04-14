@@ -128,6 +128,13 @@ int32 network_info_get(NetworkInfo* info) {
 }
 
 void cpu_info_get(CpuInfo* info) {
+    info->features = cpu_info_features();
+
+    cpu_info_cache(1, &info->cache[0]);
+    cpu_info_cache(2, &info->cache[1]);
+    cpu_info_cache(3, &info->cache[2]);
+    cpu_info_cache(4, &info->cache[3]);
+
     FileHandle fp = file_read_handle("/proc/cpuinfo");
     char line[256];
     char internal_buffer[512];

@@ -201,7 +201,7 @@ void parse_multipart_data(const char *body, const char *boundary) {
         while (*part == '\r' || *part == '\n') part++;
 
         // Parse part headers and content
-        char *headers_end = strstr(part, "\r\n\r\n");
+        char* headers_end = strstr(part, "\r\n\r\n");
         if (headers_end) {
             *headers_end = '\0'; // Terminate headers
             char *content = headers_end + 4; // Skip "\r\n\r\n"

@@ -10,7 +10,12 @@
 #define COMS_DATABASE_SQLITE_H
 
 #include "../../stdlib/Types.h"
-#include "../../EngineDependencies/sqlite/src/sqlite3.h"
+
+#if _WIN32
+    #include "../../EngineDependencies/sqlite/src/sqlite3.h"
+#else
+    #include <sqlite3.h>
+#endif
 
 inline
 int32 db_open_sqlite(DatabaseConnection* con)

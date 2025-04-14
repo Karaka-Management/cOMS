@@ -270,7 +270,7 @@ void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, const char* val
 }
 
 inline
-void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, byte* value) {
+void perfect_hashmap_insert(PerfectHashMap* hm, const char* key, const byte* value) {
     int32 index = hm->hash_function(key, hm->hash_seed) % hm->map_count;
     PerfectHashEntryStr* entry = (PerfectHashEntryStr *) (hm->hash_entries + hm->entry_size * index);
 
@@ -376,7 +376,7 @@ bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 
     } chunk_iterate_end;
 
     // Check if we can turn it into a perfect hash map
-    PerfectHashMap* is_perfect = perfect_hashmap_prepare(phm, (const char**) keys, key_index, seed_tries, ring);
+    const PerfectHashMap* is_perfect = perfect_hashmap_prepare(phm, (const char**) keys, key_index, seed_tries, ring);
     if (!is_perfect) {
         return false;
     }
@@ -384,7 +384,7 @@ bool perfect_hashmap_from_hashmap(PerfectHashMap* phm, const HashMap* hm, int32 
     // Fill perfect hash map
     chunk_id = 0;
     chunk_iterate_start(&hm->buf, chunk_id) {
-        HashEntry* entry = (HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, chunk_id);
+        const HashEntry* entry = (const HashEntry *) chunk_get_element((ChunkMemory *) &hm->buf, chunk_id);
         perfect_hashmap_insert(phm, entry->key, entry->value);
     } chunk_iterate_end;
 

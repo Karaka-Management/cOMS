@@ -79,8 +79,9 @@ int32 compiler_find_first_bit_l2r(uint32 mask) noexcept {
 }
 
 inline
-void compiler_cpuid(int32 cpuInfo[4], int32 function_id) noexcept {
-    __cpuidex(cpuInfo, function_id, 0);
+void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) noexcept {
+    __cpuidex(cpu_info, function_id, level);
 }
+
 
 #endif

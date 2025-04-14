@@ -14,11 +14,15 @@
 #include "../utils/StringUtils.h"
 #include "../compiler/CompilerUtils.h"
 
+#ifdef __linux__
+    #include <unistd.h>
+#endif
+
 #if ARM
     #if ARM_NEON
-        #include "../architecture/arm/utils/neon/Utils.h"
+        #include "../architecture/arm/neon/utils/Utils.h"
     #else
-        #include "../architecture/arm/utils/sve/Utils.h"
+        #include "../architecture/arm/sve/utils/Utils.h"
     #endif
 #else
     #include "../architecture/x86/simd/utils/Utils.h"
@@ -37,15 +41,17 @@ bool is_equal(const byte* __restrict region1, const byte* __restrict region2, ui
 
 inline
 void str_output(const char* __restrict str, ...) {
+    char buffer[1024];
     if (str_find(str, '%')) {
         va_list args;
-        char buffer[1024];
+        va_start(args, str);
         sprintf_fast(buffer, 1024, str, args);
+        va_end(args);
 
         str = buffer;
     }
 
-    #if _WIN32
+    #ifdef _WIN32
         HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
         WriteFile(hStdout, str, str_length(str), NULL, NULL);
     else

@@ -170,7 +170,7 @@ void thrd_chunk_set_unset(uint32 element, atomic_64 uint64* state) {
     } while (!atomic_compare_exchange_strong_release(target, &old_value, new_value));
 }
 
-int32 thrd_chunk_get_unset(ThreadedChunkMemory* buf, atomic_64 uint64* state, int32 start_index = 0) {
+int32 thrd_chunk_get_unset(const ThreadedChunkMemory* buf, atomic_64 uint64* state, int32 start_index = 0) {
     if ((uint32) start_index >= buf->count) {
         start_index = 0;
     }
@@ -253,9 +253,6 @@ void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 e
         return;
     }
 
-    alignas(8) atomic_64 uint64* target;
-    uint64 old_value, new_value;
-
     while (element_count > 0) {
         // Calculate the number of bits we can clear in the current 64-bit block
         uint32 bits_in_current_block = OMS_MIN(64 - bit_index, element_count);
@@ -263,7 +260,8 @@ void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 e
         // Create a mask to clear the bits
         uint64 mask = ((1ULL << bits_in_current_block) - 1) << bit_index;
 
-        target = &buf->free[free_index];
+        uint64 old_value, new_value;
+        alignas(8) atomic_64 uint64* target = &buf->free[free_index];
 
         do {
             old_value = atomic_get_relaxed(target);
@@ -286,7 +284,7 @@ void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 e
 inline
 int32 thrd_chunk_resize(ThreadedChunkMemory* buf, int32 element_id, uint32 elements_old, uint32 elements_new) noexcept
 {
-    byte* data = thrd_chunk_get_element(buf, element_id);
+    const byte* data = thrd_chunk_get_element(buf, element_id);
 
     int32 chunk_id = thrd_chunk_reserve(buf, elements_new);
     byte* data_new = thrd_chunk_get_element(buf, chunk_id);

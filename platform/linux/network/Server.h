@@ -159,8 +159,9 @@ bool socket_server_websocket_create(SocketConnection* con) {
     con->sd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 
     int32 flags;
-    if ((flags = fcntl(con->sd, F_GETFL, 0)) < 0 ||
-        fcntl(con->sd, F_SETFL, flags | O_NONBLOCK) < 0) {
+    if ((flags = fcntl(con->sd, F_GETFL, 0)) < 0
+        || fcntl(con->sd, F_SETFL, flags | O_NONBLOCK) < 0
+    ) {
         close(con->sd);
         con->sd = 0;
         return false;

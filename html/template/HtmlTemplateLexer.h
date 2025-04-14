@@ -92,7 +92,7 @@ HtmlTemplateToken html_template_token_next(const char** input, HtmlTemplateConte
     } else if (context_flag == HTML_TEMPLATE_CONTEXT_FLAG_HTML) {
         // We might be in html mode or template mode
         // Depending on the mode we must handle chars differently
-        if ((**input == '<' && **input == '?')) {
+        if ((**input == '<' && (*input)[1] == '?')) {
             token.type = TOKEN_CODE_START;
             token.length = 2;
 
@@ -101,7 +101,7 @@ HtmlTemplateToken html_template_token_next(const char** input, HtmlTemplateConte
             token.type = TOKEN_HTML;
 
             // Move input along until EOF or template code is found
-            while (**input != '\0' && (**input != '<' || **input != '?')) {
+            while (**input != '\0' && (**input != '<' || (*input)[1] != '?')) {
                 ++(*input);
                 ++token.length;
             }

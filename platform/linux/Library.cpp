@@ -48,8 +48,7 @@ bool library_load(Library* lib)
     // @question we might want RTLD_NOW?
     lib->handle = dlopen(dst, RTLD_LAZY);
     if (!lib->handle) {
-        const char* error = dlerror();
-        LOG_1(error);
+        LOG_1(dlerror());
 
         lib->is_valid = false;
         return false;

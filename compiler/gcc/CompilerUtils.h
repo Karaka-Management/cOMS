@@ -86,19 +86,27 @@ int32 compiler_find_first_bit_l2r(uint32 mask) noexcept {
 
 /*
 #include <cpuid.h>
-
-static inline
-void cpuid(int32 cpuInfo[4], int32 function_id) {
-    __cpuid(function_id, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
+inline
+void compiler_cpuid(uint32 cpu_info[4], int32 function_id) {
+    __cpuid(function_id, cpu_info[0], cpu_info[1], cpu_info[2], cpu_info[3]);
 }
 */
 
 inline
-void compiler_cpuid(int32 cpuInfo[4], int32 function_id) noexcept {
+void compiler_cpuid(uint32 cpu_info[4], int32 function_id) noexcept {
     asm volatile(
         "cpuid"
-        : "=a" (cpuInfo[0]), "=b" (cpuInfo[1]), "=c" (cpuInfo[2]), "=d" (cpuInfo[3])
+        : "=a" (cpu_info[0]), "=b" (cpu_info[1]), "=c" (cpu_info[2]), "=d" (cpu_info[3])
         : "a" (function_id)
+    );
+}
+
+inline
+void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level) noexcept {
+    asm volatile(
+        "cpuid"
+        : "=a" (cpu_info[0]), "=b" (cpu_info[1]), "=c" (cpu_info[2]), "=d" (cpu_info[3])
+        : "a" (function_id), "c" (level)
     );
 }
 

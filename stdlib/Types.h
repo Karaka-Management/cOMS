@@ -419,7 +419,7 @@ uint16 float_to_f16(float f) {
     return f16_bits;
 }
 
-float f16_to_float(f16 f) {
+f32 f16_to_float(f16 f) {
     uint32_t sign = (f & HALF_FLOAT_SIGN_MASK) << 16;
     int32_t exponent = (f & HALF_FLOAT_EXP_MASK) >> HALF_FLOAT_EXP_SHIFT;
     uint32_t fraction = (f & HALF_FLOAT_FRAC_MASK) << (FLOAT32_EXP_SHIFT - HALF_FLOAT_EXP_SHIFT);
@@ -441,7 +441,7 @@ float f16_to_float(f16 f) {
 
     uint32_t f_bits = sign | (exponent << FLOAT32_EXP_SHIFT) | fraction;
 
-    return *((float *) &f_bits);
+    return BITCAST(f_bits, f32);
 }
 
 #endif

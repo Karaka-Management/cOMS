@@ -255,9 +255,8 @@ size_t base64_decode_simd(const char* encoded_data, byte* data, size_t encoded_l
         uint32 sextet_a = BASE64_LOOKUP[(byte) encoded_data[i]];
         uint32 sextet_b = BASE64_LOOKUP[(byte) encoded_data[i + 1]];
         uint32 sextet_c = (padding > 1) ? 0 : BASE64_LOOKUP[(byte) encoded_data[i + 2]];
-        uint32 sextet_d = 0;
 
-        uint32 triple = (sextet_a << 18) | (sextet_b << 12) | (sextet_c << 6) | sextet_d;
+        uint32 triple = (sextet_a << 18) | (sextet_b << 12) | (sextet_c << 6);
 
         data[j] = (triple >> 16) & 0xFF;
         if (padding == 1) {
