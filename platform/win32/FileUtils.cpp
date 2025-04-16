@@ -861,7 +861,7 @@ void iterate_directory(const char* base_path, const char* file_ending, void (*ha
         if (!str_ends_with(base_path, "/")) {
             str_concat_append(full_path, "/");
         }
-        str_concat_append(full_path, entry->d_name);
+        str_concat_append(full_path, find_file_data.cFileName);
 
         if (find_file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
             iterate_directory(full_path, file_ending, handler, args);

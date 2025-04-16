@@ -829,9 +829,8 @@ int32 str_copy_until(char* __restrict dest, const char* __restrict src, char del
     return len;
 }
 
-// @todo Inconsistent parameter order of dest and src with other functions
 inline
-void str_copy_until(const char* __restrict src, char* __restrict dest, const char* __restrict delim) noexcept
+void str_copy_until(char* __restrict dest, const char* __restrict src, const char* __restrict delim) noexcept
 {
     size_t len = str_length(delim);
 
