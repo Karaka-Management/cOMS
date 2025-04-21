@@ -17,7 +17,7 @@ enum DatabaseType : byte {
     DB_TYPE_MSSQL
 };
 
-DatabaseType database_type_from_string(const char* str)
+DatabaseType db_type_from_string(const char* str)
 {
     if (str_compare(str, "sqlite", sizeof("sqlite") - 1) == 0) {
         return DB_TYPE_SQLITE;

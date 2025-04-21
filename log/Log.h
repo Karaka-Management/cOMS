@@ -27,7 +27,11 @@
     // 3 = debug logging
     // 4 = most verbose (probably has significant performance impacts)
     #if DEBUG
-        #define LOG_LEVEL 3
+        #if DEBUG_STRICT
+            #define LOG_LEVEL 4
+        #else
+            #define LOG_LEVEL 3
+        #endif
     #elif INTERNAL
         #define LOG_LEVEL 2
     #elif RELEASE

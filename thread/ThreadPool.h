@@ -29,12 +29,14 @@ struct ThreadPool {
     alignas(4) atomic_32 int32 thread_cnt;
 
     int32 size;
+    int32 element_size;
     alignas(4) atomic_32 int32 state;
-
     alignas(4) atomic_32 int32 id_counter;
 };
 
-static THREAD_RETURN thread_pool_worker(void* arg)
+// @performance Can we optimize this? This is a critical function
+static
+THREAD_RETURN thread_pool_worker(void* arg)
 {
     ThreadPool* pool = (ThreadPool *) arg;
     PoolWorker* work;
@@ -51,6 +53,9 @@ static THREAD_RETURN thread_pool_worker(void* arg)
             break;
         }
 
+        // We define a queue element as free based on it's id
+        // So even if we "keep" it in the queue the pool will not overwrite it as long as the id > 0 (see pool_add)
+        // This is only a ThreadPool specific queue behavior to avoid additional copies
         work = (PoolWorker *) queue_dequeue_keep(&pool->work_queue);
         mutex_unlock(&pool->work_mutex);
 
@@ -63,10 +68,11 @@ static THREAD_RETURN thread_pool_worker(void* arg)
         LOG_2("ThreadPool worker started");
         work->func(work);
         LOG_2("ThreadPool worker ended");
-        // At the end of a thread the ring memory automatically is considered freed
-        DEBUG_MEMORY_FREE((uintptr_t) work->ring.memory);
-        LOG_2("Freed thread RingMemory: %n B", {{LOG_DATA_UINT64, &work->ring.size}});
         atomic_set_release(&work->state, 1);
+
+        if (work->callback) {
+            work->callback(work);
+        }
 
         // Job gets marked after completion -> can be overwritten now
         if (atomic_get_relaxed(&work->id) == -1) {
@@ -86,8 +92,13 @@ static THREAD_RETURN thread_pool_worker(void* arg)
     return (THREAD_RETURN) NULL;
 }
 
-void thread_pool_alloc(ThreadPool* pool, int32 thread_count, int32 worker_count, int32 alignment = 64)
-{
+void thread_pool_alloc(
+    ThreadPool* pool,
+    int32 element_size,
+    int32 thread_count,
+    int32 worker_count,
+    int32 alignment = 64
+) {
     PROFILE(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
         "Allocating thread pool with %d threads and %d queue length",
@@ -97,8 +108,9 @@ void thread_pool_alloc(ThreadPool* pool, int32 thread_count, int32 worker_count,
         }
     );
 
-    queue_alloc(&pool->work_queue, worker_count, sizeof(PoolWorker), alignment);
+    queue_alloc(&pool->work_queue, worker_count, element_size, alignment);
 
+    pool->element_size = element_size;
     pool->thread_cnt = thread_count;
 
     // @todo switch from pool mutex and pool cond to threadjob mutex/cond
@@ -114,8 +126,14 @@ void thread_pool_alloc(ThreadPool* pool, int32 thread_count, int32 worker_count,
     }
 }
 
-void thread_pool_create(ThreadPool* pool, BufferMemory* buf, int32 thread_count, int32 worker_count, int32 alignment = 64)
-{
+void thread_pool_create(
+    ThreadPool* pool,
+    BufferMemory* buf,
+    int32 element_size,
+    int32 thread_count,
+    int32 worker_count,
+    int32 alignment = 64
+) {
     PROFILE(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
         "Creating thread pool with %d threads and %d queue length",
@@ -125,8 +143,9 @@ void thread_pool_create(ThreadPool* pool, BufferMemory* buf, int32 thread_count,
         }
     );
 
-    queue_init(&pool->work_queue, buf, worker_count, sizeof(PoolWorker), alignment);
+    queue_init(&pool->work_queue, buf, worker_count, element_size, alignment);
 
+    pool->element_size = element_size;
     pool->thread_cnt = thread_count;
 
     // @todo switch from pool mutex and pool cond to threadjob mutex/cond
@@ -170,7 +189,7 @@ void thread_pool_destroy(ThreadPool* pool)
 PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
 {
     mutex_lock(&pool->work_mutex);
-    PoolWorker* temp_job = (PoolWorker *) ring_get_memory_nomove((RingMemory *) &pool->work_queue, sizeof(PoolWorker), 8);
+    PoolWorker* temp_job = (PoolWorker *) ring_get_memory_nomove((RingMemory *) &pool->work_queue, pool->element_size, 8);
     if (atomic_get_relaxed(&temp_job->id) > 0) {
         mutex_unlock(&pool->work_mutex);
         ASSERT_SIMPLE(temp_job->id == 0);
@@ -178,8 +197,8 @@ PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
         return NULL;
     }
 
-    memcpy(temp_job, job, sizeof(PoolWorker));
-    ring_move_pointer((RingMemory *) &pool->work_queue, &pool->work_queue.head, sizeof(PoolWorker), 8);
+    memcpy(temp_job, job, pool->element_size);
+    ring_move_pointer((RingMemory *) &pool->work_queue, &pool->work_queue.head, pool->element_size, 8);
 
     if (temp_job->id == 0) {
         temp_job->id = atomic_fetch_add_acquire(&pool->id_counter, 1);

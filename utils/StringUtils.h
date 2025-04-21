@@ -17,6 +17,16 @@
 #define HAS_ZERO(x) (((x) - ((size_t)-1 / 0xFF)) & ~(x) & (((size_t)-1 / 0xFF) * (0xFF / 2 + 1)))
 #define HAS_CHAR(x, c) (HAS_ZERO((x) ^ (((size_t)-1 / 0xFF) * (c))))
 
+// WARNING: We need this function because the other function relies on none-constexpr performance features
+constexpr
+size_t str_length_constexpr(const char* str) noexcept {
+    size_t len = 0;
+    while (str[len] != '\0') {
+        ++len;
+    }
+    return len;
+}
+
 inline
 size_t str_length(const char* str) noexcept {
     const char* ptr = str;
@@ -43,6 +53,23 @@ size_t str_length(const char* str) noexcept {
     }
 }
 
+// WARNING: We need this function because the other function relies on none-constexpr performance features
+inline constexpr
+const char* str_find_constexpr(const char* str, const char* needle) noexcept {
+    size_t needle_len = str_length_constexpr(needle);
+    size_t str_len = str_length_constexpr(str);
+    size_t limit = str_len - needle_len + 1;
+
+    for (size_t i = 0; i < limit; ++i) {
+        if (str[i] == needle[0] && memcmp(&str[i + 1], &needle[1], needle_len - 1) == 0) {
+            return &str[i];
+        }
+    }
+
+    return NULL;
+}
+
+inline
 const char* str_find(const char* str, const char* needle) noexcept {
     size_t needle_len = str_length(needle);
     size_t str_len = str_length(str);
@@ -848,7 +875,7 @@ void str_copy_until(char* __restrict dest, const char* __restrict src, const cha
     *dest = '\0';
 }
 
-inline
+inline constexpr
 void str_copy_short(char* __restrict dest, const char* __restrict src, int32 length) noexcept
 {
     int32 i = -1;
@@ -859,7 +886,7 @@ void str_copy_short(char* __restrict dest, const char* __restrict src, int32 len
     *dest = '\0';
 }
 
-inline
+inline constexpr
 void str_copy_short(char* __restrict dest, const char* __restrict src) noexcept
 {
     while (*src != '\0') {
@@ -867,6 +894,20 @@ void str_copy_short(char* __restrict dest, const char* __restrict src) noexcept
     }
 
     *dest = '\0';
+}
+
+inline constexpr
+int32 str_copy(char* __restrict dest, const char* __restrict src) noexcept
+{
+    int32 length = 0;
+    while (*src != '\0') {
+        ++length;
+        *dest++ = *src++;
+    }
+
+    *dest = '\0';
+
+    return length;
 }
 
 inline
@@ -1145,7 +1186,7 @@ bool str_contains(const char* haystack, const char* needle, size_t length) noexc
     return false;
 }
 
-inline
+inline constexpr
 int32 str_compare(const char* str1, const char* str2) noexcept
 {
     byte c1, c2;
@@ -1158,6 +1199,7 @@ int32 str_compare(const char* str1, const char* str2) noexcept
     return c1 - c2;
 }
 
+constexpr
 int32 str_compare(const char* str1, const char* str2, size_t n) noexcept
 {
     byte c1 = '\0';

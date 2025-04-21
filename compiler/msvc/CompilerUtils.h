@@ -10,6 +10,7 @@
 #define COMS_COMPILER_MSVC_COMPILER_UTILS_H
 
 #include "../../utils/TestUtils.h"
+#include "../../stdlib/Types.h"
 #include <basetsd.h>
 #include <intrin.h>
 
@@ -82,6 +83,5 @@ inline
 void compiler_cpuid(uint32 cpu_info[4], int32 function_id, int32 level = 0) noexcept {
     __cpuidex(cpu_info, function_id, level);
 }
-
 
 #endif

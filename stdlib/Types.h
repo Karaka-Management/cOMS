@@ -124,10 +124,6 @@ DEFINE_BITCAST_FUNCTION(uint64, f64)
 #define MHZ 1000000
 #define GHZ 1000000000
 
-#define internal static // only allows local "file" access
-#define local_persist static
-#define global_persist static
-
 struct v3_byte {
     union {
         struct {

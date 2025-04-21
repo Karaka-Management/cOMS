@@ -21,6 +21,7 @@
 #endif
 
 #if DB_PSQL
+    #include "psql/PsqlDatabase.h"
 #else
     int32 db_open_psql(void*) { return 0; };
     void db_close_psql(void*) {};
@@ -34,43 +35,46 @@
 #endif
 
 inline
-int32 db_open(DatabaseConnection* con)
+int32 db_open(DatabaseConnection* db)
 {
-    switch (con->type) {
-        case DB_TYPE_SQLITE: {
-            return db_open_sqlite(con);
-        }
-        case DB_TYPE_MARIA: {
+    switch (db->type) {
+        case DB_TYPE_SQLITE:
+            return db_open_sqlite(db);
+        case DB_TYPE_MARIA:
             return 0;
-        }
-        case DB_TYPE_PSQL: {
+        case DB_TYPE_PSQL:
+            return db_open_psql(db);
+        case DB_TYPE_MSSQL:
             return 0;
-        }
-        case DB_TYPE_MSSQL: {
+        case DB_TYPE_UNKNOWN:
             return 0;
-        }
+        default:
+            UNREACHABLE();
     }
-
-    return 0;
 }
 
 inline
-void db_close(DatabaseConnection* con)
+void db_close(DatabaseConnection* db)
 {
-    switch (con->type) {
+    switch (db->type) {
         case DB_TYPE_SQLITE: {
-            db_close_sqlite(con);
+            db_close_sqlite(db);
             return;
         }
         case DB_TYPE_MARIA: {
             return;
         }
         case DB_TYPE_PSQL: {
+            db_close_psql(db);
             return;
         }
         case DB_TYPE_MSSQL: {
             return;
         }
+        case DB_TYPE_UNKNOWN:
+            return;
+        default:
+            UNREACHABLE();
     }
 }
 

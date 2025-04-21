@@ -166,7 +166,8 @@ byte* chunk_get_element(ChunkMemory* buf, uint32 element, bool zeroed = false) n
     return offset;
 }
 
-int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) {
+// This is a special case of the chunk_reserve code where we try to find n unset elements
+int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) noexcept {
     if ((uint32) start_index >= state_count) {
         start_index = 0;
     }
@@ -181,12 +182,23 @@ int32 chunk_get_unset(uint64* state, uint32 state_count, int32 start_index = 0) 
         return free_index * 64 + bit_index;
     }
 
-    for (uint32 i = 0; i < state_count; ++i) {
+    for (uint32 i = 0; i < state_count; i+= 64) {
         if (state[free_index] != 0xFFFFFFFFFFFFFFFF) {
             bit_index = compiler_find_first_bit_r2l(~state[free_index]);
+
+            uint32 id = free_index * 64 + bit_index;
+            if (id >= state_count) {
+                ++free_index;
+                if (free_index * 64 >= state_count) {
+                    free_index = 0;
+                }
+
+                continue;
+            }
+
             state[free_index] |= (1ULL << bit_index);
 
-            return free_index * 64 + bit_index;
+            return id;
         }
 
         ++free_index;

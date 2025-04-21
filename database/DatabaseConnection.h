@@ -13,12 +13,15 @@
 #include "DatabaseType.h"
 
 struct DatabaseConnection {
-    void* con;
+    byte con[32];
 
+    uint32 id; // Internal id to identify the connection
     DatabaseType type;
     uint16 port;
-    char* host;
-    char* name; // databse name
+    const char* host;
+    const char* name;
+    const char* user;
+    const char* pass;
 };
 
 #endif

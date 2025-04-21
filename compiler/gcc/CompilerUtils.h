@@ -9,6 +9,7 @@
 #ifndef COMS_COMPILER_GCC_COMPILER_UTILS_H
 #define COMS_COMPILER_GCC_COMPILER_UTILS_H
 
+#include "../../stdlib/Types.h"
 #include "../../utils/TestUtils.h"
 
 #define PACKED_STRUCT  __attribute__((__packed__))

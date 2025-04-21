@@ -21,9 +21,6 @@ typedef void (*ThreadPoolJobFunc)(void*);
 struct PoolWorker {
     alignas(4) atomic_32 int32 id;
     alignas(4) atomic_32 int32 state;
-    void* arg;
-    void* result;
-    RingMemory ring;
     ThreadPoolJobFunc func;
     ThreadPoolJobFunc callback;
 };

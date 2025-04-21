@@ -14,19 +14,18 @@
 #if _WIN32
     #include <winsock2.h>
     #include <ws2ipdef.h>
+
+    typedef SOCKET socketid;
 #else
     #include <netdb.h>
     #include <unistd.h>
     #include <arpa/inet.h>
+
+    typedef int32 socketid;
 #endif
 
 struct SocketConnection {
-    #if _WIN32
-        SOCKET sd;
-    #else
-        int32 sd;
-    #endif
-
+    socketid sd;
     sockaddr_in6 addr;
     uint16 port;
 };

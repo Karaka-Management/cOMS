@@ -12,77 +12,9 @@
 #include "../../stdlib/Types.h"
 #include "../../stdlib/PerfectHashMap.h"
 #include "../../memory/RingMemory.h"
+#include "../../stdlib/PerfectHashMap.h"
 #include "../../system/FileUtils.cpp"
 #include "../../html/template/HtmlTemplateInterpreter.h"
-
-struct HtmlTemplateCache {
-    // Contains the offsets into the cache
-    PerfectHashMap hm;
-
-    // the layout of the cache is as follows:
-    //      * Perfect hash map memory which contains the offsets into this cache where the root AST node per template can be found (hash_entries)
-    //      * Per template memory:
-    //          * minified template string (64 byte aligned)
-    //          * AST, with it's own values or alternatively a pointer into the template string depending on the data (32 byte aligned for EVERY AST node)
-    byte* cache;
-
-    // Total cache size
-    // It has to contain the templates and the AST of the template
-    uint32 cache_size;
-
-    // Current position
-    uint32 cache_pos;
-};
-
-static
-void html_template_find(const char* path, va_list args) {
-    char** paths = va_arg(args, char**);
-    uint32* path_count = va_arg(args, uint32*);
-    uint32* max_path_count = va_arg(args, uint32*);
-    uint32* total_file_size = va_arg(args, uint32*);
-    RingMemory* ring = va_arg(args, RingMemory*);
-
-    if (path_count == max_path_count) {
-        uint32 old_max_path_count = *max_path_count;
-
-        *max_path_count += 1000;
-        char* new_paths = (char *) ring_get_memory(ring, (*max_path_count) * 256 * sizeof(char), 8, true);
-        memcpy(new_paths, *paths, old_max_path_count * 256 * sizeof(char));
-        *paths = new_paths;
-    }
-
-    *total_file_size += file_size(path);
-    str_copy_short(paths[*path_count], path, 256);
-    ++(*path_count);
-}
-
-void html_template_cache_alloc(HtmlTemplateCache* cache, const char* basedir, RingMemory* ring, int32 alignment = 64) {
-    // @todo limit the maximum cache size in the dynamic resize
-
-    uint32 max_path_count = 1000;
-    uint32 path_count = 0;
-    char* paths = (char *) ring_get_memory(ring, max_path_count * 256 * sizeof(char), 8, true);
-    uint32 total_file_size = 0;
-
-    iterate_directory(basedir, ".tpl.html", html_template_find, &paths, &path_count, &max_path_count, &total_file_size, ring);
-    cache->cache_size = OMS_MAX((uint64) (total_file_size * 1.2f), (uint64) (total_file_size + 1 * KILOBYTE));
-
-    uint32 buffer_size = ROUND_TO_NEAREST(cache->cache_size + perfect_hashmap_size(path_count, sizeof(PerfectHashEntryInt32)), 4096);
-    byte* buf = (byte *) platform_alloc_aligned(buffer_size, alignment);
-    perfect_hashmap_create(&cache->hm, path_count, sizeof(PerfectHashEntryInt32), buf);
-
-    cache->cache = (byte *) ROUND_TO_NEAREST((uintptr_t) (buf + perfect_hashmap_size(path_count, sizeof(PerfectHashEntryInt32))), alignment);
-    perfect_hashmap_prepare(&cache->hm, (const char*) paths, path_count, 256, 10000, ring);
-
-    LOG_1(
-        "Created HtmlTemplateCache with %n B for %n templates with %n B in uncompressed file size",
-        {
-            {LOG_DATA_INT64, &cache->cache_size},
-            {LOG_DATA_INT32, &path_count},
-            {LOG_DATA_INT32, &total_file_size}
-        }
-    );
-}
 
 bool html_template_in_control_structure(const char* str, const char** controls, int32 control_length) {
     for (int32 i = 0; i < control_length; ++i) {
@@ -94,8 +26,12 @@ bool html_template_in_control_structure(const char* str, const char** controls, 
     return false;
 }
 
-void html_template_cache_load(HtmlTemplateCache* cache, const char* key, const char* str, int32 alignment = 64) {
-    char* minified = (char *) ROUND_TO_NEAREST((uintptr_t) cache->cache + (uintptr_t) cache->cache_pos, alignment);
+// @performance This combines load and build, that should be two separate functions
+// Data layout:
+//      1. minified text file
+//      2. AST
+void html_template_cache_load(PerfectHashMapRef* cache, const char* key, const char* str, int32 alignment = 64) {
+    char* minified = (char *) ROUND_TO_NEAREST((uintptr_t) cache->data + (uintptr_t) cache->data_pos, alignment);
     char* minified_start = minified;
 
     static const char* CONTROL_STRUCTURE_START[] = {
@@ -142,8 +78,9 @@ void html_template_cache_load(HtmlTemplateCache* cache, const char* key, const c
         *minified++ = *str++;
     }
 
-    cache->cache_pos += ((uintptr_t) minified - (uintptr_t) minified_start);
+    cache->data_pos += ((uintptr_t) minified - (uintptr_t) minified_start);
 
+    // Now add AST to cache
     HtmlTemplateToken current_token = html_template_token_next((const char**) &minified_start, HTML_TEMPLATE_CONTEXT_FLAG_HTML);
 
     HtmlTemplateContextStack context_stack = {};
@@ -152,7 +89,7 @@ void html_template_cache_load(HtmlTemplateCache* cache, const char* key, const c
 
     // @todo Instead of doing this, we want to use the cache.memory
     // For this to work we need to pass the current memory position however into this function
-    byte* memory_start = cache->cache + cache->cache_pos;
+    byte* memory_start = cache->data + cache->data_pos;
     byte* memory = memory_start;
     HtmlTemplateASTNode* ast = html_template_statement_parse(
         (const char**) &minified_start,
@@ -164,16 +101,16 @@ void html_template_cache_load(HtmlTemplateCache* cache, const char* key, const c
         &memory
     );
 
-    cache->cache_pos += ((uintptr_t) memory - (uintptr_t) memory_start);
+    cache->data_pos += ((uintptr_t) memory - (uintptr_t) memory_start);
 
     ASSERT_SIMPLE(ast);
     ASSERT_SIMPLE(((uintptr_t) ast) % alignment == 0);
-    perfect_hashmap_insert(&cache->hm, key, (int32) ((uintptr_t) ast - (uintptr_t) cache->cache));
+    // We only store the AST index in the hash map
+    perfect_hashmap_insert(&cache->hm, key, (int32) ((uintptr_t) ast - (uintptr_t) cache->data));
 }
 
-static
 void html_template_cache_iter(const char* path, va_list args) {
-    HtmlTemplateCache* cache = va_arg(args, HtmlTemplateCache*);
+    PerfectHashMapRef* cache = va_arg(args, PerfectHashMapRef*);
     RingMemory* ring = va_arg(args, RingMemory*);
 
     char full_path[MAX_PATH];
@@ -185,19 +122,22 @@ void html_template_cache_iter(const char* path, va_list args) {
     html_template_cache_load(cache, path, (const char *) file.content);
 }
 
-void html_template_cache_load_all(HtmlTemplateCache* cache, const char* basedir, RingMemory* ring) {
-    iterate_directory(basedir, ".tpl.html", html_template_cache_iter, cache, ring);
-    LOG_1("Loaded all html templates with %n in cache size", {{LOG_DATA_INT32, &cache->cache_pos}});
+void raw_file_cache_iter(const char* path, va_list args) {
+    PerfectHashMapRef* cache = va_arg(args, PerfectHashMapRef*);
+    RingMemory* ring = va_arg(args, RingMemory*);
+
+    char full_path[MAX_PATH];
+    relative_to_absolute(path, full_path);
+
+    FileBody file = {};
+    file_read(full_path, &file, ring);
+
+    perfect_hashmap_insert(cache, path, file.content, file.size);
 }
 
-HtmlTemplateASTNode* html_template_cache_get(const HtmlTemplateCache* cache, const char* key)
+HtmlTemplateASTNode* html_template_cache_get(const PerfectHashMapRef* cache, const char* key)
 {
-    const PerfectHashEntryInt32* entry = (PerfectHashEntryInt32 *) perfect_hashmap_get_entry(&cache->hm, key);
-    if (!entry) {
-        return NULL;
-    }
-
-    return (HtmlTemplateASTNode *) (cache->cache + entry->value);
+    return (HtmlTemplateASTNode *) perfect_hashmap_get_value(cache, key);
 }
 
 #endif

@@ -12,28 +12,32 @@
 #include "../../stdlib/Types.h"
 
 #if _WIN32
-    #include "../../EngineDependencies/sqlite/src/sqlite3.h"
+    #include "../../dependencies/sqlite/src/sqlite3.h"
 #else
     #include <sqlite3.h>
 #endif
 
 inline
-int32 db_open_sqlite(DatabaseConnection* con)
+int32 db_open_sqlite(DatabaseConnection* db)
 {
-    int32 rc;
-    rc = sqlite3_open(con->host, &con->db_sqlite);
+    ASSERT_SIMPLE(sizeof(db->con) >= sizeof(sqlite3*));
 
-    if (rc) {
-        return rc;
+    int32 rc;
+    rc = sqlite3_open(db->host, (sqlite3 **) &db->con);
+
+    db->con = rc;
+
+    if (!rc) {
+        return -1;
     }
 
-    return 0;
+    return rc;
 }
 
 inline
-void db_close_sqlite(DatabaseConnection* con)
+void db_close_sqlite(DatabaseConnection* db)
 {
-    sqlite3_close(con->db_sqlite);
+    sqlite3_close((sqlite3 *) db->con);
 }
 
 #endif

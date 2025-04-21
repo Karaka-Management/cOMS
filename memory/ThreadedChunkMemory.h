@@ -153,60 +153,57 @@ byte* thrd_chunk_get_element(ThreadedChunkMemory* buf, uint32 element, bool zero
     return chunk_get_element((ChunkMemory *) buf, element, zeroed);
 }
 
-void thrd_chunk_set_unset(uint32 element, atomic_64 uint64* state) {
-    uint32 free_index = element / 64;
-    uint32 bit_index = element & 63;
+inline
+void thrd_chunk_set_unset(uint32 element, atomic_64 uint64* state) noexcept {
+    int32 free_index = element / 64;
+    int32 bit_index = element & 63;
 
-    alignas(8) atomic_64 uint64* target = &state[free_index];
-    uint64 old_value, new_value;
-
-    do {
-        old_value = atomic_get_relaxed(target);
-        new_value = old_value | (1ULL << bit_index);
-
-        if (old_value == new_value) {
-            return;
-        }
-    } while (!atomic_compare_exchange_strong_release(target, &old_value, new_value));
+    uint64 mask = ~(1ULL << bit_index);
+    atomic_fetch_and_release(&state[free_index], mask);
 }
 
-int32 thrd_chunk_get_unset(const ThreadedChunkMemory* buf, atomic_64 uint64* state, int32 start_index = 0) {
-    if ((uint32) start_index >= buf->count) {
+int32 thrd_chunk_get_unset(atomic_64 uint64* state, uint32 state_count, int32 start_index = 0) noexcept {
+    if ((uint32) start_index >= state_count) {
         start_index = 0;
     }
 
     uint32 free_index = start_index / 64;
     uint32 bit_index = start_index & 63;
 
-    if (!IS_BIT_SET_64_R2L(state[free_index], bit_index)) {
-        uint64 expected = atomic_get_relaxed(&state[free_index]);
-        expected &= ~(1ULL << bit_index);
-        uint64 desired = expected | (1ULL << bit_index);
-
-        if (atomic_compare_exchange_strong_release(&state[free_index], &expected, desired)) {
+    // Check standard simple solution
+    uint64 current = atomic_get_acquire(&state[free_index]);
+    if (!(current & (1ULL << bit_index))) {
+        uint64_t desired = current | (1ULL << bit_index);
+        if (atomic_compare_exchange_strong_acquire_release(&state[free_index], current, desired) == current) {
             return free_index * 64 + bit_index;
         }
     }
 
-    for (uint32 i = 0; i < buf->count; ++i) {
+    for (uint32 i = 0; i < state_count; i += 64) {
         if (state[free_index] != 0xFFFFFFFFFFFFFFFF) {
-            // We will try 3 times, usually this would be a while but since compiler_find_... doesn't use atomics
-            // we might get the same index over and over again
-            for (uint32 j = 0; j < 3; ++j) {
-                bit_index = compiler_find_first_bit_r2l(~state[free_index]);
+            uint64 current_free = atomic_get_acquire(&state[free_index]);
+            uint64 inverted = ~current_free;
 
-                uint64 expected = atomic_get_relaxed(&state[free_index]);
-                expected &= ~(1ULL << bit_index);
-                uint64 desired = expected | (1ULL << bit_index);
-
-                if (atomic_compare_exchange_strong_release(&state[free_index], &expected, desired)) {
-                    return free_index * 64 + bit_index;
+            int32 bit_index;
+            int32 j = 0; // We will only try 3 times to avoid infinite or long loops
+            while (j < 3 && (bit_index = compiler_find_first_bit_r2l(inverted)) >= 0) {
+                uint32 id = free_index * 64 + bit_index;
+                if (id >= state_count) {
+                    break;
                 }
+
+                uint64 new_free = current_free | (1ULL << bit_index);
+                if ((new_free = atomic_compare_exchange_strong_acquire_release(&state[free_index], current_free, new_free)) == current_free) {
+                    return id;
+                }
+
+                inverted = ~new_free;
+                ++j;
             }
         }
 
         ++free_index;
-        if (free_index * 64 >= buf->count) {
+        if (free_index * 64 >= state_count) {
             free_index = 0;
         }
     }
@@ -237,6 +234,7 @@ void thrd_chunk_free_element(ThreadedChunkMemory* buf, uint64 free_index, int32 
         if (old_value == new_value) {
             return;
         }
+        // @bug Wrong use
     } while (!atomic_compare_exchange_strong_release(target, &old_value, new_value));
 
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + (free_index * 64 + bit_index) * buf->chunk_size), buf->chunk_size);
@@ -270,6 +268,7 @@ void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 e
             if (old_value == new_value) {
                 break;
             }
+            // @bug Wrong use
         } while (!atomic_compare_exchange_strong_release(target, &old_value, new_value));
 
         // Update the counters and indices
