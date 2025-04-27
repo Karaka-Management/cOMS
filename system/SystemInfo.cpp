@@ -9,6 +9,7 @@
 #ifndef COMS_SYSTEM_INFO_C
 #define COMS_SYSTEM_INFO_C
 
+#include <inttypes.h>
 #if _WIN32
     #include "../platform/win32/SystemInfo.cpp"
 #elif __linux__
@@ -47,7 +48,7 @@ void system_info_render(char* buf, const SystemInfo* info) {
         "L3: Size %u Line %u\n"
         "L4: Size %u Line %u\n"
         "\n"
-        "Features: %lld\n"
+        "Features: %" PRId64 "\n"
         "\n"
         "GPU:\n"
         "==============\n"
@@ -78,7 +79,7 @@ void system_info_render(char* buf, const SystemInfo* info) {
         info->cpu.cache[1].size, (uint32) info->cpu.cache[1].line_size,
         info->cpu.cache[2].size, (uint32) info->cpu.cache[2].line_size,
         info->cpu.cache[3].size, (uint32) info->cpu.cache[3].line_size,
-        (long long) info->cpu.features,
+        info->cpu.features,
         info->gpu[0].name, info->gpu[0].vram,
         info->gpu_count < 2 ? "" : info->gpu[1].name, info->gpu_count < 2 ? 0 : info->gpu[1].vram,
         info->gpu_count < 3 ? "" : info->gpu[2].name, info->gpu_count < 3 ? 0 : info->gpu[2].vram,

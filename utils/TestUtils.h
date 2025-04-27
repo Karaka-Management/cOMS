@@ -10,13 +10,13 @@
 #define COMS_UTILS_TEST_UTILS_H
 
 #if DEBUG
-    #define ASSERT_SIMPLE(a) if (!(a)) { \
+    #define ASSERT_SIMPLE(a) if (!(a)) {    \
         /* cppcheck-suppress nullPointer */ \
-        *(volatile int *)0 = 0; \
+        *(volatile int *)0 = 0;             \
     }
-    #define ASSERT_SIMPLE_CONST(a) if constexpr (!(a)) { \
-        /* cppcheck-suppress nullPointer */ \
-        *(volatile int *)0 = 0; \
+    #define ASSERT_SIMPLE_CONST(a) if constexpr (!(a)) {    \
+        /* cppcheck-suppress nullPointer */                 \
+        *(volatile int *)0 = 0;                             \
     }
 
     #if DEBUG_STRICT

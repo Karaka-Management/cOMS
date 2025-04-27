@@ -941,7 +941,7 @@ void str_copy_long(char* __restrict dest, const char* __restrict src) noexcept
 }
 
 inline
-void str_copy_move_until(const char** __restrict src, char* __restrict dest, char delim) noexcept
+void str_copy_move_until(char* __restrict dest, const char* __restrict* __restrict src, char delim) noexcept
 {
     while (**src != delim && **src != '\0') {
         *dest++ = **src;
@@ -952,7 +952,7 @@ void str_copy_move_until(const char** __restrict src, char* __restrict dest, cha
 }
 
 inline
-void str_copy_move_until(const char** __restrict src, char* __restrict dest, const char* __restrict delim) noexcept
+void str_copy_move_until(char* __restrict dest, const char* __restrict* __restrict src, const char* __restrict delim) noexcept
 {
     size_t len = str_length(delim);
 
@@ -1055,7 +1055,7 @@ str_concat_append(char* dst, size_t dst_length, const char* src) noexcept
 
 inline int64
 str_concat_new(
-    char* dst,
+    char* __restrict dst,
     const char* src1, size_t src1_length,
     const char* src2, size_t src2_length
 ) noexcept {
@@ -1092,7 +1092,7 @@ void str_concat_append(
 }
 
 inline void
-str_concat_new(char* dst, const char* src, int64 data) noexcept
+str_concat_new(char* __restrict dst, const char* __restrict src, int64 data) noexcept
 {
     size_t src_len = str_length(src);
     memcpy(dst, src, src_len);
@@ -1115,7 +1115,7 @@ void str_remove(char* __restrict dst, size_t remove_pos, size_t remove_length) n
 }
 
 inline
-char* strtok(char* str, const char* __restrict delim, char* *key) noexcept {
+char* strtok(char* str, const char* __restrict delim, char** key) noexcept {
     char* result;
     if (str == NULL) {
         str = *key;
@@ -1139,7 +1139,7 @@ char* strtok(char* str, const char* __restrict delim, char* *key) noexcept {
 }
 
 inline constexpr
-bool str_contains(const char* haystack, const char* needle) noexcept
+bool str_contains(const char* __restrict haystack, const char* __restrict needle) noexcept
 {
     // @performance would it make sense to only check until haystack - strlen(needle)?
     // I'm not sure the strlen overhead is worth it
@@ -1163,7 +1163,7 @@ bool str_contains(const char* haystack, const char* needle) noexcept
 }
 
 inline constexpr
-bool str_contains(const char* haystack, const char* needle, size_t length) noexcept
+bool str_contains(const char* __restrict haystack, const char* __restrict needle, size_t length) noexcept
 {
     while (*haystack != '\0' && length > 0) {
         const char* p1 = haystack;
@@ -1320,7 +1320,7 @@ int32 str_compare_caseless(const char* str1, const char* str2, size_t n) noexcep
 }
 
 inline constexpr
-bool str_ends_with(const char* str, const char* suffix) noexcept {
+bool str_ends_with(const char* __restrict str, const char* __restrict suffix) noexcept {
     if (!str || !suffix) {
         return false;
     }
@@ -1434,7 +1434,7 @@ void str_move_to_pos(const char** str, int32 pos) noexcept
 }
 
 inline
-void str_move_past(const char** str, char delim) noexcept
+void str_move_past(const char* __restrict* __restrict str, char delim) noexcept
 {
     while (**str != delim && **str != '\0')  {
         ++(*str);
@@ -1549,7 +1549,7 @@ void str_skip_until_list(const char** __restrict str, const char* __restrict del
 }
 
 inline
-void hexstr_to_rgba(v4_f32* rgba, const char* hex) noexcept
+void hexstr_to_rgba(v4_f32* __restrict rgba, const char* __restrict hex) noexcept
 {
     if (*hex == '#') {
         ++hex;
@@ -1886,7 +1886,7 @@ void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __re
 }
 
 // There are situations where you only want to replace a certain amount of %
-void sprintf_fast_iter(char* buffer, const char* format, ...) noexcept {
+void sprintf_fast_iter(char* __restrict buffer, const char* __restrict format, ...) noexcept {
     va_list args;
     va_start(args, format);
 

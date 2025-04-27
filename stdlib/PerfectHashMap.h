@@ -171,27 +171,36 @@ PerfectHashMap* perfect_hashmap_prepare(PerfectHashMap* hm, const char* keys, in
     return NULL;
 }
 
-void perfect_hashmap_alloc(PerfectHashMap* hm, int32 count, int32 element_size)
+void perfect_hashmap_alloc(PerfectHashMap* hm, int32 count, int32 element_size, int32 alignment = 64)
 {
     LOG_1("Allocating PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     hm->map_count = count;
     hm->entry_size = element_size;
-    hm->hash_entries = (byte *) platform_alloc(count * element_size);
+    hm->hash_entries = (byte *) platform_alloc_aligned(count * element_size, alignment);
 }
 
-void perfect_hashmap_alloc(PerfectHashMapRef* hmr, int32 count, int32 total_data_size)
+void perfect_hashmap_alloc(PerfectHashMapRef* hmr, int32 count, int32 total_data_size, int32 alignment = 64)
 {
     hmr->hm.entry_size = sizeof(PerfectHashEntryInt32Int32);
     LOG_1("Allocating PerfectHashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &hmr->hm.entry_size}});
     hmr->hm.map_count = count;
-    hmr->hm.hash_entries = (byte *) platform_alloc(
+    hmr->hm.hash_entries = (byte *) platform_alloc_aligned(
         count * hmr->hm.entry_size
-        + total_data_size
+        + total_data_size,
+        alignment
     );
 
     hmr->data_pos = 0;
     hmr->data_size = total_data_size;
     hmr->data = hmr->hm.hash_entries + count * hmr->hm.entry_size;
+}
+
+void perfect_hashmap_free(PerfectHashMap* hm) {
+    platform_aligned_free((void **) &hm->hash_entries);
+}
+
+void perfect_hashmap_free(PerfectHashMapRef* hmr) {
+    platform_aligned_free((void **) &hmr->hm.hash_entries);
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
@@ -203,7 +212,7 @@ void perfect_hashmap_create(PerfectHashMap* hm, int32 count, int32 element_size,
     hm->hash_entries = buffer_get_memory(
         buf,
         count * element_size,
-        0, true
+        64, true
     );
 }
 

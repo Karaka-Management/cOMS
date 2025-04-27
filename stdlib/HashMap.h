@@ -153,7 +153,7 @@ void hashmap_alloc(HashMap* hm, int32 count, int32 element_size, int32 alignment
     );
 
     hm->table = (uint16 *) data;
-    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, 8);
+    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, alignment);
 }
 
 inline
@@ -161,21 +161,22 @@ void hashmap_alloc(HashMapRef* hmr, int32 count, int32 data_element_size, int32 
 {
     int32 element_size = sizeof(HashEntryInt32Int32);
     LOG_1("Allocate HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
-    byte* data = (byte *) platform_alloc(
+    byte* data = (byte *) platform_alloc_aligned(
         count * (sizeof(uint16) + element_size)
         + CEIL_DIV(count, alignment) * sizeof(hmr->hm.buf.free)
-        + count * data_element_size
+        + count * data_element_size,
+        alignment
     );
 
     hmr->hm.table = (uint16 *) data;
-    chunk_init(&hmr->hm.buf, data + sizeof(uint16) * count, count, element_size, 8);
-    chunk_init(&hmr->data, data + hmr->hm.buf.size, count, data_element_size);
+    chunk_init(&hmr->hm.buf, data + sizeof(uint16) * count, count, element_size, alignment);
+    chunk_init(&hmr->data, data + hmr->hm.buf.size, count, data_element_size, alignment);
 }
 
 inline
 void hashmap_free(HashMap* hm)
 {
-    platform_free((void **) &hm->table);
+    platform_aligned_free((void **) &hm->table);
 
     hm->table = NULL;
     hm->buf.size = 0;
@@ -194,7 +195,7 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, RingMemory* ri
     );
 
     hm->table = (uint16 *) data;
-    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, 8);
+    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, alignment);
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
@@ -209,16 +210,16 @@ void hashmap_create(HashMap* hm, int32 count, int32 element_size, BufferMemory* 
     );
 
     hm->table = (uint16 *) data;
-    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, 8);
+    chunk_init(&hm->buf, data + sizeof(uint16) * count, count, element_size, alignment);
 }
 
 // WARNING: element_size = element size + remaining HashEntry data size
 inline
-void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf) noexcept
+void hashmap_create(HashMap* hm, int32 count, int32 element_size, byte* buf, int32 alignment = 64) noexcept
 {
     LOG_1("Create HashMap for %n elements with %n B per element", {{LOG_DATA_INT32, &count}, {LOG_DATA_INT32, &element_size}});
     hm->table = (uint16 *) buf;
-    chunk_init(&hm->buf, buf + sizeof(uint16) * count, count, element_size, 8);
+    chunk_init(&hm->buf, buf + sizeof(uint16) * count, count, element_size, alignment);
 }
 
 inline
@@ -255,6 +256,8 @@ void hashmap_insert(HashMap* hm, const char* key, int32 value) noexcept {
 
     int32 element = chunk_reserve(&hm->buf, 1);
     HashEntryInt32* entry = (HashEntryInt32 *) chunk_get_element(&hm->buf, element, true);
+
+    ASSERT_SIMPLE(((uintptr_t) entry) % 32 == 0);
 
     // Ensure key length
     str_move_to_pos(&key, -HASH_MAP_MAX_KEY_LENGTH);
@@ -908,7 +911,11 @@ int64 hashmap_dump(const HashMap* hm, byte* data, [[maybe_unused]] int32 steps =
             } else if (value_size == 8) {
                 *((int64 *) data) = SWAP_ENDIAN_LITTLE(((HashEntryInt64 *) entry)->value);
             } else {
-                memcpy(data, entry->value, value_size);
+                if (entry->value) {
+                    memcpy(data, entry->value, value_size);
+                } else {
+                    memset(data, 0, value_size);
+                }
             }
             data += value_size;
         } else {

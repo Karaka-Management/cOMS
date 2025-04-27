@@ -16,6 +16,7 @@
 #include "Thread.h"
 #include "Atomic.h"
 #include "ThreadJob.h"
+#include "../log/DebugContainer.h"
 
 struct ThreadPool {
     // This is not a threaded queue since we want to handle the mutex in here, not in the queue for finer control
@@ -25,29 +26,50 @@ struct ThreadPool {
     mutex_cond work_cond;
     mutex_cond working_cond;
 
+    // By design the working_cnt is <= thread_cnt
     alignas(4) atomic_32 int32 working_cnt;
     alignas(4) atomic_32 int32 thread_cnt;
 
     int32 size;
     int32 element_size;
+
+    // 0 = down, 1 = shutting down, 2 = running
     alignas(4) atomic_32 int32 state;
     alignas(4) atomic_32 int32 id_counter;
+
+    DebugContainer* debug_container;
 };
 
-// @performance Can we optimize this? This is a critical function
+// @performance Can we optimize this? This is a critical function.
+// If we have a small worker the "spinup"/"re-activation" time is from utmost importance
 static
 THREAD_RETURN thread_pool_worker(void* arg)
 {
     ThreadPool* pool = (ThreadPool *) arg;
+
+    if (pool->debug_container) {
+        _log_fp = pool->debug_container->log_fp;
+        _log_memory = pool->debug_container->log_memory;
+        _dmc = pool->debug_container->dmc;
+        _perf_stats = pool->debug_container->perf_stats;
+        _perf_active = pool->debug_container->perf_active;
+        _stats_counter = pool->debug_container->stats_counter;
+        *_perf_active = *pool->debug_container->perf_active;
+    }
+
+    // @bug Why doesn't this work? There must be some threading issue
+    LOG_2("Thread pool worker starting up");
+    LOG_INCREMENT(DEBUG_COUNTER_THREAD);
+
     PoolWorker* work;
 
     while (true) {
         mutex_lock(&pool->work_mutex);
-        while (queue_is_empty(&pool->work_queue) && !pool->state) {
+        while (pool->state > 1 && queue_is_empty(&pool->work_queue)) {
             coms_pthread_cond_wait(&pool->work_cond, &pool->work_mutex);
         }
 
-        if (pool->state == 1) {
+        if (pool->state < 2) {
             mutex_unlock(&pool->work_mutex);
 
             break;
@@ -55,7 +77,8 @@ THREAD_RETURN thread_pool_worker(void* arg)
 
         // We define a queue element as free based on it's id
         // So even if we "keep" it in the queue the pool will not overwrite it as long as the id > 0 (see pool_add)
-        // This is only a ThreadPool specific queue behavior to avoid additional copies
+        // This is only a ThreadPool specific queue behavior to avoid additional memory copy
+        // @bug this needs to be a threaded queue
         work = (PoolWorker *) queue_dequeue_keep(&pool->work_queue);
         mutex_unlock(&pool->work_mutex);
 
@@ -63,7 +86,7 @@ THREAD_RETURN thread_pool_worker(void* arg)
             continue;
         }
 
-        atomic_increment_relaxed(&pool->working_cnt);
+        atomic_increment_release(&pool->working_cnt);
         atomic_set_release(&work->state, 2);
         LOG_2("ThreadPool worker started");
         work->func(work);
@@ -79,15 +102,21 @@ THREAD_RETURN thread_pool_worker(void* arg)
             atomic_set_release(&work->id, 0);
         }
 
-        atomic_decrement_relaxed(&pool->working_cnt);
+        atomic_decrement_release(&pool->working_cnt);
 
-        if (atomic_get_relaxed(&pool->state) == 0 && atomic_get_relaxed(&pool->working_cnt) == 0) {
+        // Signal that we ran out of work (maybe the main thread needs this info)
+        // This is not required for the thread pool itself but maybe some other part of the main thread wants to know
+        if (atomic_get_relaxed(&pool->working_cnt) == 0) {
             coms_pthread_cond_signal(&pool->working_cond);
         }
     }
 
+    // We tell the thread pool taht this worker thread is shutting down
+    atomic_decrement_release(&pool->thread_cnt);
     coms_pthread_cond_signal(&pool->working_cond);
-    atomic_decrement_relaxed(&pool->thread_cnt);
+
+    LOG_2("Thread pool worker shutting down");
+    LOG_DECREMENT(DEBUG_COUNTER_THREAD);
 
     return (THREAD_RETURN) NULL;
 }
@@ -119,11 +148,15 @@ void thread_pool_alloc(
     coms_pthread_cond_init(&pool->work_cond, NULL);
     coms_pthread_cond_init(&pool->working_cond, NULL);
 
+    pool->state = 2;
+
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
         coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
         coms_pthread_detach(thread);
     }
+
+    LOG_2("%d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
 }
 
 void thread_pool_create(
@@ -154,17 +187,23 @@ void thread_pool_create(
     coms_pthread_cond_init(&pool->work_cond, NULL);
     coms_pthread_cond_init(&pool->working_cond, NULL);
 
+    pool->state = 2;
+
     coms_pthread_t thread;
     for (pool->size = 0; pool->size < thread_count; ++pool->size) {
         coms_pthread_create(&thread, NULL, thread_pool_worker, pool);
         coms_pthread_detach(thread);
     }
+
+    LOG_2("%d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
 }
 
 void thread_pool_wait(ThreadPool* pool)
 {
     mutex_lock(&pool->work_mutex);
-    while ((!pool->state && pool->working_cnt != 0) || (pool->state && pool->thread_cnt != 0)) {
+    // @question We removed some state checks here, not sure if they were really necessary
+    // remove this comment once we are sure everything works as expected
+    while (pool->working_cnt != 0 || pool->thread_cnt != 0) {
         coms_pthread_cond_wait(&pool->working_cond, &pool->work_mutex);
     }
     mutex_unlock(&pool->work_mutex);
@@ -184,6 +223,9 @@ void thread_pool_destroy(ThreadPool* pool)
     mutex_destroy(&pool->work_mutex);
     coms_pthread_cond_destroy(&pool->work_cond);
     coms_pthread_cond_destroy(&pool->working_cond);
+
+    // This sets the state to "down"
+    atomic_set_release(&pool->state, 0);
 }
 
 PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)

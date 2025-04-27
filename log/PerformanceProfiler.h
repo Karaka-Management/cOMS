@@ -13,7 +13,6 @@
 #include "../utils/TimeUtils.h"
 #include "../thread/Spinlock.cpp"
 #include "../thread/Atomic.h"
-#include "../system/Allocator.h"
 #include "../hash/GeneralHash.h"
 #include "../architecture/Intrinsics.h"
 #include "../compiler/CompilerUtils.h"
@@ -24,6 +23,7 @@
     enum TimingStats {
         PROFILE_TEMP,
 
+        PROFILE_MEMORY_ALLOC,
         PROFILE_FILE_UTILS,
         PROFILE_BUFFER_ALLOC,
         PROFILE_CHUNK_ALLOC,

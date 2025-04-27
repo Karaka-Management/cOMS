@@ -66,8 +66,6 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
     buf->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (buf->memory + count * chunk_size), alignment);
 
     memset(buf->memory, 0, buf->size);
-
-    LOG_1("Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 }
 
 inline
@@ -110,8 +108,7 @@ void chunk_init(ChunkMemory* buf, byte* data, uint32 count, uint32 chunk_size, i
         + sizeof(uint64) * CEIL_DIV(count, alignment) // free
         + alignment * 2; // overhead for alignment
 
-    // @bug what if an alignment is defined?
-    buf->memory = data;
+    buf->memory = (byte *) ROUND_TO_NEAREST((uintptr_t) data, alignment);
 
     buf->count = count;
     buf->size = size;
@@ -307,7 +304,7 @@ int32 chunk_reserve(ChunkMemory* buf, uint32 elements = 1) noexcept
     }
 
     if (free_element < 0) {
-        ASSERT_SIMPLE(false);
+        LOG_3("No free chunk memory index found");
         return -1;
     }
 

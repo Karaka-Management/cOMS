@@ -60,8 +60,6 @@ void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
     ring->alignment = alignment;
 
     memset(ring->memory, 0, ring->size);
-
-    LOG_1("Allocated RingMemory: %n B", {{LOG_DATA_UINT64, &ring->size}});
 }
 
 inline

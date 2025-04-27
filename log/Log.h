@@ -67,7 +67,9 @@ enum LogDataType {
     LOG_DATA_NONE,
     LOG_DATA_VOID,
     LOG_DATA_BYTE,
+    LOG_DATA_INT16,
     LOG_DATA_INT32,
+    LOG_DATA_UINT16,
     LOG_DATA_UINT32,
     LOG_DATA_INT64,
     LOG_DATA_UINT64,
@@ -100,7 +102,7 @@ struct LogDataArray{
     LogData data[LOG_DATA_ARRAY];
 };
 
-// @bug This probably requires thread safety
+// @bug This needs to be thread safe
 byte* log_get_memory() noexcept
 {
     if (_log_memory->pos + MAX_LOG_LENGTH > _log_memory->size) {
@@ -116,6 +118,7 @@ byte* log_get_memory() noexcept
 }
 
 // @performance This should only be called async to avoid blocking (e.g. render loop)
+// @bug This needs to be thread safe
 void log_to_file()
 {
     // we don't log an empty log pool
@@ -157,6 +160,7 @@ void log_flush()
     _log_memory->pos = 0;
 }
 
+// @bug This needs to be thread safe
 void log(const char* str, const char* file, const char* function, int32 line)
 {
     if (!_log_memory) {
@@ -199,6 +203,7 @@ void log(const char* str, const char* file, const char* function, int32 line)
     }
 }
 
+// @bug This needs to be thread safe
 void log(const char* format, LogDataArray data, const char* file, const char* function, int32 line)
 {
     if (!_log_memory) {
@@ -235,6 +240,12 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
             }   break;
             case LOG_DATA_BYTE: {
                 sprintf_fast_iter(msg->message, temp_format, (int32) *((byte *) data.data[i].value));
+            } break;
+            case LOG_DATA_INT16: {
+                sprintf_fast_iter(msg->message, temp_format, (int32) *((int16 *) data.data[i].value));
+            } break;
+            case LOG_DATA_UINT16: {
+                sprintf_fast_iter(msg->message, temp_format, (uint32) *((uint16 *) data.data[i].value));
             } break;
             case LOG_DATA_INT32: {
                 sprintf_fast_iter(msg->message, temp_format, *((int32 *) data.data[i].value));

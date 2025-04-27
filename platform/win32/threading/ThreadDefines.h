@@ -18,7 +18,12 @@ typedef CRITICAL_SECTION mutex;
 typedef void mutexattr_t;
 typedef void coms_pthread_condattr_t;
 typedef void coms_pthread_rwlockattr_t;
-typedef HANDLE coms_pthread_t;
+
+struct coms_pthread_t {
+    HANDLE h;
+    void* stack;
+};
+
 typedef CONDITION_VARIABLE mutex_cond;
 
 // Thread local variable Already exists in c++11

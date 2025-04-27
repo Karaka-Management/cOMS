@@ -39,9 +39,17 @@ int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_rou
         return 1;
     }
 
+    const uint64 stack_size = 1 * MEGABYTE;
+    thread->stack = platform_alloc_aligned(stack_size, 64);
+
     int32 flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM;
-    *thread = clone((int32 (*)(void*))start_routine, NULL, flags, arg);
-    if (*thread == -1) {
+
+    // The + stack_size is required since the stack is used "downwards"
+    thread->h = clone((int32 (*)(void*))start_routine, (void *) ((uintptr_t) thread->stack + stack_size), flags, arg);
+
+    if (thread->h == -1) {
+        LOG_1("Thread creation faild with error %d", {{LOG_DATA_INT32, &errno}});
+
         return 1;
     }
 
@@ -50,9 +58,13 @@ int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_rou
 
 FORCE_INLINE
 int32 coms_pthread_join(coms_pthread_t thread, void** retval) {
-    return syscall(SYS_waitid, P_PID, thread, retval, WEXITED, NULL) == -1
+    int32 res = syscall(SYS_waitid, P_PID, thread, retval, WEXITED, NULL) == -1
         ? 1
         : 0;
+
+    platform_aligned_free((void **) &thread.stack);
+
+    return res;
 }
 
 FORCE_INLINE
@@ -126,7 +138,7 @@ int32 mutex_condimedwait(mutex_cond* cond, mutex* mutex, const struct timespec*)
     return 0;
 }
 
-inline
+FORCE_INLINE
 int32 coms_pthread_cond_wait(mutex_cond* cond, mutex* mutex) {
     return mutex_condimedwait(cond, mutex, NULL);
 }

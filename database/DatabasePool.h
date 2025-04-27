@@ -34,7 +34,7 @@ struct DatabasePool {
 void db_pool_alloc(DatabasePool* pool, uint8 count) {
     ASSERT_SIMPLE(count);
     PROFILE(PROFILE_DB_POOL_ALLOC, NULL, false, true);
-    LOG_1("Allocating DatabasePool");
+    LOG_1("Allocating DatabasePool for %d connections", {{LOG_DATA_BYTE, &count}});
 
     uint64 size = count * sizeof(DatabaseConnection)
         + sizeof(uint64) * CEIL_DIV(count, 64) // free
@@ -43,8 +43,6 @@ void db_pool_alloc(DatabasePool* pool, uint8 count) {
     pool->connections = (DatabaseConnection *) platform_alloc_aligned(size, 64);
     pool->free = (uint64 *) ROUND_TO_NEAREST((uintptr_t) (pool->connections + count * sizeof(DatabaseConnection)), 64);
     pool->count = count;
-
-    LOG_1("Allocated DatabasePool: %n B", {{LOG_DATA_UINT64, &pool->count}});
 }
 
 void db_pool_add(DatabasePool* __restrict pool, DatabaseConnection* __restrict db) noexcept {
@@ -53,6 +51,8 @@ void db_pool_add(DatabasePool* __restrict pool, DatabaseConnection* __restrict d
 }
 
 void db_pool_free(DatabasePool* pool) {
+    LOG_1("Freeing DatabasePool");
+
     for (int32 i = 0; i < pool->count; ++i) {
         db_close(&pool->connections[i]);
     }
@@ -60,8 +60,6 @@ void db_pool_free(DatabasePool* pool) {
     platform_aligned_free((void **) &pool->connections);
     pool->free = NULL;
     pool->count = 0;
-
-    LOG_1("Freed DatabasePool");
 }
 
 // Returns free database connection or null if none could be found

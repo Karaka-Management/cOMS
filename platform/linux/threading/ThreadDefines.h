@@ -34,6 +34,9 @@ struct coms_pthread_rwlock_t {
     bool exclusive;
 };
 
-typedef int coms_pthread_t;
+struct coms_pthread_t {
+    int h;
+    void* stack;
+};
 
 #endif
