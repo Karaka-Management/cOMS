@@ -26,12 +26,10 @@ bool html_template_in_control_structure(const char* str, const char** controls, 
     return false;
 }
 
-// @performance This combines load and build, that should be two separate functions
-// Data layout:
-//      1. minified text file
-//      2. AST
-void html_template_cache_load(PerfectHashMapRef* cache, const char* key, const char* str, int32 alignment = 64) {
-    char* minified = (char *) ROUND_TO_NEAREST((uintptr_t) cache->data + (uintptr_t) cache->data_pos, alignment);
+void html_template_build(const FileBody* in, FileBody* out) {
+    // @todo We need to save the size of the template in the out file so we can correctly load the AST which starts afterwards
+
+    char* minified = (char *) out->content;
     char* minified_start = minified;
 
     static const char* CONTROL_STRUCTURE_START[] = {
@@ -41,6 +39,8 @@ void html_template_cache_load(PerfectHashMapRef* cache, const char* key, const c
     static const char* CONTROL_STRUCTURE_END[] = {
         "'", "\"", "</code>", "</pre>", "/>", "</textarea>",
     };
+
+    const char* str = (const char*) in->content;
 
     // Remove empty content to reduce template size
     // We could handle this inside the lexer but the lexer itself often uses pointers into the template
@@ -78,7 +78,7 @@ void html_template_cache_load(PerfectHashMapRef* cache, const char* key, const c
         *minified++ = *str++;
     }
 
-    cache->data_pos += ((uintptr_t) minified - (uintptr_t) minified_start);
+    out->size += ((uintptr_t) minified - (uintptr_t) minified_start);
 
     // Now add AST to cache
     HtmlTemplateToken current_token = html_template_token_next((const char**) &minified_start, HTML_TEMPLATE_CONTEXT_FLAG_HTML);
@@ -89,7 +89,7 @@ void html_template_cache_load(PerfectHashMapRef* cache, const char* key, const c
 
     // @todo Instead of doing this, we want to use the cache.memory
     // For this to work we need to pass the current memory position however into this function
-    byte* memory_start = cache->data + cache->data_pos;
+    byte* memory_start = out->content + out->size;
     byte* memory = memory_start;
     HtmlTemplateASTNode* ast = html_template_statement_parse(
         (const char**) &minified_start,
@@ -101,12 +101,39 @@ void html_template_cache_load(PerfectHashMapRef* cache, const char* key, const c
         &memory
     );
 
-    cache->data_pos += ((uintptr_t) memory - (uintptr_t) memory_start);
-
     ASSERT_SIMPLE(ast);
-    ASSERT_SIMPLE(((uintptr_t) ast) % alignment == 0);
+}
+
+// @performance This combines load and build, that should be two separate functions
+// Data layout:
+//      1. minified text file
+//      2. AST
+void html_template_cache_load(PerfectHashMapRef* cache, const char* key, const char* str) {
+    // Add cache to data
+
     // We only store the AST index in the hash map
-    perfect_hashmap_insert(&cache->hm, key, (int32) ((uintptr_t) ast - (uintptr_t) cache->data));
+    // The AST internally references the the appropriate sections in the template
+    // @question Why though? shouldn't we store the template now also in AST form for better size usuage?
+    perfect_hashmap_insert(&cache->hm, key, str);
+}
+
+void html_template_build_iter(const char* path, va_list args) {
+    RingMemory* ring = va_arg(args, RingMemory*);
+
+    char full_path[MAX_PATH];
+    relative_to_absolute(path, full_path);
+
+    FileBody in = {};
+    file_read(full_path, &in, ring);
+
+    FileBody out = {
+        .size = 0,
+        .content = ring_get_memory(ring, in.size * 2, 64)
+    };
+
+    html_template_build(&in, &out);
+
+    // @todo save out
 }
 
 void html_template_cache_iter(const char* path, va_list args) {
@@ -118,7 +145,6 @@ void html_template_cache_iter(const char* path, va_list args) {
 
     FileBody file = {};
     file_read(full_path, &file, ring);
-
     html_template_cache_load(cache, path, (const char *) file.content);
 }
 

@@ -46,54 +46,6 @@ int32 coms_pthread_detach(coms_pthread_t thread)
     return 0;
 }
 
-inline
-int32 mutex_init(mutex* mutex, mutexattr_t*)
-{
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    InitializeCriticalSection(mutex);
-
-    return 0;
-}
-
-inline
-int32 mutex_destroy(mutex* mutex)
-{
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    DeleteCriticalSection(mutex);
-
-    return 0;
-}
-
-inline
-int32 mutex_lock(mutex* mutex)
-{
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    EnterCriticalSection(mutex);
-
-    return 0;
-}
-
-inline
-int32 mutex_unlock(mutex* mutex)
-{
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    LeaveCriticalSection(mutex);
-
-    return 0;
-}
-
 // WARNING: We don't support windows events since they are much slower than conditional variables/mutexes
 inline
 int32 coms_pthread_cond_init(mutex_cond* cond, coms_pthread_condattr_t*)

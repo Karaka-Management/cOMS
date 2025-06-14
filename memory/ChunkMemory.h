@@ -44,7 +44,7 @@ void chunk_alloc(ChunkMemory* buf, uint32 count, uint32 chunk_size, int32 alignm
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
-    LOG_1("Allocating ChunkMemory");
+    LOG_1("[INFO] Allocating ChunkMemory");
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
@@ -353,7 +353,7 @@ void chunk_free_elements(ChunkMemory* buf, uint64 element, uint32 element_count 
 inline
 int64 chunk_dump(const ChunkMemory* buf, byte* data)
 {
-    LOG_1("Dump ChunkMemory");
+    LOG_1("[INFO] Dump ChunkMemory");
     byte* start = data;
 
     // Count
@@ -381,7 +381,7 @@ int64 chunk_dump(const ChunkMemory* buf, byte* data)
     memcpy(data, buf->memory, buf->size);
     data += buf->size;
 
-    LOG_1("Dumped ChunkMemory: %n B", {{LOG_DATA_UINT64, (void *) &buf->size}});
+    LOG_1("[INFO] Dumped ChunkMemory: %n B", {{LOG_DATA_UINT64, (void *) &buf->size}});
 
     return data - start;
 }
@@ -389,7 +389,7 @@ int64 chunk_dump(const ChunkMemory* buf, byte* data)
 inline
 int64 chunk_load(ChunkMemory* buf, const byte* data)
 {
-    LOG_1("Loading ChunkMemory");
+    LOG_1("[INFO] Loading ChunkMemory");
 
     // Count
     buf->count = SWAP_ENDIAN_LITTLE(*((uint32 *) data));
@@ -416,7 +416,7 @@ int64 chunk_load(ChunkMemory* buf, const byte* data)
 
     buf->free = (uint64 *) (buf->memory + buf->count * buf->chunk_size);
 
-    LOG_1("Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_1("[INFO] Loaded ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 
     return buf->size;
 }

@@ -47,7 +47,7 @@ void ring_alloc(RingMemory* ring, uint64 size, uint32 alignment = 64)
 {
     ASSERT_SIMPLE(size);
     PROFILE(PROFILE_RING_ALLOC, NULL, false, true);
-    LOG_1("Allocating RingMemory: %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_1("[INFO] Allocating RingMemory: %n B", {{LOG_DATA_UINT64, &size}});
 
     ring->memory = alignment < 2
         ? (byte *) platform_alloc(size)

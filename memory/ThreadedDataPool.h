@@ -36,7 +36,7 @@ struct ThreadedDataPool {
     // This is a bit field that specifies which elements in the data pool are currently in use
     alignas(8) atomic_64 uint64* used;
 
-    mutex mutex;
+    mutex mtx;
 };
 
 // INFO: A chunk count of 2^n is recommended for maximum performance

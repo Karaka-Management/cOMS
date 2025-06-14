@@ -10,13 +10,13 @@
 #define COMS_JINGGA_HTTP_HEADER_H
 
 #include "../stdlib/Types.h"
-#include "HttpHeaderKey.h"
+#include "header/HttpHeaderKey.h"
 
-struct HttpHeader {
+struct HttpHeaderElement {
     HttpHeaderKey key;
-    byte value_length;
 
     uint16 value_offset;
+    uint16 value_length;
 };
 
 #endif

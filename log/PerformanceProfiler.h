@@ -156,7 +156,7 @@ struct PerformanceProfiler {
         if (this->auto_log) {
             if (this->info_msg && this->info_msg[0]) {
                 LOG_2(
-                    "-PERF %s (%s): %n cycles",
+                    "[PERF] %s (%s): %n cycles",
                     {
                         {LOG_DATA_CHAR_STR, (void *) perf->name},
                         {LOG_DATA_CHAR_STR, (void *) this->info_msg},
@@ -165,7 +165,7 @@ struct PerformanceProfiler {
                 );
             } else {
                 LOG_2(
-                    "-PERF %s: %n cycles",
+                    "[PERF] %s: %n cycles",
                     {
                         {LOG_DATA_CHAR_STR, (void *) perf->name},
                         {LOG_DATA_INT64, (void *) &perf->total_cycle},

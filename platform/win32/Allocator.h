@@ -34,7 +34,7 @@ void* platform_alloc(size_t size)
     void* ptr = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     DEBUG_MEMORY_INIT((uintptr_t) ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
-    LOG_3("Allocated %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_3("[INFO] Allocated %n B", {{LOG_DATA_UINT64, &size}});
 
     return ptr;
 }
@@ -60,7 +60,7 @@ void* platform_alloc_aligned(size_t size, int32 alignment)
 
     DEBUG_MEMORY_INIT((uintptr_t) aligned_ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
-    LOG_3("Aligned allocated %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_3("[INFO] Aligned allocated %n B", {{LOG_DATA_UINT64, &size}});
 
     return aligned_ptr;
 }
@@ -98,7 +98,7 @@ void* platform_shared_alloc(HANDLE* fd, const char* name, size_t size)
 
     DEBUG_MEMORY_INIT((uintptr_t) shm_ptr, size);
     LOG_INCREMENT_BY(DEBUG_COUNTER_MEM_ALLOC, size);
-    LOG_3("Shared allocated %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_3("[INFO] Shared allocated %n B", {{LOG_DATA_UINT64, &size}});
 
     return shm_ptr;
 }
@@ -111,7 +111,7 @@ void* platform_shared_open(HANDLE* fd, const char* name, size_t size)
 
     void* shm_ptr = MapViewOfFile(*fd, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, (DWORD) size);
     ASSERT_SIMPLE(shm_ptr);
-    LOG_3("Shared opened %n B", {{LOG_DATA_UINT64, &size}});
+    LOG_3("[INFO] Shared opened %n B", {{LOG_DATA_UINT64, &size}});
 
     return shm_ptr;
 }

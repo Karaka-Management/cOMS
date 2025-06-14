@@ -28,4 +28,10 @@ struct HttpUri {
 
     uint16 port;
 };
+
+FORCE_INLINE
+const char* http_uri_path_get(const HttpUri* uri, const char* base) {
+    return base + uri->path_offset;
+}
+
 #endif

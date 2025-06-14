@@ -18,9 +18,18 @@
 
 typedef void (*ThreadPoolJobFunc)(void*);
 
+enum PoolWorkerState : int32 {
+    POOL_WORKER_STATE_CANCEL = -1,
+    POOL_WORKER_STATE_COMPLETED = 0,
+    POOL_WORKER_STATE_WAITING = 1,
+    POOL_WORKER_STATE_RUNNING = 2
+};
+
+// @performance Could we reduce the size of PoolWorker by reducing atomic_32 to atomic_16?
+//  I don't think so because ThreadPoolJobFunc should be 8 bytes
 struct PoolWorker {
     alignas(4) atomic_32 int32 id;
-    alignas(4) atomic_32 int32 state;
+    alignas(4) atomic_32 PoolWorkerState state;
     ThreadPoolJobFunc func;
     ThreadPoolJobFunc callback;
 };

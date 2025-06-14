@@ -33,7 +33,7 @@ struct ThreadPool {
     int32 size;
     int32 element_size;
 
-    // 0 = down, 1 = shutting down, 2 = running
+    // 1 = waiting for run, 2 = running, 0 = completed, -1 = canceling
     alignas(4) atomic_32 int32 state;
     alignas(4) atomic_32 int32 id_counter;
 
@@ -58,7 +58,7 @@ THREAD_RETURN thread_pool_worker(void* arg)
     }
 
     // @bug Why doesn't this work? There must be some threading issue
-    LOG_2("Thread pool worker starting up");
+    LOG_2("[INFO] Thread pool worker starting up");
     LOG_INCREMENT(DEBUG_COUNTER_THREAD);
 
     PoolWorker* work;
@@ -78,28 +78,28 @@ THREAD_RETURN thread_pool_worker(void* arg)
         // We define a queue element as free based on it's id
         // So even if we "keep" it in the queue the pool will not overwrite it as long as the id > 0 (see pool_add)
         // This is only a ThreadPool specific queue behavior to avoid additional memory copy
-        // @bug this needs to be a threaded queue
         work = (PoolWorker *) queue_dequeue_keep(&pool->work_queue);
         mutex_unlock(&pool->work_mutex);
 
-        if (!work) {
+        // When the worker functions of the thread pool get woken up it is possible that the work is already dequeued
+        // by another thread -> we need to check if the work is actually valid
+        if (work->state <= POOL_WORKER_STATE_COMPLETED || work->id <= 0) {
+            atomic_set_release((volatile int32*) &work->state, POOL_WORKER_STATE_COMPLETED);
             continue;
         }
 
         atomic_increment_release(&pool->working_cnt);
-        atomic_set_release(&work->state, 2);
-        LOG_2("ThreadPool worker started");
+        atomic_set_release((volatile int32*) &work->state, POOL_WORKER_STATE_RUNNING);
+        LOG_3("ThreadPool worker started");
         work->func(work);
-        LOG_2("ThreadPool worker ended");
-        atomic_set_release(&work->state, 1);
+        LOG_3("ThreadPool worker ended");
+
+        // @question Do I really need state and id both? seems like setting one should be sufficient
+        // Obviously we would also have to change thread_pool_add_work to check for state instead of id
+        atomic_set_release((volatile int32*) &work->state, POOL_WORKER_STATE_COMPLETED);
 
         if (work->callback) {
             work->callback(work);
-        }
-
-        // Job gets marked after completion -> can be overwritten now
-        if (atomic_get_relaxed(&work->id) == -1) {
-            atomic_set_release(&work->id, 0);
         }
 
         atomic_decrement_release(&pool->working_cnt);
@@ -115,7 +115,7 @@ THREAD_RETURN thread_pool_worker(void* arg)
     atomic_decrement_release(&pool->thread_cnt);
     coms_pthread_cond_signal(&pool->working_cond);
 
-    LOG_2("Thread pool worker shutting down");
+    LOG_2("[INFO] Thread pool worker shutting down");
     LOG_DECREMENT(DEBUG_COUNTER_THREAD);
 
     return (THREAD_RETURN) NULL;
@@ -130,7 +130,7 @@ void thread_pool_alloc(
 ) {
     PROFILE(PROFILE_THREAD_POOL_ALLOC);
     LOG_1(
-        "Allocating thread pool with %d threads and %d queue length",
+        "[INFO] Allocating thread pool with %d threads and %d queue length",
         {
             {LOG_DATA_INT32, &thread_count},
             {LOG_DATA_INT32, &worker_count}
@@ -156,7 +156,7 @@ void thread_pool_alloc(
         coms_pthread_detach(thread);
     }
 
-    LOG_2("%d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
+    LOG_2("[INFO] %d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
 }
 
 void thread_pool_create(
@@ -195,7 +195,7 @@ void thread_pool_create(
         coms_pthread_detach(thread);
     }
 
-    LOG_2("%d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
+    LOG_2("[INFO] %d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
 }
 
 void thread_pool_wait(ThreadPool* pool)
@@ -232,14 +232,17 @@ PoolWorker* thread_pool_add_work(ThreadPool* pool, const PoolWorker* job)
 {
     mutex_lock(&pool->work_mutex);
     PoolWorker* temp_job = (PoolWorker *) ring_get_memory_nomove((RingMemory *) &pool->work_queue, pool->element_size, 8);
-    if (atomic_get_relaxed(&temp_job->id) > 0) {
+
+    if (atomic_get_relaxed((volatile int32*) &temp_job->state) > POOL_WORKER_STATE_COMPLETED) {
         mutex_unlock(&pool->work_mutex);
-        ASSERT_SIMPLE(temp_job->id == 0);
+        ASSERT_SIMPLE(temp_job->state <= POOL_WORKER_STATE_COMPLETED);
 
         return NULL;
     }
 
     memcpy(temp_job, job, pool->element_size);
+    temp_job->state = POOL_WORKER_STATE_WAITING;
+
     ring_move_pointer((RingMemory *) &pool->work_queue, &pool->work_queue.head, pool->element_size, 8);
 
     if (temp_job->id == 0) {
@@ -259,9 +262,9 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
     mutex_lock(&pool->work_mutex);
 
     PoolWorker* temp_job = (PoolWorker *) queue_enqueue_start(&pool->work_queue);
-    if (atomic_get_relaxed(&temp_job->id) > 0) {
+    if (atomic_get_relaxed((volatile int32*) &temp_job->state) > POOL_WORKER_STATE_COMPLETED) {
         mutex_unlock(&pool->work_mutex);
-        ASSERT_SIMPLE(temp_job->id == 0);
+        ASSERT_SIMPLE(temp_job->state <= POOL_WORKER_STATE_COMPLETED);
 
         return NULL;
     }
@@ -270,6 +273,8 @@ PoolWorker* thread_pool_add_work_start(ThreadPool* pool)
         // +1 because otherwise the very first job would be id = 0 which is not a valid id
         temp_job->id = atomic_fetch_add_acquire(&pool->id_counter, 1) + 1;
     }
+
+    temp_job->state = POOL_WORKER_STATE_WAITING;
 
     return temp_job;
 }

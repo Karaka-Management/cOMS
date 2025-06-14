@@ -23,16 +23,6 @@
 #include "ThreadDefines.h"
 #include "Atomic.h"
 
-FORCE_INLINE
-int32 futex_wait(volatile int32* futex, int32 val) {
-    return syscall(SYS_futex, futex, FUTEX_WAIT, val, NULL, NULL, 0);
-}
-
-FORCE_INLINE
-int32 futex_wake(volatile int32* futex, int32 n) {
-    return syscall(SYS_futex, futex, FUTEX_WAKE, n, NULL, NULL, 0);
-}
-
 inline
 int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_routine, void* arg) {
     if (thread == NULL || start_routine == NULL) {
@@ -48,7 +38,7 @@ int32 coms_pthread_create(coms_pthread_t* thread, void*, ThreadJobFunc start_rou
     thread->h = clone((int32 (*)(void*))start_routine, (void *) ((uintptr_t) thread->stack + stack_size), flags, arg);
 
     if (thread->h == -1) {
-        LOG_1("Thread creation faild with error %d", {{LOG_DATA_INT32, &errno}});
+        LOG_1("Thread creation faild");
 
         return 1;
     }
@@ -70,41 +60,6 @@ int32 coms_pthread_join(coms_pthread_t thread, void** retval) {
 FORCE_INLINE
 int32 coms_pthread_detach(coms_pthread_t) {
     // In Linux, threads are automatically detached when they exit.
-    return 0;
-}
-
-FORCE_INLINE
-int32 mutex_init(mutex* mutex, mutexattr_t*) {
-    return mutex == NULL ? 1 : 0;
-}
-
-FORCE_INLINE
-int32 mutex_destroy(mutex* mutex) {
-    return mutex == NULL ? 1 : 0;
-}
-
-inline
-int32 mutex_lock(mutex* mutex) {
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    while (atomic_fetch_set_acquire(&mutex->futex, 1) != 0) {
-        futex_wait(&mutex->futex, 1);
-    }
-
-    return 0;
-}
-
-inline
-int32 mutex_unlock(mutex* mutex) {
-    if (mutex == NULL) {
-        return 1;
-    }
-
-    atomic_set_release(&mutex->futex, 0);
-    futex_wake(&mutex->futex, 1);
-
     return 0;
 }
 

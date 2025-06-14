@@ -28,6 +28,9 @@ struct SocketConnection {
     socketid sd;
     sockaddr_in6 addr;
     uint16 port;
+
+    // used for epoll
+    int32 fd;
 };
 
 #endif

@@ -14,6 +14,8 @@
 #include "../utils/TestUtils.h"
 #include "../utils/TimeUtils.h"
 
+// PERFORMANCE: Approx. 4x faster than rand()
+inline
 uint32 rand_fast(uint32* state) {
     static const uint32 z = 0x9E3779B9;
     uint32 x = *state;
@@ -29,6 +31,7 @@ uint32 rand_fast(uint32* state) {
     return x;
 }
 
+inline
 uint64 rand_fast(uint64* state) {
     static const uint64 z = 0x9FB21C651E98DF25;
     uint64 x = *state;
@@ -42,6 +45,10 @@ uint64 rand_fast(uint64* state) {
     *state = x;
 
     return x;
+}
+
+uint32 rand_fast(uint32* state, int32 max) {
+    return (uint32) (((uint64) rand_fast(state) * max) >> 32);
 }
 
 /**

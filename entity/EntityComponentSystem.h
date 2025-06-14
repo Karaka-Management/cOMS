@@ -54,7 +54,7 @@ void ecs_entity_type_create(ChunkMemory* ec, BufferMemory* buf, int32 chunk_size
     ASSERT_SIMPLE(chunk_size);
 
     chunk_init(ec, buf, count, chunk_size, 64);
-    //mutex_init(&ec->mutex, NULL);
+    //mutex_init(&ec->mtx, NULL);
 }
 
 inline
@@ -63,7 +63,7 @@ void ecs_component_type_create(ChunkMemory* ec, BufferMemory* buf, int32 chunk_s
     ASSERT_SIMPLE(chunk_size);
 
     chunk_init(ec, buf, count, chunk_size, 64);
-    //mutex_init(&ec->mutex, NULL);
+    //mutex_init(&ec->mtx, NULL);
 }
 
 Entity* ecs_get_entity(EntityComponentSystem* ecs, int32 entity_id)

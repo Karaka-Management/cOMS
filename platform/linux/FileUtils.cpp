@@ -160,7 +160,7 @@ FileHandle file_append_handle(const char* path) {
 }
 
 inline
-bool file_exists(const char* path) {
+bool file_exists(const char* path) noexcept {
     PROFILE(PROFILE_FILE_UTILS, path, false, true);
 
     struct stat buffer;
@@ -390,14 +390,13 @@ FileHandle file_read_handle(const char* path) {
     }
 
     if (fd == -1) {
-        perror("open");
         return -1;
     }
 
     return fd;
 }
 
-inline
+FORCE_INLINE
 void file_close_handle(FileHandle fp)
 {
     close(fp);

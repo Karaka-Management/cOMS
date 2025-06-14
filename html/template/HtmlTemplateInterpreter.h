@@ -270,10 +270,10 @@ bool html_template_condition_eval(HtmlTemplateASTNode *node, HtmlTemplateContext
 
 // @todo should take in a buffer for template output
 int32 html_template_interpret(
-    HtmlTemplateASTNode *node,
+    HtmlTemplateASTNode* node,
     char* buffer,
     int32 buffer_size,
-    HtmlTemplateContextStack *context_stack
+    HtmlTemplateContextStack* context_stack
 ) {
     int32 out_length = 0;
 

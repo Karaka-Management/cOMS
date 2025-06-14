@@ -22,4 +22,19 @@ enum HttpMethod : byte {
 
 typedef HttpMethod HttpVerb;
 
+const char* http_method_text(HttpMethod method) {
+    switch (method) {
+        case HTTP_METHOD_GET:
+            return "GET";
+        case HTTP_METHOD_POST:
+            return "POST";
+        case HTTP_METHOD_PUT:
+            return "PUT";
+        case HTTP_METHOD_DELETE:
+            return "DELETE";
+        default:
+            UNREACHABLE();
+    }
+}
+
 #endif

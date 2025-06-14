@@ -26,12 +26,12 @@
 
 void thread_create(Worker* worker, ThreadJobFunc routine, void* arg)
 {
-    LOG_1("Thread starting");
+    LOG_1("[INFO] Thread starting");
 
     coms_pthread_create(&worker->thread, NULL, routine, arg);
 
     LOG_INCREMENT(DEBUG_COUNTER_THREAD);
-    LOG_2("%d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
+    LOG_2("[INFO] %d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
 }
 
 void thread_stop(Worker* worker)
@@ -39,9 +39,9 @@ void thread_stop(Worker* worker)
     atomic_set_release(&worker->state, 0);
     coms_pthread_join(worker->thread, NULL);
 
-    LOG_1("Thread ended");
+    LOG_1("[INFO] Thread ended");
     LOG_DECREMENT(DEBUG_COUNTER_THREAD);
-    LOG_2("%d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
+    LOG_2("[INFO] %d threads running", {{LOG_DATA_INT64, (void *) &_stats_counter[DEBUG_COUNTER_THREAD]}});
 }
 
 #endif

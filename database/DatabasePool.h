@@ -34,7 +34,7 @@ struct DatabasePool {
 void db_pool_alloc(DatabasePool* pool, uint8 count) {
     ASSERT_SIMPLE(count);
     PROFILE(PROFILE_DB_POOL_ALLOC, NULL, false, true);
-    LOG_1("Allocating DatabasePool for %d connections", {{LOG_DATA_BYTE, &count}});
+    LOG_1("[INFO] Allocating DatabasePool for %d connections", {{LOG_DATA_BYTE, &count}});
 
     uint64 size = count * sizeof(DatabaseConnection)
         + sizeof(uint64) * CEIL_DIV(count, 64) // free
@@ -51,7 +51,7 @@ void db_pool_add(DatabasePool* __restrict pool, DatabaseConnection* __restrict d
 }
 
 void db_pool_free(DatabasePool* pool) {
-    LOG_1("Freeing DatabasePool");
+    LOG_1("[INFO] Freeing DatabasePool");
 
     for (int32 i = 0; i < pool->count; ++i) {
         db_close(&pool->connections[i]);

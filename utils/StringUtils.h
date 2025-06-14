@@ -1168,11 +1168,12 @@ bool str_contains(const char* __restrict haystack, const char* __restrict needle
     while (*haystack != '\0' && length > 0) {
         const char* p1 = haystack;
         const char* p2 = needle;
+        size_t remaining = length;
 
-        while (*p1 != '\0' && *p2 != '\0' && *p1 == *p2) {
+        while (*p2 != '\0' && remaining > 0 && *p1 == *p2) {
             ++p1;
             ++p2;
-            --length;
+            --remaining;
         }
 
         if (*p2 == '\0') {
@@ -1691,6 +1692,33 @@ int32 float_to_str(f64 value, char* buffer, int32 precision = 5) noexcept
 }
 
 inline
+void format_time_hh_mm_ss_ms(char time_str[13], int32 hours, int32 minutes, int32 secs, int32 ms) noexcept {
+    time_str[0] = (char) ('0' + (hours / 10));
+    time_str[1] = (char) ('0' + (hours % 10));
+    time_str[2] = ':';
+    time_str[3] = (char) ('0' + (minutes / 10));
+    time_str[4] = (char) ('0' + (minutes % 10));
+    time_str[5] = ':';
+    time_str[6] = (char) ('0' + (secs / 10));
+    time_str[7] = (char) ('0' + (secs % 10));
+    time_str[8] = '.';
+    time_str[9] = (char) ('0' + (ms / 100));
+    time_str[10] = (char) ('0' + ((ms / 10) % 10));
+    time_str[11] = (char) ('0' + (ms % 10));
+    time_str[12] = '\0';
+}
+
+inline
+void format_time_hh_mm_ss_ms(char time_str[13], uint64 ms) noexcept {
+    uint64 seconds = ms / 1000;
+    int32 hours = (seconds / 3600) % 24;
+    int32 minutes = (seconds / 60) % 60;
+    int32 secs = seconds % 60;
+
+    format_time_hh_mm_ss_ms(time_str, hours, minutes, secs, ms % 1000);
+}
+
+inline
 void format_time_hh_mm_ss(char time_str[9], int32 hours, int32 minutes, int32 secs) noexcept {
     time_str[0] = (char) ('0' + (hours / 10));
     time_str[1] = (char) ('0' + (hours % 10));
@@ -1704,10 +1732,10 @@ void format_time_hh_mm_ss(char time_str[9], int32 hours, int32 minutes, int32 se
 }
 
 inline
-void format_time_hh_mm_ss(char time_str[9], uint64 time) noexcept {
-    int32 hours = (time / 3600) % 24;
-    int32 minutes = (time / 60) % 60;
-    int32 secs = time % 60;
+void format_time_hh_mm_ss(char time_str[9], uint64 seconds) noexcept {
+    int32 hours = (seconds / 3600) % 24;
+    int32 minutes = (seconds / 60) % 60;
+    int32 secs = seconds % 60;
 
     format_time_hh_mm_ss(time_str, hours, minutes, secs);
 }
@@ -1723,9 +1751,9 @@ void format_time_hh_mm(char time_str[6], int32 hours, int32 minutes) noexcept {
 }
 
 inline
-void format_time_hh_mm(char time_str[6], uint64 time) noexcept {
-    int32 hours = (time / 3600) % 24;
-    int32 minutes = (time / 60) % 60;
+void format_time_hh_mm(char time_str[6], uint64 seconds) noexcept {
+    int32 hours = (seconds / 3600) % 24;
+    int32 minutes = (seconds / 60) % 60;
 
     format_time_hh_mm(time_str, hours, minutes);
 }
@@ -1804,7 +1832,7 @@ void sprintf_fast(char* __restrict buffer, const char* __restrict format, ...) n
     va_end(args);
 }
 
-void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __restrict format, ...) noexcept {
+int32 sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __restrict format, ...) noexcept {
     va_list args;
     va_start(args, format);
 
@@ -1883,6 +1911,8 @@ void sprintf_fast(char* __restrict buffer, int32 buffer_length, const char* __re
 
     *buffer = '\0';
     va_end(args);
+
+    return length - 1;
 }
 
 // There are situations where you only want to replace a certain amount of %

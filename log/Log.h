@@ -12,6 +12,7 @@
 #include "../stdlib/Types.h"
 #include "../compiler/CompilerUtils.h"
 #include "../architecture/Intrinsics.h"
+#include "../thread/ThreadDefines.h"
 #include "../utils/StringUtils.h"
 #include "../utils/TimeUtils.h"
 
@@ -60,6 +61,9 @@ struct LogMemory {
 
     uint64 size;
     uint64 pos;
+
+    // @performance Should I use spinlock?
+    mutex mtx;
 };
 static LogMemory* _log_memory = NULL;
 
@@ -102,7 +106,6 @@ struct LogDataArray{
     LogData data[LOG_DATA_ARRAY];
 };
 
-// @bug This needs to be thread safe
 byte* log_get_memory() noexcept
 {
     if (_log_memory->pos + MAX_LOG_LENGTH > _log_memory->size) {
@@ -118,7 +121,6 @@ byte* log_get_memory() noexcept
 }
 
 // @performance This should only be called async to avoid blocking (e.g. render loop)
-// @bug This needs to be thread safe
 void log_to_file()
 {
     // we don't log an empty log pool
@@ -156,16 +158,19 @@ void log_flush()
         return;
     }
 
+    mutex_lock(&_log_memory->mtx);
     log_to_file();
     _log_memory->pos = 0;
+    mutex_unlock(&_log_memory->mtx);
 }
 
-// @bug This needs to be thread safe
 void log(const char* str, const char* file, const char* function, int32 line)
 {
     if (!_log_memory) {
         return;
     }
+
+    mutex_lock(&_log_memory->mtx);
 
     int32 len = str_length(str);
     while (len > 0) {
@@ -188,8 +193,8 @@ void log(const char* str, const char* file, const char* function, int32 line)
 
         #if DEBUG || VERBOSE
             // In debug mode we always output the log message to the debug console
-            char time_str[9];
-            format_time_hh_mm_ss(time_str, msg->time / 1000000ULL);
+            char time_str[13];
+            format_time_hh_mm_ss_ms(time_str, msg->time / 1000ULL);
             compiler_debug_print(time_str);
             compiler_debug_print(" ");
             compiler_debug_print(msg->message);
@@ -201,9 +206,10 @@ void log(const char* str, const char* file, const char* function, int32 line)
             _log_memory->pos = 0;
         }
     }
+
+    mutex_unlock(&_log_memory->mtx);
 }
 
-// @bug This needs to be thread safe
 void log(const char* format, LogDataArray data, const char* file, const char* function, int32 line)
 {
     if (!_log_memory) {
@@ -216,6 +222,8 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
     }
 
     ASSERT_SIMPLE(str_length(format) + str_length(file) + str_length(function) + 50 < MAX_LOG_LENGTH);
+
+    mutex_lock(&_log_memory->mtx);
 
     LogMessage* msg = (LogMessage *) log_get_memory();
     msg->file = file;
@@ -279,8 +287,8 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
 
     #if DEBUG || VERBOSE
         // In debug mode we always output the log message to the debug console
-        char time_str[9];
-        format_time_hh_mm_ss(time_str, msg->time / 1000000ULL);
+        char time_str[13];
+        format_time_hh_mm_ss_ms(time_str, msg->time / 1000ULL);
         compiler_debug_print(time_str);
         compiler_debug_print(" ");
         compiler_debug_print(msg->message);
@@ -291,6 +299,8 @@ void log(const char* format, LogDataArray data, const char* file, const char* fu
         log_to_file();
         _log_memory->pos = 0;
     }
+
+    mutex_unlock(&_log_memory->mtx);
 }
 
 #define LOG_TO_FILE() log_to_file()

@@ -40,7 +40,7 @@ void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size,
     ASSERT_SIMPLE(chunk_size);
     ASSERT_SIMPLE(count);
     PROFILE(PROFILE_CHUNK_ALLOC, NULL, false, true);
-    LOG_1("Allocating ChunkMemory");
+    LOG_1("[INFO] Allocating ChunkMemory");
 
     chunk_size = ROUND_TO_NEAREST(chunk_size, alignment);
 
@@ -66,7 +66,7 @@ void thrd_chunk_alloc(ThreadedChunkMemory* buf, uint32 count, uint32 chunk_size,
     memset(buf->memory, 0, buf->size);
     mutex_init(&buf->lock, NULL);
 
-    LOG_1("Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
+    LOG_1("[INFO] Allocated ChunkMemory: %n B", {{LOG_DATA_UINT64, &buf->size}});
 }
 
 inline
@@ -280,6 +280,7 @@ void thrd_chunk_free_elements(ThreadedChunkMemory* buf, uint64 element, uint32 e
     DEBUG_MEMORY_DELETE((uintptr_t) (buf->memory + element * buf->chunk_size), buf->chunk_size);
 }
 
+// @performance We can optimize it by checking if we can just append additional chunks if they are free
 inline
 int32 thrd_chunk_resize(ThreadedChunkMemory* buf, int32 element_id, uint32 elements_old, uint32 elements_new) noexcept
 {
@@ -289,6 +290,11 @@ int32 thrd_chunk_resize(ThreadedChunkMemory* buf, int32 element_id, uint32 eleme
     byte* data_new = thrd_chunk_get_element(buf, chunk_id);
 
     memcpy(data_new, data, buf->chunk_size * elements_old);
+
+    // @see performance remark above
+    //if (element_id != chunk_id) {
+        thrd_chunk_free_elements(buf, element_id, elements_old);
+    //}
 
     return chunk_id;
 }

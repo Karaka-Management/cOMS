@@ -29,7 +29,7 @@ struct AppCmdBuffer {
     ChunkMemory commands;
     int32 last_element;
 
-    mutex mutex;
+    mutex mtx;
 
     // Application data for cmd access
     // The list below depends on what kind of systems our command buffer needs access to
