@@ -14,6 +14,7 @@
 #include <windows.h>
 
 #define THREAD_RETURN DWORD WINAPI
+#define THREAD_RETURN_BODY DWORD
 typedef DWORD (WINAPI *ThreadJobFunc)(void*);
 typedef CRITICAL_SECTION mutex;
 typedef void mutexattr_t;

@@ -1165,7 +1165,7 @@ bool str_contains(const char* __restrict haystack, const char* __restrict needle
 inline constexpr
 bool str_contains(const char* __restrict haystack, const char* __restrict needle, size_t length) noexcept
 {
-    while (*haystack != '\0' && length > 0) {
+    while (*haystack != '\0' || length > 0) {
         const char* p1 = haystack;
         const char* p2 = needle;
         size_t remaining = length;

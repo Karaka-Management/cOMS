@@ -251,11 +251,8 @@ HttpRequest* http_request_create(ThreadedChunkMemory* mem)
     request->size = request_buffer_count;
     request->protocol = HTTP_PROTOCOL_1_1;
 
-    // Create content length placehoder, this header element is always required
-    http_header_value_set(&request, HTTP_HEADER_KEY_CONTENT_LENGTH, "           ", mem);
-
     // Prepare the chunked sub-regions
-    request->header_available_count = 16;
+    request->header_available_count = 25;
     request->header_available_size = 4 * 256 * sizeof(char);
     request->body_offset = request->header_available_count * sizeof(HttpHeaderElement) + request->header_available_size;
 
@@ -266,6 +263,22 @@ HttpRequest* http_request_create(ThreadedChunkMemory* mem)
     */
 
     return request;
+}
+
+FORCE_INLINE
+void http_request_free(HttpRequest** request, ThreadedChunkMemory* mem)
+{
+    thrd_chunk_free_elements(mem, (*request)->id, (*request)->size);
+    *request = NULL;
+}
+
+inline
+uint32 http_request_free_body_space(const HttpRequest* request, ThreadedChunkMemory* mem)
+{
+    return request->size * mem->chunk_size
+        - request->body_offset
+        - request->body_used_size
+        - sizeof(HttpRequest);
 }
 
 inline
@@ -356,30 +369,36 @@ void http_header_parse(HttpRequest** http_request, const char* request, Threaded
         http_req->method = HTTP_METHOD_UNKNOWN;
     }
 
+    // @bug the uri offsets are wrong (they miss the header elements)
+    // however, if we put them after the header elements we would also have to grow this if we ever need to grow the heder element array
+
+    int32 header_count_bytes = http_req->header_available_count * sizeof(HttpHeaderElement);
+
     // Parse reuqest path
     str_move_past(&request, ' ');
-    http_req->uri.path_offset = request - request_start;
+    http_req->uri.path_offset = request - request_start + header_count_bytes;
 
     str_skip_until_list(&request, ":?# ");
-    http_req->uri.path_length = (request - request_start) - http_req->uri.path_offset;
+    http_req->uri.path_length = (request - request_start + header_count_bytes) - http_req->uri.path_offset;
 
     // Parse port
     if (*request == ':') {
         http_req->uri.port = (uint16) str_to_int(request, &request);
+        str_skip_until_list(&request, "?# ");
     }
 
     // Parse query parameters
     if (*request == '?') {
-        http_req->uri.parameter_offset = request - request_start;
+        http_req->uri.parameter_offset = request - request_start + header_count_bytes;
         str_skip_until_list(&request, "# ");
         //http_req->uri.parameter_length = (request - request_start) - http_req->uri.parameter_offset;
     }
 
     // Parse fragment
     if (*request == '#') {
-        http_req->uri.fragment_offset = request - request_start;
+        http_req->uri.fragment_offset = request - request_start + header_count_bytes;
         str_move_to(&request, ' ');
-        http_req->uri.fragment_length = (request - request_start) - http_req->uri.fragment_offset;
+        http_req->uri.fragment_length = (request - request_start + header_count_bytes) - http_req->uri.fragment_offset;
     }
 
     // Parse protocol
@@ -406,7 +425,53 @@ void http_header_parse(HttpRequest** http_request, const char* request, Threaded
     // Parsing HTTP headers
     //////////////////////////////////////////////////
     // The HTTP headers end with \r\n\r\n (= one empty line/element)
+
+    HttpHeaderElement* elements = (HttpHeaderElement *) (http_req + 1);
+
+    int32 i = 0;
     while (request[0] != '\r' && request[1] != '\n' && request[2] != '\r' && request[3] != '\n') {
+        if (i >= http_req->header_available_count) {
+            // Ideally this if body almost never gets executed since the initial area is sufficiently large
+            // @todo consider to log actual usage to possibly reduce the size from 50 to maybe 25?
+            http_request_grow(http_request, 1, mem);
+            http_req = *http_request;
+
+            int32 offset = 50 * sizeof(HttpHeaderElement);
+            int32 request_offset = request - request_start;
+
+            // Grow header element area
+            memmove(
+                ((char *) (http_req + 1)) + http_req->body_offset + offset,
+                ((char *) (http_req + 1)) + http_req->body_offset,
+                http_req->header_available_size + http_req->body_used_size
+            );
+
+            // Re-adjust uri as well
+            http_req->uri.path_offset += offset;
+
+            if (http_req->uri.parameter_offset) {
+                http_req->uri.parameter_offset += offset;
+            }
+
+            if (http_req->uri.fragment_offset) {
+                http_req->uri.fragment_offset += offset;
+            }
+
+            // Reset request after moving
+            request = ((char *) (http_req + 1)) + request_offset;
+
+            // Adjust value offsets
+            elements = (HttpHeaderElement *) (http_req + 1);
+            for (int32 j = 0; j < http_req->header_used_count; ++j) {
+                elements[j].value_offset += offset;
+            }
+
+            http_req->body_offset += offset;
+
+            // Reset request start position
+            request_start = ((const char *) (http_req + 1)) + http_req->header_available_count * sizeof(HttpHeaderElement);
+        }
+
         str_move_past(&request, '\n');
         const char* key = request;
 
@@ -415,8 +480,27 @@ void http_header_parse(HttpRequest** http_request, const char* request, Threaded
         const char* value = request;
         str_move_to(&request, '\r');
 
-        http_header_value_set(http_request, http_header_key_text(key), value, mem, request - value);
+        elements[i].key = http_header_key_text(key);
+        elements[i].value_offset = http_req->header_available_count * sizeof(HttpHeaderElement)
+            + ((uintptr_t) value - (uintptr_t) (http_req + 1));
+        elements[i].value_length = request - value;
+
+        ++i;
     }
+
+    http_req->header_used_count = i;
+    http_req->header_available_size = 0;
+    http_req->header_used_size = 0;
+
+    if (i > 0) {
+        // Available size = used size
+        http_req->header_available_size = (request - request_start);
+        http_req->header_used_size = http_req->header_available_size;
+    }
+
+    http_req->body_offset = http_req->header_available_count * sizeof(HttpHeaderElement)
+        + http_req->header_available_size
+        + 4; // skipping \r\n\r\n
 }
 
 void parse_multipart_data(const char *body, const char *boundary) {

@@ -18,6 +18,7 @@
 #include <sys/syscall.h>
 
 #define THREAD_RETURN int32
+#define THREAD_RETURN_BODY int32
 typedef THREAD_RETURN (*ThreadJobFunc)(void*);
 
 struct mutex {

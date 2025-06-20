@@ -221,7 +221,7 @@ void http_header_value_set(
 
         // Set value
         memcpy(((char *) (resp + 1)) + element->value_offset, value, value_length);
-        resp->body_used_size += value_length;
+        // resp->body_used_size += value_length; // @bug Why was this here?
 
         resp->header_used_size += (uint16) value_length;
         ++resp->header_used_count;
@@ -239,11 +239,8 @@ HttpResponse* http_response_create(ThreadedChunkMemory* mem)
     response->protocol = HTTP_PROTOCOL_1_1;
     response->status_code = HTTP_STATUS_CODE_200;
 
-    // Create content length placehoder, this header element is always required
-    http_header_value_set(&response, HTTP_HEADER_KEY_CONTENT_LENGTH, "           ", mem);
-
     // Prepare the chunked sub-regions
-    response->header_available_count = 16;
+    response->header_available_count = 25;
     response->header_available_size = 4 * 256 * sizeof(char);
     response->body_offset = response->header_available_count * sizeof(HttpHeaderElement) + response->header_available_size;
 
@@ -254,6 +251,22 @@ HttpResponse* http_response_create(ThreadedChunkMemory* mem)
     */
 
     return response;
+}
+
+FORCE_INLINE
+void http_response_free(HttpResponse** response, ThreadedChunkMemory* mem)
+{
+    thrd_chunk_free_elements(mem, (*response)->id, (*response)->size);
+    *response = NULL;
+}
+
+inline
+uint32 http_response_free_body_space(const HttpResponse* response, ThreadedChunkMemory* mem)
+{
+    return response->size * mem->chunk_size
+        - response->body_offset
+        - response->body_used_size
+        - sizeof(HttpResponse);
 }
 
 inline
@@ -282,7 +295,11 @@ const char* http_header_value_get(const HttpResponse* response, const HttpHeader
 
 // @todo we need a streamed response version http_response_stream()
 // WARNING: We expect response to already contain a header element called content-length
-void http_response_send(const SocketConnection* __restrict socket, HttpResponse* __restrict response)
+void http_response_send(
+    const SocketConnection* __restrict socket,
+    HttpResponse* __restrict response,
+    ThreadedChunkMemory* mem
+)
 {
     char header[4096];
     char* header_ref;
@@ -293,13 +310,15 @@ void http_response_send(const SocketConnection* __restrict socket, HttpResponse*
     header_ref += str_copy(header_ref, http_protocol_text(response->protocol));
     *header_ref++ = ' ';
 
+    header_ref += int_to_str(response->status_code, header_ref);
+    *header_ref++ = ' ';
     header_ref += str_copy(header_ref, http_status_text(response->status_code));
     *header_ref++ = '\r';
     *header_ref++ = '\n';
 
     char content_length[12];
     int_to_str(response->body_used_size, content_length);
-    http_header_value_set(&response, HTTP_HEADER_KEY_CONTENT_LENGTH, content_length, NULL);
+    http_header_value_set(&response, HTTP_HEADER_KEY_CONTENT_LENGTH, content_length, mem);
 
     const HttpHeaderElement* elements = (HttpHeaderElement *) (response + 1);
 
@@ -308,9 +327,11 @@ void http_response_send(const SocketConnection* __restrict socket, HttpResponse*
         const HttpHeaderElement* element = &elements[i];
 
         header_ref += str_copy(header_ref, http_header_key_text(element->key));
+        *header_ref++ = ':';
         *header_ref++ = ' ';
 
-        memcpy(header_ref, (const char *) elements + element->value_offset, element->value_length);
+        // @bug What if the header array cannot fit the data from the memcpy?
+        memcpy(header_ref, ((const char *) elements) + element->value_offset, element->value_length);
         header_ref += element->value_length;
 
         *header_ref++ = '\r';
@@ -338,7 +359,7 @@ void http_response_send(const SocketConnection* __restrict socket, HttpResponse*
     send(socket->sd, header, header_ref - header, 0);
 
     // Do we have data remaining to be sent?
-    if (response->body_offset && response->body_used_size - body_size_to_add > 0) {
+    if (response->body_used_size - body_size_to_add > 0) {
         // @question Do we need chunked sends?
         send(
             socket->sd,
@@ -365,7 +386,12 @@ void http_response_body_add(HttpResponse** response, const char* __restrict body
         response_body = (char*) (resp + 1);
     }
 
-    memcpy(response_body + resp->body_used_size, body, length);
+    memcpy(
+        response_body + resp->body_offset + resp->body_used_size,
+        body,
+        length
+    );
+
     resp->body_used_size += length;
 }
 
